@@ -1,19 +1,19 @@
 # Changelog
 
-## v0.1.0-test — first public test build (2026-10-16)
+## v0.1.0-test: first public test build (2026-10-16)
 
 First public release of SteamU, exported from the private development tree and published under AGPL-3.0-or-later.
 This is a **test** build: core screens are usable, some are still rough, and parts of the interface remain
 French-only.
 
 ### Included
-- `decky/premium-clear-view/` — the main plugin: home screen, HOME menu, quick settings, Settings → SteamU page,
+- `decky/steamu/`: the main plugin (home screen, HOME menu, quick settings, Settings → SteamU page,
   day/night themes, the plaza, the Mii Maker, a badge-collecting casino, music player with optional synced
-  lyrics, and community theme browsing (ThemePlaza, Themezer).
-- `decky/steamu-led/` — optional companion plugin for Legion Go 2 stick-ring LEDs tied to the active theme.
+  lyrics, and community theme browsing with ThemePlaza and Themezer).
+- `decky/steamu-led/`: optional companion plugin for Legion Go 2 stick-ring LEDs tied to the active theme.
 - A safety net: an L3+R3 emergency stop, automatic safe mode after repeated crashes, a Decky on/off toggle, and
   a scrubbed diagnostic report generator.
-- An import tool for bringing in your own console files (no Nintendo file is bundled — see `ARCHITECTURE.md`).
+- An import tool for bringing in your own console files (no Nintendo file is bundled, see `ARCHITECTURE.md`).
 
 ### Known limitations
 - Built and tuned on a single device (Lenovo Legion Go 2, 1920×1200); other screen sizes may show layout issues.

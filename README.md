@@ -8,8 +8,8 @@ more. It is still labelled `v0.1.0-test`: expect rough edges, and please open an
 This repository ships two plugins, built straight from the private development tree and stripped of comments and
 any personal data before each release (see "Building from source" below):
 
-- **`decky/premium-clear-view/`** — the main plugin (Decky still lists it as "Premium Clear View" for now).
-- **`decky/steamu-led/`** — an optional companion plugin that gives the two stick rings of a Lenovo Legion Go 2
+- **`decky/steamu/`**: the main plugin, listed as "SteamU" in Decky.
+- **`decky/steamu-led/`**: an optional companion plugin that gives the two stick rings of a Lenovo Legion Go 2
   their own colour, tied to the active theme. Not needed on other handhelds.
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how the plugin works internally.
@@ -17,39 +17,44 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how the plugin works internally.
 ## What works out of the box
 
 Grid home screen, HOME menu, quick settings, themes (light/grey/black variants), the music player, notifications,
-and SteamU's own original sounds and music — no extra files needed.
+and SteamU's own original sounds and music. No extra files needed.
 
 ## What needs YOUR OWN files
 
 Real Miis, the Mii Maker, the casino and badges, and Nintendo console sounds all need files that **you** import
-from hardware **you** own. SteamU bundles **no Nintendo file of any kind** — no ROM, no firmware, no sound bank,
+from hardware **you** own. SteamU bundles **no Nintendo file of any kind**: no ROM, no firmware, no sound bank,
 no 3D model. Settings → SteamU → Import explains exactly what it recognises and what is still missing. Importing
 is entirely optional; nothing else depends on it.
 
 ## Install
 
 **Prerequisites**: [Decky Loader](https://decky.xyz) installed, and Steam running in Game Mode / Big Picture
-(that's the UI SteamU themes — it won't do anything in desktop-mode Steam).
+(that's the UI SteamU themes; it won't do anything in desktop-mode Steam).
 
 1. **Enable Decky's Developer mode**: open the Decky menu (the plug icon next to Quick Access) → Settings →
    General → turn on "Developer mode".
 2. **Install the plugin**: still in Decky, open the new Developer tab, then either:
    - **From a zip**: "Install Plugin from ZIP File" → pick `SteamU-v<version>.zip` (built from
-     `decky/premium-clear-view/`, see "Building from source" below, or downloaded from a GitHub Release once one
+     `decky/steamu/`, see "Building from source" below, or downloaded from a GitHub Release once one
      exists); or
    - **From a URL**: "Install from URL" → paste the direct link to the `SteamU-v<version>.zip` asset of a
      GitHub Release.
-   Repeat with `SteamU-LED-Legion-Go-2-v<version>.zip` **only if you have a Lenovo Legion Go 2** and want the LED companion — Decky will ask for
+   Repeat with `SteamU-LED-Legion-Go-2-v<version>.zip` **only if you have a Lenovo Legion Go 2** and want the LED companion. Decky will ask for
    confirmation since it runs as **root**; that's expected and explained in `ARCHITECTURE.md` (§8): it's a tiny,
    separate plugin that only accepts a fixed 12-byte colour message on a local socket, so SteamU itself never
    needs elevated privileges.
 3. **First launch**: restart Steam if the interface doesn't change right away (Steam → Power → Restart Steam, or
    just exit and relaunch).
 
-**Updating**: repeat the install step with the new zip/URL — it replaces the old version in place, no need to
+**Updating**: repeat the install step with the new zip/URL. It replaces the old version in place, no need to
 uninstall first.
 
-**Uninstalling cleanly**: Decky menu → Developer tab (or the plugin list) → remove "Premium Clear View" (and
+**Upgrading from "Premium Clear View"** (SteamU's former name in Decky): install `SteamU-v<version>.zip`, then
+remove "Premium Clear View" in Decky and restart Steam. SteamU copies your imports and settings from the old
+plugin's folders on first start and leaves the old ones untouched as a backup. While both are installed, SteamU
+waits and shows a reminder instead of running on top of the old plugin.
+
+**Uninstalling cleanly**: Decky menu → Developer tab (or the plugin list) → remove "SteamU" (and
 "SteamU LED" if installed). This also removes the startup video SteamU installs; nothing else on your system is
 touched.
 
@@ -57,24 +62,24 @@ touched.
 
 SteamU restyles Steam's Big Picture UI by injecting its own stylesheet and scripts into Steam's windows. Any
 other plugin doing the same thing to the same windows can visually clash with it. SteamU detects the two it
-knows about and shows a one-time notice (Settings → SteamU) when it sees them installed — it never disables
-anything on its own, just tells you:
+knows about and shows a one-time notice (Settings → SteamU) when it sees them installed. It never disables
+anything on its own, it just tells you:
 
 - **CSS Loader (SDH-CssLoader)**: if you have a CSS Loader theme active on Big Picture, turn it off (or disable
-  SteamU) — running both at once gives unpredictable results, not a crash.
+  SteamU): running both at once gives unpredictable results, not a crash.
 - **Game Glance**: its game-page replacement and "Spotlight Home" can cover the same screens as SteamU's game
   page and home screen; turn those off in Game Glance while using SteamU.
-- **Other Big Picture skin/theme plugins or home-screen replacers SteamU doesn't know about yet**: same advice
-  — use one at a time. Please open an issue naming the plugin so it can be added to the detector.
+- **Other Big Picture skin/theme plugins or home-screen replacers SteamU doesn't know about yet**: same advice,
+  use one at a time. Please open an issue naming the plugin so it can be added to the detector.
 
 ## Building from source
 
-Both plugins are plain, unbundled JS/Python — no `npm install` or build step is required. To produce an
+Both plugins are plain, unbundled JS/Python: no `npm install` or build step is required. To produce an
 installable zip from either folder:
 
 ```sh
-cd decky/premium-clear-view   # or decky/steamu-led
-zip -r ../premium-clear-view.zip .
+cd decky
+zip -r SteamU.zip steamu   # or steamu-led
 ```
 
 Decky's "Install plugin from ZIP" expects the plugin folder (containing `plugin.json`) at the root of the zip.
@@ -105,5 +110,5 @@ described in `ARCHITECTURE.md`.
 
 ## License
 
-AGPL-3.0-or-later — see [`LICENSE`](LICENSE). Third-party code bundled for convenience (a DBus client, a
+AGPL-3.0-or-later, see [`LICENSE`](LICENSE). Third-party code bundled for convenience (a DBus client, a
 WebSocket client, a screen-colour sampler) keeps its own license notice in its own files/folder.
