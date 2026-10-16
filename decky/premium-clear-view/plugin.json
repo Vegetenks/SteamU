@@ -1,0 +1,13 @@
+{
+  "name": "Premium Clear View",
+  "author": "Vegetenks",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": [
+      "theme"
+    ],
+    "description": "Wii U-style makeover of the Steam interface: theme, home screen, plaza, store.",
+    "image": ""
+  }
+}

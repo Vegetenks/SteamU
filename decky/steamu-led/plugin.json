@@ -1,0 +1,15 @@
+{
+  "name": "SteamU LED",
+  "author": "SteamU",
+  "flags": [
+    "root"
+  ],
+  "api_version": 1,
+  "publish": {
+    "tags": [
+      "root"
+    ],
+    "description": "SteamU companion: one colour per stick ring on the Legion Go 2.",
+    "image": ""
+  }
+}
