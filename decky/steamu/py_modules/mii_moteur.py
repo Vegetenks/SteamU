@@ -3,7 +3,7 @@ import json, os, re
 AIDES = ("SkeletonScalingExtensions.js", "ModelScaleDesc.js", "BodyUtilities.js")
 SOURCES = "ressources-privees/mii/sources/ffl.js-2.2.2/helpers/"
 ENTETE = ("Aides de FFL.js v2.2.2 pour le corps des Mii (AGPL-3.0-only, Arian Kordi) converties en script classique par\n"
-          "// outils/vrais_mii_vendor.py. PRIVÉ : ressources-privees/ seulement.")
+          "// outils/vrais_mii_vendor.py ou mii_moteur.py (decky/steamu/donnees/mii-moteur/SOURCE.md).")
 
 def convertir(src):
     def imp(m):

@@ -72,8 +72,9 @@
   document.getElementById("pcv-trier")?.remove();
   const trier = document.createElement("button");
   trier.id = "pcv-trier";
-  trier.dataset.pcvNom = "Trier la biblioth\xE8que";
-  trier.innerHTML = "<i></i>Trier";
+  const T = (k, f) => window.__pcvT?.(k) ?? f;
+  trier.dataset.pcvNom = T("biblio.trier_nom", "Trier la biblioth\xE8que");
+  trier.innerHTML = "<i></i>" + T("biblio.trier", "Trier");
   trier.hidden = true;
   trier.onclick = () => {
     try {

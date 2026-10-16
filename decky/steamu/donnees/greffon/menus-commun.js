@@ -438,7 +438,7 @@ window.__pcvPE = (() => {
       else o.touche?.(b, focus);
     };
     window.addEventListener("vgp_onbuttondown", touche, true);
-    let minute = 0, floute = false, vider = 0;
+    let minute = 0, vider = 0;
     let sonne = false;
     const sonMenu = (vu) => {
       if (vu === sonne) return;
@@ -456,10 +456,7 @@ window.__pcvPE = (() => {
       } catch (e) {
       }
       delete h.dataset.pcvPeSous;
-      if (!vu) {
-        floute = false;
-        flouter(o.id, false);
-      }
+      if (!vu) flouter(o.id, false);
       if (!vu) {
         clearInterval(vider);
         racine.classList.add("attente");
@@ -519,12 +516,9 @@ window.__pcvPE = (() => {
       racine.classList.remove("attente");
       try {
         flouCoupeFin();
-        floute = !o.photo && flouter(o.id, dv) && dv;
-        racine.classList.toggle("repli", !floute);
-        if (o.photo) {
-          flouter(o.id, false);
-          fondJeu();
-        }
+        flouter(o.id, false);
+        racine.classList.add("repli");
+        fondJeu();
       } catch (e) {
       }
       if (!doigt) {
@@ -590,7 +584,6 @@ window.__pcvPE = (() => {
         pileAbo?.unregister();
       } catch (e) {
       }
-      floute = false;
       flouter(o.id, false);
       racine.remove();
       delete h.dataset.pcvPe;

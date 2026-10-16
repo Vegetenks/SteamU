@@ -277,6 +277,11 @@
   clearInterval(window.__pcvToastsVeille);
   const echappe = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const lesPieces = () => window.__pcvToastsPieces ||= { React: O.SP_REACT };
+  const forme = (f) => {
+    const s = Function.prototype.toString.call(f).slice(0, 400);
+    if (!s.includes("eType")) return null;
+    return /\{[^{}=]*\bgroup:[\w$]+[^{}=]*\}=/.test(s) ? "group" : /\{[^{}=]*\bnotification:[\w$]+[^{}=]*\}=/.test(s) ? "notification" : null;
+  };
   const chercher = () => {
     const p = lesPieces();
     if (p.file && p.Contenu && p.creerRacine && p.React?.createElement) return p;
@@ -299,9 +304,9 @@
         if (!p.file && s.includes("PopNextToastNotification(") && s.includes("ClearAllToastNotifications(){")) {
           const e = req(id);
           for (const k of Object.keys(e)) if (typeof e[k]?.PopNextToastNotification === "function") p.file = e[k];
-        } else if (!p.Contenu && s.includes("k_ESteamNotificationType_") && s.includes("className:t,group:r")) {
-          const e = req(id);
-          for (const k of Object.keys(e)) if (typeof e[k] === "function" && Function.prototype.toString.call(e[k]).includes("className:t,group:r")) p.Contenu = e[k];
+        } else if (!p.Contenu && s.includes("k_ESteamNotificationType_")) {
+          const e = req(id), f = Object.values(e).filter((x) => typeof x === "function");
+          p.Contenu = f.find((x) => forme(x) === "group") || f.find((x) => forme(x) === "notification");
         } else if (!p.creerRacine && s.length > 5e4 && s.includes("react.dev/errors") && s.includes("createRoot")) p.creerRacine = req(id).createRoot;
         if (p.file && p.Contenu && p.creerRacine) break;
       }
@@ -351,7 +356,7 @@
     let r;
     try {
       r = p.creerRacine(boite);
-      r.render(p.React.createElement(p.Contenu, { location: 1, group: { eType: t.eType, notifications: [t] }, onDismiss: () => {
+      r.render(p.React.createElement(p.Contenu, { location: 1, group: { eType: t.eType, notifications: [t] }, notification: t, onDismiss: () => {
       } }));
     } catch (e) {
       boite.remove();
@@ -366,21 +371,27 @@
         const x = e.textContent.trim().replace(/\s+/g, " ");
         if (x && !lignes.includes(x)) lignes.push(x);
       }
-      try {
-        r.unmount();
-      } catch (e) {
+      const fermer = () => {
+        try {
+          r.unmount();
+        } catch (e) {
+        }
+        boite.remove();
+      };
+      if (!lignes.length) {
+        fermer();
+        return ok(null);
       }
-      boite.remove();
-      ok(lignes.length ? { img, svg, titre: lignes[0], ligne: lignes.slice(1).join(", ") } : null);
+      ok({ img, svg, titre: lignes[0], ligne: lignes.slice(1).join(", "), agir: () => boite.querySelector('[role="button"]')?.click(), fermer });
     }, 30));
   });
   window.__pcvToastsLire = (t) => {
     const p = pieces();
-    return p ? lire(p, t) : Promise.resolve(null);
+    return p ? lire(p, t).then((c) => (c?.fermer(), c)) : Promise.resolve(null);
   };
   const CLOCHE = '<svg viewBox="0 0 24 24"><path d="M12 2.5a6.5 6.5 0 0 0-6.5 6.5v4.6L3.8 16.4a1 1 0 0 0 .9 1.5h14.6a1 1 0 0 0 .9-1.5l-1.7-2.8V9A6.5 6.5 0 0 0 12 2.5zm-2.6 17a2.6 2.6 0 0 0 5.2 0z"/></svg>';
   const unite = () => innerHeight / 800;
-  const laCloche = () => document.querySelector('#pcv-barre .rond[data-pcv-nom="Notifications"]');
+  const laCloche = () => document.querySelector('#pcv-barre .rond[data-pcv-rond="notifs"]');
   const clocheVue = () => {
     const c = laCloche();
     if (!c) return null;
@@ -420,7 +431,7 @@
     compteur.style.top = `${r.top - 4 * k}px`;
     compteur.hidden = false;
   };
-  const bulle = ({ img, svg, titre, ligne }, duree, t) => new Promise((fin) => {
+  const bulle = ({ img, svg, titre, ligne, agir }, duree, t) => new Promise((fin) => {
     const r = clocheVue();
     if (!r) return fin(false);
     const k = unite(), el = document.createElement("div");
@@ -445,8 +456,15 @@
       }, 280);
     };
     el.addEventListener("click", () => {
+      const avant = O.location.pathname;
+      try {
+        agir?.();
+      } catch (e) {
+      }
       partir();
-      window.__pcvNotifsMontrer?.(true);
+      setTimeout(() => {
+        if (O.location.pathname === avant) window.__pcvNotifsMontrer?.(true);
+      }, agir ? 300 : 0);
     });
     racine.appendChild(el);
     sonner(t);
@@ -471,6 +489,7 @@
     while (file.length && !retenir()) {
       if (file.length >= 3) {
         const n = file.length;
+        file.forEach((x) => x.contenu.fermer());
         file = [];
         await bulle(regroupe(n), 6500);
         continue;
@@ -479,9 +498,11 @@
       if (!await bulle(contenu, Math.min(6e3, Math.max(3500, t.nToastDurationMS || 4500)), t)) {
         retenues++;
       }
+      contenu.fermer();
     }
     if (file.length) {
       retenues += file.length;
+      file.forEach((x) => x.contenu.fermer());
       file = [];
     }
     enCours = false;

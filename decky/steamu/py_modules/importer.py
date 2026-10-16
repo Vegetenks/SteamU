@@ -1,5 +1,5 @@
 import hashlib, json, os, pathlib, re, shutil, stat, struct, subprocess, tarfile, tempfile, time, unicodedata, zipfile
-import mii, badges, mii_moteur
+import mii, badges, mii_moteur, moteur_ffl
 
 ICI = pathlib.Path(__file__).resolve().parent
 EMPREINTES = ICI.parent / "donnees" / "empreintes-sons.json"    
@@ -30,12 +30,14 @@ NOM_MAX, NOMS_MAX = 80, 10
 TETE = 0x200                         
 SAUTES = {"Nintendo 3DS"}            
 CHEMIN_SUR = re.compile(r"(?:[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}/){0,6}[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}")
-EXIGE = {"mii": ["mii/moteur", "mii/AFLResHigh_2_3.dat", "mii/corps"], "casino": ["luigi", "casino-luigi/sons"], "badges": ["badges"], "sons": ["sons"]}
-MANQUE = {"mii/moteur": "moteur-mii", "mii/AFLResHigh_2_3.dat": "visages", "mii/corps": "corps-mii", "luigi": "sm64ds",
+EXIGE = {"mii": ["mii/moteur/ffl-emscripten.js", "mii/AFLResHigh_2_3.dat", "mii/corps"], "casino": ["luigi", "casino-luigi/sons"], "badges": ["badges"], "sons": ["sons"]}
+MANQUE = {"mii/moteur/ffl-emscripten.js": "moteur-mii", "mii/AFLResHigh_2_3.dat": "visages", "mii/corps": "corps-mii", "luigi": "sm64ds",
           "casino-luigi/sons": "sm64ds", "badges": "badges", "sons": "sons"}
 PERMIS = {"badge-arcade": ("badge-arcade/modeles/romfs/", "badge-arcade/romfs-eur/layout-png/", "sons/badge-arcade/romfs/"),
           "boss": ("badge-arcade/bornes/", "badges/"), "collection": ("badges/",), "machine-hall": ("badge-arcade/machine-hall.glb",),
-          "luigi": ("luigi/luigi-croupier.glb", "casino-luigi/sons/", "casino-luigi/voix/")}
+          "luigi": ("luigi/luigi-croupier.glb", "casino-luigi/sons/", "casino-luigi/voix/"), "tenue-dae": ("visiteurs/",)}
+TENUE = "tenue-dae:"                 
+IDENT = re.compile(r"[a-z0-9][a-z0-9-]{0,39}")
 LUIGI = "luigi/luigi-croupier.glb"
 
 def _empreinte(f):
@@ -172,7 +174,7 @@ def _ranger_connu(chemin, nom, x):
     if e.get("role"):
         if e["role"] not in x["lot"]["roles"]:
             g = _garder(chemin, x)
-            if g: x["lot"]["roles"][e["role"]] = g; x["lot"]["noms"][e["role"]] = e.get("nom")
+            if g: x["lot"]["roles"][e["role"]] = g; x["lot"]["noms"][e["role"]] = e.get("nom"); x["lot"]["entrees"][e["role"]] = e
         else: r["deja"] += 1
         return
     neuf = False
@@ -614,6 +616,17 @@ def _finir(x):
     elif mp != "-":
         if luigi.is_file(): r["deja"] += 1                  
         else: r["mpds_seul"] = True                         
+    for role, garde in lot["roles"].items():
+        if not role.startswith(TENUE): continue
+        e, ident = lot["entrees"].get(role) or {}, role[len(TENUE):]
+        if not IDENT.fullmatch(ident) or e.get("vers") != f"visiteurs/{ident}/modele.glb": r["refuses"] += 1; continue
+        if (prive / e["vers"]).exists(): r["deja"] += 1; continue
+        m, s = _extraire(x, "tenue-dae", garde, ident)
+        if m.get("erreur"): _abime(r, e.get("nom") or ident); continue
+        if _placer(x, m, s, PERMIS["tenue-dae"]):
+            r["connus"] += 1
+            for c, contenu in (e.get("avec") or {}).items():
+                if isinstance(contenu, str) and c.startswith(f"visiteurs/{ident}/"): _poser_octets(contenu.encode("utf-8"), prive / c)
     if all("aides-ffl:" + n in lot["roles"] for n in mii_moteur.AIDES) and not (prive / "mii/moteur/aides-ffl.js").exists():
         try:
             textes = {n: pathlib.Path(lot["roles"]["aides-ffl:" + n]).read_text(encoding="utf-8") for n in mii_moteur.AIDES}
@@ -658,7 +671,8 @@ def etat(prive, references=None):
     if not (prive / "badge-arcade/modeles/romfs/pince-standard.glb").is_file() or not _plein(prive, "sons/badge-arcade/romfs"): c.append("ba-romfs")
     if not (prive / "badge-arcade/bornes/index.json").is_file(): c.append("ba-bornes")
     c = applis["mii"]["conseils"]
-    if not (prive / "mii/moteur/aides-ffl.js").is_file(): c.append("aides-mii")
+    if not (prive / "visiteurs/index.json").is_file() and (not (prive / "mii/corps/miiBodyM_wiiu.glb").is_file()
+            or any(not (prive / e["vers"]).is_file() for e in _tenues_importees())): c.append("tenues-visiteurs")
     for f in ("3ds", "wiiu", "switch"):
         if sons.get(f, {}).get("n", 0) < sons.get(f, {}).get("sur", 0): applis["sons"]["conseils"].append("sons-" + f)
     return {"musiques_wiiu": {"n": len(wiiu) - len(manquent), "sur": len(wiiu), "manquent": manquent},
@@ -667,7 +681,10 @@ def etat(prive, references=None):
             "mii": any((prive / "mii" / "cfl_db").glob("*.json")) if (prive / "mii" / "cfl_db").is_dir() else False,
             "visages": (prive / "mii" / VISAGES[0]).is_file(),
             "luigi": (prive / LUIGI).is_file(), "badge_arcade": _plein(prive, "badge-arcade/modeles/romfs"),
-            "applis": applis}
+            "moteur_ffl": moteur_ffl.installe(prive), "applis": applis}
+
+def _tenues_importees():
+    return [e for t in _table_connus().values() for e in t.values() if str(e.get("role", "")).startswith(TENUE) and isinstance(e.get("vers"), str)]
 
 def _nettoyer(racine):
     try: noms = os.listdir(racine)
@@ -700,7 +717,7 @@ def importer(source, prive):
     references = _references()
     x = {"prive": prive, "r": r, "travail": travail, "references": references, "lus": 0, "entrees": 0,
          "audio_impossible": not references, "decompresse": 0, "n_extraits": 0, "n_gardes": 0, "garde_robe": False,
-         "lot": {"audio": [], "ctr": [], "ba": [], "boss": [], "nds": {}, "roles": {}, "noms": {}}}
+         "lot": {"audio": [], "ctr": [], "ba": [], "boss": [], "nds": {}, "roles": {}, "noms": {}, "entrees": {}}}
     try:
         _parcourir(source, x)
         _finir(x)

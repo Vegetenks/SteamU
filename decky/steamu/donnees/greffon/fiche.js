@@ -137,7 +137,7 @@
     const id = +m[1], app = O.appStore.GetAppOverviewByAppID(id);
     if (!app) return;
     const stats = document.querySelector("._1YbtIWcfkQJOysLXQbwzRf");
-    const lue = stats && [...stats.querySelectorAll("._2TYVGoD27ZMfjRirKQNLfk")].map((e) => e.textContent.trim()).find((t) => /\d.*[GMT]o$/.test(t));
+    const lue = stats && [...stats.querySelectorAll("._2TYVGoD27ZMfjRirKQNLfk")].map((e) => e.textContent.trim()).find((t) => /\d.*[KMGT]i?[oB]$/.test(t));
     if (lue) tailles[id] = lue;
     const taille = lue || tailles[id] || go(app.size_on_disk);
     const avant = stats?.querySelector(".pcv-puces");

@@ -1,0 +1,23 @@
+{
+ "id": "errant-1",
+ "nom": "Errant",
+ "categorie": "chapeau",
+ "fichier": "modele.glb",
+ "attache": "tete",
+ "position": [
+  0,
+  0,
+  0
+ ],
+ "rotation": [
+  0,
+  0,
+  0
+ ],
+ "echelle": 1,
+ "teinte": null,
+ "cache_cheveux": "aucun",
+ "remplace": null,
+ "auteur": "SteamU",
+ "source": "fait main"
+}

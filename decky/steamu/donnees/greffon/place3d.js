@@ -174,8 +174,8 @@
     document.body.appendChild(racine);
     const bascule = document.createElement("button");
     bascule.id = "pcv-bascule";
-    bascule.dataset.pcvNom = "La place";
-    bascule.setAttribute("aria-label", "La place");
+    bascule.dataset.pcvNom = Tr("spaces.place.nom");
+    bascule.setAttribute("aria-label", Tr("spaces.place.nom"));
     bascule.innerHTML = "<i></i>";
     document.body.appendChild(bascule);
     const $ = (s) => racine.querySelector(s), toile = $("canvas.monde3d"), blanc = $(".blanc"), nomSel = $(".nom-sel"), pts = [...racine.querySelectorAll(".zoom .pt")];
@@ -539,7 +539,7 @@
     const signature = (h) => h.pantalon + ":" + (h.donnees ? Array.from(h.donnees, (b) => b.toString(16)).join(".") : "~" + h.graine);
     const habitants = () => {
       const amis = M.amis(16), moi = siens.filter((s) => s.moi), autres = siens.filter((s) => !s.moi);
-      const l = [...moi, ...amis.slice(0, 4), ...autres, ...amis.slice(4), ...M.habitantsInvites()];
+      const l = [...moi, ...amis.slice(0, 4), ...autres, ...amis.slice(4), ...M.habitantsDefaut(), ...M.habitantsInvites()];
       const voulu = Math.min(FOULE_MAX, Math.max(N_HEROS, REG.foule, siens.length));
       for (let k = 0; l.length < voulu; k++) l.push(M.hasard(k));
       return l.slice(0, voulu).map((h) => ({ ...h, sig: signature(h) }));
@@ -1987,22 +1987,10 @@
   };
   const surMoteur = () => une(window.__pcvMii3D?.vrais && window.__pcvMii3D);
   addEventListener("pcv-vrais-mii", surMoteur);
-  const generique = () => {
-    const M = window.__pcvMii3D?.generique && window.__pcvMii3D;
-    if (M) une(M);
-    return !!M;
-  };
-  window.__pcvNintendo?.pret?.then((n) => {
-    if (!n.mii) generique();
-  });
   const essayer = (n) => V.charger().then(une, (e) => {
     if (window.__pcvPlace3DJeton !== jeton || installee) return;
     if (n < 80) window.__pcvPlace3DAttente = setTimeout(() => essayer(n + 1), 1500);
-    else {
-      removeEventListener("pcv-vrais-mii", surMoteur);
-      if (generique()) console.warn("place3d : pas de vrais Mii, bonhommes g\xE9n\xE9riques (fichiers priv\xE9s absents)");
-      else console.warn("place3d : pas de vrais Mii, la place 2D reste \u2014", e.message);
-    }
+    else console.warn("place3d : pas de vrais Mii, la place 2D reste \u2014", e.message);
   });
   essayer(0);
   return "place3d : moteur des Mii en chargement (la place 2D sert en attendant)";

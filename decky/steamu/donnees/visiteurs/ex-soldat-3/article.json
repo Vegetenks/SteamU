@@ -1,0 +1,24 @@
+{
+ "id": "ex-soldat-3",
+ "nom": "Ex-Soldat",
+ "categorie": "bas",
+ "fichier": "recette",
+ "attache": "bassin",
+ "position": [
+  0,
+  0,
+  0
+ ],
+ "rotation": [
+  0,
+  0,
+  0
+ ],
+ "echelle": 1,
+ "teinte": null,
+ "cache_cheveux": "aucun",
+ "remplace": "bas",
+ "auteur": "SteamU",
+ "source": "fait main",
+ "recette": "ex-soldat-3"
+}

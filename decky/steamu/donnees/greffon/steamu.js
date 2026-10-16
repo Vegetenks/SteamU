@@ -50,6 +50,8 @@
     prise: '<path d="M9 3v5M15 3v5"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v4"/>',
     pause: '<path d="M8 5v14M16 5v14"/>',
     cadenas: window.__pcvIcones?.trace("cadenas") || "",
+    aide: window.__pcvIcones?.trace("aide") || "",
+    // (registre unique : icones.js — onglet Aide et dépannage)
     poubelle: '<path d="M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13"/>',
     redemarrer: '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
     fermer: '<path d="M6 6l12 12M18 6L6 18"/>',
@@ -137,6 +139,7 @@
     { id: "import", ic: "dossier", c: "--c-import", libelle: "steamu.tab.import" },
     { id: "applis", ic: "biblio", c: "--c-applis", libelle: "steamu.applis" },
     { id: "confid", ic: "cadenas", c: "--c-confid", libelle: "steamu.tab.confid" },
+    { id: "aide", ic: "aide", c: "--c-aide", libelle: "steamu.tab.aide" },
     { id: "danger", ic: "redemarrer", c: "--c-danger", libelle: "steamu.tab.reinit" },
     { id: "apparence", ic: "apparence", c: "--c-apparence", libelle: "steamu.apparence" }
   ];
@@ -186,7 +189,7 @@
   };
   const style = `<style>
     
-    #pcv-steamu { --u: calc(100vh / 800); --t2: var(--pcv-texte2, #6b7788); --c-contrib: #e5484d; --c-import: #1a9ae6; --c-applis: #ff8a1f; --c-confid: #2a6fe0; --c-danger: #e5484d; --c-apparence: var(--pcv-cyan-plein, #2fb8ff);
+    #pcv-steamu { --u: calc(100vh / 800); --t2: var(--pcv-texte2, #6b7788); --c-contrib: #e5484d; --c-import: #1a9ae6; --c-applis: #ff8a1f; --c-confid: #2a6fe0; --c-aide: #2fbf71; --c-danger: #e5484d; --c-apparence: var(--pcv-cyan-plein, #2fb8ff);
       position: fixed; left: calc(var(--u) * 140); right: calc(var(--u) * 140); top: calc(var(--u) * 330); bottom: calc(var(--u) * 60); z-index: 500; box-sizing: border-box;
       border-radius: calc(var(--u) * 32); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre);
       font-family: var(--pcv-police, sans-serif); color: var(--pcv-texte, #2f3a4a); }
@@ -274,7 +277,8 @@
     #pcv-steamu .fenetre.signaler .signaler-qr svg { width: 100%; height: 100%; display: block; }
     #pcv-steamu .fenetre.signaler .signaler-fichier { font-size: calc(var(--u) * 14); font-weight: 700; color: var(--t2); opacity: .8; }
     #pcv-steamu .fenetre.signaler .choix { display: flex; gap: calc(var(--u) * 14); flex-wrap: wrap; justify-content: center; }
-    #pcv-steamu .fenetre.confirmation .choix .bouton .pastille { width: calc(var(--u) * 34); height: calc(var(--u) * 34); padding: calc(var(--u) * 8); }
+    
+    #pcv-steamu .fenetre.confirmation .choix .bouton .pastille, #pcv-steamu .fenetre.signaler .choix .bouton .pastille { width: calc(var(--u) * 34); height: calc(var(--u) * 34); padding: calc(var(--u) * 8); }
     
     #pcv-steamu .apparence { flex-direction: column; gap: calc(var(--u) * 10); }
     #pcv-steamu .apparence > * { flex: none; }
@@ -362,9 +366,15 @@
   };
   const bientot = (g) => g.pret ? "" : `<span class="bientot">${T("steamu.bientot")}</span>`;
   const dessinerImportListe = () => `<button class="bouton gros" data-a="importer"><i class="pastille">${ico(ICO.importer)}</i><span>${T("steamu.importer")}<small>${T("steamu.importer.aide")}</small></span></button>
-      <div class="liste">${GUIDES().map((g) => `<button class="bouton" data-a="g:${g.id}"><i class="pastille" style="--c:${g.c}">${ico(g.ico)}</i>
+      <div class="liste">${dessinerMoteur()}${GUIDES().map((g) => `<button class="bouton" data-a="g:${g.id}"><i class="pastille" style="--c:${g.c}">${ico(g.ico)}</i>
         <span class="txt"><b>${T(`steamu.guide.${g.id}.titre`)}</b><small>${T(`steamu.guide.${g.id}.sous`)}</small></span>
         <em class="${g.pret ? "ok" : ""}">${etatGuide(g) || T(g.pret ? "steamu.lisible" : "steamu.bientot.court")}</em></button>`).join("")}</div>`;
+  const dessinerMoteur = () => {
+    const ok = etatImport?.moteur_ffl;
+    return `<button class="bouton" data-a="moteur-installer"><i class="pastille" style="--c:#2fbf71">${ico(ICO.mii)}</i>
+        <span class="txt"><b>${T("steamu.moteur.etat", { etat: T(ok ? "steamu.moteur.la" : "steamu.moteur.manque") })}</b><small>${T("steamu.moteur.aide")}</small></span>
+        <em class="${ok ? "ok" : ""}">${T(S.moteurCours ? "steamu.moteur.cours" : "steamu.moteur.installer")}</em></button>`;
+  };
   const etatGuide = (g) => {
     const e = etatImport, m = e?.musiques_wiiu, s3 = e?.sons?.["3ds"];
     if (g.id === "wiiu" && m?.sur) return T("steamu.etat.compte", { n: m.n, sur: m.sur });
@@ -406,8 +416,8 @@
       <div class="danger-liste">
         <button class="bouton rouge" data-a="confirm:reset"><i class="pastille">${ico(ICO.redemarrer)}</i><span>${T("steamu.danger.reset")}<small>${T("steamu.danger.reset.aide")}</small></span></button>
         <button class="bouton rouge" data-a="confirm:effacer"><i class="pastille">${ico(ICO.poubelle)}</i><span>${T("steamu.danger.effacer")}<small>${T("steamu.danger.effacer.aide")}</small></span></button>
-      </div>
-      <h3>${T("steamu.diag.titre")}</h3>
+      </div></div>`;
+  const dessinerAide = () => `<div class="vue aide${S.og === "aide" ? " on" : ""}"><h3>${T("steamu.diag.titre")}</h3>
       ${dessinerConflits()}
       <div class="danger-liste">
         <button class="bouton" data-a="diagnostic"><i class="pastille">${ico(ICO.guide)}</i><span>${T("steamu.diag")}<small>${T("steamu.diag.aide")}</small></span></button>
@@ -490,13 +500,13 @@
   let etat = null, etatImport = null, resultat = null, conflitsActifs = {};
   const dessinerColonne = () => `<div class="colonne">${ONGLETS.map((o) => `<button class="bouton onglet${S.og === o.id ? " choisi" : ""}" data-a="og:${o.id}">
       <i class="pastille" style="--c:var(${o.c})">${ico(ICO[o.ic])}</i><span>${T(o.libelle)}</span></button>`).join("")}</div>`;
-  const SEL_CONTENU = { contrib: ".credit", import: ".imp-corps .bouton[data-a]", applis: ".app", confid: ".confid-ligne", danger: ".danger-liste [data-a]", apparence: ".apparence .ligne" };
+  const SEL_CONTENU = { contrib: ".credit", import: ".imp-corps .bouton[data-a]", applis: ".app", confid: ".confid-ligne", aide: ".aide .danger-liste [data-a]", danger: ".danger .danger-liste [data-a]", apparence: ".apparence .ligne" };
   const contenuBoutons = () => [...page.querySelectorAll(SEL_CONTENU[S.og] || "#pcv-steamu-aucun")];
   const sansAnneau = () => document.querySelectorAll(".PageListColumn .pcv-f").forEach((t) => t.classList.remove("pcv-f"));
   const dessiner = () => {
     const haut = [".colonne", ".contenu"].map((k) => page.querySelector(k)?.scrollTop || 0);
     sansAnneau();
-    page.innerHTML = `<div class="panneau">${dessinerColonne()}<div class="contenu">${dessinerContrib()}${dessinerImport()}${dessinerApplis(etat)}${dessinerConfid()}${dessinerDanger()}${dessinerApparence()}</div></div><div class="voile${S.fenetre ? " on" : ""}"><div class="fenetre">${resultat ? `<h2>${resultat.titre}</h2><ul>${resultat.lignes.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` + (resultat.fini ? `<button class="bouton" data-a="fermer">${touche(1)}${T("steamu.ok")}</button>` : "") : ""}</div></div><div class="voile${S.confirm ? " on" : ""}"><div class="fenetre confirmation">${S.confirm ? confirmContenu() : ""}</div></div><div class="voile${S.signaler ? " on" : ""}"><div class="fenetre signaler">${S.signaler ? dessinerSignaler() : ""}</div></div>`;
+    page.innerHTML = `<div class="panneau">${dessinerColonne()}<div class="contenu">${dessinerContrib()}${dessinerImport()}${dessinerApplis(etat)}${dessinerConfid()}${dessinerAide()}${dessinerDanger()}${dessinerApparence()}</div></div><div class="voile${S.fenetre ? " on" : ""}"><div class="fenetre">${resultat ? `<h2>${resultat.titre}</h2><ul>${resultat.lignes.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` + (resultat.fini ? `<button class="bouton" data-a="fermer">${touche(1)}${T("steamu.ok")}</button>` : "") : ""}</div></div><div class="voile${S.confirm ? " on" : ""}"><div class="fenetre confirmation">${S.confirm ? confirmContenu() : ""}</div></div><div class="voile${S.signaler ? " on" : ""}"><div class="fenetre signaler">${S.signaler ? dessinerSignaler() : ""}</div></div>`;
     [".colonne", ".contenu"].forEach((k, i) => {
       const e = page.querySelector(k);
       if (e) e.scrollTop = haut[i];
@@ -785,8 +795,26 @@
     dessiner();
     son("choisir");
   };
+  const installerMoteur = async () => {
+    if (S.occupe) return;
+    S.occupe = S.moteurCours = true;
+    dessiner();
+    son("choisir");
+    const r = await appel("moteur_installer", [], 12e4);
+    S.occupe = S.moteurCours = false;
+    if (r?.ok) {
+      montrer(T("steamu.moteur.ok"), [T("steamu.moteur.aide")], true);
+      son("choisir");
+    } else {
+      const k = "steamu.moteur.erreur." + (r?.erreur || "reseau"), t = T(k);
+      montrer(T("steamu.moteur.erreur.titre"), [t === k ? T("steamu.moteur.erreur.reseau") : t], true);
+      son("rate");
+    }
+    rafraichir();
+  };
   const agir = (a) => {
     if (a === "importer") return importer();
+    if (a === "moteur-installer") return installerMoteur();
     if (a === "diagnostic") return diagnostiquer();
     if (a === "signaler") return signaler();
     if (a === "fermer-signaler") {

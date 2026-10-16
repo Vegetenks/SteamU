@@ -111,32 +111,23 @@ it by hand. `infinimii.py` follows the same model for browsing community Mii QR 
 ## 7. The Mii Maker and the Mii rendering engine
 
 `greffon/mii-maker.js` (plus `mii-base.js`, `mii-qr.js`, `vrais-mii.js`) implements the Mii Maker's UI and logic,
-but it contains **no Nintendo code and bundles no Nintendo asset**. It expects a Mii rendering engine (Nintendo's
-own FFL library and resource file) to be supplied separately by the user's own import, and checks for it before
-doing anything. Without it, it says so and never fabricates or imitates a Mii. See §5 for how those files reach
-the plugin (always via the user's own import, keyed by content fingerprint, never bundled).
+but it contains **no Nintendo code and bundles no Nintendo asset**. The open-source [FFL.js](https://github.com/ariankordi/FFL.js)
+bindings (AGPL-3.0, Arian Kordi) that drive the renderer are bundled with the plugin (`decky/steamu/donnees/mii-moteur/`,
+see `SOURCE.md` there): `main.py` serves them from that folder unless the user has imported their own copy, which
+always takes priority. What still can't be redistributed is anything that embeds Nintendo's own content. The
+couple of engine files whose shader code or compiled WebAssembly is Nintendo's rather than Arian Kordi's own (the
+AGPL license on the rest of the FFL.js repo doesn't cover that part) are never bundled: the "Mii engine" zone of
+the import page has an Install button (`py_modules/moteur_ffl.py`) that, only when pressed, fetches exactly those
+files over HTTPS from the official FFL.js repository at the pinned commit, refuses any redirect off
+`raw.githubusercontent.com`, caps their size and checks each SHA-256 against the fingerprints shipped in
+`donnees/fichiers-connus.json` before writing them atomically to `prive/mii/moteur/`. The face resource file and
+the Mii bodies must come from the user's own import (§5, keyed by content fingerprint, never bundled, never
+downloaded). The renderer checks for all of it before doing anything; without it, it says so and never
+fabricates or imitates a Mii.
 
-## 8. LED companion (`decky/steamu-led/`)
+## 8. Build, install, contribute
 
-On a Lenovo Legion Go 2, the controller's vendor HID interface needed to set per-ring stick LED colours is only
-writable as root. Rather than make the whole SteamU plugin (or Decky itself) run with more privilege than it
-needs, `steamu-led` is a second, separate, root Decky plugin that does **only** this one thing:
-
-- It listens on a Unix socket (`/run/steamu-led/led.sock`, directory owned by root/0755, socket owned by the
-  Decky user/0600) for fixed-size (12 byte) binary messages: mode + RGB + brightness + speed, for the left and
-  right stick independently. It accepts no shell commands, no file paths, just that one message shape, and
-  rate-limits writes to the hardware.
-- SteamU's own (non-root) `py_modules/lumiere.py` is the only thing that talks to that socket, deciding *what*
-  colour to send (theme accent colour normally, the casino's own ambience while the casino screen is open,
-  honouring the user's HueSync config if present); it never touches the hardware directly.
-- On unload, the socket is removed and the kernel's own single-colour LED control is handed back.
-
-This keeps the privileged surface to "accept 12 fixed bytes, write them to the one HID report they describe":
-nothing path-, shell-, or network-shaped ever crosses into the root process.
-
-## 9. Build, install, contribute
-
-Both plugins are deliberately dependency-free: no `npm install`, no bundler. To turn either `decky/*` folder into
+The plugin is deliberately dependency-free: no `npm install`, no bundler. To turn `decky/steamu/` into
 something Decky can install, zip the folder itself (containing `plugin.json`) at the root of the archive (see
 the README's "Building from source"). For day-to-day development, Decky Loader also picks up a plugin placed (or
 symlinked) directly under its plugins folder with developer mode enabled, which avoids re-zipping on every edit.

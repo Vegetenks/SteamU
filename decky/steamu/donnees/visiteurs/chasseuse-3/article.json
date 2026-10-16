@@ -1,0 +1,24 @@
+{
+ "id": "chasseuse-3",
+ "nom": "Chasseuse",
+ "categorie": "bas",
+ "fichier": "recette",
+ "attache": "bassin",
+ "position": [
+  0,
+  0,
+  0
+ ],
+ "rotation": [
+  0,
+  0,
+  0
+ ],
+ "echelle": 1,
+ "teinte": null,
+ "cache_cheveux": "aucun",
+ "remplace": "bas",
+ "auteur": "SteamU",
+ "source": "fait main",
+ "recette": "chasseuse-3"
+}

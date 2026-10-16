@@ -1,19 +1,24 @@
 (() => {
   const entrees = () => [...document.querySelectorAll(":is(._1LoZDVq2hD-hg_cS_zzsYn, ._2w9TpQwxU7vcwaAbf3KGv_, .o4dc4YuFACmgE_eLORMo1)")];
-  const SORTES = [
-    [/^accueil/i, "accueil"],
-    [/^biblioth/i, "bibliotheque"],
-    [/^magasin|^boutique/i, "magasin"],
-    [/^contacts|^amis/i, "contacts"],
-    [/^m[ée]dias/i, "medias"],
-    [/^t[ée]l[ée]chargements/i, "telechargements"],
-    [/^param[èe]tres/i, "parametres"],
-    [/^marche|^alimentation/i, "alimentation"]
-  ];
+  const SORTES = {
+    home: "accueil",
+    library: "bibliotheque",
+    store: "magasin",
+    chat: "contacts",
+    media: "medias",
+    downloads: "telechargements",
+    settings: "parametres",
+    power: "alimentation"
+  };
+  const sorteDe = (el) => {
+    const k = el && Object.keys(el).find((x) => x.startsWith("__reactFiber"));
+    let n = 0;
+    for (let f = k && el[k]; f && n < 10; f = f.return, n++) if (f.key != null) return SORTES[f.key] || "appli";
+    return "appli";
+  };
   const marquer = () => {
     for (const e of entrees()) {
-      const t = e.textContent.trim(), s = SORTES.find(([re]) => re.test(t));
-      const v = s ? s[1] : "appli", enveloppe = e.parentElement;
+      const v = sorteDe(e), enveloppe = e.parentElement;
       if (enveloppe && enveloppe.dataset.pcvMenu !== v) enveloppe.dataset.pcvMenu = v;
     }
   };

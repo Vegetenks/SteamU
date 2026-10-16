@@ -8,6 +8,9 @@ TRANCHE_MAX = 4 * 1024 * 1024
 RESSOURCE_MAX = 32 * 1024 * 1024    
 IMPORT = threading.Lock()           
 PACK = "@steamu/"                   
+VISITEURS = "@visiteurs/"           
+MII_DEFAUT = "@mii-defaut/"         
+MOTEUR = "mii/moteur/"               
 FILM = "steamu.webm"                
 
 class Plugin:
@@ -58,8 +61,12 @@ class Plugin:
 
     def _dedans(self, chemin):
         if not isinstance(chemin, str) or "\0" in chemin: return None
+        prive = pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "prive"
         if chemin.startswith(PACK): racine, chemin = ICI / "donnees/sons-steamu", chemin[len(PACK):]
-        else: racine = pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "prive"
+        elif chemin.startswith(VISITEURS): racine, chemin = ICI / "donnees/visiteurs", chemin[len(VISITEURS):]
+        elif chemin.startswith(MII_DEFAUT): racine, chemin = ICI / "donnees/mii-defaut", chemin[len(MII_DEFAUT):]
+        elif chemin.startswith(MOTEUR) and not (prive / chemin).is_file(): racine, chemin = ICI / "donnees/mii-moteur", chemin[len(MOTEUR):]
+        else: racine = prive
         racine = racine.resolve()
         p = (racine / chemin).resolve()
         return p if p.is_relative_to(racine) else None
@@ -98,6 +105,16 @@ class Plugin:
         import importer
         prive = self._dedans(".")
         return importer.etat(prive) if prive else {}
+
+    async def moteur_installer(self):
+        import asyncio, moteur_ffl
+        prive = self._dedans(".")
+        if not prive: return {"erreur": "ecriture"}
+        if not IMPORT.acquire(blocking=False): return {"erreur": "occupe"}
+        try: return await asyncio.get_running_loop().run_in_executor(None, moteur_ffl.installer, prive)
+        except moteur_ffl.Refus as e: decky.logger.warning(f"moteur des Mii : refusé ({e})"); return {"erreur": str(e)}
+        except Exception as e: decky.logger.warning(f"moteur des Mii : {type(e).__name__}"); return {"erreur": "reseau"}
+        finally: IMPORT.release()
 
     async def vider_prive(self):
         import datetime

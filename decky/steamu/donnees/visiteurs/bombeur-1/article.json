@@ -1,0 +1,23 @@
+{
+ "id": "bombeur-1",
+ "nom": "Bombeur",
+ "categorie": "chapeau",
+ "fichier": "modele.glb",
+ "attache": "tete",
+ "position": [
+  0,
+  0,
+  0
+ ],
+ "rotation": [
+  0,
+  0,
+  0
+ ],
+ "echelle": 1,
+ "teinte": null,
+ "cache_cheveux": "tout",
+ "remplace": null,
+ "auteur": "SteamU",
+ "source": "fait main"
+}

@@ -1,0 +1,24 @@
+{
+ "id": "robot-bleu-2",
+ "nom": "Robot Bleu",
+ "categorie": "haut",
+ "fichier": "recette",
+ "attache": "torse",
+ "position": [
+  0,
+  0,
+  0
+ ],
+ "rotation": [
+  0,
+  0,
+  0
+ ],
+ "echelle": 1,
+ "teinte": null,
+ "cache_cheveux": "aucun",
+ "remplace": "haut",
+ "auteur": "SteamU",
+ "source": "fait main",
+ "recette": "robot-bleu-2"
+}

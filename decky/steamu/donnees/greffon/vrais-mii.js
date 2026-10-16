@@ -13,11 +13,11 @@
   ];
   const SCRIPT_SWITCH = ["moteur/SampleShaderMaterial.browser.js", () => window.SampleShaderMaterial];
   const ECLAIRAGES = { wiiu: () => window.FFLShaderMaterial, "3ds": () => window.CTRShaderMaterial, switch: () => materiauSwitch() || window.LUTShaderMaterial };
-  const RESSOURCE = "AFLResHigh_2_3.dat", INVITES = "invites.json", CORPS = ["corps/miiBodyM_wiiu.glb", "corps/miiBodyF_wiiu.glb"];
+  const RESSOURCE = "AFLResHigh_2_3.dat", INVITES = "invites.json", DEFAUT = "@mii-defaut/index.json", CORPS = ["corps/miiBodyM_wiiu.glb", "corps/miiBodyF_wiiu.glb"];
   const borne = (x) => Math.max(0, Math.min(1, x));
   const lisse = (x) => (x = borne(x)) * x * (3 - 2 * x);
   const PI2 = Math.PI * 2;
-  let { F = null, ffl = null, rendu0 = null, gabarits = null, invites = [] } = prec || {};
+  let { F = null, ffl = null, rendu0 = null, gabarits = null, invites = [], defauts = [] } = prec || {};
   const PANTALONS = { gris: 4212558, bleu: 2637946, rouge: 7348245, or: 12623920 };
   const couleurBrute = (x) => new T.Color().setHex(typeof x === "string" ? parseInt(x.replace("#", ""), 16) : x, T.LinearSRGBColorSpace);
   const X = () => F.FFLExpression;
@@ -194,6 +194,7 @@
     } catch (e) {
       invites = [];
     }
+    await lireDefauts();
     ffl = await F.FFL.initWithResource(new Uint8Array(res), window.ModuleFFL);
     rendu0 = o.rendu || null;
     if (rendu0) ffl.setRenderer(rendu0);
@@ -205,6 +206,18 @@
     promesse = null;
     throw e;
   });
+  const lireDefauts = async () => {
+    try {
+      const u = await window.__pcvRessource?.(DEFAUT, "application/json");
+      if (u) try {
+        defauts = (await (await fetch(u)).json()).mii || [];
+      } finally {
+        rendre(DEFAUT, u);
+      }
+    } catch (e) {
+      defauts = [];
+    }
+  };
   const DOSSIER = "mii/";
   const rendre = (c, url) => {
     URL.revokeObjectURL(url);
@@ -1755,6 +1768,7 @@
     });
   };
   const habitantsInvites = () => invites.map((v, i) => ({ cle: "invite:" + i, donnees: octets(v.donnees), nom: v.nom, pantalon: "gris" }));
+  const habitantsDefaut = () => defauts.map((v) => ({ cle: "defaut:" + v.id, donnees: octets(v.donnees), nom: v.nom, pantalon: "gris" }));
   const hasard = (k) => ({ cle: "hasard:" + k, graine: "hasard-" + k, nom: "", pantalon: "gris" });
   const API = {
     creer,
@@ -1763,6 +1777,7 @@
     siens,
     amis,
     habitantsInvites,
+    habitantsDefaut,
     hasard,
     invite: (i) => octets(invites[i % invites.length].donnees),
     get invites() {
@@ -1788,9 +1803,10 @@
     }
   };
   window.__pcvVraisMii = { preparer, charger, lire, API, get etat() {
-    return ffl && gabarits ? { F, ffl, rendu0, gabarits, invites } : null;
+    return ffl && gabarits ? { F, ffl, rendu0, gabarits, invites, defauts } : null;
   } };
   if (prec) {
+    if (!defauts.length) lireDefauts();
     window.__pcvMii3D = API;
     return "vrais Mii : moteur repris";
   }

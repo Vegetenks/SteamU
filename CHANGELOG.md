@@ -10,7 +10,6 @@ French-only.
 - `decky/steamu/`: the main plugin (home screen, HOME menu, quick settings, Settings → SteamU page,
   day/night themes, the plaza, the Mii Maker, a badge-collecting casino, music player with optional synced
   lyrics, and community theme browsing with ThemePlaza and Themezer).
-- `decky/steamu-led/`: optional companion plugin for Legion Go 2 stick-ring LEDs tied to the active theme.
 - A safety net: an L3+R3 emergency stop, automatic safe mode after repeated crashes, a Decky on/off toggle, and
   a scrubbed diagnostic report generator.
 - An import tool for bringing in your own console files (no Nintendo file is bundled, see `ARCHITECTURE.md`).

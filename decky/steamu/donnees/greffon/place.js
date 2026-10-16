@@ -25,13 +25,6 @@
     return [h, c];
   };
   const jeux = (O.appStore.allApps || []).filter((a) => (a.app_type === 1 || a.app_type === 1073741824) && a.rt_last_time_played).sort((a, b) => b.rt_last_time_played - a.rt_last_time_played).slice(0, 4);
-  const pseudo = (() => {
-    try {
-      return O.g_FriendsUIApp.FriendStore.self.persona.m_strPlayerName;
-    } catch (e) {
-      return "";
-    }
-  })();
   const avatarDe = () => document.querySelector("#header_profile img")?.src || (() => {
     try {
       const p = window.opener.g_FriendsUIApp.FriendStore.self.persona;
@@ -108,13 +101,6 @@
       background: var(--pcv-bulle); color: var(--pcv-sur-accent); font-size: ${u(15)}; font-weight: 900; white-space: nowrap; opacity: 0; transition: opacity .15s; pointer-events: none; }
     #pcv-place .ico .nom::before { content: ""; position: absolute; left: 50%; top: ${u(-6)}; margin-left: ${u(-6)}; border: ${u(6)} solid transparent; border-top: 0; border-bottom-color: var(--pcv-bulle); }
     #pcv-place .ico.sel .nom { opacity: 1; }
-    #pcv-place .bulle-p { position: absolute; cursor: pointer; opacity: 0; animation: pcvBulle 9.6s infinite; }
-    @keyframes pcvBulle { 0% { opacity: 0; transform: scale(.6) translateY(${u(8)}) } 3% { opacity: 1; transform: scale(1) } 30% { opacity: 1; transform: scale(1) } 36% { opacity: 0 } 100% { opacity: 0 } }
-    #pcv-place .bulle-p .qui { position: absolute; left: ${u(18)}; top: ${u(-20)}; padding: ${u(3)} ${u(12)}; border-radius: ${u(12)}; background: var(--pcv-bulle); color: var(--pcv-sur-accent); font-size: ${u(12)}; font-weight: 900; letter-spacing: .05em; }
-    #pcv-place .bulle-p .corps { position: relative; display: flex; align-items: center; gap: ${u(12)}; padding: ${u(12)} ${u(18)} ${u(12)} ${u(12)}; border-radius: ${u(24)};
-      background: linear-gradient(180deg, var(--pcv-carte), var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 ${u(10)} ${u(24)} rgba(70,95,130,.22); font-size: ${u(16)}; font-weight: 800; max-width: ${u(300)}; line-height: 1.25; }
-    #pcv-place .bulle-p .corps::after { content: ""; position: absolute; left: ${u(46)}; bottom: ${u(-9)}; width: ${u(18)}; height: ${u(18)}; background: var(--pcv-creux); transform: rotate(45deg); border-radius: 3px; }
-    #pcv-place .bulle-p img { width: ${u(44)}; height: ${u(44)}; border-radius: ${u(12)}; box-shadow: 0 0 0 ${u(3)} var(--pcv-lisere); object-fit: cover; }
     #pcv-place .v { position: absolute; background: linear-gradient(180deg,var(--pcv-carte),var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), inset 0 0 0 1px var(--pcv-bord), 0 ${u(6)} ${u(18)} rgb(var(--pcv-ombre-rgb) / .13); }
     #pcv-place .haut-avatar { left: ${u(24)}; top: ${u(20)}; width: ${u(56)}; height: ${u(56)}; border-radius: 50%; padding: ${u(6)}; }
     #pcv-place .haut-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
@@ -146,7 +132,7 @@
     #pcv-bascule i { width: ${u(40)}; height: ${u(40)}; border-radius: 50%; background: var(--pcv-pastille, #fff); box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; }
     #pcv-bascule[hidden] { display: none; }
   </style>
-  <div class="monde"><div class="sol"></div><div class="anneau"></div>${elements.map((e) => e[1]).join("")}<div class="bulles"></div></div>
+  <div class="monde"><div class="sol"></div><div class="anneau"></div>${elements.map((e) => e[1]).join("")}</div>
   <div class="v haut-avatar"><img data-pcv-avatar src="${urlSure(avatar)}" alt=""></div>
   <button class="v retour" data-pcv-nom="${T("place.revenir_accueil")}"><span class="p">${svg("accueil", "55%", "#1a9ae6")}</span>${T("spaces.accueil.nom")}<span class="gl" style="background:${glc};color:var(--pcv-sur-accent)">${gl}</span></button>
   <div class="v etat"><svg style="width:${u(20)};height:${u(20)}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M2.5 8.5a14 14 0 0 1 19 0"/><path d="M5.5 12a9.5 9.5 0 0 1 13 0"/><path d="M8.7 15.4a5 5 0 0 1 6.6 0"/><circle cx="12" cy="19" r="1"/></svg><span class="heure"></span></div>
@@ -156,8 +142,8 @@
   document.body.appendChild(racine);
   const bascule = document.createElement("button");
   bascule.id = "pcv-bascule";
-  bascule.dataset.pcvNom = "La place";
-  bascule.setAttribute("aria-label", "La place");
+  bascule.dataset.pcvNom = T("spaces.place.nom");
+  bascule.setAttribute("aria-label", T("spaces.place.nom"));
   bascule.innerHTML = "<i></i>";
   document.body.appendChild(bascule);
   const ZOOMS = [1, 1.4, 1.9, 2.5];
@@ -186,55 +172,6 @@
     zoomer(1);
   };
   camera();
-  (async () => {
-    const bulles = [];
-    for (const a of jeux) {
-      try {
-        const r = await O.SteamClient.Apps.GetMyAchievementsForApp(String(a.appid));
-        const d = (typeof r === "string" ? JSON.parse(r) : r).data.rgAchievements;
-        d.filter((x) => x.bAchieved).sort((x, y) => y.rtUnlocked - x.rtUnlocked).slice(0, 2).forEach((s) => bulles.push({
-          k: ICONES.findIndex((i) => i.action === `jeu:${a.appid}`),
-          img: s.strImage,
-          txt: T("place.bulle_succes", { succes: s.strName.charAt(0) + s.strName.slice(1).toLowerCase(), jeu: a.display_name }),
-          jeu: a,
-          date: new Date(s.rtUnlocked * 1e3)
-        }));
-      } catch (e) {
-      }
-    }
-    const fort = jeux.filter((a) => a.minutes_playtime_last_two_weeks).sort((a, b) => b.minutes_playtime_last_two_weeks - a.minutes_playtime_last_two_weeks)[0];
-    if (fort) bulles.push({ k: ICONES.findIndex((i) => i.action === `jeu:${fort.appid}`), img: "", txt: T("place.bulle_temps", { h: Math.round(fort.minutes_playtime_last_two_weeks / 60), jeu: fort.display_name }), jeu: fort, date: new Date(fort.rt_last_time_played * 1e3) });
-    const choix = bulles.sort((a, b) => b.date - a.date).slice(0, 3);
-    const DECALAGES = [[-420, -40], [190, -155], [120, -20]];
-    racine.querySelector(".bulles").innerHTML = choix.map((b, j) => {
-      const [x, y] = ICONES[Math.max(0, b.k)].pos, [dx, dy] = DECALAGES[j];
-      return `<div class="bulle-p" data-b="${j}" style="left:${u(x + dx)};top:${u(y + 60 + dy)};animation-delay:${j * 3.2}s">
-        <span class="qui">${echap(String(pseudo || "").toUpperCase())}</span><div class="corps">${b.img ? `<img src="${urlSure(b.img)}" alt="">` : `<img data-pcv-avatar src="${urlSure(avatar)}" alt="">`}<span>${echap(b.txt)}</span></div></div>`;
-    }).join("");
-    racine.querySelectorAll(".bulle-p").forEach((el) => el.onclick = (e) => {
-      e.stopPropagation();
-      carte(choix[+el.dataset.b]);
-    });
-  })();
-  const jour = (d) => d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-  const carte = (b) => {
-    const z = racine.querySelector(".carte-zone");
-    z.innerHTML = `<div class="voile"></div><div class="v carte">
-      <div style="display:flex;align-items:center;gap:${u(16)}"><img src="${urlSure(avatar)}" alt="" style="width:${u(58)};height:${u(58)};border-radius:50%;box-shadow:0 0 0 ${u(3)} var(--pcv-lisere)">
-        <span><b style="display:block;font-size:${u(22)}">${echap(pseudo)}</b><span style="font-size:${u(14)};font-weight:800;color:var(--pcv-texte2)">${echap(b.jeu.display_name)}, ${jour(b.date)}</span></span></div>
-      <div class="v msg" style="position:relative">${b.img ? `<img src="${urlSure(b.img)}" alt="">` : ""}<span>${echap(b.txt)}</span></div>
-      <div class="actions"><button class="cyan" data-fiche="${echap(b.jeu.appid)}">Voir la fiche du jeu</button><button class="fermer">Fermer</button></div></div>`;
-    z.querySelector(".voile").onclick = z.querySelector(".fermer").onclick = (e) => {
-      e.stopPropagation();
-      z.innerHTML = "";
-    };
-    z.querySelector("[data-fiche]").onclick = (e) => {
-      e.stopPropagation();
-      z.innerHTML = "";
-      montrer(false);
-      O.SteamClient.URL.ExecuteSteamURL(`steam://nav/games/details/${b.jeu.appid}`);
-    };
-  };
   const ACTIONS = {
     amis: () => window.__pcvAmisMontrer?.(true),
     magasin: () => O.__pcvAller?.(3),

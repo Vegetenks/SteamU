@@ -28,8 +28,23 @@ window.__pcvCredits = {
     { "nom": "websocket-client", "ico": "livre", "auteurs": "engn33r", "licence": "Apache 2.0", "lien": "github.com/websocket-client/websocket-client" }
   ],
   "mii": [
-    { "nom": "FFL.js", "ico": "mii", "auteurs": "ariankordi", "licence": "AGPL", "lien": "github.com/ariankordi/FFL.js" },
-    { "nom": "D\xE9compilation de FFL", "ico": "mii", "auteurs": "aboood40091", "licence": "non pr\xE9cis\xE9e", "lien": "github.com/aboood40091/ffl" }
+    {
+      "nom": "FFL.js",
+      "ico": "mii",
+      "auteurs": "ariankordi",
+      "cheznous": "Les liaisons du moteur des Mii, embarqu\xE9es avec SteamU",
+      "licence": "AGPL",
+      "lien": "github.com/ariankordi/FFL.js",
+      "detail": "decky/steamu/donnees/mii-moteur/ (SOURCE.md) : les liaisons JavaScript de FFL.js v2.2.2 (AGPL-3.0, Arian Kordi), embarqu\xE9es. Le shader de Nintendo recopi\xE9 dans FFLShaderMaterial.browser.js et LUTShaderMaterial.browser.js, et le WebAssembly d\xE9compil\xE9 de ffl-emscripten.js, restent \xE0 importer : leur contenu d\xE9passe ce que l'AGPL d'Arian Kordi peut couvrir."
+    },
+    {
+      "nom": "D\xE9compilation de FFL",
+      "ico": "mii",
+      "auteurs": "aboood40091",
+      "licence": "non pr\xE9cis\xE9e",
+      "lien": "github.com/aboood40091/ffl",
+      "detail": "Le WebAssembly compil\xE9 depuis cette d\xE9compilation (ffl-emscripten.js) n'est pas embarqu\xE9 : \xE0 importer, comme avant."
+    }
   ],
   "communautes": [
     { "nom": "ThemePlaza", "ico": "internet", "lien": "themeplaza.art" },

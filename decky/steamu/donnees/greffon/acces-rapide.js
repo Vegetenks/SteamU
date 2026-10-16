@@ -378,7 +378,7 @@
   };
   const posDe = (p) => Math.min(p.duree || Infinity, p.position + (p.statut === "Playing" ? (performance.now() - luLe) / 1e3 * (p.vitesse || 1) : 0));
   const pctDe = (p) => p.duree > 0 ? (100 * Math.min(1, posDe(p) / p.duree)).toFixed(2) + "%" : "0%";
-  const poch = (p, cl = "") => p?.pochette ? `<div class="poch ${cl}" style="background-image:url('${String(p.pochette).replace(/['"()\\]/g, encodeURIComponent)}')"></div>` : `<div class="poch vide ${cl}">${ico("musique")}</div>`;
+  const poch = (p, cl = "") => p?.pochette ? `<div class="poch ${cl}" style="background-image:url('${String(p.pochette).replace(/['"()\\]/g, encodeURIComponent)}');background-size:cover;background-position:center"></div>` : `<div class="poch vide ${cl}">${ico("musique")}</div>`;
   const prog = (p, n) => `<div class="prog"${p.chercher ? ` data-a="lect:piste:${n}"` : ""}><span class="lect-pos">${tps(posDe(p))}</span><div class="barre-l" style="--p:${pctDe(p)}"><i></i><b></b></div><span>${p.duree > 0 ? tps(p.duree) : ""}</span></div>`;
   const cmd = (a, n, ic, cl = "", ok = true) => `<div class="cmd ${cl}${ok ? "" : " off"}"${ok ? ` data-a="lect:${a}:${n}"` : ""}>${ico(ic)}</div>`;
   const cmds = (p, n) => `<div class="cmds">${cmd("precedent", n, "precedent", "", p.precedent)}${cmd("lecture", n, p.statut === "Playing" ? "pause" : "lecture", "jouer premier", p.lire)}${cmd("suivant", n, "suivant", "", p.suivant)}</div>`;
@@ -399,7 +399,7 @@
   };
   let dernierRendu = "";
   const peindreLecteur = () => {
-    const f = e.focus()?.dataset.a, cle = JSON.stringify(lect.map((p) => [p.nom, p.statut, p.titre, p.artiste, p.album, p.duree, p.pochette?.length || 0, p.precedent, p.suivant])) + cur;
+    const f = e.focus()?.dataset.a, cle = JSON.stringify(lect.map((p) => [p.nom, p.statut, p.titre, p.artiste, p.album, p.duree, p.pochette?.slice(-48), p.precedent, p.suivant])) + cur;
     if (cle !== dernierRendu) {
       dernierRendu = cle;
       e.$(".lecteur-slot").innerHTML = carteLecteur();
@@ -493,7 +493,7 @@
     commanderL("position", n, pos);
   };
   const LY_H = 108;
-  let ly = null, lyGlisse = null, lyLache = 0;
+  let ly = null, lyGlisse = null, lyLache = 0, lyMinuteur = 0;
   const parolesPermises = () => {
     try {
       return !!principale().m_BrowserWindow.__pcvSteamU?.paroles?.();
@@ -502,6 +502,10 @@
     }
   };
   const cleLy = (p) => p ? [p.nom, p.titre, p.artiste].join("\n") : "";
+  const legOk = (voir) => {
+    const ok = e.$(".legende > .pilule:has(.touche.a)");
+    if (ok) ok.style.display = voir ? "" : "none";
+  };
   const PTS = '<span class="ly-pts"><i></i><i></i><i></i></span>';
   const etatLy = (pt, h2, t, bout = "") => `<div class="pa-etat">${pt}<h1>${h2}</h1><p>${t}</p>${bout}</div>`;
   const peindreParoles = (ouverture) => {
@@ -520,44 +524,67 @@
     );
     else {
       const lignes = s === "actif" ? ly.lignes : [[0, ""]];
-      const vu = !ouverture && e.$(".pa-poch.petit") ? " vu" : "";
-      z.innerHTML = fond + `<div class="pa-poch${vu ? " petit" : ""}" data-poch>${poch(p)}</div><div class="pa-mini${vu}"><h2 class="titre-m">${esc(p.titre || p.app)}</h2><div class="artiste">${art}</div></div><div class="ly-zone premier${vu}" data-y="pochette" data-y-nom="${T("paroles.pochette", "Pochette")}"><div class="ly-lista">` + lignes.map(([, x], i) => `<div class="lyl${x ? "" : " instru"}" data-i="${i}"><span class="lyl-in">${x ? esc(x) : PTS}</span></div>`).join("") + `</div><div class="ly-marqueur"></div></div><div class="pa-grande"><span data-poch>${poch(p)}</span><h2 class="titre-m">${esc(p.titre || p.app)}</h2><div class="artiste">${art}${p.album ? ", " + esc(p.album) : ""}</div></div>`;
+      ly.mots = lignes.map((l, i) => l[1] ? motsLy(lignes, i, p.duree) : null);
+      const vu = !ouverture && ly.entre ? " vu" : "";
+      z.innerHTML = fond + `<div class="pa-poch${vu ? " petit" : ""}" data-poch>${poch(p)}</div><div class="pa-mini${vu}"><h2 class="titre-m">${esc(p.titre || p.app)}</h2><div class="artiste">${art}</div></div><div class="ly-zone premier${vu}" data-y="pochette" data-y-nom="${T("paroles.pochette", "Pochette")}"><div class="ly-lista">` + lignes.map(([, x], i) => `<div class="lyl${x ? "" : " instru"}" data-i="${i}"><span class="lyl-in">${x ? ly.mots[i].map(([, , w]) => `<span class="m" data-m="${esc(w)}">${esc(w)}</span>`).join("") : PTS}</span></div>`).join("") + `</div><div class="ly-marqueur"></div></div><div class="pa-grande"><span data-poch>${poch(p)}</span><h2 class="titre-m">${esc(p.titre || p.app)}</h2><div class="artiste">${art}${p.album ? ", " + esc(p.album) : ""}</div></div>`;
       ly.foyer = -1;
       if (s === "actif") suivreParoles(true);
       else placerLy(0);
-      if (ouverture) {
+      if (!ly.entre) {
+        const moi = ly;
         requestAnimationFrame(() => requestAnimationFrame(() => {
           e.$(".pa-poch")?.classList.add("petit");
           e.$(".pa-mini")?.classList.add("vu");
         }));
         setTimeout(() => {
+          if (moi.entre) return;
+          moi.entre = true;
           e.$(".ly-lista")?.classList.add("entre");
           e.$(".ly-zone")?.classList.add("vu");
-        }, 520);
-      } else if (vu) e.$(".ly-lista").classList.add("entre");
+        }, ouverture ? 520 : 0);
+      } else e.$(".ly-lista").classList.add("entre");
     }
     if (sousOuvert() === "paroles" && !e.focus()?.isConnected) e.premier();
   };
   const chargerParoles = (ouverture) => {
     const p = lect[cur], cle = cleLy(p);
     if (!ouverture && ly?.cle === cle) return;
-    const moi = ly = { cle, etat: !p ? "rien" : !parolesPermises() ? "refuse" : "charge", lignes: [], foyer: -1 };
+    const moi = ly = { cle, etat: !p ? "rien" : !parolesPermises() ? "refuse" : "charge", lignes: [], foyer: -1, entre: !ouverture && !!ly?.entre };
+    clearTimeout(lyMinuteur);
     peindreParoles(ouverture);
     if (moi.etat !== "charge") return;
-    appel("paroles", p.artiste || "", p.titre || "", p.album || "", p.duree || 0).then(
-      (r) => {
+    const montrer = (etat2, lignes = []) => {
+      if (ly !== moi) return;
+      moi.etat = etat2;
+      moi.lignes = lignes;
+      if (sousOuvert() === "paroles") peindreParoles(false);
+    };
+    const essayer = (n) => {
+      const q = lect[cur];
+      if (ly !== moi || cleLy(q) !== cle) return;
+      appel("paroles", q.artiste || "", q.titre || "", q.album || "", q.duree || 0).then((r) => {
+        if (r?.lignes?.length) montrer("actif", r.lignes);
+        else if (r?.vide) montrer("vide");
+        else throw r;
+      }).catch(() => {
         if (ly !== moi) return;
-        moi.etat = r?.lignes?.length ? "actif" : r?.vide ? "vide" : "erreur";
-        moi.lignes = r?.lignes || [];
-        if (sousOuvert() === "paroles") peindreParoles(false);
-      },
-      () => {
-        if (ly === moi) {
-          moi.etat = "erreur";
-          if (sousOuvert() === "paroles") peindreParoles(false);
-        }
-      }
-    );
+        if (n < 3) lyMinuteur = setTimeout(() => essayer(n + 1), 2e3 * (n + 1));
+        else montrer("erreur");
+      });
+    };
+    lyMinuteur = setTimeout(() => essayer(0), ouverture ? 0 : 600);
+  };
+  const motsLy = (L, i, duree2) => {
+    const [t, x, M] = L[i], suiv = L[i + 1]?.[0] ?? (duree2 || t + 8);
+    if (M) return M.flatMap(([a, w], k) => w ? [[a, M[k + 1]?.[0] ?? Math.min(suiv, a + 2), w]] : []);
+    const n = x.length || 1, D = Math.min(suiv - t, 0.6 + 0.09 * n);
+    let c = 0;
+    return x.split(" ").map((w, k, a) => {
+      w = k < a.length - 1 ? w + " " : w;
+      const d2 = t + D * c / n;
+      c += w.length;
+      return [d2, t + D * c / n, w];
+    });
   };
   const placerLy = (foyer) => {
     const l = e.$(".ly-lista");
@@ -568,19 +595,44 @@
       el.style.setProperty("--rd", Math.min(dd * 16, 140) + "ms");
       el.classList.toggle("actif", i === foyer);
       el.classList.toggle("proche", dd === 1);
+      el.classList.toggle("passe", i < foyer);
     });
   };
   const suivreParoles = (force) => {
     const p = lect[cur];
     if (ly?.etat !== "actif" || !p || lyGlisse) return;
-    const L = ly.lignes, pos = posDe(p) + 0.15;
+    const L = ly.lignes, t = posDe(p), pos = t + 0.15;
     let i = 0;
     while (i + 1 < L.length && L[i + 1][0] <= pos) i++;
     if (i !== ly.foyer || force) {
       ly.foyer = i;
       placerLy(i);
+      ly.ws = null;
+      ly.mot = -1;
+      ly.k = "";
+      e.racine.querySelectorAll(".lyl .m.lu, .lyl .m[style]").forEach((w) => {
+        w.classList.remove("lu");
+        w.style.removeProperty("--k");
+      });
     }
-    if (!L[i][1]) {
+    const M = ly.mots?.[i];
+    if (M?.length) {
+      let j = 0;
+      while (j + 1 < M.length && M[j + 1][0] <= t) j++;
+      const ws = ly.ws || (ly.ws = e.racine.querySelectorAll(`.lyl[data-i="${i}"] .m`)), k = Math.max(0, Math.min(1, (t - M[j][0]) / Math.max(0.05, M[j][1] - M[j][0]))).toFixed(3);
+      if (j !== ly.mot) {
+        ws.forEach((w, n) => {
+          w.classList.toggle("lu", n < j);
+          if (n !== j) w.style.removeProperty("--k");
+        });
+        ly.mot = j;
+        ly.k = "";
+      }
+      if (k !== ly.k) {
+        ly.k = k;
+        ws[j]?.style.setProperty("--k", k);
+      }
+    } else if (!L[i][1]) {
       const fin = L[i + 1]?.[0] ?? (p.duree || L[i][0] + 8), r = Math.max(0, Math.min(1, (pos - L[i][0]) / Math.max(0.1, fin - L[i][0])));
       const pts = e.racine.querySelectorAll(`.lyl[data-i="${i}"] .ly-pts i`);
       pts.forEach((pt, k) => pt.style.setProperty("--f", Math.max(0, Math.min(1, r * 3 - k)).toFixed(3)));
@@ -783,6 +835,7 @@
         if (v === "ouvrir") {
           chargerParoles(true);
           ouvrirSous("paroles");
+          legOk(false);
           return peindreLecteur();
         }
         if (v === "param") {
@@ -930,10 +983,13 @@
       }
       if (sousOuvert() === "paroles") {
         e.$('[data-sous="paroles"]').hidden = true;
+        legOk(true);
+        clearTimeout(lyMinuteur);
+        dernierRendu = "";
+        peindreLecteur();
         const b = e.$(".paroles-star");
         if (b) e.poser(b);
         else e.premier();
-        peindreLecteur();
         return true;
       }
       if (fermerCadre()) {

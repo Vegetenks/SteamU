@@ -1,0 +1,23 @@
+{
+ "id": "heros-vert-1",
+ "nom": "Héros Vert",
+ "categorie": "chapeau",
+ "fichier": "modele.glb",
+ "attache": "tete",
+ "position": [
+  0,
+  0,
+  0
+ ],
+ "rotation": [
+  0,
+  0,
+  0
+ ],
+ "echelle": 1,
+ "teinte": null,
+ "cache_cheveux": "haut",
+ "remplace": null,
+ "auteur": "SteamU",
+ "source": "fait main"
+}

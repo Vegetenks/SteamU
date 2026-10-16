@@ -81,6 +81,21 @@ def _nettoyer(artiste, titre):
     return artiste, titre
 
 _LIGNE = re.compile(r"\[(\d+):(\d{1,2}(?:[.:]\d{1,3})?)\]")
+_MOT = re.compile(r"<(\d+):(\d{1,2}(?:[.:]\d{1,3})?)>")   
+_sec = lambda m: int(m.group(1)) * 60 + float(m.group(2).replace(":", "."))
+
+def _mots(reste):
+    tags = list(_MOT.finditer(reste))
+    if not tags:
+        return None
+    mots = []
+    for k, m in enumerate(tags):
+        x = reste[m.end():tags[k + 1].start() if k + 1 < len(tags) else len(reste)]
+        x = re.sub(r"\s+", " ", "".join(c for c in x if unicodedata.category(c)[0] != "C" or c == " "))[:200]
+        mots.append([round(_sec(m), 2), x.lstrip() if not mots else x])
+    if mots[-1][1].strip():
+        mots[-1][1] = mots[-1][1].rstrip()
+    return mots if any(x.strip() for _, x in mots) else None
 
 def _lrc(texte):
     brut = []
@@ -88,18 +103,20 @@ def _lrc(texte):
         tags = list(_LIGNE.finditer(ligne))
         if not tags:
             continue
-        x = _texte(ligne[tags[-1].end():])
+        reste = ligne[tags[-1].end():]
+        mots = _mots(reste)
+        x = _texte(_MOT.sub("", reste))
         for m in tags:
-            brut.append((int(m.group(1)) * 60 + float(m.group(2).replace(":", ".")), x))
+            brut.append((_sec(m), x, mots if len(tags) == 1 else None))
     brut.sort(key=lambda l: l[0])
     sortie = []
-    for i, (t, x) in enumerate(brut):
+    for i, (t, x, mots) in enumerate(brut):
         suivant = brut[i + 1][0] if i + 1 < len(brut) else None
         if not x and (suivant is None or suivant - t < INTERMEDE_S):
             continue   
         if sortie and not x and not sortie[-1][1]:
             continue
-        sortie.append([round(t, 2), x])
+        sortie.append([round(t, 2), x] + ([mots] if x and mots else []))
     if sortie and sortie[0][0] >= INTERMEDE_S and sortie[0][1]:
         sortie.insert(0, [0, ""])   
     return sortie
@@ -117,7 +134,7 @@ def chercher(artiste, titre, album, duree, dossier):
     if not titre:
         return {"vide": True}
     cache = pathlib.Path(dossier)
-    fichier = cache / (hashlib.sha1(json.dumps([artiste.lower(), titre.lower(), album.lower(), duree]).encode()).hexdigest() + ".json")
+    fichier = cache / (hashlib.sha1(json.dumps([artiste.lower(), titre.lower(), album.lower(), duree, "m"]).encode()).hexdigest() + ".json")
     try:
         d = json.loads(fichier.read_text())
         if d.get("lignes") or time.time() - fichier.stat().st_mtime < VIDE_JOURS * 86400:
@@ -129,7 +146,10 @@ def chercher(artiste, titre, album, duree, dossier):
         if artiste and album and duree:
             r = _choisir([_obtenir("get", {"artist_name": artiste, "track_name": titre, "album_name": album, "duration": duree})], duree)
         if r is None:
-            r = _choisir(_obtenir("search", {"track_name": titre, **({"artist_name": artiste} if artiste else {})}), duree)
+            reponses = _obtenir("search", {"track_name": titre, **({"artist_name": artiste} if artiste else {})})
+            r = _choisir(reponses, duree)
+            if r is None and duree:   
+                r = _choisir(reponses, 0)
     except Exception as e:
         return {"erreur": _raison(e)}
     lignes = _lrc(r["syncedLyrics"]) if r else []

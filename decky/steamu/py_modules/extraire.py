@@ -166,6 +166,12 @@ def machine_hall(zip_, sortie):
     machine_hall.main(zip_, os.path.join(sortie, "machine-hall.glb"))
     return {"fichiers": [{"de": "machine-hall.glb", "vers": "badge-arcade/machine-hall.glb"}], "notes": {"machine": 1}}
 
+def tenue_dae(zip_, ident, sortie):
+    import tenue_dae
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", ident): return {"erreur": "illisible"}
+    _ecrire(os.path.join(sortie, "modele.glb"), tenue_dae.convertir(zip_, ident))
+    return {"fichiers": [{"de": "modele.glb", "vers": f"visiteurs/{ident}/modele.glb"}], "notes": {"tenue": 1}}
+
 def luigi(nds, mpds_, glb_existant, sortie):
     import sm64ds, mpds, sdat
     fichiers, notes = [], {"luigi": 0, "clips": 0, "clips_mpds": 0, "casino": 0}
@@ -199,7 +205,7 @@ def luigi(nds, mpds_, glb_existant, sortie):
     return {"fichiers": fichiers, "notes": notes}
 
 COMMANDES = {"romfs": (romfs, 5), "badge-arcade": (badge_arcade, 2), "boss": (boss, 4), "collection": (collection, 2),
-             "machine-hall": (machine_hall, 2), "luigi": (luigi, 4)}
+             "machine-hall": (machine_hall, 2), "tenue-dae": (tenue_dae, 3), "luigi": (luigi, 4)}
 
 if __name__ == "__main__":
     import resource

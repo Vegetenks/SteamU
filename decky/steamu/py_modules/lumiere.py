@@ -1,4 +1,4 @@
-import json, os, pathlib, re, socket, threading, time
+import json, os, pathlib, re, threading, time
 from ambideck.follower import Follower
 
 OR = (255, 196, 58)          
@@ -103,33 +103,7 @@ class ManetteLED:
 
     def fermer(self): pass
 
-COMPAGNON = "/run/steamu-led/led.sock"
-GARDER = 255                       
-
-class ManetteCompagnon:
-    def __init__(self, chemin=COMPAGNON):
-        self.s = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET); self.s.settimeout(1.)
-        try: self.s.connect(chemin); self._envoyer(bytes([GARDER, 0, 0, 0, 0, 0] * 2))   
-        except Exception: self.s.close(); raise
-
-    def _envoyer(self, m):
-        self.s.send(m)
-        if self.s.recv(1) != b"\x01": raise OSError("compagnon : refusé")
-
-    def poser(self, stick, etat):
-        if stick not in STICKS: raise ValueError("stick")
-        if etat is None: e = [0] * 6
-        else:
-            mode, (r, g, b), lum, vit = etat
-            e = [mode, _octet(r), _octet(g), _octet(b), round(min(1., max(0., lum)) * 100), round(min(1., max(0., vit)) * 100)]
-        g = [GARDER, 0, 0, 0, 0, 0]
-        self._envoyer(bytes(e + g if stick == STICKS[0] else g + e))
-
-    def fermer(self): self.s.close()
-
 def _ouvrir_manette():
-    try: return ManetteCompagnon()
-    except OSError: pass
     d = trouver_led()
     if d is not None:
         try: return ManetteLED(d)
@@ -302,11 +276,6 @@ class Lumiere:
         if self.manette: self.manette.fermer(); self.manette = None
 
     def _ouvrir(self):
-        if self.manette is not None and not isinstance(self.manette, ManetteCompagnon) and self.ouvrir is _ouvrir_manette \
-                and self.horloge() - getattr(self, "t_compagnon", -1e9) > 20:
-            self.t_compagnon = self.horloge()
-            try: c = ManetteCompagnon(); self.manette.fermer(); self.manette, self.posees = c, [None, None]
-            except OSError: pass
         if self.manette is None: self.manette = self.ouvrir()
         return self.manette is not None
 

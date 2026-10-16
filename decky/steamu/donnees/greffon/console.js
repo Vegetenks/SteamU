@@ -112,19 +112,19 @@
       filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 2) rgba(0,0,0,.45)); }
     
     #pcv-console .cel.vide { background: none; box-shadow: none; }
-    #pcv-console .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { content: ""; position: absolute; left: 50%; top: 50%; width: 22%; aspect-ratio: 1;
-      transform: translate(-50%, -50%); border-radius: 22%; background: color-mix(in srgb, var(--pcv-carte) 22%, transparent); box-shadow: 0 0 0 calc(var(--u) * 1) rgba(60,80,110,.05); pointer-events: none; }
-    #pcv-console .grille:has(.porte) .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { background: color-mix(in srgb, var(--pcv-carte) 50%, transparent); box-shadow: 0 0 0 calc(var(--u) * 1) rgba(60,80,110,.1); }
+    
+    #pcv-console .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { content: ""; position: absolute; left: 50%; top: 50%; width: calc(var(--u) * (var(--c) + var(--g)) * .35); aspect-ratio: 1;
+      transform: translate(-50%, -50%); border-radius: 42%; background: color-mix(in srgb, var(--pcv-carte) 12%, transparent); pointer-events: none; }
+    #pcv-console .grille:has(.porte) .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { background: color-mix(in srgb, var(--pcv-carte) 35%, transparent); }
     #pcv-console .cel.vide.loin::after { display: none; }
     body:not(.pcv-zone-jaquettes) #pcv-console .cel.vide.sel { box-shadow: none; }
     body.pcv-zone-jaquettes #pcv-console .cel.vide.sel { transform: none; box-shadow: 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 rgba(47,184,255,.3); }
     #pcv-console .cel.couverte, #pcv-console .cel.ancre:not(.sel) { background: none !important; box-shadow: none !important; }
     #pcv-console .cel.couverte.sel { outline: calc(var(--u) * 3) dashed var(--pcv-cyan-plein); outline-offset: calc(var(--u) * -3); }
     
-    #pcv-console .cel .bdg { position: absolute; inset: calc(var(--u) * var(--bo)); background: center / contain no-repeat; image-rendering: pixelated; filter: drop-shadow(0 4px 4px rgba(0,0,0,.2)); }
+    #pcv-console .cel .bdg { position: absolute; inset: calc(var(--u) * var(--g) / -2 - .5px); background: center / contain no-repeat; image-rendering: pixelated; }
     #pcv-console .cel .bdg.grand { right: auto; bottom: auto; z-index: 2;
-      width: calc(var(--u) * ((var(--w) - 1) * (var(--c) + var(--g)) + var(--im)));
-      height: calc(var(--u) * ((var(--h) - 1) * (var(--c) + var(--g)) + var(--im))); }
+      width: calc(var(--u) * var(--w) * (var(--c) + var(--g)) + 1px); height: calc(var(--u) * var(--h) * (var(--c) + var(--g)) + 1px); }
     
     #pcv-console .cel.dos { --dos: var(--pcv-accent, var(--pcv-cyan-plein, #2fb8ff)); }
     #pcv-console .chem { position: relative; width: 100%; height: 100%; border-radius: calc(var(--u) * var(--c) * .15); overflow: hidden;
@@ -838,8 +838,8 @@
   let uLu = 0;
   const sonde = $(".sonde"), uPx = () => uLu || (uLu = sonde.getBoundingClientRect().width / 100) || innerHeight / 800;
   const boite = (w = 1, h2 = 1, u = uPx()) => {
-    const z = ZOOMS[zi], { im } = forme(z);
-    return [((w - 1) * (z.c + z.g) + im) * u, ((h2 - 1) * (z.c + z.g) + im) * u];
+    const p = (ZOOMS[zi].c + ZOOMS[zi].g) * u;
+    return [w * p, h2 * p];
   };
   const PIX = window.__pcvBadgePixels ||= /* @__PURE__ */ new Map();
   const blocs = (d, w, h2, b) => {
@@ -870,32 +870,19 @@
       } catch (e) {
       }
       PIX.set(id, { b, w, h: h2 });
-      const u2 = uPx();
-      grille.querySelectorAll(".bdg[data-bd], .ec[data-bd]").forEach((e) => e.dataset.bd === id && habiller(e, id, ...boiteEl(e, u2)));
+      grille.querySelectorAll(".bdg[data-bd], .ec[data-bd]").forEach((e) => e.dataset.bd === id && habiller(e, id));
     };
     im.src = u;
   };
-  const habiller = (el, id, W, H) => {
+  const habiller = (el, id) => {
     const p = PIX.get(id);
     if (p === void 0) analyser(id);
-    const r = devicePixelRatio || 1, m = 2 * forme().pad * uPx() + 1, n = (l, x) => l * r * p.b / x;
-    let k = 0;
-    if (p?.b > 1) {
-      const haut = Math.floor(Math.min(n(W + m, p.w), n(H + m, p.h)));
-      k = appliDuBadge(id) ? Math.min(Math.round(Math.min(n(W, p.w), n(H, p.h))), haut) : haut;
-    }
-    el.style.backgroundSize = k >= 1 ? `${p.w / p.b * k / r}px ${p.h / p.b * k / r}px` : "contain";
-    el.style.imageRendering = k >= 1 ? "pixelated" : "";
-  };
-  const boiteEl = (e, u = uPx()) => e.classList.contains("ec") ? boite(1, 1, u).map((x) => x * ECUSSON.taille) : boite(+e.dataset.w || 1, +e.dataset.h || 1, u);
-  const habillerTout = () => {
-    const u = uPx();
-    grille.querySelectorAll(".bdg[data-bd], .ec[data-bd]").forEach((e) => habiller(e, e.dataset.bd, ...boiteEl(e, u)));
+    el.style.backgroundSize = "contain";
+    el.style.imageRendering = p?.b > 1 ? "pixelated" : "";
   };
   let vueFamille = null;
   window.__pcvConsoleTaille = () => {
     uLu = 0;
-    if (!racine.hidden) habillerTout();
   };
   addEventListener("resize", window.__pcvConsoleTaille);
   const tuileDossier = (c) => {
@@ -928,7 +915,7 @@
       s.className = "ec";
       s.dataset.bd = e.bd;
       s.style.backgroundImage = `url('${badgeURL(e.bd)}')`;
-      habiller(s, e.bd, ...boiteEl(s));
+      habiller(s, e.bd);
       t.appendChild(s);
     }
     return t;
@@ -960,13 +947,12 @@
             e.classList.toggle("loin", Math.floor(i / z.r) > limite2);
           }
         });
-        habillerTout();
         racine.querySelectorAll(".zoom i").forEach((e, k) => e.classList.toggle("on", k === zi));
         marquer(false);
         return;
       }
     }
-    const ordre = cases.map((_, i) => i).sort(() => Math.random() - 0.5), u = uPx(), limite = colonneLimite(z);
+    const ordre = cases.map((_, i) => i).sort(() => Math.random() - 0.5), limite = colonneLimite(z);
     reserve = reserver(cases);
     const { grands, ancreDe } = reserve;
     grille.innerHTML = "";
@@ -999,7 +985,7 @@
           s.style.backgroundImage = `url('${badgeURL(c.bd)}')`;
           s.dataset.w = w;
           s.dataset.h = hh;
-          habiller(s, c.bd, ...boite(w, hh, u));
+          habiller(s, c.bd);
           if (grands.has(i)) {
             s.classList.add("grand");
             s.style.setProperty("--w", w);
@@ -1932,12 +1918,11 @@
   });
   window.removeEventListener("pcv-badge", window.__pcvBadgeArrive);
   window.addEventListener("pcv-badge", window.__pcvBadgeArrive = () => {
-    const u0 = uPx();
     racine.querySelectorAll("[data-bd]").forEach((b) => {
       const u = badgeURL(b.dataset.bd);
       if (!u) return;
       b.style.backgroundImage = `url('${u}')`;
-      if (b.classList.contains("bdg") || b.classList.contains("ec")) habiller(b, b.dataset.bd, ...boiteEl(b, u0));
+      if (b.classList.contains("bdg") || b.classList.contains("ec")) habiller(b, b.dataset.bd);
     });
   });
   window.__pcvConsoleMarquer = () => {
@@ -2036,8 +2021,9 @@
     grille: () => grille,
     recouvert: () => recouvert(),
     boite: (w, h2) => boite(w, h2),
-    bord: () => forme().bo * uPx(),
+    bord: () => -ZOOMS[zi].g / 2 * uPx(),
     habiller,
+    // (bord : coin d'un badge depuis celui de sa case)
     tout: () => principal.flatMap((c) => c.dossier ? ecDe(c) ? [...c.l, c.ec] : c.l : [c]),
     // (badges collés sur les dossiers compris)
     dossier: () => {

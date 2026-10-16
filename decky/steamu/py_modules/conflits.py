@@ -13,7 +13,9 @@ def greffons_installes(maison):
         except Exception:
             nom = None
         if nom: r[nom.strip().lower()] = d
-    return r
+    try: coupes = {n.strip().lower() for n in json.loads(pathlib.Path(maison, "homebrew/settings/loader.json").read_text()).get("disabled_plugins") or []}
+    except Exception: coupes = set()
+    return {n: d for n, d in r.items() if n not in coupes}
 
 def css_loader_actif(maison):
     themes = pathlib.Path(maison, "homebrew/themes")

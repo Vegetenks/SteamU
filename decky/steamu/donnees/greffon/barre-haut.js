@@ -26,7 +26,7 @@
     
     :root { --pcv-biseau-dy: -1.5px; }   
     #pcv-barre .rond i { transform: translateY(var(--pcv-biseau-dy)); }
-    #pcv-barre .rond[data-pcv-nom="Notifications"] i { transform: translateY(calc(var(--pcv-biseau-dy) - var(--u) * 1.6)); }
+    #pcv-barre .rond[data-pcv-rond="notifs"] i { transform: translateY(calc(var(--pcv-biseau-dy) - var(--u) * 1.6)); }
     #pcv-barre .rond:active { transform: scale(.93); }
     #pcv-barre .rond.pcv-sel, #pcv-bascule.pcv-sel { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)) !important; transform: scale(1.08) !important;
       box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 8) var(--pcv-cyan-plein), 0 calc(var(--u) * 10) calc(var(--u) * 24) rgba(26,154,230,.45) !important; }
@@ -52,6 +52,7 @@
   {
     const b = document.createElement("button");
     b.className = "rond";
+    b.dataset.pcvRond = "amis";
     b.dataset.pcvNom = T("spaces.amis.nom");
     b.setAttribute("aria-label", T("spaces.amis.nom"));
     b.style.left = "calc(var(--u) * 90)";
@@ -66,6 +67,7 @@
   {
     const b = document.createElement("button");
     b.className = "rond";
+    b.dataset.pcvRond = "notifs";
     b.dataset.pcvNom = T("spaces.notifs.nom");
     b.setAttribute("aria-label", T("spaces.notifs.nom"));
     b.style.left = "calc(var(--u) * 156)";
@@ -126,8 +128,8 @@
     };
   }
   racine.addEventListener("click", (e) => {
-    if (!e.target.closest?.('[data-pcv-nom="Amis"]')) window.__pcvAmisMontrer?.(false);
-    if (!e.target.closest?.('[data-pcv-nom="Notifications"]')) window.__pcvNotifsMontrer?.(false);
+    if (!e.target.closest?.('[data-pcv-rond="amis"]')) window.__pcvAmisMontrer?.(false);
+    if (!e.target.closest?.('[data-pcv-rond="notifs"]')) window.__pcvNotifsMontrer?.(false);
   }, true);
   window.__pcvIcones?.rafraichir(racine);
   document.body.appendChild(racine);
@@ -497,7 +499,7 @@
       const m = window.__pcvMenus, ouvert = m.m_eOpenSideMenu === 2;
       racine.querySelectorAll(".rond").forEach((b) => b.classList.toggle(
         "actif",
-        (ouvert && m.m_eQuickAccessTab === 0 || document.getElementById("pcv-notifs")?.hidden === false) && b.dataset.pcvNom === "Notifications" || b.dataset.pcvNom === "Amis" && document.getElementById("pcv-amis")?.hidden === false
+        (ouvert && m.m_eQuickAccessTab === 0 || document.getElementById("pcv-notifs")?.hidden === false) && b.dataset.pcvRond === "notifs" || b.dataset.pcvRond === "amis" && document.getElementById("pcv-amis")?.hidden === false
       ));
     } catch (e) {
     }

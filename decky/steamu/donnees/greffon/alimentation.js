@@ -23,11 +23,12 @@
     }
   };
   const net = (s) => (s || "").replace(/\s+/g, " ").trim();
+  const T = (k, f) => window.__pcvT?.(k) ?? f;
   const SORTES = [
-    ["veille", "Veille", ["#Sleep", "#Quit_Sleep"], /veille/i],
-    ["redemarrer", "Red\xE9marrer", ["#Restart", "#Quit_Restart", "#RestartDevice"], /^red[ée]marrer( le système| l'appareil)?$/i],
-    ["bureau", "Bureau", ["#SwitchToDesktop"], /bureau/i],
-    ["eteindre", "\xC9teindre", ["#Shutdown", "#Quit_Shutdown"], /^(arr[êe]ter|[ée]teindre)/i]
+    ["veille", "alim.veille", ["#Sleep", "#Quit_Sleep"]],
+    ["redemarrer", "alim.redemarrer", ["#Restart", "#Quit_Restart", "#RestartDevice"]],
+    ["bureau", "alim.bureau", ["#SwitchToDesktop"]],
+    ["eteindre", "alim.eteindre", ["#Shutdown", "#Quit_Shutdown"]]
   ];
   const CONFIRMES = [
     ["veille", ["#Sleep", "#Quit_Sleep"]],
@@ -37,14 +38,14 @@
   let textes = null;
   const lire = () => textes ||= {
     power: net(loc("#Power")),
-    annuler: net(loc("#Button_Cancel")) || "Annuler",
+    annuler: net(loc("#Button_Cancel")),
     sur: net(loc("#Dialog_AreYouSure")),
-    sortes: SORTES.map(([id, , jetons, re]) => [id, new Set(jetons.map((j) => net(loc(j))).filter(Boolean)), re]),
+    sortes: SORTES.map(([id, , jetons]) => [id, new Set(jetons.map((j) => net(loc(j))).filter(Boolean))]),
     confirmes: CONFIRMES.map(([id, jetons]) => [id, new Set(jetons.map((j) => net(loc(j))).filter(Boolean))])
   };
   const sorteDe = (texte) => {
     const t = net(texte), L = lire();
-    for (const [id, set, re] of L.sortes) if (set.size ? set.has(t) : re.test(t)) return id;
+    for (const [id, set] of L.sortes) if (set.has(t)) return id;
     return null;
   };
   let batterie = "";
@@ -105,7 +106,7 @@
     if (legende.dataset.cle === cle) return;
     legende.dataset.cle = cle;
     legende.textContent = "";
-    for (const [code, mot] of avecChoisir ? [[1, "Choisir"], [2, "Annuler"]] : [[2, "Annuler"]]) {
+    for (const [code, mot] of avecChoisir ? [[1, T("alim.choisir", "Choisir")], [2, T("alim.annuler", "Annuler")]] : [[2, T("alim.annuler", "Annuler")]]) {
       const s = document.createElement("span");
       s.append(glyphe(code), mot);
       legende.appendChild(s);
@@ -141,9 +142,9 @@
           const w = document.createTreeWalker(it, NodeFilter.SHOW_TEXT);
           let n, t = null;
           while (n = w.nextNode()) if (n.textContent.trim()) t = n;
-          const court = SORTES.find((x) => x[0] === s)[1];
+          const court = T(SORTES.find((x) => x[0] === s)[1], s);
           if (t && t.textContent !== court) t.textContent = court;
-        } else if (net(it.textContent) === L.annuler) d.pcvAnnuler = "";
+        } else if (L.annuler && net(it.textContent) === L.annuler) d.pcvAnnuler = "";
         else d.pcvAutre = "";
       }
       if ("pcvAutre" in d) pilules++;

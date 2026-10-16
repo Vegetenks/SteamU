@@ -43,7 +43,8 @@
       cache_cheveux: a.cache_cheveux in CACHES ? a.cache_cheveux : "aucun",
       remplace: a.remplace in PARTIES ? a.remplace : null,
       auteur: a.auteur ? String(a.auteur) : "",
-      source: a.source ? String(a.source) : ""
+      source: a.source ? String(a.source) : "",
+      recette: typeof a.recette === "string" && ID.test(a.recette) ? a.recette : null
     });
   };
   let catalogue = null, lus = null, sansIndex = 0;
@@ -83,7 +84,7 @@
   };
   const horsCatalogue = avant?.horsCatalogue instanceof Map ? avant.horsCatalogue : /* @__PURE__ */ new Map();
   const inscrire = async (dossier, ids = []) => {
-    if (typeof dossier !== "string" || !/^\w[\w-]*\/$/.test(dossier)) throw new Error("garde-robe : dossier invalide");
+    if (typeof dossier !== "string" || !/^@?\w[\w-]*\/$/.test(dossier)) throw new Error("garde-robe : dossier invalide");
     const ok = await Promise.all(ids.filter((id) => typeof id === "string" && ID.test(id)).map(async (id) => {
       if (horsCatalogue.get(id)?.dossier === dossier) return id;
       try {
@@ -126,12 +127,47 @@
       for (const u of Object.values(adresses)) URL.revokeObjectURL(u);
     }
   };
+  const LIVRES = "@visiteurs/";
+  let fabrique = null;
+  const script = async (c) => {
+    const url = await window.__pcvRessource?.(c, "text/javascript");
+    if (!url) throw new Error("garde-robe : " + c + " absent");
+    try {
+      await new Promise((ok, ko) => {
+        const s = document.createElement("script");
+        s.src = url;
+        s.onload = () => {
+          s.remove();
+          ok();
+        };
+        s.onerror = () => {
+          s.remove();
+          ko(new Error("garde-robe : script refus\xE9 : " + c));
+        };
+        document.head.appendChild(s);
+      });
+    } finally {
+      URL.revokeObjectURL(url);
+      if (window.__pcvBlobs?.[c] === url) delete window.__pcvBlobs[c];
+    }
+  };
+  const fabriquer = async (recette) => {
+    fabrique ||= (async () => {
+      await script(LIVRES + "fabrique.js");
+      await script(LIVRES + "recettes.js");
+      return window.__pcvVisiteursFabrique;
+    })().catch((e) => {
+      fabrique = null;
+      throw e;
+    });
+    return (await fabrique).construire(recette);
+  };
   const charger = (id) => {
     if (modeles.has(id)) return modeles.get(id);
     const p = (async () => {
       const r = horsCatalogue.get(id), article = r ? r.article : (await liste()).find((a) => a.id === id);
       if (!article) throw new Error("garde-robe : article inconnu : " + id);
-      const gltf = await analyser(await lire(id + "/" + article.fichier, /\.glb$/i.test(article.fichier) ? "model/gltf-binary" : "model/gltf+json", r?.dossier), id, r?.dossier);
+      const gltf = r?.dossier === LIVRES && article.recette ? await fabriquer(article.recette) : await analyser(await lire(id + "/" + article.fichier, /\.glb$/i.test(article.fichier) ? "model/gltf-binary" : "model/gltf+json", r?.dossier), id, r?.dossier);
       gltf.scene.traverse((x) => {
         for (const m of [].concat(x.material || [])) if (m.map) {
           m.map.colorSpace = T.NoColorSpace;

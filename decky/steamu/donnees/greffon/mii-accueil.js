@@ -1680,7 +1680,9 @@
   };
   const MONDE = 12;
   const peupler = async () => {
-    const l = [...(await M.siens()).map((s) => ({ ...s, poids: 3 })), ...M.amis(4).map((a) => ({ ...a, poids: 1.5 })), ...M.habitantsInvites().map((v) => ({ ...v, poids: 1 }))];
+    const l = [...(await M.siens()).map((s) => ({ ...s, poids: 3 })), ...M.amis(4).map((a) => ({ ...a, poids: 1.5 }))];
+    for (const d of M.habitantsDefaut()) if (l.length < MONDE) l.push({ ...d, poids: 1 });
+    l.push(...M.habitantsInvites().map((v) => ({ ...v, poids: 1 })));
     for (let k = 0; l.length < MONDE; k++) l.push({ ...M.hasard(k), poids: 1 });
     habitants = l;
   };
@@ -1697,14 +1699,9 @@
     M = api;
     await peupler();
     return M;
-  }).catch(async (e) => {
+  }).catch((e) => {
     if (!signale) console.warn("mii-accueil : pas de vrais Mii (fichiers priv\xE9s absents ?)", e.message);
     signale = true;
-    if (window.__pcvMii3D?.generique) {
-      M = window.__pcvMii3D;
-      await peupler();
-      return M;
-    }
     return null;
   }).finally(() => {
     chargement = null;
@@ -4505,7 +4502,7 @@
       poids: 2,
       duree: "8\u201311 s",
       preparer: (sup) => {
-        const h = hMii(), R = sup.find((s) => s.genre === "rond" && s.el.dataset?.pcvNom === "Notifications" && !reserve(s));
+        const h = hMii(), R = sup.find((s) => s.genre === "rond" && s.el.dataset?.pcvRond === "notifs" && !reserve(s));
         if (!R) return null;
         const cx = centre(R)[0], chemin2 = planifier(sup, (s) => {
           if (!s.g.dessus || s.genre === "bulle" || s.sol) return false;
@@ -4848,10 +4845,12 @@
       }
     });
   };
-  const VISITES = { proba: 0.07, ecart: 900, cle: "pcv-mii-visites", forcer: "pcv-mii-visiteur", dossier: "visiteurs/" };
+  const VISITES = { proba: 0.07, ecart: 900, cle: "pcv-mii-visites", forcer: "pcv-mii-visiteur", dossier: "visiteurs/", livres: "@visiteurs/index.json" };
   let visiteurs = null, dernierRare = false;
   const listeVisiteurs = () => visiteurs ||= (async () => {
-    const url = await window.__pcvRessource?.(VISITES.dossier + "index.json", "application/json").catch(() => null);
+    const lireIndex = (c) => window.__pcvRessource?.(c, "application/json").catch(() => null);
+    let chemin2 = VISITES.dossier + "index.json", url = await lireIndex(chemin2);
+    if (!url) url = await lireIndex(chemin2 = VISITES.livres);
     if (!url) {
       setTimeout(() => {
         visiteurs = null;
@@ -4860,6 +4859,7 @@
     }
     try {
       const j = await (await fetch(url)).json(), ok = (x) => typeof x === "string" && /^[\w.-]{1,40}$/.test(x);
+      const dossier = chemin2 === VISITES.livres ? "@visiteurs/" : VISITES.dossier;
       return (Array.isArray(j?.visiteurs) ? j.visiteurs : []).filter((v) => ok(v?.id) && typeof v.donnees === "string" && Array.isArray(v.tenue) && v.tenue.every(ok) && Array.isArray(v.scenes) && v.scenes.some((n) => SCENES[n]?.rare)).map((v) => ({
         cle: "visiteur:" + v.id,
         id: v.id,
@@ -4869,6 +4869,8 @@
         couleursSwitch: v.couleurs_switch || void 0,
         deuxMains: typeof v.deux_mains === "string" ? v.deux_mains : void 0,
         tenue: v.tenue.slice(),
+        dossier,
+        option: Array.isArray(v.tenue_option) ? v.tenue_option.filter(ok) : [],
         scenes: v.scenes.filter((n) => SCENES[n]?.rare),
         poids: 1
       }));
@@ -4879,7 +4881,7 @@
       return [];
     } finally {
       URL.revokeObjectURL(url);
-      if (window.__pcvBlobs?.[VISITES.dossier + "index.json"] === url) delete window.__pcvBlobs[VISITES.dossier + "index.json"];
+      if (window.__pcvBlobs?.[chemin2] === url) delete window.__pcvBlobs[chemin2];
     }
   })();
   const lireVisites = () => {
@@ -4917,8 +4919,9 @@
       const G = window.__pcvGardeRobe;
       if (!G) return null;
       const cat = new Set((await G.liste().catch(() => [])).map((x) => x.id)), hors = v.tenue.filter((id) => !cat.has(id));
-      const ids = [...v.tenue.filter((id) => cat.has(id)), ...await G.inscrire(VISITES.dossier, hors)];
+      const ids = [...v.tenue.filter((id) => cat.has(id)), ...await G.inscrire(v.dossier, hors)];
       if (ids.length !== v.tenue.length) return null;
+      if (v.option.length) ids.push(...await G.inscrire(VISITES.dossier, v.option));
       await Promise.all(ids.map((id) => G.charger(id)));
       if (!demarre || !actif() || !calme() || vivants() >= REG.max) return null;
       const l = await listeVisiteurs();

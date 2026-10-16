@@ -1,18 +1,86 @@
 # SteamU
 
+<p align="center">
+  <img src="docs/images/hero.jpg" alt="SteamU: a warm Wii U / 3DS makeover for Steam Big Picture" width="100%">
+</p>
+
 SteamU is a [Decky Loader](https://decky.xyz) plugin that gives Steam's Big Picture / gamepad UI a warm,
 Wii U / 3DS-inspired makeover: a grid home screen, a HOME menu, full-screen quick settings, a set of complete
 themes (day and night), a music player, a "plaza" screen, a Mii Maker, a badge-collecting casino mini-game, and
 more. It is still labelled `v0.1.0-test`: expect rough edges, and please open an issue if something looks wrong.
 
-This repository ships two plugins, built straight from the private development tree and stripped of comments and
-any personal data before each release (see "Building from source" below):
-
-- **`decky/steamu/`**: the main plugin, listed as "SteamU" in Decky.
-- **`decky/steamu-led/`**: an optional companion plugin that gives the two stick rings of a Lenovo Legion Go 2
-  their own colour, tied to the active theme. Not needed on other handhelds.
+This repository ships one plugin, **`decky/steamu/`** (listed as "SteamU" in Decky), built straight from the private
+development tree and stripped of comments and any personal data before each release (see "Building from source"
+below).
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how the plugin works internally.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/images/home-grid.jpg" alt="Home grid" width="32%">
+  <img src="docs/images/quick-settings.png" alt="Quick settings" width="32%">
+  <img src="docs/images/themes-panel.png" alt="Themes panel" width="32%">
+</p>
+
+<details>
+<summary>Home grid and HOME menu</summary>
+<br>
+
+The grid home screen, and the HOME menu reachable from any screen.
+
+<img src="docs/images/home-grid.jpg" alt="Home grid" width="100%">
+<img src="docs/images/home-menu.png" alt="HOME menu" width="100%">
+</details>
+
+<details>
+<summary>Quick settings</summary>
+<br>
+
+Full-screen quick settings: brightness, volume, Wi-Fi, Bluetooth, Do Not Disturb, Night Mode, performance, and
+whatever is currently playing.
+
+<img src="docs/images/quick-settings.png" alt="Quick settings" width="100%">
+</details>
+
+<details>
+<summary>Music and lyrics</summary>
+<br>
+
+A full-screen music player for whatever is playing on the console (any app exposing MPRIS), with an optional,
+opt-in lyrics view synced to playback, fetched from LRCLIB.
+
+<img src="docs/images/music.png" alt="Music player" width="100%">
+<img src="docs/images/lyrics.png" alt="Synced lyrics" width="100%">
+</details>
+
+<details>
+<summary>Themes</summary>
+<br>
+
+Complete themes, each with its own day and night look: four of the built-in Wii U family themes shown in both
+variants ("Glass", the default, looks much the same idea in a cooler white).
+
+<img src="docs/images/themes-panel.png" alt="Themes panel" width="100%">
+<img src="docs/images/theme-ciel-day.png" alt="Sky theme, day" width="49%">
+<img src="docs/images/theme-ciel-night.png" alt="Sky theme, night" width="49%">
+<img src="docs/images/theme-miiverse-day.png" alt="Miiverse theme, day" width="49%">
+<img src="docs/images/theme-miiverse-night.png" alt="Miiverse theme, night" width="49%">
+<img src="docs/images/theme-peche-day.png" alt="Peach theme, day" width="49%">
+<img src="docs/images/theme-peche-night.png" alt="Peach theme, night" width="49%">
+<img src="docs/images/theme-deluxe-day.png" alt="Deluxe theme, day" width="49%">
+<img src="docs/images/theme-deluxe-night.png" alt="Deluxe theme, night" width="49%">
+</details>
+
+<details>
+<summary>Settings</summary>
+<br>
+
+SteamU's own settings tab, next to Steam's own Settings app: contributors, importing files, and your apps'
+status.
+
+<img src="docs/images/settings.png" alt="SteamU settings page" width="100%">
+</details>
 
 ## What works out of the box
 
@@ -23,8 +91,17 @@ and SteamU's own original sounds and music. No extra files needed.
 
 Real Miis, the Mii Maker, the casino and badges, and Nintendo console sounds all need files that **you** import
 from hardware **you** own. SteamU bundles **no Nintendo file of any kind**: no ROM, no firmware, no sound bank,
-no 3D model. Settings → SteamU → Import explains exactly what it recognises and what is still missing. Importing
-is entirely optional; nothing else depends on it.
+no 3D model. It does bundle the open-source [FFL.js](https://github.com/ariankordi/FFL.js) bindings (AGPL-3.0,
+see `decky/steamu/donnees/mii-moteur/SOURCE.md`) so real Miis need fewer imported files than before. A few
+shader/engine files that FFL.js publishes but whose license doesn't cover the Nintendo content inside them are
+not bundled either: the "Mii engine" zone in Settings → SteamU → Import has an **Install** button that fetches
+exactly those files from the official FFL.js repository (pinned version, checked against fingerprints shipped in
+the plugin). SteamU downloads nothing unless you ask, and only from the FFL.js project. The face resource file
+and the Mii bodies still need your own import. Settings → SteamU → Import explains exactly what it recognises and
+what is still missing. Importing is entirely optional; nothing else depends on it.
+
+Once real Miis are imported, the plaza is never empty: if you have few Miis of your own, a cast of SteamU's own
+Miis (made by us, not Nintendo's) fills it. Keep an eye on your home screen too: a few rare visitors may drop by…
 
 ## Install
 
@@ -39,18 +116,13 @@ is entirely optional; nothing else depends on it.
      exists); or
    - **From a URL**: "Install from URL" → paste the direct link to the `SteamU-v<version>.zip` asset of a
      GitHub Release.
-   Repeat with `SteamU-LED-Legion-Go-2-v<version>.zip` **only if you have a Lenovo Legion Go 2** and want the LED companion. Decky will ask for
-   confirmation since it runs as **root**; that's expected and explained in `ARCHITECTURE.md` (§8): it's a tiny,
-   separate plugin that only accepts a fixed 12-byte colour message on a local socket, so SteamU itself never
-   needs elevated privileges.
 3. **First launch**: restart Steam if the interface doesn't change right away (Steam → Power → Restart Steam, or
    just exit and relaunch).
 
 **Updating**: repeat the install step with the new zip/URL. It replaces the old version in place, no need to
 uninstall first.
 
-**Uninstalling cleanly**: Decky menu → Developer tab (or the plugin list) → remove "SteamU" (and
-"SteamU LED" if installed). This also removes the startup video SteamU installs; nothing else on your system is
+**Uninstalling cleanly**: Decky menu → Developer tab (or the plugin list) → remove "SteamU". This also removes the startup video SteamU installs; nothing else on your system is
 touched.
 
 ## Known conflicts
@@ -69,12 +141,12 @@ anything on its own, it just tells you:
 
 ## Building from source
 
-Both plugins are plain, unbundled JS/Python: no `npm install` or build step is required. To produce an
-installable zip from either folder:
+The plugin is plain, unbundled JS/Python: no `npm install` or build step is required. To produce an
+installable zip:
 
 ```sh
 cd decky
-zip -r SteamU.zip steamu   # or steamu-led
+zip -r SteamU.zip steamu
 ```
 
 Decky's "Install plugin from ZIP" expects the plugin folder (containing `plugin.json`) at the root of the zip.
@@ -107,3 +179,5 @@ described in `ARCHITECTURE.md`.
 
 AGPL-3.0-or-later, see [`LICENSE`](LICENSE). Third-party code bundled for convenience (a DBus client, a
 WebSocket client, a screen-colour sampler) keeps its own license notice in its own files/folder.
+
+Rare visitors are fan-made tributes; all trademarks belong to their respective owners.
