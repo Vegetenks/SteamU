@@ -9,10 +9,6 @@ Wii U / 3DS-inspired makeover: a grid home screen, a HOME menu, full-screen quic
 themes (day and night), a music player, a "plaza" screen, a Mii Maker, a badge-collecting casino mini-game, and
 more. It is still labelled `v0.1.0-test`: expect rough edges, and please open an issue if something looks wrong.
 
-This repository ships one plugin, **`decky/steamu/`** (listed as "SteamU" in Decky), built straight from the private
-development tree and stripped of comments and any personal data before each release (see "Building from source"
-below).
-
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how the plugin works internally.
 
 ## Screenshots

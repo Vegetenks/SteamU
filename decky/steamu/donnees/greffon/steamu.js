@@ -1048,6 +1048,7 @@
       S.cibleAttente = null;
     }
     if (S.actif && (!tuile() || S.natif && !document.contains(S.natif) || natives().some((t) => t !== S.natif && t.getAttribute("aria-selected") === "true"))) fermer();
+    else if (S.actif && S.natif && S.actifs.length && S.actifs.some((k) => S.natif.classList.contains(k))) S.natif.classList.remove(...S.actifs);
   }, 400);
   document.removeEventListener("click", window.__pcvSteamUClic, true);
   document.addEventListener("click", window.__pcvSteamUClic = (e) => {
