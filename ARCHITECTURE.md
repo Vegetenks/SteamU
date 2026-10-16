@@ -65,10 +65,6 @@ SteamU is designed to never be able to brick Steam's UI beyond a restart:
   (via Decky's own toaster) explaining what happened and how to resume, localized to fr/en/es.
 - **The Decky panel toggle** ("SteamU enabled", `dist/index.js`) lets you pause/resume manually the same way, and
   reflects the current state (enabled / paused-safety / paused-emergency / paused-manually).
-- **Former name** (`py_modules/reprise.py`, `moteur.ancien_actif()`): SteamU was called "Premium Clear View" in
-  Decky (folder `premium-clear-view`). On first start, its settings, data and logs folders are copied (never
-  moved) into SteamU's empty ones, once. While the old plugin's process is still running, SteamU injects nothing
-  and shows a reminder to remove it, so the two never paint over each other.
 - **Other-plugin conflict notice** (`py_modules/conflits.py`): on install/update, SteamU checks (read-only,
   never disabling anything) whether CSS Loader (by an active theme on disk, or its `<style>` tag already in a
   Steam window) or Game Glance is also installed, and shows a one-time toast plus a persistent notice in

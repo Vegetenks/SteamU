@@ -49,11 +49,6 @@ is entirely optional; nothing else depends on it.
 **Updating**: repeat the install step with the new zip/URL. It replaces the old version in place, no need to
 uninstall first.
 
-**Upgrading from "Premium Clear View"** (SteamU's former name in Decky): install `SteamU-v<version>.zip`, then
-remove "Premium Clear View" in Decky and restart Steam. SteamU copies your imports and settings from the old
-plugin's folders on first start and leaves the old ones untouched as a backup. While both are installed, SteamU
-waits and shows a reminder instead of running on top of the old plugin.
-
 **Uninstalling cleanly**: Decky menu → Developer tab (or the plugin list) → remove "SteamU" (and
 "SteamU LED" if installed). This also removes the startup video SteamU installs; nothing else on your system is
 touched.
