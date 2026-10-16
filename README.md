@@ -34,12 +34,12 @@ is entirely optional; nothing else depends on it.
 1. **Enable Decky's Developer mode**: open the Decky menu (the plug icon next to Quick Access) → Settings →
    General → turn on "Developer mode".
 2. **Install the plugin**: still in Decky, open the new Developer tab, then either:
-   - **From a zip**: "Install Plugin from ZIP File" → pick `premium-clear-view.zip` (built from
+   - **From a zip**: "Install Plugin from ZIP File" → pick `SteamU-v<version>.zip` (built from
      `decky/premium-clear-view/`, see "Building from source" below, or downloaded from a GitHub Release once one
      exists); or
-   - **From a URL**: "Install from URL" → paste the direct link to the `premium-clear-view.zip` asset of a
+   - **From a URL**: "Install from URL" → paste the direct link to the `SteamU-v<version>.zip` asset of a
      GitHub Release.
-   Repeat with `steamu-led.zip` if you have a Lenovo Legion Go 2 and want the LED companion — Decky will ask for
+   Repeat with `SteamU-LED-Legion-Go-2-v<version>.zip` **only if you have a Lenovo Legion Go 2** and want the LED companion — Decky will ask for
    confirmation since it runs as **root**; that's expected and explained in `ARCHITECTURE.md` (§8): it's a tiny,
    separate plugin that only accepts a fixed 12-byte colour message on a local socket, so SteamU itself never
    needs elevated privileges.
