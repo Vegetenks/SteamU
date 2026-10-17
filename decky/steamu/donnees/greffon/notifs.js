@@ -177,7 +177,7 @@
       agir: () => {
         window.__pcvNotifsMontrer?.(true);
       }
-    }, 9e3)) clearInterval(window.__pcvAvisSuivi);
+    }, 5e3)) clearInterval(window.__pcvAvisSuivi);
     else window.__pcvAvisVu = false;
   }, 5e3);
   const SUPPR = `<span class="suppr" data-suppr title="${T("notifs.supprimer", "Supprimer")}"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></span>`;
