@@ -739,6 +739,26 @@
       return p !== "integree" ? { c, picto: p } : { c, picto: portable, integree: true };
     }).filter((j, i, l2) => !(j.integree && mode === "tele" && (!DETACHABLES[j.picto] || attachees()) && l2.some((x) => !x.integree))).map((j) => j.integree && DETACHABLES[j.picto] && (mode === "tele" ? !attachees() : detachee()) ? { ...j, picto: DETACHABLES[j.picto] } : j);
   };
+  const NOMS_CONSOLE = {
+    "portable-deck": "Steam Deck",
+    "portable-legion-go-s": "Legion Go S",
+    "portable-legion-go-2": "Legion Go 2",
+    "portable-legion-go": "Legion Go",
+    "portable-xbox-ally": "ROG Xbox Ally",
+    "portable-ally": "ROG Ally",
+    "portable-claw": "MSI Claw",
+    "portable-ayaneo": "AYANEO"
+  };
+  window.__pcvNomMachine = async () => {
+    try {
+      machine = await window.opener.DeckyBackend.call("loader/call_plugin_method", window.__pcvGreffon.nom, "machine") || machine;
+    } catch (e) {
+    }
+    if (!machine) return null;
+    const dmi = [machine.sys_vendor, machine.product_name, machine.product_version, machine.board_name].join(" ");
+    const modele = NOMS_CONSOLE[PICTO_CONSOLE.find(([r]) => r.test(dmi))?.[1]] || machine.product_version || machine.product_name || "";
+    return [machine.systeme, modele].filter(Boolean).join(", ");
+  };
   const DETACHABLES = { "portable-legion-go": "manettes-legion-go", "portable-legion-go-2": "manettes-legion-go-2" };
   const attachees = () => machine?.legion?.left === "attached" && machine?.legion?.right === "attached";
   const detachee = () => [machine?.legion?.left, machine?.legion?.right].includes("detached");
@@ -867,6 +887,14 @@
       return r.height > 0 && r.width > 0;
     });
     (window.__pcvManette ||= {}).fiche = (b) => {
+      if (b === 4 && document.body.dataset.pcvPage === "fiche") {
+        const bt = document.querySelector(".pcv-accueil");
+        if (bt) {
+          bt.click();
+          window.__pcvSon?.("choisir");
+          return true;
+        }
+      }
       if (document.body.dataset.pcvPage !== "fiche" || b < 9 || b > 12) return false;
       const f = document.querySelector(".gpfocus");
       if (!f) return false;

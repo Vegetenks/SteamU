@@ -252,14 +252,7 @@
     #pcv-console .zoom i.on { background: var(--pcv-cyan-plein); box-shadow: 0 0 0 calc(var(--u) * 3) var(--pcv-anneau-c); }
     
     #pcv-console .bas { position: absolute; left: calc(var(--u) * 400); right: calc(var(--u) * 34); bottom: calc(var(--u) * 24); display: flex; justify-content: flex-end; gap: calc(var(--u) * 12); }
-    #pcv-console .bas > span { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
-    #pcv-console .bas u { flex: none; }
-    #pcv-console .bas em { font-style: normal; }
-    #pcv-console .bas span[hidden] { display: none; }
-    #pcv-console .bas span { display: flex; align-items: center; gap: calc(var(--u) * 8); padding: calc(var(--u) * 6) calc(var(--u) * 16) calc(var(--u) * 6) calc(var(--u) * 6);
-      border-radius: calc(var(--u) * 22); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: calc(var(--u) * 16); font-weight: 800; }
-    #pcv-console .bas u { text-decoration: none; display: flex; align-items: center; justify-content: center; width: calc(var(--u) * 28); height: calc(var(--u) * 28); border-radius: 50%;
-      background: radial-gradient(circle at 50% 35%, #5c6678, #2f3a4a); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 13); font-weight: 900; }
+    
     #pcv-console .etat { position: absolute; left: 50%; top: calc(var(--u) * 6); transform: translateX(-50%); padding: calc(var(--u) * 6) calc(var(--u) * 18); border-radius: calc(var(--u) * 20);
       background: #ff8a1f; color: var(--pcv-sur-accent); font-size: calc(var(--u) * 16); font-weight: 800; z-index: 7; white-space: nowrap; display: flex; align-items: center; gap: calc(var(--u) * 6); }
     #pcv-console .etat span { display: flex; align-items: center; }
@@ -275,7 +268,7 @@
   <div class="zone"><div class="grille"></div></div>
   <div class="infos cache"></div><div class="rien"></div>
   <div class="zoom"><b data-z="-1" data-touche="5"></b><span class="pic">${window.__pcvIcones.svg("tuiles-grandes")}</span>${ZOOMS.map(() => "<i></i>").join("")}<span class="pic">${window.__pcvIcones.svg("tuiles-petites")}</span><b data-z="1" data-touche="6"></b></div>
-  <div class="bas"><span class="leg-vue"><u data-touche="13"></u>${T("console.dispositions")}</span><span class="leg-x"><u data-touche="3"></u>${T("console.ranger")}</span><span class="leg-y"><u data-touche="4"></u>${T("spaces.place.nom")}</span><span><u data-touche="1"></u><em class="leg-a">${T("console.ouvrir")}</em></span><span class="leg-start" hidden><u data-touche="14"></u>${T("console.menu")}</span></div>
+  <div class="bas pcv-legende"><span class="leg-vue"><u class="pcv-touche" data-touche="13"></u>${T("console.dispositions")}</span><span class="leg-x"><u class="pcv-touche" data-touche="3"></u>${T("console.ranger")}</span><span class="leg-y"><u class="pcv-touche" data-touche="4"></u>${T("spaces.place.nom")}</span><span><u class="pcv-touche" data-touche="1"></u><em class="leg-a">${T("console.ouvrir")}</em></span><span class="leg-start" hidden><u class="pcv-touche" data-touche="14"></u>${T("console.menu")}</span></div>
   <div class="blanc"></div>`;
   document.body.appendChild(racine);
   window.__pcvFond?.(racine);
@@ -474,6 +467,15 @@
     entete();
     tete = -1;
     marquerTete();
+  };
+  let sigGrille = null;
+  const signatureGrille = () => {
+    try {
+      const l = O.appStore?.allApps || [];
+      return [localStorage.getItem("pcv-grille"), localStorage.getItem("pcv-accueil-retires"), reglageJeux(), familleTheme(), zi, l.length, l.reduce((n, a) => n + (a.installed ? 1 : 0) + (a.rt_last_time_played || 0) % 997, 0)].join("|");
+    } catch (e) {
+      return String(Math.random());
+    }
   };
   const construireCases = () => {
     const connus = apps(), tous = montres(), mode2 = reglageJeux();
@@ -2400,7 +2402,7 @@
   window.__pcvLegende = legende;
   let etaitVisible = false;
   let dernierTour = Date.now(), ecranAvant = false;
-  window.__pcvConsole = setInterval(() => {
+  const tourConsole = () => {
     if (!racine.hidden) touches();
     const maintenant = Date.now();
     if (maintenant - dernierTour > 2e4) window.__pcvAccueilPose = false;
@@ -2433,11 +2435,15 @@
       cible = -1;
       avant = null;
       chargerIndex();
-      construireCases();
-      infosDe = -1;
-      decal = -1;
-      debut();
-      dessiner(!window.__pcvAccueilPose);
+      const sg = signatureGrille();
+      if (sg !== sigGrille || grille.children.length !== cases.length) {
+        sigGrille = sg;
+        construireCases();
+        infosDe = -1;
+        decal = -1;
+        debut();
+        dessiner(!window.__pcvAccueilPose);
+      } else marquer(false);
       window.__pcvAccueilPose = true;
       signaler();
       window.__pcvMusique?.("home-menu");
@@ -2450,7 +2456,10 @@
       dessiner();
     }
     etaitVisible = visible;
-  }, 150);
+  };
+  window.__pcvConsole = setInterval(tourConsole, 150);
+  O.navigation?.removeEventListener("currententrychange", O.__pcvConsoleNav);
+  O.navigation?.addEventListener("currententrychange", O.__pcvConsoleNav = () => setTimeout(tourConsole, 0));
   const LANCEMENT = { min: 480, max: 760, sortie: 200, jeuMax: 6e4, essai: 3e3 };
   document.getElementById("pcv-lancement")?.remove();
   try {

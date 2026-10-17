@@ -90,27 +90,15 @@
   }
   const legende = document.createElement("div");
   legende.id = "pcv-alim-legende";
+  legende.className = "pcv-legende";
   legende.hidden = true;
   document.getElementById("pcv-alim-legende")?.remove();
   document.body.appendChild(legende);
-  const glyphe = (code) => {
-    const [t, c, h] = window.__pcvTouche?.(code) || [code === 1 ? "A" : "B", code === 1 ? "#2fbf71" : "#e5484d"];
-    const u = document.createElement("u");
-    if (h) u.innerHTML = h;
-    else u.textContent = t;
-    u.style.background = c;
-    return u;
-  };
   const ecrireLegende = (avecChoisir) => {
     const cle = (avecChoisir ? "1" : "0") + (document.documentElement.dataset.pcvManette || "") + ("pcvInverse" in document.documentElement.dataset);
     if (legende.dataset.cle === cle) return;
     legende.dataset.cle = cle;
-    legende.textContent = "";
-    for (const [code, mot] of avecChoisir ? [[1, T("alim.choisir", "Choisir")], [2, T("alim.annuler", "Annuler")]] : [[2, T("alim.annuler", "Annuler")]]) {
-      const s = document.createElement("span");
-      s.append(glyphe(code), mot);
-      legende.appendChild(s);
-    }
+    legende.innerHTML = window.__pcvIcones.legende(avecChoisir ? [[1, T("alim.choisir", "Choisir")], [2, T("alim.annuler", "Annuler")]] : [[2, T("alim.annuler", "Annuler")]]);
   };
   const MENU = "{{BasicContextMenuContainer@contextMenuContents}}", TETE = "{{BasicContextMenuHeader@contextMenuContents}}";
   const menus = document.getElementsByClassName("BasicUIContextMenu");

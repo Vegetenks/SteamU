@@ -405,7 +405,7 @@
   const dessinerImportListe = () => `<button class="bouton gros" data-a="importer"><i class="pastille">${ico(ICO.importer)}</i><span>${T("steamu.importer")}<small>${T("steamu.importer.aide")}</small></span></button>
       <div class="liste">${dessinerMoteur()}${GUIDES().map((g) => `<button class="bouton" data-a="g:${g.id}"><i class="pastille" style="--c:${g.c}">${ico(g.ico)}</i>
         <span class="txt"><b>${T(`steamu.guide.${g.id}.titre`)}</b><small>${T(`steamu.guide.${g.id}.sous`)}</small></span>
-        <em class="${g.pret ? "ok" : ""}">${etatGuide(g) || T(g.pret ? "steamu.lisible" : "steamu.bientot.court")}</em></button>`).join("")}</div>`;
+        <em class="${g.pret ? "ok" : ""}">${etatGuide(g) || T(g.pret ? "steamu.a_importer" : "steamu.bientot.court")}</em></button>`).join("")}</div>`;
   const dessinerMoteur = () => {
     const ok = etatImport?.moteur_ffl;
     return `<button class="bouton"${ok ? "" : ' data-a="moteur-installer"'}><i class="pastille" style="--c:#2fbf71">${ico(ICO.mii)}</i>

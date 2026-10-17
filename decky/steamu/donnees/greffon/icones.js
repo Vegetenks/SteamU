@@ -321,6 +321,25 @@
     fin();
     window.removeEventListener("pagehide", fin);
   };
-  window.__pcvIcones = { svg, trace, masque, rafraichir, theme, existe: (n) => !!D[n] };
+  const DEF_TOUCHES = { 1: "A", 2: "B", 3: "X", 4: "Y" };
+  const echapL = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const toucheDe = (code) => {
+    let f = window.__pcvTouche;
+    if (!f) try {
+      f = O.SteamUIStore?.WindowStore?.GamepadUIMainWindowInstance?.BrowserWindow?.__pcvTouche;
+    } catch (e) {
+    }
+    try {
+      return f?.(code);
+    } catch (e) {
+      return null;
+    }
+  };
+  const touche = (code) => {
+    const [t, c, h] = toucheDe(code) || [DEF_TOUCHES[code] || "?", "#5b6676"];
+    return `<u class="pcv-touche" style="background:${c}">${h || echapL(t)}</u>`;
+  };
+  const legende = (liste) => liste.map(([code, mot]) => `<span>${touche(code)}${echapL(mot)}</span>`).join("");
+  window.__pcvIcones = { svg, trace, masque, rafraichir, theme, existe: (n) => !!D[n], legende, touche };
   rafraichir(document);
 })();

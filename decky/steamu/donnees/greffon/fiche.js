@@ -51,6 +51,7 @@
     b.replaceChildren();
     b.insertAdjacentHTML("afterbegin", icoReg("epingle", dehors ? "#2fbf71" : "#8a5ce6"));
     b.appendChild(document.createTextNode(" " + Tr(dehors ? "accueil.ajouter" : "accueil.retirer")));
+    b.insertAdjacentHTML("beforeend", window.__pcvIcones?.touche?.(4) || "");
   };
   const rendreFicheSwitch = (conteneur, id, fiche) => {
     const c = document.createElement("div");

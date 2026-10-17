@@ -185,10 +185,11 @@ class Plugin:
         dmi = pathlib.Path("/sys/class/dmi/id")
         sorties = [c for c in pathlib.Path("/sys/class/drm").glob("card*-*") if lire(c / "status") == "connected"]
         externe = any(lire(c / "enabled") == "enabled" for c in sorties if not c.name.split("-", 1)[1].startswith(("eDP", "LVDS", "DSI")))
+        systeme = next((l.split("=", 1)[1].strip().strip('"') for l in lire(pathlib.Path("/etc/os-release")).splitlines() if l.startswith("NAME=")), "")
         try: legion = json.loads(pathlib.Path("/run/steamu-controllers/state.json").read_text())
         except Exception: legion = None
         return {**{n: lire(dmi / n) for n in ("sys_vendor", "product_name", "product_version", "board_name")},
-                "ecran": ("tele" if externe else "portable") if sorties else None, "legion": legion}
+                "ecran": ("tele" if externe else "portable") if sorties else None, "legion": legion, "systeme": systeme}
 
     async def economie(self):
         try: return pathlib.Path("/sys/firmware/acpi/platform_profile").read_text().strip() == "low-power"

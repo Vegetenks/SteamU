@@ -149,6 +149,7 @@
     #pcv-notifs .n.avis { padding: ${u(20)}; border: ${u(3)} solid color-mix(in srgb, var(--pcv-cyan-plein) 45%, transparent); }
     #pcv-notifs .n.avis .ic { width: ${u(64)}; height: ${u(64)}; background: var(--pcv-cyan); color: var(--pcv-sur-accent); }
     #pcv-notifs .n.avis .masquer { padding: ${u(12)} ${u(20)}; border-radius: ${u(22)}; font-size: ${u(15)}; font-weight: 900; flex: none; background: var(--pcv-creux); color: var(--pcv-texte2); }
+    body:not(.pcv-barre-nav) #pcv-notifs .n .foc { box-shadow: 0 0 0 ${u(3)} var(--pcv-anneau-c), 0 0 0 ${u(6)} var(--pcv-cyan-plein) !important; }
     #pcv-notifs .n .suppr { flex: none; width: ${u(40)}; height: ${u(40)}; border-radius: 50%; display: flex; align-items: center; justify-content: center;
       background: var(--pcv-creux); color: var(--pcv-texte2); }
     #pcv-notifs .n .suppr svg { width: 55%; height: 55%; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
@@ -180,7 +181,9 @@
     }, 5e3)) clearInterval(window.__pcvAvisSuivi);
     else window.__pcvAvisVu = false;
   }, 5e3);
-  const SUPPR = `<span class="suppr" data-suppr title="${T("notifs.supprimer", "Supprimer")}"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></span>`;
+  let act = 0;
+  const actions = (n) => !n ? [] : n.avis ? ["voir", "masquer"] : n.service || n.lien ? ["voir", "suppr"] : ["suppr"];
+  const suppr = (i, k) => `<span class="suppr${i === sel && act === k ? " foc" : ""}" data-suppr title="${T("notifs.supprimer", "Supprimer")}"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></span>`;
   const jourDe = (t) => {
     const j = Math.floor((Date.now() / 1e3 - t) / 86400);
     return j <= 0 ? T("notifs.aujourdhui") : j < 7 ? T("notifs.cette_semaine") : j < 31 ? T("notifs.ce_mois") : T("notifs.plus_ancien");
@@ -218,7 +221,7 @@
     items.forEach((n, i) => {
       if (n.avis) {
         html += `<div class="n avis${i === sel ? " sel" : ""}" data-i="${i}"><span class="ic">${AVIS_IC}</span><span class="t"><b>${T("notifs.avis_titre", "Importer vos Mii")}</b><span class="d">${T("notifs.avis_texte", "Pour retrouver vos Mii sur la place, appuyez sur Voir plus.")}</span></span>
-        <button class="agir" data-voir>${T("notifs.voir_plus", "Voir plus")}</button><button class="masquer" data-masquer>${T("notifs.ne_plus_afficher", "Ne plus afficher")}</button></div>`;
+        <button class="agir${i === sel && act === 0 ? " foc" : ""}" data-voir>${T("notifs.voir_plus", "Voir plus")}</button><button class="masquer${i === sel && act === 1 ? " foc" : ""}" data-masquer>${T("notifs.ne_plus_afficher", "Ne plus afficher")}</button></div>`;
         return;
       }
       if (n.service) {
@@ -227,7 +230,7 @@
           groupe = "s";
         }
         const t = new Date(n.service.rtCreated), quand = jourDe(t / 1e3) === T("notifs.aujourdhui") ? t.toLocaleTimeString(window.__pcvLocale?.() || "fr-FR", { hour: "2-digit", minute: "2-digit" }) : t.toLocaleDateString(window.__pcvLocale?.() || "fr-FR", { day: "numeric", month: "short" });
-        html += `<button class="n s${i === sel ? " sel" : ""}" data-i="${i}"><span class="ic">${n.ic}</span><span class="t"><span class="type">${echappe(n.titre)}<small>${quand}</small></span>${n.texte ? `<b>${echappe(n.texte)}</b>` : ""}</span><span class="agir">${T("notifs.voir")}</span>${SUPPR}</button>`;
+        html += `<button class="n s${i === sel ? " sel" : ""}" data-i="${i}"><span class="ic">${n.ic}</span><span class="t"><span class="type">${echappe(n.titre)}<small>${quand}</small></span>${n.texte ? `<b>${echappe(n.texte)}</b>` : ""}</span><span class="agir${i === sel && act === 0 ? " foc" : ""}">${T("notifs.voir")}</span>${suppr(i, 1)}</button>`;
         return;
       }
       const g = jourDe(n.r.timestamp);
@@ -238,10 +241,23 @@
       const date = new Date(n.r.timestamp * 1e3).toLocaleDateString(window.__pcvLocale?.() || "fr-FR", { day: "numeric", month: "short" });
       const image = n.app ? `<i style="background-image:url('${IMG(n.app, "library_600x900.jpg")}'),url('${CDN(n.app, "library_600x900.jpg")}')"></i>` : "";
       html += `<button class="n${i === sel ? " sel" : ""}" data-i="${i}">${image}<span class="t"><span class="type" style="color:${n.couleur}">\u25CF ${n.type}<small>${date}${n.r.rollup_count > 1 ? ` (${n.r.rollup_count})` : ""}</small></span>
-        <b>${echappe(n.titre)}</b><span class="d">${echappe(n.texte)}</span></span>${n.lien ? `<span class="agir">${T("notifs.voir")}</span>` : ""}${SUPPR}</button>`;
+        <b>${echappe(n.titre)}</b><span class="d">${echappe(n.texte)}</span></span>${n.lien ? `<span class="agir${i === sel && act === 0 ? " foc" : ""}">${T("notifs.voir")}</span>` : ""}${suppr(i, n.lien ? 1 : 0)}</button>`;
     });
     if (items.length > 1) html += `<button class="tout${sel === items.length ? " sel" : ""}" data-tout>${T("notifs.tout_effacer", "Tout effacer")}</button>`;
     racine.querySelector(".liste").innerHTML = html;
+    ecrireLegende();
+  };
+  const legende = document.createElement("div");
+  legende.id = "pcv-notifs-legende";
+  legende.className = "pcv-legende";
+  racine.appendChild(legende);
+  const ecrireLegende = () => {
+    const n = items[sel], tout = sel === items.length && items.length > 1;
+    const l = tout ? [[1, T("notifs.tout_effacer", "Tout effacer")]] : n ? [
+      [1, { voir: n.avis ? T("notifs.voir_plus", "Voir plus") : T("notifs.voir"), masquer: T("notifs.ne_plus_afficher", "Ne plus afficher"), suppr: T("notifs.supprimer", "Supprimer") }[actions(n)[act]]],
+      ...actions(n)[act] === "voir" ? [[4, n.avis ? T("notifs.ne_plus_afficher", "Ne plus afficher") : T("notifs.supprimer", "Supprimer")]] : []
+    ] : [];
+    legende.innerHTML = window.__pcvIcones.legende([...l, [2, T("notifs.retour", "Retour")]]);
   };
   const apercu = (onglet = 0) => {
     montrer(false);
@@ -309,6 +325,7 @@
   const supprimer = (i) => {
     if (!items[i]) return;
     effacer(items[i]);
+    act = 0;
     window.__pcvSon?.("retour");
     remplir();
     racine.querySelector(".n.sel")?.scrollIntoView({ block: "nearest" });
@@ -322,6 +339,7 @@
   const montrer = (oui) => {
     if (oui) {
       sel = 0;
+      act = 0;
       remplir();
       racine.querySelector(".liste").scrollTop = 0;
       document.querySelectorAll("#pcv-toasts .b").forEach((b) => b.remove());
@@ -345,10 +363,20 @@
       window.__pcvBarreEntrer?.("notifs");
       return true;
     }
-    if (b === 9) sel = Math.max(0, sel - 1);
-    else if (b === 10) sel = Math.min(items.length > 1 ? items.length : items.length - 1, sel + 1);
-    else if (b === 1) {
-      if (sel === items.length) toutEffacer();
+    if (b === 9) {
+      sel = Math.max(0, sel - 1);
+      act = 0;
+    } else if (b === 10) {
+      sel = Math.min(items.length > 1 ? items.length : items.length - 1, sel + 1);
+      act = 0;
+    } else if (b === 11 || b === 12) {
+      const k = actions(items[sel]).length;
+      if (!k) return true;
+      act = Math.max(0, Math.min(k - 1, act + (b === 12 ? 1 : -1)));
+    } else if (b === 1) {
+      if (sel === items.length) return toutEffacer(), true;
+      const a = actions(items[sel])[act];
+      if (a === "masquer" || a === "suppr") supprimer(sel);
       else agir(sel);
       return true;
     } else if (b === 3) {
