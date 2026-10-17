@@ -39,7 +39,15 @@
     const s = String(v ?? "").trim(), t = s.replace(/[\x00-\x20]/g, "");
     return echap(!/^[a-z][a-z0-9+.-]*:/i.test(t) || /^(https?:|data:image\/|blob:)/i.test(t) ? s : "");
   };
-  const jaq = (a) => `<span class="jaq" style="background-image:url('${IMG(a.appid, "library_600x900.jpg")}'),url('${CDN(a.appid, "library_600x900.jpg")}')"></span>`;
+  const jaq = (a) => {
+    const el = document.createElement("span");
+    el.className = "jaq";
+    if (window.__pcvImageJeu) {
+      const d = window.__pcvImageJeu(a, el);
+      Object.assign(el.style, { backgroundImage: d.image, backgroundSize: d.taille, backgroundPosition: d.position, backgroundRepeat: d.repete });
+    } else el.style.backgroundImage = `url('${IMG(a.appid, "library_600x900.jpg")}'),url('${CDN(a.appid, "library_600x900.jpg")}')`;
+    return el.outerHTML;
+  };
   const appli = (n, c) => `<span class="appli">${svg(n, "46%", c)}</span>`;
   const ICONES = [];
   const APPS = [
@@ -79,6 +87,14 @@
   const racine = document.createElement("div");
   racine.id = "pcv-place";
   racine.hidden = true;
+  const SANS_MII = (() => {
+    try {
+      const c = document.createElement("canvas");
+      return !!(c.getContext("webgl2") || c.getContext("webgl"));
+    } catch (e) {
+      return false;
+    }
+  })();
   racine.innerHTML = `<style>
     #pcv-place { position: fixed; inset: 0; z-index: 9200; overflow: hidden; font-family: var(--pcv-police); color: var(--pcv-texte);
       background: radial-gradient(120% 70% at 50% 85%, var(--pcv-fond-base)); animation: pcvEntree .45s cubic-bezier(.2,.8,.2,1); }
@@ -131,12 +147,15 @@
       box-shadow: var(--pcv-reflet), var(--pcv-ombre); }   
     #pcv-bascule i { width: ${u(40)}; height: ${u(40)}; border-radius: 50%; background: var(--pcv-pastille, #fff); box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; }
     #pcv-bascule[hidden] { display: none; }
+    #pcv-place .sans-mii { right: ${u(24)}; bottom: ${u(22)}; max-width: ${u(300)}; padding: ${u(10)} ${u(16)}; border-radius: ${u(20)}; z-index: 5;
+      font-size: ${u(13)}; font-weight: 800; line-height: 1.3; color: var(--pcv-texte2); }
   </style>
   <div class="monde"><div class="sol"></div><div class="anneau"></div>${elements.map((e) => e[1]).join("")}</div>
   <div class="v haut-avatar"><img data-pcv-avatar src="${urlSure(avatar)}" alt=""></div>
   <button class="v retour" data-pcv-nom="${T("place.revenir_accueil")}"><span class="p">${svg("accueil", "55%", "#1a9ae6")}</span>${T("spaces.accueil.nom")}<span class="gl" style="background:${glc};color:var(--pcv-sur-accent)">${gl}</span></button>
   <div class="v etat"><svg style="width:${u(20)};height:${u(20)}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M2.5 8.5a14 14 0 0 1 19 0"/><path d="M5.5 12a9.5 9.5 0 0 1 13 0"/><path d="M8.7 15.4a5 5 0 0 1 6.6 0"/><circle cx="12" cy="19" r="1"/></svg><span class="heure"></span></div>
   <div class="v zoom"><button class="moins" data-pcv-nom="${T("place.eloigner")}">\u2212</button><i class="pt"></i><i class="pt"></i><i class="pt"></i><i class="pt"></i><button class="plus" data-pcv-nom="${T("place.rapprocher")}">+</button></div>
+  ${SANS_MII ? `<div class="v sans-mii">${T("place.sans_mii", "Mii non import\xE9s : la place est vide. Des personnages originaux arrivent bient\xF4t.")}</div>` : ""}
   <div class="v dock">${dock}</div>
   <div class="carte-zone"></div>`;
   document.body.appendChild(racine);

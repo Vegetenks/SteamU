@@ -102,7 +102,7 @@
     #pcv-console .rien { position: absolute; left: calc(var(--u) * 64); bottom: calc(var(--u) * 96); display: none; align-items: center; gap: calc(var(--u) * 12);
       padding: calc(var(--u) * 8) calc(var(--u) * 20) calc(var(--u) * 8) calc(var(--u) * 8); border-radius: calc(var(--u) * 26); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre);
       font-size: calc(var(--u) * 17); font-weight: 800; color: var(--pcv-texte2); }
-    #pcv-console .rien.on { display: flex; }
+    #pcv-console .rien.on { display: flex; cursor: pointer; }
     #pcv-console.dans-dossier .rien { display: none; }
     #pcv-console .rien i { width: calc(var(--u) * 38); height: calc(var(--u) * 38); border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, #b9a4ff, #6d4fd6); }
     #pcv-console .rien i svg { width: 58%; height: 58%; }
@@ -528,7 +528,17 @@
     sauver();
     const vide = mode2 === "installes" && !principal.some((c) => c.app || c.dossier && c.l.some((x) => x.app));
     $(".rien").classList.toggle("on", vide);
-    if (vide && !$(".rien").firstChild) $(".rien").innerHTML = `<i>${icone(APPLIS.bibliotheque)}</i><span>${T("console.aucun_jeu_installe")}</span>`;
+    if (vide) {
+      let neuf = false;
+      try {
+        neuf = (O.collectionStore?.allGamesCollection?.allApps?.length ?? 1) === 0;
+      } catch (e) {
+      }
+      const r = $(".rien");
+      r.dataset.vers = neuf ? "boutique" : "bibliotheque";
+      r.onclick = () => APPLIS[r.dataset.vers]?.ouvrir?.();
+      r.innerHTML = `<i>${icone(neuf ? APPLIS.boutique : APPLIS.bibliotheque)}</i><span>${neuf ? T("console.aucun_jeu_compte", "Pas encore de jeu : trouvez-en dans la Boutique") : T("console.aucun_jeu_installe")}</span>`;
+    }
   };
   let vueJeux = null;
   const debut = () => {

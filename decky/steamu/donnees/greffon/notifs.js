@@ -143,11 +143,44 @@
     #pcv-notifs .n.s .agir { padding: ${u(9)} ${u(18)}; color: var(--pcv-texte); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(4)} ${u(12)} rgb(from var(--pcv-ombre-c) r g b / .15); }
     #pcv-notifs .n .agir { padding: ${u(12)} ${u(22)}; border-radius: ${u(22)}; font-size: ${u(15)}; font-weight: 900; color: var(--pcv-sur-accent); flex: none;
       background: var(--pcv-cyan); box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
+    #pcv-notifs .tout { display: block; margin: ${u(6)} auto ${u(10)}; padding: ${u(12)} ${u(28)}; border-radius: ${u(24)}; font-size: ${u(16)}; font-weight: 900;
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); }
+    body:not(.pcv-barre-nav) #pcv-notifs .tout.sel { box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein); }
+    #pcv-notifs .n.avis { padding: ${u(20)}; border: ${u(3)} solid color-mix(in srgb, var(--pcv-cyan-plein) 45%, transparent); }
+    #pcv-notifs .n.avis .ic { width: ${u(64)}; height: ${u(64)}; background: var(--pcv-cyan); color: var(--pcv-sur-accent); }
+    #pcv-notifs .n.avis .masquer { padding: ${u(12)} ${u(20)}; border-radius: ${u(22)}; font-size: ${u(15)}; font-weight: 900; flex: none; background: var(--pcv-creux); color: var(--pcv-texte2); }
+    #pcv-notifs .n .suppr { flex: none; width: ${u(40)}; height: ${u(40)}; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      background: var(--pcv-creux); color: var(--pcv-texte2); }
+    #pcv-notifs .n .suppr svg { width: 55%; height: 55%; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
   </style>
   <div class="tete"><h2>Notifications</h2><button class="apercu" data-apercu>Aper\xE7u rapide</button></div><div class="liste"></div>`;
   document.body.appendChild(racine);
   window.__pcvFond?.(racine);
   let items = [], sel = 0;
+  const AVIS_CLE = "pcv-avis-import", AVIS_DEBUT = Date.now();
+  const AVIS_IC = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></svg>';
+  const avisActif = () => {
+    try {
+      if (localStorage.getItem(AVIS_CLE) === "masque") return false;
+    } catch (e) {
+    }
+    return !window.__pcvPlace3D && Date.now() - AVIS_DEBUT > 15e3;
+  };
+  clearInterval(window.__pcvAvisSuivi);
+  window.__pcvAvisSuivi = setInterval(async () => {
+    if (window.__pcvAvisVu || !avisActif() || !window.__pcvBulleGrande) return;
+    window.__pcvAvisVu = true;
+    if (await window.__pcvBulleGrande({
+      svg: AVIS_IC,
+      titre: T("notifs.avis_titre", "Importer vos Mii"),
+      ligne: T("notifs.avis_texte", "Pour retrouver vos Mii sur la place, appuyez sur Voir plus."),
+      agir: () => {
+        window.__pcvNotifsMontrer?.(true);
+      }
+    }, 9e3)) clearInterval(window.__pcvAvisSuivi);
+    else window.__pcvAvisVu = false;
+  }, 5e3);
+  const SUPPR = `<span class="suppr" data-suppr title="${T("notifs.supprimer", "Supprimer")}"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></span>`;
   const jourDe = (t) => {
     const j = Math.floor((Date.now() / 1e3 - t) / 86400);
     return j <= 0 ? T("notifs.aujourdhui") : j < 7 ? T("notifs.cette_semaine") : j < 31 ? T("notifs.ce_mois") : T("notifs.plus_ancien");
@@ -178,17 +211,23 @@
         ic: l.img ? `<img src="${echappe(l.img)}">` : l.svg || PRISE
       };
     }));
-    sel = Math.min(sel, Math.max(0, items.length - 1));
+    if (avisActif()) items.unshift({ avis: true });
+    sel = Math.min(sel, items.length > 1 ? items.length : Math.max(0, items.length - 1));
     let html = "", groupe = "";
     if (!items.length) html = `<h3>${T("notifs.aujourdhui")}</h3><div class="vide">${T("notifs.vide")}</div>`;
     items.forEach((n, i) => {
+      if (n.avis) {
+        html += `<div class="n avis${i === sel ? " sel" : ""}" data-i="${i}"><span class="ic">${AVIS_IC}</span><span class="t"><b>${T("notifs.avis_titre", "Importer vos Mii")}</b><span class="d">${T("notifs.avis_texte", "Pour retrouver vos Mii sur la place, appuyez sur Voir plus.")}</span></span>
+        <button class="agir" data-voir>${T("notifs.voir_plus", "Voir plus")}</button><button class="masquer" data-masquer>${T("notifs.ne_plus_afficher", "Ne plus afficher")}</button></div>`;
+        return;
+      }
       if (n.service) {
         if (groupe !== "s") {
           html += `${i ? "" : `<h3>${T("notifs.aujourdhui")}</h3><div class="vide">${T("notifs.vide_steam")}</div>`}<h3>${T("notifs.greffons_services")}</h3>`;
           groupe = "s";
         }
         const t = new Date(n.service.rtCreated), quand = jourDe(t / 1e3) === T("notifs.aujourdhui") ? t.toLocaleTimeString(window.__pcvLocale?.() || "fr-FR", { hour: "2-digit", minute: "2-digit" }) : t.toLocaleDateString(window.__pcvLocale?.() || "fr-FR", { day: "numeric", month: "short" });
-        html += `<button class="n s${i === sel ? " sel" : ""}" data-i="${i}"><span class="ic">${n.ic}</span><span class="t"><span class="type">${echappe(n.titre)}<small>${quand}</small></span>${n.texte ? `<b>${echappe(n.texte)}</b>` : ""}</span><span class="agir">${T("notifs.voir")}</span></button>`;
+        html += `<button class="n s${i === sel ? " sel" : ""}" data-i="${i}"><span class="ic">${n.ic}</span><span class="t"><span class="type">${echappe(n.titre)}<small>${quand}</small></span>${n.texte ? `<b>${echappe(n.texte)}</b>` : ""}</span><span class="agir">${T("notifs.voir")}</span>${SUPPR}</button>`;
         return;
       }
       const g = jourDe(n.r.timestamp);
@@ -199,8 +238,9 @@
       const date = new Date(n.r.timestamp * 1e3).toLocaleDateString(window.__pcvLocale?.() || "fr-FR", { day: "numeric", month: "short" });
       const image = n.app ? `<i style="background-image:url('${IMG(n.app, "library_600x900.jpg")}'),url('${CDN(n.app, "library_600x900.jpg")}')"></i>` : "";
       html += `<button class="n${i === sel ? " sel" : ""}" data-i="${i}">${image}<span class="t"><span class="type" style="color:${n.couleur}">\u25CF ${n.type}<small>${date}${n.r.rollup_count > 1 ? ` (${n.r.rollup_count})` : ""}</small></span>
-        <b>${echappe(n.titre)}</b><span class="d">${echappe(n.texte)}</span></span>${n.lien ? `<span class="agir">${T("notifs.voir")}</span>` : ""}</button>`;
+        <b>${echappe(n.titre)}</b><span class="d">${echappe(n.texte)}</span></span>${n.lien ? `<span class="agir">${T("notifs.voir")}</span>` : ""}${SUPPR}</button>`;
     });
+    if (items.length > 1) html += `<button class="tout${sel === items.length ? " sel" : ""}" data-tout>${T("notifs.tout_effacer", "Tout effacer")}</button>`;
     racine.querySelector(".liste").innerHTML = html;
   };
   const apercu = (onglet = 0) => {
@@ -220,6 +260,11 @@
   const agir = (i) => {
     const n = items[i];
     if (!n) return;
+    if (n.avis) {
+      montrer(false);
+      window.__pcvSteamU?.ouvrir?.("import");
+      return;
+    }
     if (n.service) {
       const f = n.service.data.onClick;
       if (typeof f !== "function") return apercu(999);
@@ -235,12 +280,61 @@
       O.SteamClient.URL.ExecuteSteamURL(n.lien);
     } else apercu();
   };
+  const effacer = (n) => {
+    if (n.avis) {
+      try {
+        localStorage.setItem(AVIS_CLE, "masque");
+      } catch (e) {
+      }
+      return;
+    }
+    const retirer = (f) => {
+      const l = casier?.m_rgNotificationTray;
+      if (!l) return;
+      const k = l.findIndex(f);
+      if (k >= 0) {
+        l.splice(k, 1);
+        casier.m_cbkNotificationTray?.Dispatch?.(l);
+      }
+    };
+    try {
+      if (n.service) retirer((g) => g?.notifications?.includes?.(n.service));
+      else {
+        store?.MarkItemHidden?.(n.r.item.notification_id);
+        retirer((g) => g?.notifications?.some?.((x) => x?.data === n.r));
+      }
+    } catch (e) {
+    }
+  };
+  const supprimer = (i) => {
+    if (!items[i]) return;
+    effacer(items[i]);
+    window.__pcvSon?.("retour");
+    remplir();
+    racine.querySelector(".n.sel")?.scrollIntoView({ block: "nearest" });
+  };
+  const toutEffacer = () => {
+    items.slice().forEach(effacer);
+    sel = 0;
+    window.__pcvSon?.("retour");
+    remplir();
+  };
   const montrer = (oui) => {
-    if (oui) remplir();
+    if (oui) {
+      sel = 0;
+      remplir();
+      racine.querySelector(".liste").scrollTop = 0;
+      document.querySelectorAll("#pcv-toasts .b").forEach((b) => b.remove());
+      window.__pcvAvisVu = true;
+    }
     racine.hidden = !oui;
   };
   racine.addEventListener("click", (e) => {
     if (e.target.closest("[data-apercu]")) return apercu();
+    const x = e.target.closest("[data-suppr]");
+    if (x) return supprimer(+x.closest(".n").dataset.i);
+    if (e.target.closest("[data-tout]")) return toutEffacer();
+    if (e.target.closest("[data-masquer]")) return supprimer(+e.target.closest(".n").dataset.i);
     const n = e.target.closest(".n");
     if (n) agir(+n.dataset.i);
   });
@@ -252,12 +346,16 @@
       return true;
     }
     if (b === 9) sel = Math.max(0, sel - 1);
-    else if (b === 10) sel = Math.min(items.length - 1, sel + 1);
+    else if (b === 10) sel = Math.min(items.length > 1 ? items.length : items.length - 1, sel + 1);
     else if (b === 1) {
-      agir(sel);
+      if (sel === items.length) toutEffacer();
+      else agir(sel);
       return true;
     } else if (b === 3) {
       apercu();
+      return true;
+    } else if (b === 4) {
+      supprimer(sel);
       return true;
     } else if (b === 2) {
       montrer(false);
@@ -337,6 +435,10 @@
     #pcv-toasts .b::before { content: ""; position: absolute; top: ${u(-8)}; left: calc(var(--pointe) - ${u(9)}); width: ${u(18)}; height: ${u(18)};
       background: var(--pcv-carte); transform: rotate(45deg); border-radius: ${u(4)} 0 0 0; box-shadow: -1px -1px 0 var(--pcv-bord); }
     #pcv-toasts .b.sort { animation: pcvBulleRentre .28s ease-in both; }
+    #pcv-toasts .b.grande { height: auto; min-height: ${u(92)}; max-width: ${u(560)}; padding: ${u(14)} ${u(30)} ${u(14)} ${u(14)}; gap: ${u(16)}; border-radius: ${u(30)}; }
+    #pcv-toasts .b.grande .ic { width: ${u(62)}; height: ${u(62)}; background: var(--pcv-cyan); }
+    #pcv-toasts .b.grande .t b { font-size: ${u(21)}; }
+    #pcv-toasts .b.grande .t span { font-size: ${u(16)}; white-space: normal; }
     @keyframes pcvBulleNait { 0% { opacity: 0; transform: scale(.2); } 60% { opacity: 1; transform: scale(1.05); } 100% { transform: scale(1); } }
     @keyframes pcvBulleRentre { to { opacity: 0; transform: scale(.2); } }
     #pcv-toasts .ic { flex: none; width: ${u(42)}; height: ${u(42)}; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center;
@@ -437,11 +539,11 @@
     compteur.style.top = `${r.top - 4 * k}px`;
     compteur.hidden = false;
   };
-  const bulle = ({ img, svg, titre, ligne, agir }, duree, t) => new Promise((fin) => {
+  const bulle = ({ img, svg, titre, ligne, agir, grande }, duree, t) => new Promise((fin) => {
     const r = clocheVue();
     if (!r) return fin(false);
     const k = unite(), el = document.createElement("div");
-    el.className = "b";
+    el.className = grande ? "b grande" : "b";
     const gauche = r.left - 10 * k, pointe = r.left + r.width / 2 - gauche;
     el.style.left = `${gauche}px`;
     el.style.top = `${r.bottom + 14 * k}px`;
@@ -479,6 +581,7 @@
       if (!clocheVue()) partir();
     }, 400);
   });
+  window.__pcvBulleGrande = (o, duree) => bulle({ ...o, grande: true }, duree);
   const regroupe = (n) => ({ titre: n > 1 ? `${n} notifications` : "1 notification", ligne: "Touche la cloche pour les voir", svg: CLOCHE });
   const debut = Math.max(O.performance.timeOrigin, performance.timeOrigin);
   const retenir = () => Date.now() - debut < 2e4 || !!document.getElementById("pcv-connexion") || document.getElementById("pcv-place")?.hidden === false || !clocheVue();

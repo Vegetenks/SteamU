@@ -211,7 +211,12 @@
       if (!/^\/routes\/library\/home/.test(O.location.pathname)) O.__pcvAller?.(1);
     } catch (e) {
     }
-    setTimeout(() => window.__pcvPlaceMontrer?.(true), 250);
+    let essais = 0;
+    const versPlace = () => {
+      if (window.__pcvPlace3D) return window.__pcvPlaceMontrer?.(true);
+      if (++essais < 12) setTimeout(versPlace, 250);
+    };
+    setTimeout(versPlace, 250);
     window.removeEventListener("keydown", touche, true);
     setTimeout(() => racine.remove(), 600);
   };

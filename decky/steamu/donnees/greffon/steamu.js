@@ -722,6 +722,7 @@
     if (!cible) return;
     if (cible === "confidentialite") Object.assign(S, { og: "confid", zone: "contenu", curseur: 0, highlightConfid: true });
     else if (cible === "apparence") Object.assign(S, { og: "apparence", zone: "contenu", curseur: 0 });
+    else if (cible === "import") Object.assign(S, { og: "import", zone: "contenu", curseur: 0, vueImport: "liste" });
     dessiner();
   };
   const ouvrir = () => {
