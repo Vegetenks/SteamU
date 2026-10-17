@@ -142,6 +142,10 @@
       },
       // autres pistes rangées (pas encore d'écran) : menu/anniversaire, miimaker/editeur, eshop/reglages,
       // eshop/variantes/*, parametres/controle-parental, journal/journal, demarrage/demarrage, miiverse/jingle
+      // Les 42 autres échantillons d'interface (ui/echantillons/, numérotés faute de nom d'origine : voir
+      // decky/steamu/donnees/sons-empreintes-wiiu.json) n'ont pas de vrai nom trouvé au 16/10 : les gestes qui leur
+      // manquent (choisir, retour, onglet, erreur…) gardent le repli SteamU ; dès qu'une entrée de cette table donne
+      // un vrai nom pour un geste, importer.py renomme le fichier et une ligne peut être ajoutée ici.
       bruitages: {
         commun: { bouge: "wiiu/ui/echantillons/00251.ogg", lance: { f: "wiiu/ui/lancement.ogg", d: 3.5 } }
       }
@@ -230,15 +234,17 @@
   const fichiersDe = (f) => [...Object.values(f.musiques), ...Object.values(f.bruitages).flatMap((g) => Object.values(g).map((b) => b.f || b))];
   let presentsLus = null;
   const importee = (famille) => !!SONS_SYSTEME[famille] && fichiersDe(SONS_SYSTEME[famille]).some((c) => presentsLus?.has("sons/" + c));
+  const choixSons = () => ["theme", "steamu", ...Object.keys(SONS_SYSTEME).filter(importee)];
   window.__pcvSonsReglage = {
-    val: (v, famille) => importee(famille) && v !== "steamu" ? SONS_SYSTEME[famille].nom : "SteamU",
-    nom: (famille) => SONS_SYSTEME[famille] && !importee(famille) ? `Sons : ${SONS_SYSTEME[famille].nom} \xE0 importer` : "Sons",
-    suivant: (v, famille) => {
-      if (!importee(famille)) {
+    val: (v, famille) => v === "steamu" ? "SteamU" : SONS_SYSTEME[v] ? SONS_SYSTEME[v].nom : `${window.__pcvT?.("themes.app_auto") || "Auto"} (${importee(famille) ? SONS_SYSTEME[famille].nom : "SteamU"})`,
+    nom: (famille) => choixSons().length < 3 && SONS_SYSTEME[famille] && !importee(famille) ? `Sons : ${SONS_SYSTEME[famille].nom} \xE0 importer` : "Sons",
+    suivant: (v) => {
+      const l = choixSons();
+      if (l.length < 3) {
         window.__pcvSteamU?.ouvrir?.();
         return v;
       }
-      return v === "steamu" ? "theme" : "steamu";
+      return l[(l.indexOf(v) + 1) % l.length];
     }
   };
   let presents = null;

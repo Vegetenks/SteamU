@@ -110,6 +110,7 @@
     return false;
   };
   const PRET = essayer(0).then(({ repondu, ...F }) => {
+    if (window.__pcvNintendoJeton !== jeton) return window.__pcvNintendo;
     Object.assign(window.__pcvNintendo, F);
     window.dispatchEvent(new Event("pcv-nintendo"));
     return window.__pcvNintendo;

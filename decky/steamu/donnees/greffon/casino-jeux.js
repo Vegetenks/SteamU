@@ -31,16 +31,24 @@
   }, (k) => k);
   const hasard = () => Math.random();
   const CLE = "pcv-casino-jeux", CLE_PARTIES = "pcv-arcade-parties";
-  const ECO = { depart: 10, cadeauDuJour: 5, plancher: 10, depannagesParJour: 3, taux: 20, changesParJour: 5, plafond: 9999 };
+  const ECO = { depart: 10, cadeauDuJour: 5, plancher: 10, depannagesParJour: 3, taux: 20, changesParFenetre: 4, fenetreChangeH: 3, plafond: 9999 };
   const bourse = () => {
     const b = lire(CLE, null) || { pieces: ECO.depart, jour: "", depannages: 0, changes: 0, etoiles: 0 };
     if (b.jour !== jourDe()) {
       b.annonce = b.jour ? Tr("casino.cadeau_du_jour", { n: ECO.cadeauDuJour }) : Tr("casino.voila_pieces_commencer", { n: ECO.depart });
       if (b.jour) b.pieces = Math.min(ECO.plafond, Math.max(ECO.depart, b.pieces + ECO.cadeauDuJour));
-      Object.assign(b, { jour: jourDe(), depannages: 0, changes: 0 });
+      Object.assign(b, { jour: jourDe(), depannages: 0 });
+      ecrire(CLE, b);
+    }
+    if (b.changes && Date.now() - (b.fenetre || 0) >= ECO.fenetreChangeH * 36e5) {
+      Object.assign(b, { changes: 0, fenetre: 0 });
       ecrire(CLE, b);
     }
     return b;
+  };
+  const attenteChange = (b) => {
+    const m = Math.max(1, Math.ceil(((b.fenetre || 0) + ECO.fenetreChangeH * 36e5 - Date.now()) / 6e4));
+    return m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? " " + String(m % 60).padStart(2, "0") : ""}` : `${m} min`;
   };
   const illimite = () => lire("pcv-casino-illimite", false) === true;
   const pieces = () => illimite() ? ECO.plafond : bourse().pieces;
@@ -89,15 +97,16 @@
   const changer = () => {
     const b = bourse();
     if (illimite()) return { ok: false, texte: Tr("luigi.mode_essai_illimite") };
-    if (b.changes >= ECO.changesParJour) return { ok: false, texte: Tr("luigi.plus_change") };
+    if (b.changes >= ECO.changesParFenetre) return { ok: false, texte: Tr("luigi.plus_change", { temps: attenteChange(b) }) };
     if (b.pieces < ECO.taux) return { ok: false, texte: Tr("casino.il_faut_pieces_partie", { n: ECO.taux }) };
     modifier((x) => {
       x.pieces -= ECO.taux;
+      if (!x.changes) x.fenetre = Date.now();
       x.changes++;
     });
     crediterParties(1, "casino de Luigi : change");
     if (session) session.gain++;
-    const reste = ECO.changesParJour - b.changes - 1;
+    const reste = ECO.changesParFenetre - b.changes - 1;
     return { ok: true, texte: Tr("luigi.une_partie_bonus", { reste: reste ? Tr("casino.encore_n_aujourdhui", { n: reste }) : "" }) };
   };
   const CLE_BOITE = "pcv-arcade-boite", PRIX = { petit: 3, morceau: 4, parCase: 4, grandMax: 16, secret: 2 };

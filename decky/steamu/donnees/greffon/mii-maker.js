@@ -408,7 +408,15 @@
     return V.charger().then(() => {
       const e = V.etat;
       if (!e) throw new Error("moteur des Mii absent");
-      return { FFLjs: e.F, ffl: e.ffl, materiau: window.FFLShaderMaterial, materiauTextures: window.FFLShaderMaterial, aides: window.__pcvESM || null, lire: V.lire };
+      return {
+        FFLjs: e.F,
+        ffl: e.ffl,
+        materiau: window.FFLShaderMaterial,
+        materiauTextures: window.FFLShaderMaterial,
+        aides: window.__pcvESM || null,
+        lire: V.lire,
+        corps: e.gabarits.map((g) => g.gltf)
+      };
     });
   };
   const X = () => moteur.F.FFLExpression;
@@ -586,7 +594,7 @@
     #pcv-miimaker svg { width: 100%; height: 100%; display: block; }
     #pcv-miimaker .verre { background: var(--pcv-verre, #fff); box-shadow: var(--pcv-reflet, inset 0 2px 0 #fff), var(--pcv-ombre, 0 8px 22px rgba(60,85,120,.16)); }
     
-    #pcv-miimaker.clavier .mm-focus { z-index: 2; box-shadow: 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(8)} var(--pcv-cyan-plein, #2fb8ff), 0 0 ${u(22)} ${u(4)} rgba(47,184,255,.45) !important; }
+    #pcv-miimaker.clavier .mm-focus { z-index: 2; box-shadow: 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(8)} var(--pcv-cyan-plein, #2fb8ff), 0 0 ${u(22)} ${u(4)} color-mix(in srgb, var(--pcv-cyan-plein) 45%, transparent) !important; }
     
     #pcv-miimaker .scene { position: absolute; left: 0; top: ${u(70)}; width: ${u(590)}; height: ${u(570)}; touch-action: none; }
     #pcv-miimaker .scene::before { content: ""; position: absolute; left: 12%; right: 12%; top: 6%; bottom: 4%; border-radius: 50%;
@@ -613,7 +621,7 @@
     #pcv-miimaker .onglet { position: relative; width: ${u(56)}; height: ${u(56)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform .15s; }
     #pcv-miimaker .onglet > i { width: ${u(42)}; height: ${u(42)}; padding: ${u(9)}; }
     #pcv-miimaker .onglet.actif { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); transform: scale(1.1);
-      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(18)} rgba(26,154,230,.4); }
+      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(18)} color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent); }
     #pcv-miimaker .onglet.actif > i { color: var(--pcv-cyan-plein, #2fb8ff); }
     #pcv-miimaker .onglet:active, #pcv-miimaker .rond:active, #pcv-miimaker .pas:active { transform: scale(.92); }
     
@@ -633,11 +641,11 @@
     #pcv-miimaker .defile::-webkit-scrollbar { display: none; }
     #pcv-miimaker .grille { display: grid; grid-template-columns: repeat(var(--col, 6), 1fr); gap: ${u(12)}; }
     #pcv-miimaker .choix { position: relative; aspect-ratio: 1; border-radius: ${u(18)}; background: var(--pcv-pastille, #fff);
-      box-shadow: inset 0 ${u(-4)} 0 color-mix(in srgb, var(--pcv-creux) 14%, transparent), 0 0 0 1px var(--pcv-bord), 0 ${u(4)} ${u(10)} rgb(var(--pcv-ombre-rgb) / .1); transition: transform .12s; }
+      box-shadow: inset 0 ${u(-4)} 0 color-mix(in srgb, var(--pcv-creux) 14%, transparent), 0 0 0 1px var(--pcv-bord), 0 ${u(4)} ${u(10)} rgb(from var(--pcv-ombre-c) r g b / .1); transition: transform .12s; }
     #pcv-miimaker .choix canvas { position: absolute; inset: 4%; width: 92%; height: 92%; opacity: 0; transition: opacity .2s; }
     #pcv-miimaker .choix.pret canvas { opacity: 1; }
     #pcv-miimaker .choix:not(.pret)::after { content: ""; position: absolute; inset: 34%; border-radius: 50%; border: ${u(4)} solid color-mix(in srgb, var(--pcv-creux) 25%, transparent); border-top-color: var(--pcv-cyan-plein, #2fb8ff); animation: mmTourne .8s linear infinite; }
-    #pcv-miimaker .choix.actuel { background: color-mix(in srgb, var(--pcv-cyan-plein) 13%, var(--pcv-carte)); box-shadow: inset 0 0 0 ${u(4)} var(--pcv-cyan-plein, #2fb8ff), 0 ${u(4)} ${u(10)} rgba(26,154,230,.25); }
+    #pcv-miimaker .choix.actuel { background: color-mix(in srgb, var(--pcv-cyan-plein) 13%, var(--pcv-carte)); box-shadow: inset 0 0 0 ${u(4)} var(--pcv-cyan-plein, #2fb8ff), 0 ${u(4)} ${u(10)} color-mix(in srgb, var(--pcv-cyan-plein) 25%, transparent); }
     #pcv-miimaker .choix.actuel::before { content: "\u2713"; position: absolute; right: ${u(5)}; top: ${u(4)}; width: ${u(22)}; height: ${u(22)}; border-radius: 50%; z-index: 1;
       display: flex; align-items: center; justify-content: center; background: var(--pcv-cyan-plein, #2fb8ff); color: var(--pcv-sur-accent); font-size: ${u(13)}; font-weight: 900; }
     #pcv-miimaker .choix .etiquette { position: absolute; left: 4%; right: 4%; bottom: 4%; z-index: 1; text-align: center; font-size: ${u(13)}; font-weight: 900; line-height: 1.1;
@@ -655,7 +663,7 @@
     #pcv-miimaker .teinte { position: relative; width: ${u(78)}; height: ${u(78)}; border-radius: 50%; padding: ${u(8)}; transition: transform .12s; }
     #pcv-miimaker .teinte i { display: block; width: 100%; height: 100%; border-radius: 50%; box-shadow: inset 0 ${u(-5)} ${u(8)} rgba(0,0,0,.22), 0 2px 4px rgba(0,0,0,.18);
       background: radial-gradient(circle at 34% 28%, rgba(255,255,255,.65), rgba(255,255,255,0) 42%), var(--k); }
-    #pcv-miimaker .teinte.actuel { transform: scale(1.08); box-shadow: inset 0 3px 1px #fff, 0 0 0 ${u(4)} var(--pcv-cyan-plein, #2fb8ff), 0 ${u(6)} ${u(14)} rgba(26,154,230,.35); }
+    #pcv-miimaker .teinte.actuel { transform: scale(1.08); box-shadow: inset 0 3px 1px #fff, 0 0 0 ${u(4)} var(--pcv-cyan-plein, #2fb8ff), 0 ${u(6)} ${u(14)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-miimaker .teinte.actuel::after { content: "\u2713"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--pcv-sur-accent); font-size: ${u(26)}; font-weight: 900; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
     
     #pcv-miimaker .reglages { display: flex; flex-direction: column; gap: ${u(12)}; padding-top: ${u(4)}; }
@@ -679,16 +687,16 @@
     #pcv-miimaker .ligne input::placeholder { color: var(--pcv-texte3); }
     #pcv-miimaker .duo { display: flex; gap: ${u(10)}; flex-wrap: wrap; }
     #pcv-miimaker .duo button { padding: ${u(11)} ${u(22)}; border-radius: ${u(24)}; font-size: ${u(17)}; font-weight: 900; background: var(--pcv-pastille, #fff);
-      box-shadow: inset 0 ${u(-3)} 0 rgba(0,0,0,.07), 0 0 0 1px var(--pcv-bord), 0 ${u(3)} ${u(6)} rgb(var(--pcv-ombre-rgb) / .1); }
+      box-shadow: inset 0 ${u(-3)} 0 rgba(0,0,0,.07), 0 0 0 1px var(--pcv-bord), 0 ${u(3)} ${u(6)} rgb(from var(--pcv-ombre-c) r g b / .1); }
     #pcv-miimaker .duo button.actif { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); color: var(--pcv-sur-accent);
-      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${u(4)} ${u(10)} rgba(26,154,230,.35); }
+      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${u(4)} ${u(10)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-miimaker .date { display: flex; align-items: center; gap: ${u(6)}; }
     #pcv-miimaker .date b { min-width: ${u(120)}; text-align: center; font-size: ${u(19)}; }
     #pcv-miimaker .date b.jour { min-width: ${u(48)}; }
     #pcv-miimaker .date .pas { width: ${u(48)}; height: ${u(48)}; }
     #pcv-miimaker .date .pas > i { width: ${u(38)}; height: ${u(38)}; padding: ${u(11)}; }
     #pcv-miimaker .interrupteur { display: flex; align-items: center; gap: ${u(10)}; padding: ${u(6)} ${u(18)} ${u(6)} ${u(6)}; border-radius: ${u(26)}; font-size: ${u(16)};
-      background: var(--pcv-pastille, #fff); box-shadow: 0 0 0 1px var(--pcv-bord), 0 ${u(3)} ${u(6)} rgb(var(--pcv-ombre-rgb) / .1); justify-self: start; }
+      background: var(--pcv-pastille, #fff); box-shadow: 0 0 0 1px var(--pcv-bord), 0 ${u(3)} ${u(6)} rgb(from var(--pcv-ombre-c) r g b / .1); justify-self: start; }
     #pcv-miimaker .interrupteur i { width: ${u(38)}; height: ${u(38)}; padding: ${u(8)}; border-radius: 50%; background: var(--pcv-creux); color: var(--pcv-texte3); }
     #pcv-miimaker .interrupteur.on i { background: #d23a2a; color: var(--pcv-sur-accent); }
     #pcv-miimaker .glissiere { display: grid; grid-template-columns: ${u(170)} ${u(40)} 1fr ${u(40)}; align-items: center; gap: ${u(16)}; height: ${u(96)}; padding: 0 ${u(18)};
@@ -697,7 +705,7 @@
     
     #pcv-miimaker .creer { display: grid; grid-template-columns: repeat(3, 1fr); gap: ${u(14)}; }
     #pcv-miimaker .carte { position: relative; display: flex; flex-direction: column; align-items: center; gap: ${u(6)}; padding: ${u(16)} ${u(10)} ${u(14)}; border-radius: ${u(24)}; text-align: center;
-      background: var(--pcv-pastille, #fff); box-shadow: inset 0 ${u(-5)} 0 color-mix(in srgb, var(--pcv-creux) 12%, transparent), 0 0 0 1px var(--pcv-bord), 0 ${u(6)} ${u(16)} rgb(var(--pcv-ombre-rgb) / .12); transition: transform .12s; }
+      background: var(--pcv-pastille, #fff); box-shadow: inset 0 ${u(-5)} 0 color-mix(in srgb, var(--pcv-creux) 12%, transparent), 0 0 0 1px var(--pcv-bord), 0 ${u(6)} ${u(16)} rgb(from var(--pcv-ombre-c) r g b / .12); transition: transform .12s; }
     #pcv-miimaker .carte:hover { transform: translateY(${u(-3)}); }
     #pcv-miimaker .carte > i { width: ${u(64)}; height: ${u(64)}; padding: ${u(14)}; color: var(--pcv-sur-accent); background: var(--k); box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.5), inset 0 -6px 10px -6px rgba(0,0,0,.25), 0 ${u(5)} ${u(12)} rgba(0,0,0,.18); }
     #pcv-miimaker .carte b { font-size: ${u(18)}; font-weight: 900; }
@@ -709,18 +717,18 @@
     #pcv-miimaker .etagere h4 small { display: block; color: var(--pcv-texte2, #6b7788); font-size: ${u(13)}; font-weight: 700; }
     #pcv-miimaker .tes-mii h3 .outils { margin-left: auto; display: flex; gap: ${u(8)}; }
     #pcv-miimaker .tes-mii h3 .outils button { padding: ${u(6)} ${u(14)}; border-radius: ${u(18)}; font-size: ${u(14)}; font-weight: 900; color: var(--pcv-texte, #2f3a4a);
-      background: var(--pcv-verre, #fff); box-shadow: var(--pcv-reflet, none), 0 ${u(3)} ${u(8)} rgb(var(--pcv-ombre-rgb) / .14); }
+      background: var(--pcv-verre, #fff); box-shadow: var(--pcv-reflet, none), 0 ${u(3)} ${u(8)} rgb(from var(--pcv-ombre-c) r g b / .14); }
     #pcv-miimaker .tes-mii h3 small { color: var(--pcv-texte2, #6b7788); font-size: ${u(15)}; margin-left: ${u(6)}; }
     #pcv-miimaker .mii { position: relative; display: flex; flex-direction: column; align-items: center; gap: ${u(4)}; padding: ${u(6)} ${u(4)} ${u(8)}; border-radius: ${u(20)}; transition: transform .12s; }
     #pcv-miimaker .mii .ic { position: relative; width: 100%; aspect-ratio: 1; border-radius: ${u(18)}; background: var(--pcv-pastille, #fff);
-      box-shadow: inset 0 ${u(-4)} 0 color-mix(in srgb, var(--pcv-creux) 14%, transparent), 0 0 0 1px var(--pcv-bord), 0 ${u(4)} ${u(10)} rgb(var(--pcv-ombre-rgb) / .1); }
+      box-shadow: inset 0 ${u(-4)} 0 color-mix(in srgb, var(--pcv-creux) 14%, transparent), 0 0 0 1px var(--pcv-bord), 0 ${u(4)} ${u(10)} rgb(from var(--pcv-ombre-c) r g b / .1); }
     #pcv-miimaker .mii canvas { position: absolute; inset: 3%; width: 94%; height: 94%; opacity: 0; transition: opacity .2s; }
     #pcv-miimaker .mii.pret canvas { opacity: 1; }
     #pcv-miimaker .mii:not(.pret) .ic::after { content: ""; position: absolute; inset: 34%; border-radius: 50%; border: ${u(4)} solid color-mix(in srgb, var(--pcv-creux) 25%, transparent); border-top-color: var(--pcv-cyan-plein, #2fb8ff); animation: mmTourne .8s linear infinite; }
     #pcv-miimaker .mii > b { font-size: ${u(14)}; font-weight: 900; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #pcv-miimaker .mii em { position: absolute; top: 0; right: 0; width: ${u(28)}; height: ${u(28)}; padding: ${u(5)}; border-radius: 50%; background: #d23a2a; color: var(--pcv-sur-accent); box-shadow: 0 0 0 ${u(3)} var(--pcv-lisere); }
     
-    #pcv-miimaker .mii.choisi .ic { background: color-mix(in srgb, var(--pcv-cyan-plein) 22%, var(--pcv-carte)); box-shadow: 0 ${u(4)} ${u(10)} rgba(26,154,230,.25); }
+    #pcv-miimaker .mii.choisi .ic { background: color-mix(in srgb, var(--pcv-cyan-plein) 22%, var(--pcv-carte)); box-shadow: 0 ${u(4)} ${u(10)} color-mix(in srgb, var(--pcv-cyan-plein) 25%, transparent); }
     #pcv-miimaker .mii.choisi .ic::before { content: "\u2713"; position: absolute; left: ${u(6)}; bottom: ${u(6)}; width: ${u(26)}; height: ${u(26)}; border-radius: 50%;
       display: flex; align-items: center; justify-content: center; font-size: ${u(15)}; font-weight: 900; color: var(--pcv-sur-accent);
       background: var(--pcv-cyan-plein, #2fb8ff); box-shadow: 0 0 0 ${u(3)} var(--pcv-carte, #fff); }
@@ -731,7 +739,7 @@
     #pcv-miimaker .actions-mii button.rouge { color: var(--pcv-rouge-texte); }
     
     #pcv-miimaker .tes-mii h3 .outils button.cyan, #pcv-miimaker .cherche .ok, #pcv-miimaker .fiche-cat .ok { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); color: var(--pcv-sur-accent);
-      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${u(4)} ${u(10)} rgba(26,154,230,.3); }
+      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${u(4)} ${u(10)} color-mix(in srgb, var(--pcv-cyan-plein) 30%, transparent); }
     #pcv-miimaker .source-cat { margin-left: auto; font-size: ${u(14)}; color: var(--pcv-texte2, #6b7788); }
     #pcv-miimaker .cherche { display: flex; gap: ${u(10)}; }
     #pcv-miimaker .cherche input { all: unset; box-sizing: border-box; flex: 1; height: ${u(50)}; padding: 0 ${u(20)}; border-radius: ${u(25)}; font: inherit; font-size: ${u(19)}; font-weight: 800;
@@ -760,7 +768,7 @@
     #pcv-miimaker .indice { display: flex; align-items: center; gap: ${u(8)}; padding: ${u(6)} ${u(16)} ${u(6)} ${u(6)}; border-radius: ${u(22)}; font-size: ${u(16)}; font-weight: 800; white-space: nowrap; }
     #pcv-miimaker .indice u { text-decoration: none; display: flex; align-items: center; justify-content: center; min-width: ${u(30)}; height: ${u(30)}; padding: 0 ${u(6)}; border-radius: ${u(15)};
       background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--k) 70%, #fff), var(--k)); color: var(--pcv-sur-accent); font-size: ${u(13)}; font-weight: 900; }
-    #pcv-miimaker .indice.fort { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); color: var(--pcv-sur-accent); box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${u(5)} ${u(14)} rgba(26,154,230,.35); }
+    #pcv-miimaker .indice.fort { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); color: var(--pcv-sur-accent); box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${u(5)} ${u(14)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     
     #pcv-miimaker .voile { position: absolute; inset: 0; z-index: 20; background: color-mix(in srgb, var(--pcv-carte) 55%, transparent); display: flex; align-items: center; justify-content: center; }
     #pcv-miimaker .dialogue { min-width: ${u(420)}; max-width: ${u(640)}; padding: ${u(26)} ${u(30)} ${u(22)}; border-radius: ${u(30)}; text-align: center; animation: mmBulle .3s cubic-bezier(.3,1.6,.5,1) both; }

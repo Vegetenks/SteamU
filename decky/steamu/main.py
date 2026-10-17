@@ -12,6 +12,8 @@ VISITEURS = "@visiteurs/"
 MII_DEFAUT = "@mii-defaut/"         
 MOTEUR = "mii/moteur/"               
 FILM = "steamu.webm"                
+DISPOSITIONS_MAX = 8 * 1024 * 1024  
+LARGEUR_VIGNETTE = 728              
 
 class Plugin:
     async def _main(self):
@@ -176,6 +178,18 @@ class Plugin:
         return {"watts": round(p / 1e6, 1) if p else None, "sante": round(100 * plein / origine) if plein and origine else None,
                 "cycles": lire("cycle_count")}
 
+    async def machine(self):
+        def lire(p):
+            try: return p.read_text().strip()
+            except Exception: return ""
+        dmi = pathlib.Path("/sys/class/dmi/id")
+        sorties = [c for c in pathlib.Path("/sys/class/drm").glob("card*-*") if lire(c / "status") == "connected"]
+        externe = any(lire(c / "enabled") == "enabled" for c in sorties if not c.name.split("-", 1)[1].startswith(("eDP", "LVDS", "DSI")))
+        try: legion = json.loads(pathlib.Path("/run/steamu-controllers/state.json").read_text())
+        except Exception: legion = None
+        return {**{n: lire(dmi / n) for n in ("sys_vendor", "product_name", "product_version", "board_name")},
+                "ecran": ("tele" if externe else "portable") if sorties else None, "legion": legion}
+
     async def economie(self):
         try: return pathlib.Path("/sys/firmware/acpi/platform_profile").read_text().strip() == "low-power"
         except Exception: return None
@@ -193,8 +207,8 @@ class Plugin:
                     n = f.stat().st_size if f.exists() else 0
                     if n and n == avant: break
                     avant = n; time.sleep(.03)
-                jpg = subprocess.run(["magick", str(f), "-sample", "728x", "-quality", "82", "jpg:-"], env=env, timeout=3, capture_output=True).stdout if shutil.which("magick") else b""
-                jpg = jpg or subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(f), "-vf", "scale=728:-2", "-q:v", "4", "-f", "image2pipe", "-vcodec", "mjpeg", "-"],
+                jpg = subprocess.run(["magick", str(f), "-sample", f"{LARGEUR_VIGNETTE}x", "-quality", "82", "jpg:-"], env=env, timeout=3, capture_output=True).stdout if shutil.which("magick") else b""
+                jpg = jpg or subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(f), "-vf", f"scale={LARGEUR_VIGNETTE}:-2", "-q:v", "4", "-f", "image2pipe", "-vcodec", "mjpeg", "-"],
                                      env=env, timeout=3, capture_output=True).stdout
                 return "data:image/jpeg;base64," + base64.b64encode(jpg).decode() if jpg else None
             except Exception:
@@ -202,6 +216,14 @@ class Plugin:
             finally:
                 f.unlink(missing_ok=True)
         return await asyncio.get_running_loop().run_in_executor(None, prendre)
+
+    async def apercu(self, appid, ips):
+        import asyncio, apercu
+        return await asyncio.get_running_loop().run_in_executor(None, apercu.debut, appid, LARGEUR_VIGNETTE, ips)
+
+    async def apercu_fin(self, adresse=None):
+        import asyncio, apercu
+        await asyncio.get_running_loop().run_in_executor(None, apercu.fin, adresse)
 
     @staticmethod
     def _raison(e):
@@ -265,7 +287,7 @@ class Plugin:
 
     async def theme_supprimer(self, id):
         import datetime, re
-        if not isinstance(id, str) or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)+", id): return {"erreur": "identifiant invalide"}
+        if not isinstance(id, str) or not re.fullmatch(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+", id): return {"erreur": "identifiant invalide"}   
         dossier = self._dedans("themes")
         if not dossier or not dossier.is_dir(): return {"erreur": "dossier prive/themes introuvable"}
         fichiers = [f for f in dossier.iterdir() if f.is_file() and (f.name.startswith(id + "-") or f.name.startswith(id + "."))]
@@ -379,6 +401,20 @@ class Plugin:
             decky.logger.warning(f"Art auto : {type(e).__name__} {str(e)[:160]}")
             return {"trouve": False}
 
+    async def dispositions_lire(self):
+        f = pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "dispositions.json"
+        try: return {"ok": True, "d": json.loads(f.read_text(encoding="utf-8")) if f.exists() else None}
+        except Exception as e:
+            decky.logger.warning(f"SteamU : dispositions illisibles ({type(e).__name__})"); return {"ok": False}
+
+    async def dispositions_ecrire(self, d):
+        t = json.dumps(d, ensure_ascii=False)
+        if not isinstance(d, dict) or len(t) > DISPOSITIONS_MAX: return False
+        f = pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "dispositions.json"
+        try: f.with_suffix(".tmp").write_text(t, encoding="utf-8"); os.replace(f.with_suffix(".tmp"), f); return True
+        except Exception as e:
+            decky.logger.warning(f"SteamU : dispositions non enregistrées ({type(e).__name__})"); return False
+
     async def secours_etat(self):
         import moteur
         return {"pause": moteur.secours.pause}
@@ -427,5 +463,6 @@ class Plugin:
     async def _unload(self):
         import moteur
         moteur.arreter = True
+        import apercu; apercu.fin()
         if getattr(self, "lumiere", None): self.lumiere.arreter()   
         decky.logger.info("SteamU : moteur arrêté (le thème disparaît au prochain rechargement de Steam)")

@@ -7,6 +7,7 @@
   const T = window.__pcvT || ((c) => c);
   const O = window.opener;
   const IMG = (id, f) => `https://steamloopback.host/assets/${id}/${f}`;
+  const absolu = (u) => u.startsWith("/") ? "https://steamloopback.host" + u : u;
   const CDN = (id, f) => `https://shared.steamstatic.com/store_item_assets/steam/apps/${id}/${f}`;
   const h = (min) => min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}`;
   const ilya = (rt) => {
@@ -59,12 +60,18 @@
     #pcv-console .titre { position: absolute; left: calc(var(--u) * 64); top: calc(var(--u) * 10); font-size: calc(var(--u) * 26); font-weight: 900; color: var(--pcv-cyan-plein);
       text-shadow: 0 1px 0 rgb(var(--pcv-halo-rgb) / .7); transition: opacity .3s; white-space: nowrap; }
     #pcv-console .titre.dors { opacity: 0; }
+    
+    #pcv-console .titre { z-index: 5; }
     #pcv-console .titre:empty { display: none; }   
     
     html[data-pcv-fond="image"] #pcv-console .titre { padding: calc(var(--u) * 4) calc(var(--u) * 16); margin-left: calc(var(--u) * -16); border-radius: calc(var(--u) * 20);
       background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); text-shadow: none; }
     
     #pcv-console { --pcv-zone-haut: calc(var(--u) * 52); --pcv-zone-h: calc(var(--u) * 480); }
+    
+    #pcv-console.une-rangee:not(.dans-dossier) { --pcv-zone-haut: calc(var(--u) * 116); }
+    #pcv-console.une-rangee:not(.dans-dossier) .titre { top: calc(var(--u) * 50); }
+    #pcv-console.une-rangee:not(.dans-dossier) .infos { top: calc(var(--u) * 442); }
     #pcv-console .zone { touch-action: none; position: absolute; left: 0; right: 0; top: var(--pcv-zone-haut); height: var(--pcv-zone-h); }
     #pcv-console .grille { position: absolute; left: calc(var(--u) * 64); top: calc(var(--u) * ${GRILLE_HAUT}); display: grid; grid-auto-flow: column;
       grid-template-rows: repeat(var(--r), calc(var(--u) * var(--c))); grid-auto-columns: calc(var(--u) * var(--c)); gap: calc(var(--u) * var(--g));
@@ -114,13 +121,19 @@
     #pcv-console .cel.vide { background: none; box-shadow: none; }
     
     #pcv-console .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { content: ""; position: absolute; left: 50%; top: 50%; width: calc(var(--u) * (var(--c) + var(--g)) * .35); aspect-ratio: 1;
-      transform: translate(-50%, -50%); border-radius: 42%; background: color-mix(in srgb, var(--pcv-carte) 12%, transparent); pointer-events: none; }
-    #pcv-console .grille:has(.porte) .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { background: color-mix(in srgb, var(--pcv-carte) 35%, transparent); }
-    #pcv-console .cel.vide.loin::after { display: none; }
+      transform: translate(-50%, -50%); border-radius: 42%; background: color-mix(in srgb, var(--pcv-carte) 40%, transparent);
+      box-shadow: inset 0 0 0 calc(var(--u) * 1.5) rgb(from var(--pcv-ombre-c) r g b / .16); pointer-events: none; }
+    #pcv-console .grille:has(.porte) .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { background: color-mix(in srgb, var(--pcv-carte) 65%, transparent); }
+    
     body:not(.pcv-zone-jaquettes) #pcv-console .cel.vide.sel { box-shadow: none; }
-    body.pcv-zone-jaquettes #pcv-console .cel.vide.sel { transform: none; box-shadow: 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 rgba(47,184,255,.3); }
+    body.pcv-zone-jaquettes #pcv-console .cel.vide.sel { transform: none; box-shadow: 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 color-mix(in srgb, var(--pcv-cyan-plein) 30%, transparent); }
     #pcv-console .cel.couverte, #pcv-console .cel.ancre:not(.sel) { background: none !important; box-shadow: none !important; }
     #pcv-console .cel.couverte.sel { outline: calc(var(--u) * 3) dashed var(--pcv-cyan-plein); outline-offset: calc(var(--u) * -3); }
+    
+    body.pcv-zone-jaquettes #pcv-console .cel.vide.sel:has(> .bdg) { box-shadow: none; }
+    body.pcv-zone-jaquettes #pcv-console .cel.vide.sel:has(> .bdg)::before { content: none; }
+    body.pcv-zone-jaquettes #pcv-console .cel.sel > .bdg::after { content: ""; position: absolute; inset: 0; border-radius: calc(var(--u) * var(--c) * .18); pointer-events: none;
+      box-shadow: inset 0 0 0 calc(var(--u) * var(--si, 0)) var(--pcv-cyan-plein), 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 color-mix(in srgb, var(--pcv-cyan-plein) 30%, transparent); }
     
     #pcv-console .cel .bdg { position: absolute; inset: calc(var(--u) * var(--g) / -2 - .5px); background: center / contain no-repeat; image-rendering: pixelated; }
     #pcv-console .cel .bdg.grand { right: auto; bottom: auto; z-index: 2;
@@ -154,10 +167,19 @@
     #pcv-console .cel.cible .ap b { --dy: -14%; }
     
     html[data-pcv-dossier="image"] #pcv-console .chem .arr, html[data-pcv-dossier="image"] #pcv-console .chem .ap { display: none; }
-    html[data-pcv-dossier="image"] #pcv-console .chem .av { left: 15%; right: 15%; top: 9%; bottom: auto; aspect-ratio: 74 / 64; border-radius: 0; box-shadow: none; filter: drop-shadow(0 3px 3px rgba(0,0,0,.25));
-      background: var(--pcv-dossier-ferme) 0 0 / 172.97% 100% no-repeat; image-rendering: pixelated; }
-    html[data-pcv-dossier="image"] #pcv-console .cel.cible .av { transform: none; background-image: var(--pcv-dossier-ouvert, var(--pcv-dossier-ferme)); background-size: 156.1% 100%; aspect-ratio: 82 / 64; }
-    html[data-pcv-dossier="image"] #pcv-console .chem em { bottom: 7%; color: var(--pcv-texte); text-shadow: none; }   
+    
+    html[data-pcv-dossier="image"] #pcv-console { --dos-ferme: polygon(1.35% 3.13%, 2.7% 1.56%, 40.5% 1.56%, 43.2% 7.81%, 98.6% 7.81%, 98.6% 96.9%, 97.3% 98.4%, 2.7% 98.4%, 1.35% 96.9%);
+      --dos-ouvert: polygon(4.88% 3.13%, 6.1% 1.56%, 39% 1.56%, 41.5% 6.25%, 91.5% 6.25%, 91.5% 31.25%, 98.8% 31.25%, 93.9% 98.4%, 6.1% 98.4%, 1.22% 31.25%, 4.88% 31.25%); }
+    
+    #pcv-console .cel.dos, #pcv-console .chem { background: none; }
+    #pcv-console .cel.dos:not(.sel):not(.cible):not(.porte) { box-shadow: none; }
+    #pcv-console .chem { filter: drop-shadow(0 3px 3px rgba(0,0,0,.25)); }
+    html[data-pcv-dossier="image"] #pcv-console .chem .av { left: 4%; right: 4%; top: 50%; translate: 0 -50%; bottom: auto; aspect-ratio: 74 / 64;    border-radius: 0; box-shadow: none;
+      background: var(--pcv-dossier-ferme) 0 0 / 172.97% 100% no-repeat; image-rendering: pixelated;
+      clip-path: var(--dos-ferme); }
+    html[data-pcv-dossier="image"] #pcv-console .cel.cible .av { transform: none; background-image: var(--pcv-dossier-ouvert, var(--pcv-dossier-ferme)); background-size: 156.1% 100%; aspect-ratio: 82 / 64;
+      clip-path: var(--dos-ouvert); }
+    html[data-pcv-dossier="image"] #pcv-console .chem em { bottom: 7%; color: var(--pcv-texte); text-shadow: 0 0 calc(var(--u) * 3) rgb(var(--pcv-halo-rgb) / .9), 0 0 calc(var(--u) * 6) rgb(var(--pcv-halo-rgb) / .7); }   
     
     #pcv-console .zone::before { content: ""; position: absolute; left: calc(var(--u) * ${CADRE.cote}); right: calc(var(--u) * ${CADRE.cote}); top: calc(var(--u) * ${CADRE.haut}); bottom: calc(var(--u) * ${CADRE.bas}); border-radius: calc(var(--u) * 34);
       background: color-mix(in srgb, var(--pcv-accent, #2fb8ff) 16%, color-mix(in srgb, var(--pcv-carte) 30%, transparent)); box-shadow: inset 0 0 0 calc(var(--u) * 2) color-mix(in srgb, var(--pcv-carte) 55%, transparent); opacity: 0; transform: scale(.96); transition: opacity .3s, transform .3s; pointer-events: none; }
@@ -175,17 +197,23 @@
     #pcv-console .entete .ic::before { left: 0; top: 0; width: 46%; height: 40%; }
     #pcv-console .entete .ic::after { left: 0; right: 0; top: 18%; bottom: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--pcv-accent, #2fb8ff) 52%, var(--pcv-carte)), var(--pcv-accent, #2fb8ff));
       transform: perspective(calc(var(--u) * 60)) rotateX(-28deg); transform-origin: 50% 100%; }
-    html[data-pcv-dossier="image"] #pcv-console .entete .ic { width: calc(var(--u) * 41); height: calc(var(--u) * 32); background: var(--pcv-dossier-ouvert, var(--pcv-dossier-ferme)) 0 0 / 156.1% 100% no-repeat; image-rendering: pixelated; }
+    html[data-pcv-dossier="image"] #pcv-console .entete .ic { width: calc(var(--u) * 41); height: calc(var(--u) * 32); background: var(--pcv-dossier-ouvert, var(--pcv-dossier-ferme)) 0 0 / 156.1% 100% no-repeat; image-rendering: pixelated;
+      clip-path: var(--dos-ouvert); }
     html[data-pcv-dossier="image"] #pcv-console .entete .ic::before, html[data-pcv-dossier="image"] #pcv-console .entete .ic::after { display: none; }
     #pcv-console .entete b { font-size: calc(var(--u) * 22); font-weight: 900; max-width: calc(var(--u) * 360); overflow: hidden; text-overflow: ellipsis; }
     #pcv-console .entete small { font-size: calc(var(--u) * 15); font-weight: 800; color: var(--pcv-texte2); margin-right: calc(var(--u) * 6); }
     #pcv-console .entete button { font: inherit; color: var(--pcv-texte); border: 0; cursor: pointer; display: flex; align-items: center; gap: calc(var(--u) * 7); height: calc(var(--u) * 36);
       padding: 0 calc(var(--u) * 14) 0 calc(var(--u) * 8); border-radius: calc(var(--u) * 18); font-size: calc(var(--u) * 15); font-weight: 800;
       
-      background: var(--pcv-verre); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 2px 0 rgb(var(--pcv-ombre-rgb) / .22); transition: transform .15s, box-shadow .15s; }
+      background: var(--pcv-verre); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 2px 0 rgb(from var(--pcv-ombre-c) r g b / .22); transition: transform .15s, box-shadow .15s; }
     #pcv-console .entete button[hidden] { display: none; }
     #pcv-console .entete button i { width: calc(var(--u) * 20); height: calc(var(--u) * 20); flex: none; }
     #pcv-console .entete button i svg { width: 100%; height: 100%; }
+    
+    #pcv-console .entete button.choisi { transform: scale(1.06); box-shadow: 0 0 0 calc(var(--u) * 3) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 6) var(--pcv-cyan-plein); }
+    body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.sel { transform: none; box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 2px color-mix(in srgb, var(--pcv-carte) 80%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 20) rgba(0,0,0,.16); }
+    body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.vide.sel { box-shadow: none; }
+    body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.sel::before, body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.sel > .bdg::after { content: none; }
     #pcv-console .entete button.cible { transform: scale(1.1); box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), 0 0 0 calc(var(--u) * 8) #ff8a1f; }
     body.pcv-deco #pcv-console .entete { visibility: hidden; }
     #pcv-console .note { position: absolute; left: 50%; top: calc(var(--u) * 58); transform: translateX(-50%); padding: calc(var(--u) * 7) calc(var(--u) * 18); border-radius: calc(var(--u) * 20); z-index: 7;
@@ -193,7 +221,7 @@
     #pcv-console .note.on { opacity: 1; }
     #pcv-console .sonde { position: absolute; width: calc(var(--u) * 100); height: 0; visibility: hidden; }
     #pcv-console .cel.sel { z-index: 3; transform: scale(var(--sk, 1.05));
-      box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 rgba(47,184,255,.4); }
+      box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent); }
     
     body.pcv-zone-jaquettes #pcv-console .cel.sel::before { content: ""; position: absolute; inset: 0; z-index: 4; border-radius: inherit; pointer-events: none;
       box-shadow: inset 0 0 0 calc(var(--u) * var(--si, 0)) var(--pcv-cyan-plein); }
@@ -214,11 +242,18 @@
     #pcv-console .bu img { flex: none; width: calc(var(--u) * 38); height: calc(var(--u) * 38); border-radius: calc(var(--u) * 10); }
     @keyframes pcvBulleC { from { opacity: 0; transform: translateY(calc(var(--u) * 8)) scale(.9) } }
     #pcv-console .zoom { position: absolute; left: calc(var(--u) * 34); bottom: calc(var(--u) * 24); display: flex; align-items: center; gap: calc(var(--u) * 10);
-      padding: calc(var(--u) * 8) calc(var(--u) * 14); border-radius: calc(var(--u) * 30); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-weight: 900; font-size: calc(var(--u) * 15); }
-    #pcv-console .zoom b { width: calc(var(--u) * 30); height: calc(var(--u) * 30); border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--pcv-creux); cursor: pointer; font-size: calc(var(--u) * 13); }
+      padding: calc(var(--u) * 6); border-radius: calc(var(--u) * 30); background: var(--pcv-verre);    box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-weight: 900; font-size: calc(var(--u) * 15); }
+    
+    #pcv-console .zoom b { width: calc(var(--u) * 28); height: calc(var(--u) * 28); border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--pcv-creux); color: #fff; cursor: pointer; font-size: calc(var(--u) * 13); }
+    
+    #pcv-console .zoom .pic { width: calc(var(--u) * 26); height: calc(var(--u) * 26); color: var(--pcv-cyan-plein); display: flex; }
+    #pcv-console .zoom .pic svg { width: 100%; height: 100%; }
     #pcv-console .zoom i { width: calc(var(--u) * 12); height: calc(var(--u) * 12); border-radius: 50%; background: #cdd4da; }
     #pcv-console .zoom i.on { background: var(--pcv-cyan-plein); box-shadow: 0 0 0 calc(var(--u) * 3) var(--pcv-anneau-c); }
-    #pcv-console .bas { position: absolute; right: calc(var(--u) * 34); bottom: calc(var(--u) * 24); display: flex; gap: calc(var(--u) * 12); }
+    
+    #pcv-console .bas { position: absolute; left: calc(var(--u) * 400); right: calc(var(--u) * 34); bottom: calc(var(--u) * 24); display: flex; justify-content: flex-end; gap: calc(var(--u) * 12); }
+    #pcv-console .bas > span { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
+    #pcv-console .bas u { flex: none; }
     #pcv-console .bas em { font-style: normal; }
     #pcv-console .bas span[hidden] { display: none; }
     #pcv-console .bas span { display: flex; align-items: center; gap: calc(var(--u) * 8); padding: calc(var(--u) * 6) calc(var(--u) * 16) calc(var(--u) * 6) calc(var(--u) * 6);
@@ -235,17 +270,23 @@
     #pcv-console .blanc.on { opacity: 1; }
   </style>
   <div class="titre"></div><div class="etat"></div><div class="note"></div><i class="sonde"></i>
-  <div class="entete"><i class="ic"></i><b></b><small></small><button class="ren"><i>${icoEntete("crayon")}</i>Renommer</button><button class="sup"><i>${icoEntete("supprimer")}</i>Supprimer</button><button class="dec" hidden><i>${icoEntete("epingle")}</i>D\xE9coller le badge</button>
-    <button class="ret"><i>${icoEntete("sortie")}</i>Retour</button></div>
+  <div class="entete"><i class="ic"></i><b></b><small></small><button class="ren"><i>${icoEntete("crayon")}</i>${T("console.renommer")}</button><button class="sup"><i>${icoEntete("supprimer")}</i>${T("console.supprimer")}</button><button class="dec" hidden><i>${icoEntete("epingle")}</i>${T("console.decoller_badge")}</button>
+    <button class="ret"><i>${icoEntete("sortie")}</i>${T("console.retour")}</button></div>
   <div class="zone"><div class="grille"></div></div>
   <div class="infos cache"></div><div class="rien"></div>
-  <div class="zoom"><b data-z="-1" data-touche="5"></b>${ZOOMS.map(() => "<i></i>").join("")}<b data-z="1" data-touche="6"></b></div>
-  <div class="bas"><span class="leg-x"><u data-touche="3"></u>${T("console.ranger")}</span><span class="leg-y"><u data-touche="4"></u>${T("spaces.place.nom")}</span><span><u data-touche="1"></u><em class="leg-a">${T("console.ouvrir")}</em></span><span class="leg-start" hidden><u data-touche="14"></u>${T("console.menu")}</span></div>
+  <div class="zoom"><b data-z="-1" data-touche="5"></b><span class="pic">${window.__pcvIcones.svg("tuiles-grandes")}</span>${ZOOMS.map(() => "<i></i>").join("")}<span class="pic">${window.__pcvIcones.svg("tuiles-petites")}</span><b data-z="1" data-touche="6"></b></div>
+  <div class="bas"><span class="leg-vue"><u data-touche="13"></u>${T("console.dispositions")}</span><span class="leg-x"><u data-touche="3"></u>${T("console.ranger")}</span><span class="leg-y"><u data-touche="4"></u>${T("spaces.place.nom")}</span><span><u data-touche="1"></u><em class="leg-a">${T("console.ouvrir")}</em></span><span class="leg-start" hidden><u data-touche="14"></u>${T("console.menu")}</span></div>
   <div class="blanc"></div>`;
   document.body.appendChild(racine);
   window.__pcvFond?.(racine);
   const $ = (s) => racine.querySelector(s), grille = $(".grille");
   let principal = [], cases = [], vue = null, sel = 0, zi = lire("pcv-zoom", 0), porte = -1, badgeMain = null, appui = null;
+  let tete = -1;
+  const boutonsTete = () => [...racine.querySelectorAll(".entete button")].filter((x) => !x.hidden);
+  const marquerTete = () => {
+    racine.classList.toggle("sur-tete", tete >= 0);
+    boutonsTete().forEach((x, k) => x.classList.toggle("choisi", k === tete));
+  };
   const SORTIE = -2;
   let cible = -1;
   const RACCOURCI = 1073741824;
@@ -431,6 +472,8 @@
     cases = completer(d ? d.l : principal, minVue());
     racine.classList.toggle("dans-dossier", !!d);
     entete();
+    tete = -1;
+    marquerTete();
   };
   const construireCases = () => {
     const connus = apps(), tous = montres(), mode2 = reglageJeux();
@@ -563,7 +606,7 @@
     }).catch(() => {
     });
   };
-  const imageJeu = (a) => {
+  const imagesJeu = (a) => {
     let vert = "", icone2 = "";
     try {
       vert = O.appStore.GetVerticalCapsuleURLForApp(a) || "";
@@ -577,8 +620,9 @@
     return [
       ...perso("GetCustomVerticalCapsuleURLs", a),
       ...nonSteam ? [...perso("GetCustomLandcapeImageURLs", a), icone2] : [IMG(a.appid, "library_600x900.jpg"), vert, CDN(a.appid, "library_600x900.jpg")]
-    ].filter(Boolean).map(urlCss).join(",");
+    ].filter(Boolean);
   };
+  const imageJeu = (a) => imagesJeu(a).map(urlCss).join(",");
   const TUILES_DEFAUT = {
     1304930: "logo",
     1326470: "logo",
@@ -694,14 +738,22 @@
       return { l: null, b: [0, 1, 0, 1] };
     }
   };
+  const imagesDetails = (id) => Promise.race([new Promise((ok) => setTimeout(() => ok(null), 4e3)), Promise.resolve(O.appDetailsStore?.RequestAppDetails(id)).catch(() => null)]).then(() => {
+    const D = O.appDetailsStore, abs = (l) => (l || []).map(absolu);
+    try {
+      return [abs(D.GetLogoImagesForAppId(id)?.rgLogoImages), abs(D.GetHeroImagesForAppId(id)?.rgHeroImages)];
+    } catch (e) {
+      return [[], []];
+    }
+  });
   const verifier = (a) => {
     const id = a.appid;
-    if (AUTO[id] && "b" in AUTO[id] || AUTO[id] && !AUTO[id].r && "l" in AUTO[id] || enVerif.has(id)) return;
-    enVerif.set(id, Promise.all([
-      charge([...perso("GetCustomLogoImageURLs", a), IMG(id, "logo.png"), CDN(id, "logo.png")]),
-      charge([...perso("GetCustomHeroImageURLs", a), IMG(id, "library_hero.jpg"), CDN(id, "library_hero.jpg")])
-    ]).then(([logo, fond]) => {
-      AUTO[id] = { a: !!(logo && fond), r: logo ? +(logo.naturalWidth / logo.naturalHeight).toFixed(2) : 0, ...logo ? lireLogo(logo) : { l: null }, lu: logo?.src, fu: fond?.src };
+    if (AUTO[id] && "b" in AUTO[id] || AUTO[id] && !AUTO[id].r && "l" in AUTO[id] && AUTO[id].d || enVerif.has(id)) return;
+    enVerif.set(id, imagesDetails(id).then(([dl, dh]) => Promise.all([
+      charge([...perso("GetCustomLogoImageURLs", a), IMG(id, "logo.png"), CDN(id, "logo.png"), ...dl]),
+      charge([...perso("GetCustomHeroImageURLs", a), IMG(id, "library_hero.jpg"), CDN(id, "library_hero.jpg"), ...dh])
+    ])).then(([logo, fond]) => {
+      AUTO[id] = { a: !!(logo && fond), r: logo ? +(logo.naturalWidth / logo.naturalHeight).toFixed(2) : 0, ...logo ? lireLogo(logo) : { l: null }, lu: logo?.src, fu: fond?.src, d: 1 };
       ecrire("pcv-tuile-auto", AUTO);
       enVerif.delete(id);
       grille.querySelectorAll(`.cel.jeu .im[data-appid="${id}"]`).forEach((el) => peindreJeu(el, a));
@@ -787,7 +839,7 @@
     if (m === "cadrage") {
       el.style.backgroundImage = imageJeu(a);
       if (CADRES[id] != null) el.style.backgroundPosition = `center ${CADRES[id]}%`;
-      else cadrer(id, el);
+      else cadrer(id, el, [IMG(id, "library_600x900.jpg"), CDN(id, "library_600x900.jpg"), ...perso("GetCachedVerticalCapsuleURL", a).map(absolu)]);
       return;
     }
     const u = (l2) => l2.filter(Boolean).map(urlCss);
@@ -937,6 +989,7 @@
     const z = ZOOMS[zi], f = forme(z);
     vueFamille = familleTheme();
     for (const [k, v] of Object.entries({ r: z.r, c: z.c, g: z.g, d: f.d, pad: f.pad, im: f.im, bo: f.bo, ...selection(z, f) })) grille.style.setProperty("--" + k, +v.toFixed(3));
+    racine.classList.toggle("une-rangee", zi === 0);
     if (zoomSeul && grille.children.length === cases.length) {
       const r = reserver(cases), limite2 = colonneLimite(z);
       if (r.grands.size === reserve.grands.size && [...r.grands].every((i) => reserve.grands.has(i))) {
@@ -1015,7 +1068,7 @@
   };
   const nomCase = (i) => {
     const c = cases[i], a = appDe(c), bd = c.bd ?? cases[reserve.ancreDe.get(i)]?.bd, ap = appliDe(c);
-    const nom = a ? a.display_name : ap ? ap.nom : c.dossier ? c.nom : bd != null ? window.__pcvArcade?.info?.(bd)?.nom || "Badge" : "Case libre";
+    const nom = a ? a.display_name : ap ? ap.nom : c.dossier ? c.nom : bd != null ? window.__pcvCasinoBadges?.nom?.(bd) || "" : "Case libre";
     return ap?.verrouille?.() ? `${nom} (${window.__pcvT("verrou.bientot")})` : nom;
   };
   let pos = 0, elan = null;
@@ -1194,6 +1247,12 @@
           cible = SORTIE;
           return marquer();
         }
+        if (vue && porte < 0 && badgeMain == null && boutonsTete().length) {
+          tete = 0;
+          marquerTete();
+          legende();
+          return window.__pcvSon?.("bouge");
+        }
         return monter();
       }
       if (dy > 0 && row === r - 1) return window.__pcvSon?.("bord");
@@ -1207,6 +1266,29 @@
   const entrer = () => {
     window.__pcvZone = "jaquettes";
     document.body.classList.add("pcv-zone-jaquettes");
+  };
+  const toucheTete = (b) => {
+    const l = boutonsTete();
+    if (b === 11 || b === 12) {
+      const n = tete + (b === 12 ? 1 : -1);
+      if (n < 0 || n >= l.length) return window.__pcvSon?.("bord");
+      tete = n;
+      marquerTete();
+      legende();
+      return window.__pcvSon?.("bouge");
+    }
+    const x = l[tete];
+    tete = -1;
+    marquerTete();
+    if (b === 1) {
+      legende();
+      return x?.click();
+    }
+    if (b === 2) return fermerDossier();
+    if (b === 10) return marquer();
+    tete = l.indexOf(x);
+    marquerTete();
+    return window.__pcvSon?.("bord");
   };
   const monter = () => {
     if (porte >= 0) return window.__pcvSon?.("bord");
@@ -1463,6 +1545,7 @@
       finAppui();
       return oublierSortie();
     }
+    if (tete >= 0) return toucheTete(b);
     const c = cases[sel];
     if (b === 1) {
       if (porte >= 0) return poser();
@@ -2009,7 +2092,99 @@
     dessiner();
     return true;
   };
+  const disposition = () => ({ grille: lire("pcv-grille", null), zoom: zi });
+  const chargerDisposition = (d) => {
+    if (!Array.isArray(d?.grille)) return false;
+    if (porte >= 0) annuler();
+    finAppui();
+    badgeMain = null;
+    vue = null;
+    zi = Math.max(0, Math.min(ZOOMS.length - 1, Math.round(+d.zoom) || 0));
+    ecrire("pcv-zoom", zi);
+    ecrire("pcv-grille", d.grille);
+    construireCases();
+    infosDe = -1;
+    decal = -1;
+    sel = 0;
+    debut();
+    dessiner(true);
+    entrer();
+    marquer(false);
+    return true;
+  };
+  const APERCU = { l: 320, h: 200 };
+  const apercu = async () => {
+    const z = ZOOMS[zi], r = z.r, k = APERCU.h / 800, pas = z.c + z.g, l = principal, { grands, ancreDe } = reserver(l, r);
+    const f = l.findIndex((c, i) => !libre(c) || ancreDe.has(i)), c0 = f < r ? 0 : Math.floor(f / r), cols = Math.floor((APERCU.l / k - 128) / pas) + 1;
+    const toile = document.createElement("canvas");
+    toile.width = APERCU.l;
+    toile.height = APERCU.h;
+    const x = toile.getContext("2d");
+    const st = getComputedStyle(racine), v = (n) => st.getPropertyValue(n).trim();
+    const image = async (urls, l2 = 96) => {
+      for (const u2 of urls) try {
+        return await createImageBitmap(await (await fetch(u2)).blob(), { resizeWidth: l2, resizeQuality: "medium" });
+      } catch (e) {
+      }
+      return null;
+    };
+    const fond = v("--pcv-fond-page"), u = /url\(["']?([^"')]+)/.exec(fond)?.[1], cs = fond.match(/#[0-9a-f]{3,8}\b|(rgb|hsl)a?\([^)]*\)/gi) || [v("--pcv-carte")];
+    const g = x.createLinearGradient(0, 0, 0, APERCU.h);
+    cs.forEach((c, j) => {
+      try {
+        g.addColorStop(cs.length > 1 ? j / (cs.length - 1) : 0, c);
+      } catch (e) {
+      }
+    });
+    x.fillStyle = g;
+    x.fillRect(0, 0, APERCU.l, APERCU.h);
+    const im = u && await image([u], APERCU.l);
+    if (im) {
+      const e = Math.max(APERCU.l / im.width, APERCU.h / im.height);
+      x.drawImage(im, (APERCU.l - im.width * e) / 2, (APERCU.h - im.height * e) / 2, im.width * e, im.height * e);
+      im.close();
+    }
+    const haut = 98 + (zi === 0 ? 116 : 52) + GRILLE_HAUT, cel = (i) => [(64 + (Math.floor(i / r) - c0) * pas) * k, (haut + i % r * pas) * k];
+    await Promise.all(l.map(async (c, i) => {
+      const col = Math.floor(i / r) - c0;
+      if (col < 0 || col >= cols || ancreDe.has(i)) return;
+      if (libre(c)) return;
+      const [px, py] = cel(i), [w, hh] = grands.has(i) ? c.bt : [1, 1], lx = (w * pas - z.g) * k, ly = (hh * pas - z.g) * k, a = appDe(c), ap = appliDe(c);
+      const bm = a ? await image(imagesJeu(a)) : c.bd != null ? await image([badgeURL(c.bd)]) : null;
+      x.save();
+      x.beginPath();
+      x.roundRect(px, py, lx, ly, lx * 0.18);
+      x.clip();
+      if (a || ap || c.dossier) {
+        x.fillStyle = "rgba(255,255,255,.85)";
+        x.fill();
+      }
+      if (ap) {
+        const [g1, g2] = ap.fond.split(","), g3 = x.createLinearGradient(px, py, px + lx, py + ly);
+        g3.addColorStop(0, g1.trim());
+        g3.addColorStop(1, (g2 || g1).trim());
+        x.fillStyle = g3;
+        x.fill();
+      } else if (c.dossier) {
+        x.fillStyle = v("--pcv-accent");
+        x.fillRect(px + lx * 0.12, py + ly * 0.22, lx * 0.76, ly * 0.6);
+      }
+      if (bm && a) {
+        const s = Math.min(bm.width, bm.height);
+        x.drawImage(bm, (bm.width - s) / 2, (bm.height - s) * 0.18, s, s, px, py, lx, ly);
+      } else if (bm) {
+        const e = Math.min(lx / bm.width, ly / bm.height);
+        x.drawImage(bm, px + (lx - bm.width * e) / 2, py + (ly - bm.height * e) / 2, bm.width * e, bm.height * e);
+      }
+      bm?.close();
+      x.restore();
+    }));
+    return toile.toDataURL("image/jpeg", 0.82);
+  };
   window.__pcvGrille = {
+    disposition,
+    chargerDisposition,
+    apercu,
     cases: () => cases,
     zooms: () => ZOOMS,
     zoom: () => ({ ...ZOOMS[zi], i: zi }),
@@ -2129,15 +2304,35 @@
     }
     return false;
   };
+  const dispositions = () => {
+    const D = window.__pcvDossiers;
+    if (D?.etat?.()?.genre === "dispo") return D.fermer(), true;
+    if (racine.hidden || recouvert() || window.__pcvDeco?.actif() || window.__pcvMenuOuvert?.() || porte >= 0 || !D?.dispositions) return false;
+    return D.dispositions(), true;
+  };
+  $(".leg-vue").addEventListener("click", dispositions);
+  if (window.__pcvVueConsole) window.removeEventListener("vgp_onbuttondown", window.__pcvVueConsole, true);
+  window.addEventListener("vgp_onbuttondown", window.__pcvVueConsole = (e) => {
+    if (e.detail?.button !== 13 || window.__pcvZone !== "jaquettes" && window.__pcvDossiers?.etat?.()?.genre !== "dispo") return;
+    if (dispositions()) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
   if (window.__pcvStartConsole) window.removeEventListener("vgp_onbuttondown", window.__pcvStartConsole, true);
   window.addEventListener("vgp_onbuttondown", window.__pcvStartConsole = (e) => {
+    if (e.detail?.button === 14 && !racine.hidden && window.__pcvDossiers?.modal?.()) {
+      e.stopPropagation();
+      e.preventDefault();
+      window.__pcvDossiers.fermer(true);
+      return;
+    }
     if (e.detail?.button !== 14 || racine.hidden || window.__pcvZone !== "jaquettes" || recouvert() || window.__pcvDeco?.actif() || window.__pcvMenuOuvert?.()) return;
     if (document.querySelector("#header .gpfocus") && !document.body.classList.contains("pcv-zone-jaquettes")) return;
     const a = porte < 0 && badgeMain == null && cases[sel] && appDe(cases[sel]);
-    if (!a) return;
     e.stopPropagation();
     e.preventDefault();
-    menuJeu(a, sel);
+    if (a) menuJeu(a, sel);
   }, true);
   if (window.__pcvTouchesConsole) window.removeEventListener("keydown", window.__pcvTouchesConsole, true);
   window.addEventListener("keydown", window.__pcvTouchesConsole = (e) => {
@@ -2160,23 +2355,33 @@
       const [t, c, h3] = toucheOuStart(+e.dataset.touche);
       if (h3) e.innerHTML = h3;
       else e.textContent = t;
-      if (e.tagName === "U") e.style.background = c;
+      if (e.tagName === "U" || e.tagName === "B") e.style.background = c;
     });
   };
   const TROIS_TRAITS = '<svg viewBox="0 0 24 24" style="width:1.1em;height:1.1em" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M6 7.5h12M6 12h12M6 16.5h12"/></svg>';
   const toucheOuStart = (k) => {
     const r = window.__pcvTouche?.(k);
-    if (k !== 14 || r && r[0] !== "?") return r || ["?", "#5b6676"];
+    if (k !== 14 && k !== 13 || r && r[0] !== "?") return r || ["?", "#5b6676"];
     const f = document.documentElement.dataset.pcvManette;
+    if (k === 13) return f === "nintendo" ? ["\u2212", "#5b6676", "\u2212"] : [
+      f === "ps" ? "Create" : "View",
+      f === "ps" ? "#2c2f36" : "#5b6676",
+      window.__pcvIcones.svg(f === "ps" ? "creer" : "vue", { attrs: 'style="width:1.1em;height:1.1em" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"' })
+    ];
     return f === "nintendo" ? ["+", "#5b6676", "+"] : ["\u2261", f === "ps" ? "#2c2f36" : "#5b6676", TROIS_TRAITS];
   };
   const legende = () => {
     if (window.__pcvZone !== "jaquettes") {
-      $(".leg-x").hidden = $(".leg-y").hidden = $(".leg-start").hidden = true;
+      $(".leg-x").hidden = $(".leg-y").hidden = $(".leg-vue").hidden = $(".leg-start").hidden = true;
       texte($(".leg-a"), document.querySelector("#pcv-barre .rond.pcv-sel")?.dataset.pcvNom || T("acces.rechercher"));
       return;
     }
-    $(".leg-x").hidden = $(".leg-y").hidden = false;
+    if (tete >= 0) {
+      $(".leg-x").hidden = $(".leg-y").hidden = $(".leg-vue").hidden = $(".leg-start").hidden = true;
+      texte($(".leg-a"), boutonsTete()[tete]?.textContent.trim() || "");
+      return;
+    }
+    $(".leg-x").hidden = $(".leg-y").hidden = $(".leg-vue").hidden = false;
     const a = cases[sel] && appDe(cases[sel]), la = !!a && ici(a);
     texte($(".leg-a"), a ? la ? T("accueil.jouer") : T("console.voir_jeu") : T("console.ouvrir"));
     const st = $(".leg-start");
@@ -2184,7 +2389,7 @@
   };
   window.__pcvLegende = legende;
   let etaitVisible = false;
-  let dernierTour = Date.now();
+  let dernierTour = Date.now(), ecranAvant = false;
   window.__pcvConsole = setInterval(() => {
     if (!racine.hidden) touches();
     const maintenant = Date.now();
@@ -2203,7 +2408,17 @@
       badgeMain = null;
       if (!document.querySelector(".pcv-panneau.on")) window.__pcvMusique?.(null);
     }
+    const ecran = !!window.__pcvEcran?.ouvert?.();
+    if (visible && etaitVisible && ecranAvant && !ecran) {
+      if (window.__pcvVersLoupe) window.__pcvVersLoupe = false;
+      else {
+        entrer();
+        marquer(false);
+      }
+    }
+    ecranAvant = ecran;
     if (visible && !etaitVisible) {
+      entrer();
       porte = -1;
       cible = -1;
       avant = null;

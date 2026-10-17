@@ -24,17 +24,24 @@
     #pcv-barre .rond i { position: relative; width: calc(var(--u) * 22); height: calc(var(--u) * 22);
       -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; background: var(--c); }
     
-    :root { --pcv-biseau-dy: -1.5px; }   
-    #pcv-barre .rond i { transform: translateY(var(--pcv-biseau-dy)); }
-    #pcv-barre .rond[data-pcv-rond="notifs"] i { transform: translateY(calc(var(--pcv-biseau-dy) - var(--u) * 1.6)); }
+    :root { --pcv-biseau-dy: -1.5px; }
     #pcv-barre .rond:active { transform: scale(.93); }
+    
+    #pcv-barre .rond.loupe { justify-content: flex-start; overflow: hidden; border-radius: calc(var(--u) * 28); padding-left: calc(var(--u) * 17); gap: calc(var(--u) * 21);
+      transition: width .22s cubic-bezier(.2,.8,.2,1), box-shadow .12s !important; }
+    #pcv-barre .rond.loupe::before { left: calc(var(--u) * 8); top: calc(var(--u) * 8); }
+    #pcv-barre .rond.loupe i, #pcv-barre .rond.loupe .invite { flex: none; }   
+    #pcv-barre .rond.loupe .invite { position: relative; white-space: nowrap; font-size: calc(var(--u) * 17); font-weight: 800; color: var(--pcv-texte2); opacity: 0; transition: opacity .12s; }
+    body.pcv-loupe-active #pcv-barre .rond.loupe { width: calc(var(--u) * 412);
+      box-shadow: var(--pcv-reflet), 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 8) var(--pcv-cyan-plein), 0 calc(var(--u) * 12) calc(var(--u) * 26) color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
+    body.pcv-loupe-active #pcv-barre .rond.loupe .invite { opacity: 1; transition-delay: .12s; }
     #pcv-barre .rond.pcv-sel, #pcv-bascule.pcv-sel { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)) !important; transform: scale(1.08) !important;
-      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 8) var(--pcv-cyan-plein), 0 calc(var(--u) * 10) calc(var(--u) * 24) rgba(26,154,230,.45) !important; }
+      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 8) var(--pcv-cyan-plein), 0 calc(var(--u) * 10) calc(var(--u) * 24) color-mix(in srgb, var(--pcv-cyan-plein) 45%, transparent) !important; }
     
     #pcv-bascule { display: none !important; }
     
     #header_profile.pcv-sel .avatarHolder, #header_profile.pcv-sel img {
-      box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 8) var(--pcv-cyan-plein), 0 calc(var(--u) * 10) calc(var(--u) * 24) rgba(26,154,230,.45) !important; }
+      box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 8) var(--pcv-cyan-plein), 0 calc(var(--u) * 10) calc(var(--u) * 24) color-mix(in srgb, var(--pcv-cyan-plein) 45%, transparent) !important; }
     
     html.pcv-avatar-mii #header_profile img { content: var(--pcv-tete-mii); background: var(--pcv-creux); object-fit: cover; object-position: 50% 40%; }
     
@@ -47,8 +54,41 @@
     #pcv-barre .rond.telech.pause { --pcv-telech-c: #8b9098; }
     #pcv-barre .rond.telech.pcv-sel .piste { stroke: color-mix(in srgb, var(--pcv-carte) 35%, transparent); }
     #pcv-barre .rond.telech.pcv-sel .plein { stroke: var(--pcv-sur-accent); }
+    
+    #pcv-barre .etat { position: fixed; top: calc(var(--u) * 24); right: calc(var(--u) * 24); height: var(--pcv-etat-h);
+      border-radius: calc(var(--pcv-etat-h) / 2); display: flex; align-items: center; padding: 0 calc(var(--u) * 6) 0 0;
+      background: var(--pcv-verre); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), inset 0 -2px 0 var(--pcv-reflet-bas), var(--pcv-ombre);
+      color: var(--pcv-texte); font-size: var(--pcv-etat-texte); font-weight: 800; }
+    #pcv-barre .etat > * { flex: none; }
+    #pcv-barre .etat .ico { width: var(--pcv-etat-ico); height: var(--pcv-etat-ico); margin: 0 calc(var(--u) * 10) 0 calc(var(--u) * 18); color: var(--pcv-texte); }
+    #pcv-barre .etat .ico.coupe { opacity: .3; }
+    #pcv-barre .etat .sep { width: 2px; align-self: stretch; background: var(--pcv-bord); }
+    #pcv-barre .etat .heure { padding: 0 calc(var(--u) * 7) 0 0; font-size: var(--pcv-etat-chiffres); font-weight: var(--pcv-etat-chiffres-graisse); line-height: 1; }
+    #pcv-barre .etat .pile { display: flex; align-items: center; gap: calc(var(--u) * 5); margin: 0 calc(var(--u) * 9) 0 calc(var(--u) * 12); }
   `;
   racine.appendChild(style);
+  {
+    const b = document.createElement("button");
+    b.className = "rond loupe";
+    b.dataset.pcvRond = "loupe";
+    b.dataset.pcvNom = T("barre.rechercher");
+    b.setAttribute("aria-label", T("barre.rechercher"));
+    b.style.left = "calc(var(--u) * 24)";
+    b.innerHTML = `<i data-ico-masque="recherche" style="--c:var(--pcv-texte2)"></i><span class="invite">${T("barre.rechercher")}</span>`;
+    b.onclick = () => {
+      window.__pcvProfilMontrer?.(false);
+      if (window.__pcvEcran?.ouvert?.()) {
+        window.__pcvVersLoupe = true;
+        window.__pcvEcran.fermer();
+      }
+      const i = document.querySelector("#header ._17M8gvakqjyaw_cLo6ntdl input, #header [class*=SearchAndTitleContainer] input");
+      if (!i) return;
+      window.__pcvNoeud?.(i)?.BTakeFocus?.(4);
+      i.focus();
+      i.click();
+    };
+    racine.appendChild(b);
+  }
   {
     const b = document.createElement("button");
     b.className = "rond";
@@ -76,6 +116,22 @@
       window.__pcvProfilMontrer?.(false);
       const p = document.getElementById("pcv-notifs");
       window.__pcvNotifsMontrer?.(!!p?.hidden);
+    };
+    racine.appendChild(b);
+  }
+  {
+    const b = document.createElement("button");
+    b.className = "rond profil";
+    b.dataset.pcvRond = "profil";
+    b.dataset.pcvNom = T("spaces.profil.nom");
+    b.setAttribute("aria-label", T("spaces.profil.nom"));
+    b.style.left = "calc(var(--u) * 222)";
+    b.innerHTML = '<img alt="">';
+    b.onclick = () => {
+      window.__pcvAmisMontrer?.(false);
+      window.__pcvNotifsMontrer?.(false);
+      const p = document.getElementById("pcv-profil");
+      window.__pcvProfilMontrer?.(!p || p.hidden);
     };
     racine.appendChild(b);
   }
@@ -127,6 +183,53 @@
       b.setAttribute("aria-label", nom);
     };
   }
+  {
+    const I = window.__pcvIcones, B = window.__pcvBridge;
+    const etat = document.createElement("div");
+    etat.className = "pilule verre etat";
+    etat.innerHTML = `${I.svg("wifi", { classe: "ico" })}<span class="sep"></span><span class="pile"></span><span class="heure"></span>`;
+    racine.appendChild(etat);
+    const peindreEtatAccueil = () => {
+      try {
+        etat.querySelector(".ico").classList.toggle("coupe", !B.network().connected);
+      } catch (e) {
+      }
+      try {
+        const s = [...document.querySelectorAll("{{HeaderItem@Header}}{{BatteryIcon@HeaderItem}}")].find((x) => !x.closest(".pile"));
+        etat.querySelector(".pile").replaceChildren(...s ? [s.cloneNode(true)] : []);
+      } catch (e) {
+      }
+      try {
+        const b = B.battery(), charge = b?.present && b.charging;
+        for (const svg of etat.querySelectorAll('.pile svg:is([viewBox="0 0 48 36"], [viewBox="0 0 42 36"])')) {
+          const r = svg.parentElement, ec = r.querySelector(".pcv-eclair");
+          if (charge && !ec) r.appendChild(Object.assign(document.createElement("div"), { className: "pcv-eclair" }));
+          else if (!charge && ec) ec.remove();
+        }
+        for (const r of etat.querySelectorAll(".pile > *")) {
+          let p = r.querySelector(":scope > .pcv-pct");
+          if (!b?.present) p?.remove();
+          else {
+            if (!p) r.prepend(p = Object.assign(document.createElement("div"), { className: "pcv-pct" }));
+            p.textContent = Math.round(b.percent * 100) + "%";
+          }
+        }
+      } catch (e) {
+      }
+      etat.querySelector(".heure").textContent = (/* @__PURE__ */ new Date()).toTimeString().slice(0, 5).replace(/^0/, "");
+    };
+    clearInterval(window.__pcvEtatAccueil);
+    try {
+      window.__pcvEtatAccueilAbo?.unregister();
+    } catch (e) {
+    }
+    peindreEtatAccueil();
+    window.__pcvEtatAccueil = setInterval(peindreEtatAccueil, 3e4);
+    try {
+      window.__pcvEtatAccueilAbo = B.onBattery(peindreEtatAccueil);
+    } catch (e) {
+    }
+  }
   racine.addEventListener("click", (e) => {
     if (!e.target.closest?.('[data-pcv-rond="amis"]')) window.__pcvAmisMontrer?.(false);
     if (!e.target.closest?.('[data-pcv-rond="notifs"]')) window.__pcvNotifsMontrer?.(false);
@@ -137,13 +240,7 @@
     const O = window.opener, delai = (ms) => new Promise((_, non) => setTimeout(() => non(new Error("d\xE9lai")), ms));
     const appel = (m, ...a) => O.DeckyBackend?.call("loader/call_plugin_method", "Pause Games", m, ...a) ?? Promise.reject(new Error("Decky absent"));
     const pg = O.__pcvPg = (m, ...a) => Promise.race([appel(m, ...a), delai(4e3)]);
-    const appidJeu = () => {
-      try {
-        return O.SteamUIStore.MainRunningApp?.appid || 0;
-      } catch (e) {
-        return 0;
-      }
-    };
+    const appidJeu = () => window.__pcvBridge.runningApp()?.appid || 0;
     O.__pcvJeuDevant = () => {
       try {
         const a = appidJeu();
@@ -365,6 +462,8 @@
     const fond = mii ? `url("${teteURL}")` : "";
     if (h.style.getPropertyValue("--pcv-tete-mii") !== fond) h.style.setProperty("--pcv-tete-mii", fond);
     if (h.classList.contains("pcv-avatar-mii") !== mii) h.classList.toggle("pcv-avatar-mii", mii);
+    const av = document.querySelector("#header_profile img")?.src, r = document.querySelector("#pcv-barre .rond.profil img");
+    if (r && av && r.getAttribute("src") !== av) r.setAttribute("src", av);
   };
   const oy = () => {
     const O = window.opener;
@@ -540,7 +639,14 @@
   }, () => {
   });
   const consoleLenovo = () => /lenovo/i.test(appareil?.sProductVendor || "") && /Ryzen.*Z\d/i.test(appareil?.sCPUName || "");
-  const emulee = (c) => c?.strChipID === "12345678" || /1970/.test(c?.strFirmwareBuildTime || "");
+  const integreeInputPlumber = () => {
+    try {
+      return (window.opener.ControllerStore.m_controllerList || []).some((x) => x.eControllerType === 100);
+    } catch (e) {
+      return false;
+    }
+  };
+  const emulee = (c) => !integreeInputPlumber() && (c?.strChipID === "12345678" || /1970/.test(c?.strFirmwareBuildTime || ""));
   const familleTouches = (c, t) => {
     let choix = "auto";
     try {
@@ -552,6 +658,90 @@
     if (ps && consoleLenovo() && emulee(c)) return "xbox";
     return ps ? "ps" : [38, 39, 40, 41, 51].includes(t) || c?.bNintendoLayout ? "nintendo" : t === 4 ? "deck" : "xbox";
   };
+  const PICTO_TYPE = {
+    1: "manette-steam",
+    2: "manette-steam",
+    3: "manette-steam",
+    10: "manette-steam",
+    31: "manette-xbox",
+    32: "manette-xbox",
+    46: "manette-xbox",
+    33: "manette-ps4",
+    34: "manette-ps4",
+    47: "manette-ps4",
+    45: "manette-ps5",
+    48: "manette-ps5-edge",
+    38: "manette-pro",
+    51: "manette-pro-2",
+    50: "manette-8bitdo",
+    39: "joycon-g",
+    40: "joycon-d",
+    41: "joycons",
+    4: "integree",
+    100: "integree"
+  };
+  const PICTO_USB = [
+    [/^045e:/, "manette-xbox"],
+    [/^054c:(05c4|09cc|0ba0)$/, "manette-ps4"],
+    [/^054c:0ce6$/, "manette-ps5"],
+    [/^054c:0df2$/, "manette-ps5-edge"],
+    [/^057e:2009$/, "manette-pro"],
+    [/^057e:2006$/, "joycon-g"],
+    [/^057e:2007$/, "joycon-d"],
+    [/^057e:2008$/, "joycons"],
+    [/^057e:2069$/, "manette-pro-2"],
+    [/^057e:2067$/, "joycon2-g"],
+    [/^057e:2066$/, "joycon2-d"],
+    [/^057e:2068$/, "joycons2"],
+    [/^2dc8:/, "manette-8bitdo"],
+    [/^28de:(1102|1142)$/, "manette-steam"],
+    [/^28de:(1205|12fb)$/, "integree"],
+    [/^17ef:/, "integree"]
+  ];
+  const PICTO_NOM = [
+    [/handheld/i, "integree"],
+    [/xbox/i, "manette-xbox"],
+    [/dualsense edge/i, "manette-ps5-edge"],
+    [/dualsense/i, "manette-ps5"],
+    [/dualshock|ps4/i, "manette-ps4"],
+    [/8bitdo/i, "manette-8bitdo"],
+    [/pro controller/i, "manette-pro"],
+    [/joy-?con/i, "joycons"]
+  ];
+  const PICTO_CONSOLE = [
+    [/Valve.*(Jupiter|Galileo)/, "portable-deck"],
+    [/Legion Go S|83L3|83N6|83Q2|83Q3/, "portable-legion-go-s"],
+    [/Legion Go 2|83N0|83N1/, "portable-legion-go-2"],
+    [/Legion Go|83E1/, "portable-legion-go"],
+    [/RC73/, "portable-xbox-ally"],
+    [/ROG Ally|RC71|RC72/, "portable-ally"],
+    [/Claw|MS-1T/, "portable-claw"],
+    [/AYA ?NEO/i, "portable-ayaneo"]
+  ];
+  let machine = null;
+  window.__pcvJoueurs = async () => {
+    try {
+      machine = await window.opener.DeckyBackend.call("loader/call_plugin_method", window.__pcvGreffon.nom, "machine") || machine;
+    } catch (e) {
+    }
+    let mode = "auto";
+    try {
+      mode = JSON.parse(localStorage.getItem("pcv-mode-console")) || "auto";
+    } catch (e) {
+    }
+    if (mode === "auto") mode = machine?.ecran || "portable";
+    const dmi = machine ? [machine.sys_vendor, machine.product_name, machine.product_version, machine.board_name].join(" ") : "";
+    const portable = PICTO_CONSOLE.find(([r]) => r.test(dmi))?.[1] || "portable", hex = (n) => (+n || 0).toString(16).padStart(4, "0");
+    const l = window.__pcvBridge.controllers();
+    return l.sort((a, b) => (a.nXInputIndex < 0) - (b.nXInputIndex < 0) || a.nXInputIndex - b.nXInputIndex).map((c) => {
+      const usb = hex(c.unVendorID) + ":" + hex(c.unProductID);
+      const p = emulee(c) ? "integree" : PICTO_USB.find(([r]) => r.test(usb))?.[1] || PICTO_TYPE[c.eControllerType] || PICTO_NOM.find(([r]) => r.test(c.strName || ""))?.[1] || "manette-inconnue";
+      return p !== "integree" ? { c, picto: p } : { c, picto: portable, integree: true };
+    }).filter((j, i, l2) => !(j.integree && mode === "tele" && (!DETACHABLES[j.picto] || attachees()) && l2.some((x) => !x.integree))).map((j) => j.integree && DETACHABLES[j.picto] && (mode === "tele" ? !attachees() : detachee()) ? { ...j, picto: DETACHABLES[j.picto] } : j);
+  };
+  const DETACHABLES = { "portable-legion-go": "manettes-legion-go", "portable-legion-go-2": "manettes-legion-go-2" };
+  const attachees = () => machine?.legion?.left === "attached" && machine?.legion?.right === "attached";
+  const detachee = () => [machine?.legion?.left, machine?.legion?.right].includes("detached");
   window.__pcvTouche = (code) => {
     const h = document.documentElement.dataset, k = "pcvInverse" in h ? ECHANGE[code] || code : code;
     if (h.pcvManette === "ps" && PS[k]) return [PS[k][0], PASTILLE_PS, dessinPS(k)];
@@ -592,8 +782,8 @@
     window.__pcvFlechesParam = true;
     document.addEventListener("click", (e) => {
       if (document.body.dataset.pcvPage !== "parametres") return;
-      const u = innerHeight / 800, dans = (x) => Math.hypot(e.clientX - (x + 28) * u, e.clientY - 154 * u) <= 30 * u;
-      const sens = dans(92) ? -1 : dans(1132) ? 1 : 0;
+      const u = innerHeight / 800, dans = (x) => Math.hypot(e.clientX - x, e.clientY - 154 * u) <= 30 * u;
+      const sens = dans(120 * u) ? -1 : dans(innerWidth - 120 * u) ? 1 : 0;
       if (!sens) return;
       window.__pcvPageVoisine?.(sens, false);
       e.stopPropagation();
@@ -618,6 +808,52 @@
     if (curseur) window.__pcvNoeud?.(cible)?.BTakeFocus?.(4);
     return true;
   };
+  {
+    const defileur = (el) => {
+      for (let p = el?.parentElement; p && p !== document.body; p = p.parentElement) {
+        const st = getComputedStyle(p);
+        if (/auto|scroll/.test(st.overflowY) && p.scrollHeight > p.clientHeight + 1) return p;
+      }
+      return null;
+    };
+    const suivis = /* @__PURE__ */ new WeakMap();
+    window.__pcvSuivre = (el) => {
+      const s = defileur(el);
+      if (!s) return false;
+      const e = suivis.get(s) || { cible: s.scrollTop, anim: 0 };
+      suivis.set(s, e);
+      const marge = 80 * innerHeight / 800, r = el.getBoundingClientRect(), y = s.scrollTop;
+      const haut = r.top - s.getBoundingClientRect().top + y;
+      let c = e.anim ? e.cible : y;
+      if (r.height + 2 * marge > s.clientHeight || haut - marge < c) c = haut - marge;
+      else if (haut + r.height + marge - s.clientHeight > c) c = haut + r.height + marge - s.clientHeight;
+      e.cible = Math.max(0, Math.min(c, s.scrollHeight - s.clientHeight));
+      if (!e.anim) {
+        let t = performance.now(), pos = y;
+        const pas = (n) => {
+          pos += (e.cible - pos) * (1 - Math.exp(-Math.min(50, n - t) / 35));
+          t = n;
+          if (Math.abs(e.cible - pos) < 0.5) pos = e.cible;
+          s.scrollTop = pos;
+          e.anim = pos === e.cible ? 0 : requestAnimationFrame(pas);
+        };
+        e.anim = requestAnimationFrame(pas);
+      }
+      return true;
+    };
+    const crochet = (J) => document.body.dataset.pcvPage === "parametres" && J?.Element?.closest?.(".DialogContentTransition") ? window.__pcvSuivre(J.Element) : false;
+    const brancher = () => {
+      let p = window.__pcvNoeud?.(document.querySelector(".Focusable"));
+      while (p && !Object.hasOwn(p, "SetDOMFocusAndScroll")) p = Object.getPrototypeOf(p);
+      if (!p) return void setTimeout(brancher, 1e3);
+      const avant = window.__pcvSDFS ||= p.SetDOMFocusAndScroll;
+      p.SetDOMFocusAndScroll = function(...a) {
+        for (let x = this; x; x = x.Parent) if (x.m_Properties && (x === this || x.m_Properties.scrollIntoViewWhenChildFocused)) x.m_Properties.fnScrollIntoViewHandler ||= crochet;
+        return avant.apply(this, a);
+      };
+    };
+    setTimeout(brancher, 0);
+  }
   {
     const noeud = (el) => {
       const k = el && Object.keys(el).find((x) => x.startsWith("__reactFiber"));
@@ -747,15 +983,11 @@
   );
   racine.addEventListener("pointerdown", (e) => appuyer(e.target.closest?.(".rond, #pcv-bascule")));
   const champ = () => document.querySelector("#header ._17M8gvakqjyaw_cLo6ntdl input, #header [class*=SearchAndTitleContainer] input");
-  clearInterval(window.__pcvGardeChamp);
-  window.__pcvGardeChamp = setInterval(() => {
-    const i = champ(), b = document.body.classList;
-    const libre = !!i && document.activeElement === i && !i.value && document.body.dataset.pcvPage !== "recherche" && !i.closest(".gpfocuswithin") && !i.matches(".gpfocus");
-    if (b.contains("pcv-champ-libre") !== libre) b.toggle("pcv-champ-libre", libre);
-  }, 200);
   const loupe = () => {
-    const l = document.querySelector("{{SearchAndTitleContainer@SearchBox}}"), v = !!l && l.matches(":hover, :focus-within, .gpfocuswithin, .gpfocus");
-    if (document.body.classList.contains("pcv-loupe-active") !== v) document.body.classList.toggle("pcv-loupe-active", v);
+    const l = document.querySelector("{{SearchAndTitleContainer@SearchBox}}"), b = document.body.classList, i = champ();
+    const nous = b.contains("pcv-zone-jaquettes") || b.contains("pcv-barre-nav") || !!window.__pcvEcran?.ouvert?.();
+    const v = !!l && !nous && (l.matches(":hover, .gpfocuswithin, .gpfocus") || !!i && document.activeElement === i && !!i.value);
+    if (b.contains("pcv-loupe-active") !== v) b.toggle("pcv-loupe-active", v);
   };
   for (const t of ["focusin", "focusout", "pointerover", "pointerout"]) document.removeEventListener(t, window.__pcvLoupeEcoute, true);
   let loupeDemandee = false;
@@ -771,9 +1003,11 @@
   for (const t of ["focusin", "focusout", "pointerover", "pointerout"]) document.addEventListener(t, window.__pcvLoupeEcoute, true);
   clearInterval(window.__pcvLoupeSuivi);
   window.__pcvLoupeSuivi = setInterval(loupe, 120);
+  window.__pcvLoupeClasses?.disconnect();
+  (window.__pcvLoupeClasses = new MutationObserver(window.__pcvLoupeEcoute)).observe(document.body, { attributes: true, attributeFilter: ["class"] });
   {
     let curs = -1;
-    const cibles = () => [...document.querySelectorAll("#pcv-barre .rond, #pcv-bascule, #header_profile")].filter((b) => {
+    const cibles = () => [...document.querySelectorAll("#pcv-barre .rond:not(.loupe), #pcv-bascule" + (window.__pcvEcran?.ouvert?.() ? ", #pcv-barre .rond.loupe" : ""))].filter((b) => {
       const r = b.getBoundingClientRect();
       return r.width > 8 && !b.hidden && !b.closest("[hidden]");
     }).sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
@@ -784,10 +1018,14 @@
       window.__pcvLegende?.();
     };
     window.__pcvBarreQuitter = () => {
-      if (curs >= 0) {
-        curs = -1;
-        marquer();
-      }
+      curs = -1;
+      marquer();
+    };
+    document.body.classList.remove("pcv-barre-nav");
+    window.__pcvBarreEntrer = (nom) => {
+      const l = cibles(), i = l.findIndex((x) => x.dataset.pcvRond === nom);
+      curs = Math.max(0, i);
+      marquer();
     };
     (window.__pcvManette ||= {}).barre = (b) => {
       const place = document.getElementById("pcv-place");
@@ -808,7 +1046,7 @@
         }
         return false;
       }
-      if (!loupe2) {
+      if (!loupe2 && !window.__pcvEcran?.ouvert?.()) {
         curs = -1;
         marquer();
         return false;

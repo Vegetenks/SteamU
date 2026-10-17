@@ -38,7 +38,7 @@
       -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222.2%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%227%22%20height%3D%227%22%20rx%3D%222%22/%3E%3Crect%20x%3D%2213%22%20y%3D%224%22%20width%3D%227%22%20height%3D%227%22%20rx%3D%222%22/%3E%3Crect%20x%3D%224%22%20y%3D%2213%22%20width%3D%227%22%20height%3D%227%22%20rx%3D%222%22/%3E%3Crect%20x%3D%2213%22%20y%3D%2213%22%20width%3D%227%22%20height%3D%227%22%20rx%3D%222%22/%3E%3C/svg%3E") center / contain no-repeat; }
     #pcv-accueil .jaq.tout b { font: 900 calc(var(--u) * 13) var(--pcv-police); color: var(--pcv-texte); }
     #pcv-accueil .jaq.sel { width: calc(var(--u) * 108); height: calc(var(--u) * 162); transform: translateY(calc(var(--u) * -4));
-      box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 9) var(--pcv-cyan-plein), 0 0 0 calc(var(--u) * 17) rgba(47,184,255,.22), 0 calc(var(--u) * 16) calc(var(--u) * 34) rgba(47,184,255,.45); }
+      box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 9) var(--pcv-cyan-plein), 0 0 0 calc(var(--u) * 17) color-mix(in srgb, var(--pcv-cyan-plein) 22%, transparent), 0 calc(var(--u) * 16) calc(var(--u) * 34) color-mix(in srgb, var(--pcv-cyan-plein) 45%, transparent); }
     @keyframes pcvPose { from { opacity: 0 } to { opacity: 1 } }
     #pcv-accueil .bulle { position: absolute; z-index: 3; display: flex; align-items: center; gap: calc(var(--u) * 10); padding: calc(var(--u) * 10) calc(var(--u) * 14) calc(var(--u) * 10) calc(var(--u) * 10);
       border-radius: calc(var(--u) * 22); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: calc(var(--u) * 15); font-weight: 800; white-space: nowrap; max-width: calc(var(--u) * 360);
@@ -52,7 +52,7 @@
     #pcv-accueil .bulle.gauche::after { left: calc(var(--u) * -8); top: 50%; margin-top: calc(var(--u) * -9); }
     @keyframes pcvBulle { 0% { opacity: 0; transform: scale(.5) } 70% { opacity: 1; transform: scale(1.04) } 100% { transform: scale(1) } }
     #pcv-accueil .banniere { position: absolute; left: calc(var(--u) * 24); right: calc(var(--u) * 24); top: calc(var(--u) * 202); height: calc(var(--u) * 250);
-      border-radius: calc(var(--u) * 30); overflow: hidden; background: #222 center 40% / cover; box-shadow: 0 0 0 calc(var(--u) * 5) var(--pcv-lisere), 0 calc(var(--u) * 14) calc(var(--u) * 34) rgb(var(--pcv-ombre-rgb) / .22);
+      border-radius: calc(var(--u) * 30); overflow: hidden; background: #222 center 40% / cover; box-shadow: 0 0 0 calc(var(--u) * 5) var(--pcv-lisere), 0 calc(var(--u) * 14) calc(var(--u) * 34) rgb(from var(--pcv-ombre-c) r g b / .22);
       animation: pcvPose .2s ease-out both; }
     #pcv-accueil .banniere::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,0) 60%); }
     #pcv-accueil .logo { position: absolute; left: calc(var(--u) * 36); top: calc(var(--u) * 52); width: calc(var(--u) * 300); height: calc(var(--u) * 110); object-fit: contain; object-position: left bottom; }
@@ -61,7 +61,7 @@
     #pcv-accueil button { all: unset; cursor: pointer; }
     #pcv-accueil .jouer { height: calc(var(--u) * 52); padding: 0 calc(var(--u) * 38); border-radius: calc(var(--u) * 26); background: var(--pcv-cyan); color: var(--pcv-sur-accent);
       font-size: calc(var(--u) * 18); font-weight: 900; line-height: calc(var(--u) * 52);
-      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 calc(var(--u) * 8) calc(var(--u) * 20) rgba(26,154,230,.45); }
+      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 calc(var(--u) * 8) calc(var(--u) * 20) color-mix(in srgb, var(--pcv-cyan-plein) 45%, transparent); }
     #pcv-accueil .meta { font-size: calc(var(--u) * 15); font-weight: 800; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
     #pcv-accueil .cartes { position: absolute; left: calc(var(--u) * 24); right: calc(var(--u) * 24); top: calc(var(--u) * 486); display: flex; gap: calc(var(--u) * 16); }
     #pcv-accueil .carte { position: relative; flex: 1; height: calc(var(--u) * 170); border-radius: calc(var(--u) * 30); overflow: hidden; background: var(--pcv-verre);

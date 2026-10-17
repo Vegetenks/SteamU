@@ -97,6 +97,8 @@ def _mots(reste):
         mots[-1][1] = mots[-1][1].rstrip()
     return mots if any(x.strip() for _, x in mots) else None
 
+_NOTE = re.compile(r"[\s♩♪♫♬🎵🎶.…]+")
+
 def _lrc(texte):
     brut = []
     for ligne in str(texte or "").splitlines()[:2000]:
@@ -106,6 +108,8 @@ def _lrc(texte):
         reste = ligne[tags[-1].end():]
         mots = _mots(reste)
         x = _texte(_MOT.sub("", reste))
+        if not _NOTE.sub("", x):
+            x, mots = "", None   
         for m in tags:
             brut.append((_sec(m), x, mots if len(tags) == 1 else None))
     brut.sort(key=lambda l: l[0])
@@ -134,7 +138,7 @@ def chercher(artiste, titre, album, duree, dossier):
     if not titre:
         return {"vide": True}
     cache = pathlib.Path(dossier)
-    fichier = cache / (hashlib.sha1(json.dumps([artiste.lower(), titre.lower(), album.lower(), duree, "m"]).encode()).hexdigest() + ".json")
+    fichier = cache / (hashlib.sha1(json.dumps([artiste.lower(), titre.lower(), album.lower(), duree, "m2"]).encode()).hexdigest() + ".json")
     try:
         d = json.loads(fichier.read_text())
         if d.get("lignes") or time.time() - fichier.stat().st_mtime < VIDE_JOURS * 86400:

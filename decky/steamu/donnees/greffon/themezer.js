@@ -213,7 +213,7 @@
     const tape = () => document.activeElement === $(".champ input");
     const touche = (b) => {
       if (!boite) return false;
-      if (tape()) {
+      if (tape() && b !== 5 && b !== 6) {
         if (b === 1) valider();
         else if (b === 2 || b === 10) {
           $(".champ input").blur();
@@ -324,7 +324,7 @@
       boite.className = "tpzb tzb";
       boite.innerHTML = `<div class="barre"><label class="champ pf"><i>${TP?.LOUPE || ""}</i><input type="text" maxlength="60" spellcheck="false" placeholder="${T("themezer.chercher_theme", { console: C.nom })}"></label>
           <div class="bt pf" data-b="tri"></div></div>
-        <div class="grille"><div class="rang"></div></div>
+        <div class="source">${T("themezer.source")}</div><div class="grille"><div class="rang"></div></div>
         <div class="fiche"><div class="ecrans"></div><div class="infos"><h3></h3><div class="de"></div><p></p><div class="ch"></div>
           <div class="apporte">${o.echap(C.apporte)}</div>
           <div class="credit">Th\xE8me cr\xE9\xE9 par la communaut\xE9, h\xE9berg\xE9 sur Themezer (themezer.net)</div>

@@ -1591,6 +1591,14 @@
   const pancarte = (a, titre, texte, vie = 3.4) => {
     const h = hMii(), S = 3, W = 300 * S, police = (p, t2) => `${p} ${t2 * S}px Nunito, "Motiva Sans", sans-serif`;
     const jeton = (n, def) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || def;
+    const couleur = (c2) => {
+      const e = document.createElement("i");
+      e.style.color = c2;
+      document.body.appendChild(e);
+      const r = getComputedStyle(e).color;
+      e.remove();
+      return r;
+    };
     const c = document.createElement("canvas"), x = c.getContext("2d");
     c.width = W;
     c.height = 112 * S;
@@ -1600,7 +1608,7 @@
       return t2 + "\u2026";
     };
     x.save();
-    x.shadowColor = `rgb(${jeton("--pcv-ombre-rgb", "60 85 120")} / .28)`;
+    x.shadowColor = couleur("rgb(from var(--pcv-ombre-c) r g b / .28)");
     x.shadowBlur = 7 * S;
     x.shadowOffsetY = 3 * S;
     x.fillStyle = jeton("--pcv-carte", "#fff");

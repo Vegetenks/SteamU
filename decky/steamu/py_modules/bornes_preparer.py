@@ -152,6 +152,15 @@ def preparer(BOSS, INDEX, SORTIE, toutes=False, vider=False):
             chutes = zones_chute.detecter_chutes(m, Path(SORTIE) / "objets")
             if chutes: m["chutes"] = chutes
         sortie["machines"][nom] = m
+    def propre(t):
+        t = " ".join((t or "").split())
+        return "" if "English" in t or re.search(r"[　-鿿＀-￯]", t) else t
+    textes = {}
+    sortie["noms"] = {"t": [], "b": {}}
+    for bn, b in badges.items():
+        t = tuple(propre((b.get("noms") or {}).get(l)) for l in ("fr", "en", "es"))
+        if any(t): sortie["noms"]["b"][bn] = textes.setdefault(t, len(textes))
+    sortie["noms"]["t"] = [list(t) for t in textes]
     json.dump(sortie, open(os.path.join(SORTIE, "index.json"), "w"), ensure_ascii=False, separators=(",", ":"))
     return len(garde)
 

@@ -22,11 +22,11 @@
   const ETATS = { 0: ["Hors ligne", "#8b9098"], 1: ["En ligne", "#2fbf71"], 2: ["Occup\xE9", "#e5484d"], 3: ["Absent", "#e0a100"], 4: ["Absent", "#e0a100"], 7: ["Invisible", "#8b9098"] };
   const ICO = {
     amis: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.9.2 5 2.6 5 5.8"/>',
-    reglages: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+    reglages: window.__pcvIcones?.trace("parametres") || "",
     chevron: '<path d="M9 5l7 7-7 7"/>',
     visage: '<circle cx="12" cy="12" r="9"/><path d="M9 10v1M15 10v1M8.5 15c1.9 1.6 5.1 1.6 7 0"/>'
   };
-  const svg = (n, t, c) => `<svg style="width:${t};height:${t};flex:none" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${ICO[n]}</svg>`;
+  const svg = (n, t, c) => `<svg style="width:${t};height:${t};flex:none" viewBox="0 0 24 24" color="${c}" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${ICO[n]}</svg>`;
   const racine = document.createElement("div");
   racine.id = "pcv-profil";
   racine.hidden = true;
@@ -39,10 +39,10 @@
     #pcv-profil * { box-sizing: border-box; }
     #pcv-profil button { all: unset; cursor: pointer; box-sizing: border-box; }
     #pcv-profil .v { position: absolute; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); border-radius: ${u(34)}; }
-    #pcv-profil .v-in { background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(var(--pcv-ombre-rgb) / .13); }
+    #pcv-profil .v-in { background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); }
     #pcv-profil .gauche { left: ${u(24)}; top: 0; width: ${u(400)}; bottom: ${u(24)}; padding: ${u(28)}; display: flex; flex-direction: column; align-items: center; gap: ${u(14)}; }
     #pcv-profil .grand { width: ${u(150)}; height: ${u(150)}; border-radius: 50%; object-fit: cover; background: var(--pcv-creux);
-      box-shadow: 0 0 0 ${u(7)} var(--pcv-lisere), 0 0 0 ${u(13)} rgba(47,184,255,.35), 0 ${u(16)} ${u(34)} rgb(var(--pcv-ombre-rgb) / .25); }
+      box-shadow: 0 0 0 ${u(7)} var(--pcv-lisere), 0 0 0 ${u(13)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent), 0 ${u(16)} ${u(34)} rgb(from var(--pcv-ombre-c) r g b / .25); }
     #pcv-profil canvas.grand { display: block; }           
     #pcv-profil .mii-vivant[hidden] { display: none; }
     #pcv-profil .pseudo { font-size: ${u(30)}; font-weight: 900; margin-top: ${u(8)}; color: var(--pcv-texte); }   
@@ -57,7 +57,7 @@
       box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.12); }
     #pcv-profil .action b { display: block; font-size: ${u(16)}; font-weight: 900; }
     #pcv-profil .action .t { flex: 1; }
-    #pcv-profil :is(.action, .jeu):hover, #pcv-profil :is(.action, .jeu):focus-visible { box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(8)} var(--pcv-cyan-plein), 0 ${u(12)} ${u(26)} rgba(47,184,255,.35); }
+    body:not(.pcv-barre-nav) #pcv-profil :is(.action, .jeu):is(:focus-visible, .sel) { box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(8)} var(--pcv-cyan-plein), 0 ${u(12)} ${u(26)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-profil .bloc { left: ${u(448)}; right: ${u(24)}; padding: ${u(22)} ${u(26)}; }
     #pcv-profil .bloc h3 { margin: 0; font-size: ${u(20)}; font-weight: 900; }
     #pcv-profil .rangee { display: flex; gap: ${u(26)}; margin-top: ${u(16)}; }
@@ -221,6 +221,10 @@
     if (oui) remplir();
     else MV.arreter();
     racine.hidden = !oui;
+    if (oui) {
+      window.__pcvBarreQuitter?.();
+      requestAnimationFrame(() => window.__pcvProfilPremier?.());
+    }
   };
   racine.addEventListener("click", (e) => {
     const j = e.target.closest("[data-app]");
@@ -267,13 +271,56 @@
       montrer(false);
     }
   }, 200);
+  let sel = -1;
+  const elems = () => [...racine.querySelectorAll(".action, .jeu")].filter((e) => e.getBoundingClientRect().width > 0);
+  const poser = (i) => {
+    racine.querySelectorAll(".sel").forEach((x) => x.classList.remove("sel"));
+    sel = i;
+    const e = elems()[i];
+    if (e) {
+      e.classList.add("sel");
+      e.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    }
+  };
+  window.__pcvProfilPremier = () => poser(0);
   (window.__pcvManette ||= {}).profil = (b) => {
-    if (racine.hidden) return false;
+    if (racine.hidden || document.body.classList.contains("pcv-barre-nav")) return false;
     if (b === 2) {
       montrer(false);
       return true;
     }
-    return b === 10;
+    const l = elems();
+    if (!l.length) return true;
+    if (sel < 0 || sel >= l.length) {
+      poser(0);
+      return true;
+    }
+    if (b === 1) {
+      l[sel].click();
+      return true;
+    }
+    if (b < 9 || b > 12) return true;
+    const a = l[sel].getBoundingClientRect();
+    let m = -1, sc = Infinity;
+    l.forEach((e, i) => {
+      if (i === sel) return;
+      const r = e.getBoundingClientRect(), dx = r.left + r.width / 2 - a.left - a.width / 2, dy = r.top + r.height / 2 - a.top - a.height / 2;
+      const ok = b === 9 ? r.bottom <= a.top + 4 : b === 10 ? r.top >= a.bottom - 4 : b === 11 ? r.right <= a.left + 4 : r.left >= a.right - 4;
+      if (!ok) return;
+      const s = b <= 10 ? Math.abs(dy) + 2 * Math.abs(dx) : Math.abs(dx) + 2 * Math.abs(dy);
+      if (s < sc) {
+        sc = s;
+        m = i;
+      }
+    });
+    if (m >= 0) {
+      poser(m);
+      window.__pcvSon?.("bouge");
+    } else if (b === 9) {
+      poser(-1);
+      window.__pcvBarreEntrer?.("profil");
+    }
+    return true;
   };
   return "profil pr\xEAt";
 })();

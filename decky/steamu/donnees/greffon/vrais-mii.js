@@ -188,7 +188,7 @@
     if (!E.GLTFLoader || !E.clone) throw new Error("vrais-mii : greffon/vendor/three-gltf.js absent");
     F = window.FFLjs;
     E.addSkeletonScalingExtensions(T.Skeleton);
-    const [res, ...glb] = await Promise.all([o.lire(RESSOURCE), ...CORPS.map((c) => o.lire(c))]);
+    const [res, ...glb] = await Promise.all([o.lire(RESSOURCE), ...CORPS.map((c) => o.lire(c).catch(() => null))]);
     try {
       invites = JSON.parse(new TextDecoder().decode(await o.lire(INVITES))).invites || [];
     } catch (e) {
@@ -198,7 +198,10 @@
     ffl = await F.FFL.initWithResource(new Uint8Array(res), window.ModuleFFL);
     rendu0 = o.rendu || null;
     if (rendu0) ffl.setRenderer(rendu0);
-    gabarits = await Promise.all(glb.map((b) => new Promise((ok, ko) => new E.GLTFLoader().parse(b, "", ok, ko)).then(gabarit)));
+    gabarits = await Promise.all(glb.map((b, sexe) => !b ? gabarit(corpsDessine(sexe)) : new Promise((ok, ko) => new E.GLTFLoader().parse(b, "", ok, ko)).then(gabarit).catch((e) => {
+      console.warn("vrais-mii : corps illisible, corps de SteamU \xE0 la place", e);
+      return gabarit(corpsDessine(sexe));
+    })));
     window.__pcvMii3D = API;
     window.dispatchEvent(new Event("pcv-vrais-mii"));
     return { ms: Math.round(performance.now() - t0) };
@@ -287,6 +290,192 @@
       clips[c.name] = { duree: c.duration, pistes };
     }
     return { gltf, Z, Zp, clips, racineRepos: os[0].position.clone(), racineParent: parent[0], hautRepos: pos[0].y };
+  };
+  const corpsDessine = (sexe) => {
+    const fille = sexe === 1, os = {}, scene = new T.Group(), rond = (r) => (geo) => geo.scale(r[0], r[1], r[2]);
+    const SQ = [
+      ["skl_root", "", 0, 6.8],
+      ["chest", "skl_root", 0, 0],
+      ["head", "chest", 0, 4.1],
+      ["hip", "skl_root", 0, 0],
+      ...[1, -1].flatMap((s) => {
+        const c = s > 0 ? "l" : "r";
+        return [
+          ["arm_" + c + "1", "chest", 1.2 * s, 3.5],
+          ["arm_" + c + "2", "arm_" + c + "1", 2.4 * s, 0],
+          ["wrist_" + c, "arm_" + c + "2", 2.4 * s, 0],
+          ["foot_" + c + "1", "hip", 0.8 * s, -1.4],
+          ["foot_" + c + "2", "foot_" + c + "1", 0, -2.2],
+          ["ankle_" + c, "foot_" + c + "2", 0, -2.2]
+        ];
+      })
+    ];
+    const bones = SQ.map(([n, p, x, y], i) => {
+      const b = new T.Bone();
+      b.name = n;
+      b.position.set(x, y, 0);
+      (os[n] = b).userData.i = i;
+      (p ? os[p] : scene).add(b);
+      return b;
+    });
+    const fondu = (a, b, t2) => (t2 = lisse(t2)) <= 0 ? [[a, 1]] : t2 >= 1 ? [[b, 1]] : [[a, 1 - t2], [b, t2]];
+    const piece = (geo, poids) => {
+      const P = geo.attributes.position, n = P.count, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4), p = new T.Vector3();
+      for (let i = 0; i < n; i++) poids(p.fromBufferAttribute(P, i)).forEach(([o, w], k) => {
+        si[i * 4 + k] = os[o].userData.i;
+        sw[i * 4 + k] = w;
+      });
+      geo.setAttribute("skinIndex", new T.Uint16BufferAttribute(si, 4));
+      geo.setAttribute("skinWeight", new T.Float32BufferAttribute(sw, 4));
+      return geo;
+    };
+    const fondre = (geos) => {
+      const g = new T.BufferGeometry(), idx = [];
+      let base = 0;
+      for (const n of ["position", "normal", "uv", "skinIndex", "skinWeight"]) {
+        const a = geos.map((x) => x.attributes[n]);
+        const v = new a[0].array.constructor(a.reduce((s, x) => s + x.array.length, 0));
+        let o = 0;
+        for (const x of a) {
+          v.set(x.array, o);
+          o += x.array.length;
+        }
+        g.setAttribute(n, new T.BufferAttribute(v, a[0].itemSize));
+      }
+      for (const x of geos) {
+        for (const i of x.index.array) idx.push(i + base);
+        base += x.attributes.position.count;
+        x.dispose();
+      }
+      g.setIndex(idx);
+      return g;
+    };
+    const boule = (r, x, y, z, ls = 12, hs = 10) => rond(r)(new T.SphereGeometry(1, ls, hs)).translate(x, y, z);
+    const fmin = (a, b, k) => {
+      const h = Math.max(k - Math.abs(a - b), 0) / k;
+      return Math.min(a, b) - h * h * k * 0.25;
+    };
+    const fmax = (a, b, k) => -fmin(-a, -b, k);
+    const tube = (x, y, z, A, B, ra, rb) => {
+      const bx = B[0] - A[0], by = B[1] - A[1], bz = B[2] - A[2], px = x - A[0], py = y - A[1], pz = z - A[2];
+      const t2 = Math.max(0, Math.min(1, (px * bx + py * by + pz * bz) / (bx * bx + by * by + bz * bz)));
+      return Math.hypot(px - t2 * bx, py - t2 * by, pz - t2 * bz) - (ra + (rb - ra) * t2);
+    };
+    const ovale = (x, y, z, C, R) => {
+      const k = Math.hypot((x - C[0]) / R[0], (y - C[1]) / R[1], (z - C[2]) / R[2]);
+      return (k - 1) * Math.min(...R);
+    };
+    const tourne = (x, y, z, P, zs2, dz, k) => {
+      let r = P[0][0];
+      for (let n = 1; n < P.length; n++) if (y <= P[n][1] || n === P.length - 1) {
+        const [r0, y0] = P[n - 1], [r1, y1] = P[n];
+        r = r0 + (r1 - r0) * borne((y - y0) / (y1 - y0));
+        break;
+      }
+      return fmax(Math.hypot(x, (z - dz) / zs2) - r, fmax(P[0][1] - y, y - P[P.length - 1][1], k), k);
+    };
+    const surface = (f, a, b, h) => {
+      const n = a.map((v, k) => Math.ceil((b[k] - v) / h) + 1), [nx, ny, nz] = n, val = new Float32Array(nx * ny * nz), id = new Int32Array(nx * ny * nz).fill(-1);
+      const I2 = (i, j2, k) => i + nx * (j2 + ny * k), pos = [], idx = [];
+      for (let k = 0; k < nz; k++) for (let j2 = 0; j2 < ny; j2++) for (let i = 0; i < nx; i++) val[I2(i, j2, k)] = f(a[0] + i * h, a[1] + j2 * h, a[2] + k * h);
+      const C = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]], A = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+      for (let k = 0; k < nz - 1; k++) for (let j2 = 0; j2 < ny - 1; j2++) for (let i = 0; i < nx - 1; i++) {
+        const v = C.map(([x, y, z]) => val[I2(i + x, j2 + y, k + z)]);
+        let sx = 0, sy = 0, sz = 0, c = 0;
+        for (const [p, q2] of A) if (v[p] < 0 !== v[q2] < 0) {
+          const t2 = v[p] / (v[p] - v[q2]);
+          sx += C[p][0] + t2 * (C[q2][0] - C[p][0]);
+          sy += C[p][1] + t2 * (C[q2][1] - C[p][1]);
+          sz += C[p][2] + t2 * (C[q2][2] - C[p][2]);
+          c++;
+        }
+        if (c) {
+          id[I2(i, j2, k)] = pos.length / 3;
+          pos.push(a[0] + (i + sx / c) * h, a[1] + (j2 + sy / c) * h, a[2] + (k + sz / c) * h);
+        }
+      }
+      const quad = (q2, dedans) => {
+        if (q2.some((x) => x < 0)) return;
+        if (dedans) idx.push(q2[0], q2[1], q2[2], q2[0], q2[2], q2[3]);
+        else idx.push(q2[0], q2[2], q2[1], q2[0], q2[3], q2[2]);
+      };
+      for (let k = 1; k < nz - 1; k++) for (let j2 = 1; j2 < ny - 1; j2++) for (let i = 1; i < nx - 1; i++) {
+        const d = val[I2(i, j2, k)] < 0;
+        if (d !== val[I2(i + 1, j2, k)] < 0) quad([id[I2(i, j2 - 1, k - 1)], id[I2(i, j2, k - 1)], id[I2(i, j2, k)], id[I2(i, j2 - 1, k)]], d);
+        if (d !== val[I2(i, j2 + 1, k)] < 0) quad([id[I2(i - 1, j2, k - 1)], id[I2(i - 1, j2, k)], id[I2(i, j2, k)], id[I2(i, j2, k - 1)]], d);
+        if (d !== val[I2(i, j2, k + 1)] < 0) quad([id[I2(i - 1, j2 - 1, k)], id[I2(i, j2 - 1, k)], id[I2(i, j2, k)], id[I2(i - 1, j2, k)]], d);
+      }
+      const nor = new Float32Array(pos.length), e = h * 0.25, g = (x, y, z) => [f(x + e, y, z) - f(x - e, y, z), f(x, y + e, z) - f(x, y - e, z), f(x, y, z + e) - f(x, y, z - e)];
+      for (let v = 0; v < pos.length; v += 3) {
+        for (let it = 0; it < 2; it++) {
+          const [x, y, z] = [pos[v], pos[v + 1], pos[v + 2]], d = f(x, y, z), G2 = g(x, y, z), l2 = G2[0] ** 2 + G2[1] ** 2 + G2[2] ** 2 || 1;
+          for (let c = 0; c < 3; c++) pos[v + c] -= d * G2[c] * 2 * e / l2;
+        }
+        const G = g(pos[v], pos[v + 1], pos[v + 2]), l = Math.hypot(...G) || 1;
+        for (let c = 0; c < 3; c++) nor[v + c] = G[c] / l;
+      }
+      const geo = new T.BufferGeometry();
+      geo.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
+      geo.setAttribute("normal", new T.BufferAttribute(nor, 3));
+      geo.setAttribute("uv", new T.BufferAttribute(new Float32Array(pos.length / 3 * 2), 2));
+      geo.setIndex(idx);
+      return geo;
+    };
+    const profil = fille ? [[2.46, 5.05], [2.4, 5.4], [2.06, 6.8], [1.7, 8.3], [1.5, 9.5], [1.36, 10.15], [1.12, 10.6], [0.8, 10.92], [0.55, 11.2], [0.5, 11.9]] : [[1.88, 7.1], [1.86, 7.5], [1.82, 8.4], [1.7, 9.3], [1.48, 9.95], [1.22, 10.45], [0.96, 10.8], [0.72, 11.05], [0.55, 11.3], [0.5, 11.9]];
+    const zs = fille ? 0.84 : 0.78, epaule = (s) => [s * 1.05, 10.2, 0.05], coude = (s) => [s * 3.6, 10.3, 0], poignet = (s) => [s * 6.1, 10.3, 0];
+    const fHaut = (x, y, z) => {
+      let d = tourne(x, y, z, profil, zs, 0.12, 0.45);
+      for (const s of [1, -1]) d = fmin(d, fmin(tube(x, y, z, epaule(s), coude(s), 0.6, 0.5), tube(x, y, z, coude(s), poignet(s), 0.5, 0.42), 0.16), 1.1);
+      return d;
+    };
+    const hautGeo = surface(fHaut, [-7.1, fille ? 4.4 : 6.4, -2.7], [7.1, 12.5, 2.8], 0.28);
+    const haut = [piece(hautGeo, (p) => {
+      const ax = Math.abs(p.x), c = p.x > 0 ? "l" : "r", wa = lisse((ax - 0.6) / 1.9) * lisse((p.y - 8.9) / 1), e = lisse((ax - 3.3) / 0.6);
+      return [["chest", 1 - wa], ["arm_" + c + "1", wa * (1 - e)], ["arm_" + c + "2", wa * e]].filter(([, w]) => w > 1e-4);
+    })], mains = [], bas = [];
+    for (const s of [1, -1]) mains.push(piece(boule([0.72, 0.72, 0.72], s * 6.36, 10.3, 0, 10, 8), () => [["wrist_" + (s > 0 ? "l" : "r"), 1]]));
+    const j = fille ? 0.8 : 1;
+    const hanches = [[1.25 * j, 5.36], [1.72 * j, 6], [1.78 * j, 6.6], [1.76 * j, fille ? 6.4 : 7.4]];
+    const fBas = (x, y, z) => {
+      let l = 9;
+      for (const s of [1, -1]) {
+        const H = [s * 0.8, 6, 0], G = [s * 0.8, 3.2, 0.06], C = [s * 0.8, 1, 0];
+        let jb = fmin(tube(x, y, z, H, G, 0.82 * j, 0.58 * j), tube(x, y, z, G, C, 0.58 * j, 0.5 * j), 0.12);
+        jb = fmin(jb, ovale(x, y, z, [s * 0.8, 3.25, 0.1], [0.52 * j, 0.52 * j, 0.52 * j]), 0.25);
+        const pied = fmax(ovale(x, y, z, [s * 0.8, 0.46, 0.32], [0.64 * j, 0.52, 1.36 * j]), -y, 0.08);
+        l = Math.min(l, fmin(jb, pied, 0.35));
+      }
+      return fmin(tourne(x, y, z, hanches, 0.7, 0, 0.4), l, 0.5);
+    };
+    const basGeo = surface(fBas, [-2.4, -0.7, -1.8], [2.4, 7.9, 2.4], 0.3);
+    bas.push(piece(basGeo, (p) => {
+      const c = p.x > 0 ? "l" : "r";
+      if (p.y > 5.7 || Math.abs(p.x) < 0.3 && p.y > 5.2) return [["hip", 1]];
+      if (p.y > 5.1) return fondu("foot_" + c + "1", "hip", (p.y - 5.1) / 0.6);
+      if (p.y > 1.3) return fondu("foot_" + c + "2", "foot_" + c + "1", (p.y - 2.9) / 0.6);
+      return fondu("ankle_" + c, "foot_" + c + "2", (p.y - 0.9) / 0.4);
+    }));
+    scene.updateMatrixWorld(true);
+    const squelette = new T.Skeleton(bones);
+    for (const [nom, geos] of [["body_steamu", haut], ["hands_steamu", mains], ["legs_steamu", bas]]) {
+      const m = new T.SkinnedMesh(fondre(geos), new T.MeshBasicMaterial());
+      m.name = nom;
+      scene.add(m);
+      m.bind(squelette);
+    }
+    scene.add(os.skl_root);
+    const q = (x, y, z) => new T.Quaternion().setFromEuler(new T.Euler(x, y, z)).toArray(), t = [0, 1.3, 2.6];
+    const piste = (n, a, b) => new T.QuaternionKeyframeTrack(n + ".quaternion", t, [...a, ...b, ...a]);
+    const attente = new T.AnimationClip("Wait", 2.6, [
+      piste("arm_l1", q(0, 0, -1.25), q(0, 0, -1.21)),
+      piste("arm_r1", q(0, 0, 1.25), q(0, 0, 1.21)),
+      piste("arm_l2", q(0, -0.08, 0.1), q(0, -0.12, 0.12)),
+      piste("arm_r2", q(0, 0.08, -0.1), q(0, 0.12, -0.12)),
+      piste("chest", q(0, 0, 0), q(-0.015, 0, 0)),
+      piste("head", q(0, 0, 0), q(0.02, 0, 0)),
+      ...["l", "r"].flatMap((c) => [piste("foot_" + c + "1", q(-0.14, 0, 0), q(-0.15, 0, 0)), piste("foot_" + c + "2", q(0.28, 0, 0), q(0.3, 0, 0)), piste("ankle_" + c, q(-0.14, 0, 0), q(-0.15, 0, 0))])
+    ]);
+    return { scene, animations: [attente] };
   };
   const CLIPS = { repos: "Wait", fin: "Finish", ...Object.fromEntries(Array.from({ length: 14 }, (_, k) => ["pose" + (k + 1), "Pose." + String(k + 1).padStart(2, "0")])) };
   const BOUCLE = /* @__PURE__ */ new Set(["repos"]);
@@ -1498,7 +1687,10 @@
     D.prise = D.epauleY - D.bras * Math.cos(BRAS_SUSP);
     const estClip = (nom) => !!(CLIPS[nom] && g.clips[CLIPS[nom]]);
     m.jouer = (nom, opt = {}) => {
-      if (!ANIMS[nom] && !estClip(nom)) return m;
+      if (!ANIMS[nom] && !estClip(nom)) {
+        if (!CLIPS[nom]) return m;
+        nom = "danser";
+      }
       if (nom === m.anim && !opt.redemarrer) return m;
       const f = opt.fondu ?? 0.25;
       if (f > 0) {

@@ -58,6 +58,7 @@
     danger: '<path d="M12 3 2.5 20h19z"/><path d="M12 9.3v5M12 17.2h.01"/>',
     image: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>'
   };
+  for (const n of ["reglages", "info", "accueil", "bibliotheque", "manette", "soleil", "ecran", "musique", "casino", "epingle"]) ICO[n] = window.__pcvIcones?.trace(n) || "";
   const APPLIS = [["mii", "#2fbf71"], ["casino", "#e5484d"], ["badges", "#f5a000"], ["sons", "#8a63ff"]];
   const GUIDES = (imp = T("steamu.importer")) => [
     { id: "mii", c: "#2fbf71", ico: ICO.mii, pret: true, schemas: [
@@ -79,11 +80,17 @@
            \u2193
    [ ${imp} ]`
     ] },
+    // (page 2 : le fichier des visages à chercher, et des QR vers les PAGES des projets qui expliquent où le trouver ;
+    // jamais un lien vers un fichier de Nintendo)
     { id: "moteur", c: "#2fbf71", ico: ICO.mii, pret: true, schemas: [
-      "  ffl-emscripten.js   ffl.browser.js\n  \u2026ShaderMaterial.browser.js\n  AFLResHigh_2_3.dat\n  miiBodyM_wiiu.glb   miiBodyF_wiiu.glb",
-      `  \u2026.js  \u2026.dat  \u2026.glb
+      "  Moteur            \u2500\u2500\u25B6  [ Installer ]\n  Visages, corps    \u2500\u2500\u25B6  [ Importer ]",
+      {
+        texte: `  FFLResHigh.dat      (Wii U)
+  AFLResHigh_2_3.dat  (Miitomo)
            \u2193
-   [ ${imp} ]`
+   [ ${imp} ]`,
+        qr: [["steamu.guide.moteur.qr1", "https://github.com/ariankordi/FFL-Testing"], ["steamu.guide.moteur.qr2", "https://github.com/datkat21/mii-creator"]]
+      }
     ] },
     { id: "luigi", c: "#e5484d", ico: ICO.casino, pret: true, schemas: [
       "  [ Super Mario 64 DS ]  \u2500\u2500\u25B6  3DS",
@@ -141,8 +148,10 @@
     { id: "confid", ic: "cadenas", c: "--c-confid", libelle: "steamu.tab.confid" },
     { id: "aide", ic: "aide", c: "--c-aide", libelle: "steamu.tab.aide" },
     { id: "danger", ic: "redemarrer", c: "--c-danger", libelle: "steamu.tab.reinit" },
-    { id: "apparence", ic: "apparence", c: "--c-apparence", libelle: "steamu.apparence" }
+    { id: "apparence", ic: "apparence", c: "--c-apparence", libelle: "steamu.apparence" },
+    { id: "autres", ic: "reglages", c: "--c-autres", libelle: "steamu.tab.autres" }
   ];
+  const onglets = () => S.debug ? [...ONGLETS, { id: "debug", ic: "info", c: "--c-debug", libelle: "steamu.tab.debug" }] : ONGLETS;
   const DANGER = { reset: { ic: ICO.redemarrer, cle: "steamu.danger.reset" }, effacer: { ic: ICO.poubelle, cle: "steamu.danger.effacer" } };
   const CLE_PAROLES = "pcv-paroles-lrclib";
   const CLE_ART_AUTO = "pcv-art-auto";
@@ -185,20 +194,25 @@
     attente: false,
     cibleAttente: null,
     manette: false,
-    signaler: null
+    signaler: null,
+    liste: null,
+    debug: false,
+    appuis: 0
   };
   const style = `<style>
     
-    #pcv-steamu { --u: calc(100vh / 800); --t2: var(--pcv-texte2, #6b7788); --c-contrib: #e5484d; --c-import: #1a9ae6; --c-applis: #ff8a1f; --c-confid: #2a6fe0; --c-aide: #2fbf71; --c-danger: #e5484d; --c-apparence: var(--pcv-cyan-plein, #2fb8ff);
+    #pcv-steamu { --u: calc(100vh / 800); --t2: var(--pcv-texte2, #6b7788); --c-contrib: #e5484d; --c-import: #1a9ae6; --c-applis: #ff8a1f; --c-confid: #2a6fe0; --c-aide: #2fbf71; --c-danger: #e5484d; --c-apparence: var(--pcv-cyan-plein, #2fb8ff); --c-autres: var(--t2); --c-debug: var(--pcv-ambre-texte);
       position: fixed; left: calc(var(--u) * 140); right: calc(var(--u) * 140); top: calc(var(--u) * 330); bottom: calc(var(--u) * 60); z-index: 500; box-sizing: border-box;
-      border-radius: calc(var(--u) * 32); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre);
+      border-radius: calc(var(--u) * 32); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre), var(--pcv-lumiere-carte, 0 0 0 transparent);
       font-family: var(--pcv-police, sans-serif); color: var(--pcv-texte, #2f3a4a); }
     #pcv-steamu[hidden] { display: none; }
     #pcv-steamu *, #pcv-steamu *::before, #pcv-steamu *::after { box-sizing: border-box; }
     body.pcv-steamu-ouvert .DialogContentTransition { visibility: hidden !important; }
     body.pcv-steamu-ouvert .PageListColumn [role=tab].gpfocus { box-shadow: var(--pcv-reflet), var(--pcv-ombre) !important; opacity: .85 !important; }
     
-    body.pcv-steamu-ouvert .PageListColumn .pcv-f:not(#pcv-onglet-steamu) { opacity: 1 !important; box-shadow: var(--pcv-reflet), 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 7) rgba(47,184,255,.55) !important; }
+    body.pcv-steamu-ouvert .PageListColumn .pcv-f:not(#pcv-onglet-steamu) { opacity: 1 !important; box-shadow: var(--pcv-reflet), 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 7) color-mix(in srgb, var(--pcv-cyan-plein) 55%, transparent) !important; }
+    
+    body.pcv-steamu-ouvert #pcv-onglet-steamu + [role=tab]:not(.pcv-f) { box-shadow: var(--pcv-reflet), var(--pcv-ombre), var(--pcv-lumiere-g, 0 0 0 transparent) !important; }
     #pcv-onglet-steamu .pcv-ic::before { -webkit-mask-image: var(--m); mask-image: var(--m); background-color: #ff5f95 !important; }
     #pcv-steamu svg { width: 100%; height: 100%; display: block; }   
     
@@ -211,7 +225,7 @@
     #pcv-steamu h3:first-child { margin-top: 0; }
     #pcv-steamu .grille-applis { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 14); }
     #pcv-steamu .app { display: grid; grid-template-columns: auto 1fr; align-items: center; align-content: center; gap: calc(var(--u) * 8) calc(var(--u) * 12); padding: 0 calc(var(--u) * 16); border-radius: calc(var(--u) * 26); background: var(--pcv-verre); box-shadow: var(--pcv-reflet); min-width: 0; }
-    #pcv-steamu .pastille { flex: none; width: calc(var(--u) * 60); height: calc(var(--u) * 60); padding: calc(var(--u) * 14); box-sizing: border-box; border-radius: 50%; background: var(--c, #2fb8ff); color: var(--pcv-sur-accent); box-shadow: var(--pcv-pastille-ombre); }
+    #pcv-steamu .pastille { flex: none; width: calc(var(--u) * 60); height: calc(var(--u) * 60); padding: calc(var(--u) * 14); box-sizing: border-box; border-radius: 50%; background: var(--c, var(--pcv-cyan-plein, #2fb8ff)); color: var(--pcv-sur-accent); box-shadow: var(--pcv-pastille-ombre); }
     #pcv-steamu .app .pastille { width: calc(var(--u) * 48); height: calc(var(--u) * 48); padding: calc(var(--u) * 11); }
     #pcv-steamu .app b { font-size: calc(var(--u) * 22); font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #pcv-steamu .app .etat { grid-column: 1 / -1; margin: 0; }
@@ -222,13 +236,13 @@
     #pcv-steamu .bouton { padding: 0 calc(var(--u) * 26) 0 calc(var(--u) * 14); border-radius: 999px; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); height: calc(var(--u) * 100); font-size: calc(var(--u) * 27); font-weight: 900; }
     #pcv-steamu .bouton small { display: block; font-size: calc(var(--u) * 16); font-weight: 800; color: var(--t2); }
     #pcv-steamu .bouton .pastille { width: calc(var(--u) * 72); height: calc(var(--u) * 72); padding: calc(var(--u) * 17); }
-    #pcv-steamu .bouton.gros { height: calc(var(--u) * 150); font-size: calc(var(--u) * 26); background: var(--pcv-cyan); color: #fff; box-shadow: inset 0 3px 1px rgba(255,255,255,.5), 0 calc(var(--u) * 8) calc(var(--u) * 22) rgba(26,154,230,.3); }
+    #pcv-steamu .bouton.gros { height: calc(var(--u) * 150); font-size: calc(var(--u) * 26); background: var(--pcv-cyan); color: #fff; box-shadow: inset 0 3px 1px rgba(255,255,255,.5), 0 calc(var(--u) * 8) calc(var(--u) * 22) color-mix(in srgb, var(--pcv-cyan-plein) 30%, transparent); }
     #pcv-steamu .bouton.gros small { color: rgba(255,255,255,.92); }
     #pcv-steamu .bouton.gros .pastille { width: calc(var(--u) * 80); height: calc(var(--u) * 80); padding: calc(var(--u) * 18); background: var(--pcv-sur-accent); color: var(--pcv-cyan-plein, #2fb8ff); }
     
     #pcv-steamu .bouton.f, #pcv-steamu .credit.f, #pcv-steamu .app.f { background: var(--pcv-cyan) !important; color: var(--pcv-sur-accent) !important;
       box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c),
-                  0 0 0 calc(var(--u) * 7) rgba(47,184,255,.35), 0 calc(var(--u) * 10) calc(var(--u) * 22) rgba(26,154,230,.4) !important; }
+                  0 0 0 calc(var(--u) * 7) color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 22) color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent) !important; }
     #pcv-steamu .f :is(small, .c-lignes span, .etat) { color: inherit !important; }
     #pcv-steamu .bouton.rouge { color: var(--pcv-rouge-texte); } #pcv-steamu .bouton.rouge .pastille { color: var(--pcv-rouge-texte); background: color-mix(in srgb, var(--pcv-rouge) 16%, transparent); }
     
@@ -242,6 +256,13 @@
     #pcv-steamu .num { flex: none; width: calc(var(--u) * 56); height: calc(var(--u) * 56); border-radius: 50%; background: var(--pcv-cyan); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 32); font-weight: 900; display: flex; align-items: center; justify-content: center; box-shadow: var(--pcv-pastille-ombre); }
     #pcv-steamu .pas p { margin: 0; font-size: calc(var(--u) * 22); font-weight: 800; line-height: 1.25; }
     #pcv-steamu pre { margin: 0 0 0 calc(var(--u) * 72); padding: calc(var(--u) * 10) calc(var(--u) * 18); border-radius: calc(var(--u) * 16); background: var(--pcv-bulle); color: #e8f4ff; font: 700 calc(var(--u) * 17) / 1.3 ui-monospace, "DejaVu Sans Mono", monospace !important; white-space: pre; overflow: hidden; }
+    
+    #pcv-steamu .schema-qr { display: flex; align-items: center; gap: calc(var(--u) * 18); margin-left: calc(var(--u) * 72); }
+    #pcv-steamu .schema-qr pre { margin: 0; }
+    #pcv-steamu .schema-qr figure { margin: 0; flex: none; width: calc(var(--u) * 150); display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 6); }
+    #pcv-steamu .schema-qr .code { width: calc(var(--u) * 150); height: calc(var(--u) * 150); padding: calc(var(--u) * 8); box-sizing: border-box; background: #fff; border-radius: calc(var(--u) * 12); overflow: hidden; overflow-wrap: anywhere; }
+    #pcv-steamu .schema-qr svg { width: 100%; height: 100%; display: block; }
+    #pcv-steamu .schema-qr figcaption { font-size: calc(var(--u) * 15); font-weight: 800; line-height: 1.15; text-align: center; color: var(--t2); }
     #pcv-steamu .pied { margin-top: auto; display: flex; align-items: center; gap: calc(var(--u) * 12); }
     #pcv-steamu .pied .bouton { flex: none; height: calc(var(--u) * 58); font-size: calc(var(--u) * 21); padding: 0 calc(var(--u) * 22) 0 calc(var(--u) * 9); }
     #pcv-steamu .prudence { flex: 1; min-width: 0; text-align: center; font-size: calc(var(--u) * 16); font-weight: 800; line-height: 1.2; color: var(--t2); }
@@ -291,7 +312,7 @@
     #pcv-steamu .colonne { flex: 0 0 calc(var(--u) * 316); display: flex; flex-direction: column; gap: calc(var(--u) * 10); overflow-y: auto; padding: calc(var(--u) * 8); margin: calc(var(--u) * -8); }
     #pcv-steamu .colonne .onglet { flex: none; height: calc(var(--u) * 64); border-radius: calc(var(--u) * 24); font-size: calc(var(--u) * 17); padding: 0 calc(var(--u) * 14); gap: calc(var(--u) * 12); white-space: nowrap; }
     #pcv-steamu .colonne .onglet .pastille { width: calc(var(--u) * 36); height: calc(var(--u) * 36); padding: calc(var(--u) * 8); }
-    #pcv-steamu .onglet.choisi { background: var(--pcv-cyan); color: #fff; box-shadow: var(--pcv-bombe), 0 calc(var(--u) * 5) calc(var(--u) * 15) rgba(26,154,230,.3); }
+    #pcv-steamu .onglet.choisi { background: var(--pcv-cyan); color: #fff; box-shadow: var(--pcv-bombe), 0 calc(var(--u) * 5) calc(var(--u) * 15) color-mix(in srgb, var(--pcv-cyan-plein) 30%, transparent); }
     #pcv-steamu .onglet.choisi .pastille { color: #fff; background: rgba(255,255,255,.26); }
     
     #pcv-steamu .contenu { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; padding: calc(var(--u) * 8); margin: calc(var(--u) * -8); }
@@ -304,7 +325,8 @@
     #pcv-steamu .contenu :is(.app, .confid-ligne, .danger-liste .bouton, .liste .bouton, .bouton.gros) .pastille { width: calc(var(--u) * 36); height: calc(var(--u) * 36); padding: calc(var(--u) * 8); }
     #pcv-steamu .contenu .bouton.gros .pastille { background: var(--pcv-cyan); color: var(--pcv-sur-accent); }
     #pcv-steamu .contenu .bouton.gros small { color: var(--t2); }
-    #pcv-steamu .contenu :is(.grille-credits, .grille-applis) { flex: none; grid-template-columns: 1fr; gap: calc(var(--u) * 10); }
+    #pcv-steamu .contenu .grille-applis { flex: none; grid-template-columns: 1fr; gap: calc(var(--u) * 10); }
+    #pcv-steamu .contenu .grille-credits { flex: none; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 10); }   
     #pcv-steamu .contenu .app { grid-template-columns: auto 1fr auto; }
     #pcv-steamu .contenu .app .etat { grid-column: auto; font-size: calc(var(--u) * 15); }
     #pcv-steamu .contenu :is(.liste, .danger-liste, .apparence > .reglages) { gap: calc(var(--u) * 10); }
@@ -315,14 +337,14 @@
     #pcv-steamu .contenu .vue.on { flex-direction: column; }
     
     #pcv-steamu .licence-su { align-self: flex-start; flex: none; height: calc(var(--u) * 34); padding: 0 calc(var(--u) * 18); border-radius: calc(var(--u) * 17); background: rgba(0,0,0,.06); color: var(--t2); font-size: calc(var(--u) * 14); font-weight: 800; display: flex; align-items: center; }
-    #pcv-steamu .ico-mini { flex: none; width: calc(var(--u) * 28); height: calc(var(--u) * 28); padding: calc(var(--u) * 6); box-sizing: border-box; border-radius: 50%; background: rgba(0,0,0,.06); color: var(--c-import); }
+    #pcv-steamu .ico-mini { flex: none; width: calc(var(--u) * 28); height: calc(var(--u) * 28); padding: calc(var(--u) * 6); box-sizing: border-box; border-radius: 50%; background: rgba(0,0,0,.06); color: var(--pcv-cyan-plein, #2fb8ff); }
     #pcv-steamu .grille-credits { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 10); margin-bottom: calc(var(--u) * 4); }
     #pcv-steamu .credit { border-radius: calc(var(--u) * 18); background: var(--pcv-verre); box-shadow: var(--pcv-reflet); padding: calc(var(--u) * 12) calc(var(--u) * 16); display: flex; flex-direction: column; gap: calc(var(--u) * 4); cursor: pointer; }
     #pcv-steamu .c-tete { display: flex; align-items: center; gap: calc(var(--u) * 8); margin-bottom: calc(var(--u) * 2); }
     #pcv-steamu .c-tete .ico-mini { background: rgba(0,0,0,.05); color: var(--pcv-texte); }
     #pcv-steamu .c-tete b { font-size: calc(var(--u) * 16); font-weight: 900; }
     #pcv-steamu .c-lignes span { display: block; font-size: calc(var(--u) * 13); font-weight: 800; color: var(--t2); line-height: 1.35; }
-    #pcv-steamu .c-lignes .lien { color: #4fa8e0; }
+    #pcv-steamu .c-lignes .lien { color: var(--pcv-cyan-plein, #4fa8e0); }
     
     #pcv-steamu .imp-corps { flex: 1; min-height: 0; display: flex; flex-direction: column; }
     
@@ -341,6 +363,19 @@
     #pcv-steamu .conflits-avis .pastille { width: calc(var(--u) * 40); height: calc(var(--u) * 40); padding: calc(var(--u) * 9); flex: none; background: var(--pcv-ambre-fond); color: var(--pcv-ambre-texte); }
     #pcv-steamu .conflits-avis b { display: block; font-size: calc(var(--u) * 15); font-weight: 900; margin-bottom: calc(var(--u) * 2); }
     #pcv-steamu .conflits-avis .note + .note { margin-top: calc(var(--u) * 6); }
+    
+    #pcv-steamu .ligne-reg em { margin-left: auto; flex: none; padding: calc(var(--u) * 6) calc(var(--u) * 16); border-radius: 999px; font-style: normal; font-size: calc(var(--u) * 15); font-weight: 900; background: rgba(0,0,0,.06); color: var(--pcv-cyan-plein); }
+    #pcv-steamu .ligne-reg.f em { background: rgba(255,255,255,.25); color: inherit; }
+    
+    #pcv-steamu .fenetre.liste-deroulante { min-width: 0; width: calc(var(--u) * 460); max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column; gap: calc(var(--u) * 10); text-align: left; }
+    #pcv-steamu .entete-liste { display: flex; align-items: center; gap: calc(var(--u) * 12); font-size: calc(var(--u) * 22); font-weight: 900; margin-bottom: calc(var(--u) * 6); }
+    #pcv-steamu .entete-liste .pastille { width: calc(var(--u) * 40); height: calc(var(--u) * 40); padding: calc(var(--u) * 9); }
+    #pcv-steamu .fenetre .elt-liste { flex: none; margin: 0; height: calc(var(--u) * 56); font-size: calc(var(--u) * 19); padding: 0 calc(var(--u) * 20); background: var(--pcv-verre); color: var(--pcv-texte); box-shadow: var(--pcv-reflet); }
+    #pcv-steamu .elt-liste > i { margin-left: auto; flex: none; width: calc(var(--u) * 24); height: calc(var(--u) * 24); opacity: 0; }
+    #pcv-steamu .fenetre .elt-liste.oui { color: var(--pcv-cyan-plein); } #pcv-steamu .elt-liste.oui > i { opacity: 1; }
+    
+    #pcv-steamu .contrib .version { align-self: flex-start; flex: none; height: calc(var(--u) * 34); margin-top: calc(var(--u) * 8); padding: 0 calc(var(--u) * 18); border-radius: calc(var(--u) * 17); background: rgba(0,0,0,.06); box-shadow: none; color: var(--t2); font-size: calc(var(--u) * 14); font-weight: 800; gap: calc(var(--u) * 10); }
+    #pcv-steamu .contrib .version small { font-size: calc(var(--u) * 13); color: var(--pcv-cyan-plein); }
   </style>`;
   document.getElementById("pcv-steamu-style")?.remove();
   document.head.insertAdjacentHTML("beforeend", style.replace("<style>", '<style id="pcv-steamu-style">'));
@@ -362,8 +397,10 @@
     const c = CREDITS();
     return `<div class="vue contrib${S.og === "contrib" ? " on" : ""}"><div class="licence-su">${T("steamu.licence")}</div>
       ${CATEGORIES.map(([id, ic]) => c[id]?.length ? `<h3><i class="ico-mini">${ico(ICO[ic])}</i>${T("steamu.credits." + id)}</h3>
-        <div class="grille-credits">${c[id].map(ligneCredit).join("")}</div>` : "").join("")}</div>`;
+        <div class="grille-credits">${c[id].map(ligneCredit).join("")}</div>` : "").join("")}
+      <button class="bouton version" data-a="version">${T("steamu.version", { v: esc(version()) })}${S.appuis >= 4 ? `<small>${T(S.appuis === 6 ? "steamu.debug.encore1" : "steamu.debug.encore", { n: 7 - S.appuis })}</small>` : ""}</button></div>`;
   };
+  const version = () => (O || window).DeckyPluginLoader?.plugins?.find((p) => p.name === window.__pcvGreffon?.nom)?.version || "?";
   const bientot = (g) => g.pret ? "" : `<span class="bientot">${T("steamu.bientot")}</span>`;
   const dessinerImportListe = () => `<button class="bouton gros" data-a="importer"><i class="pastille">${ico(ICO.importer)}</i><span>${T("steamu.importer")}<small>${T("steamu.importer.aide")}</small></span></button>
       <div class="liste">${dessinerMoteur()}${GUIDES().map((g) => `<button class="bouton" data-a="g:${g.id}"><i class="pastille" style="--c:${g.c}">${ico(g.ico)}</i>
@@ -371,9 +408,9 @@
         <em class="${g.pret ? "ok" : ""}">${etatGuide(g) || T(g.pret ? "steamu.lisible" : "steamu.bientot.court")}</em></button>`).join("")}</div>`;
   const dessinerMoteur = () => {
     const ok = etatImport?.moteur_ffl;
-    return `<button class="bouton" data-a="moteur-installer"><i class="pastille" style="--c:#2fbf71">${ico(ICO.mii)}</i>
+    return `<button class="bouton"${ok ? "" : ' data-a="moteur-installer"'}><i class="pastille" style="--c:#2fbf71">${ico(ICO.mii)}</i>
         <span class="txt"><b>${T("steamu.moteur.etat", { etat: T(ok ? "steamu.moteur.la" : "steamu.moteur.manque") })}</b><small>${T("steamu.moteur.aide")}</small></span>
-        <em class="${ok ? "ok" : ""}">${T(S.moteurCours ? "steamu.moteur.cours" : "steamu.moteur.installer")}</em></button>`;
+        <em class="${ok ? "ok" : ""}">${T(ok ? "steamu.lisible" : S.moteurCours ? "steamu.moteur.cours" : "steamu.moteur.installer")}</em></button>`;
   };
   const etatGuide = (g) => {
     const e = etatImport, m = e?.musiques_wiiu, s3 = e?.sons?.["3ds"];
@@ -381,10 +418,19 @@
     if (g.id === "sons3ds" && s3?.sur) return T("steamu.etat.compte", { n: s3.n, sur: s3.sur });
     return g.id === "cle3ds" && e?.cle3ds || g.id === "mii" && e?.mii || g.id === "moteur" && e?.applis?.mii?.pret || g.id === "luigi" && e?.applis?.casino?.pret || g.id === "badges" && e?.badge_arcade ? T("steamu.etat.la") : "";
   };
+  const codeQR = (url) => {
+    let svg = "";
+    try {
+      svg = window.__pcvMiiQR?.genererSvg?.(url, 1) || "";
+    } catch (e) {
+    }
+    return svg || `<small>${esc(url)}</small>`;
+  };
+  const dessinerSchema = (sc) => !sc.qr ? `<pre>${esc(sc)}</pre>` : `<div class="schema-qr"><pre>${esc(sc.texte)}</pre>${sc.qr.map(([cle, url]) => `<figure><div class="code">${codeQR(url)}</div><figcaption>${T(cle)}</figcaption></figure>`).join("")}</div>`;
   const dessinerGuideInterne = () => {
     const g = guide(), n = S.etape + 1, total = g.schemas.length, pr = `steamu.guide.${g.id}.prudence`;
     return `<div class="guide"><div class="tete"><i class="pastille" style="--c:${g.c}">${ico(g.ico)}</i>${T(`steamu.guide.${g.id}.titre`)}${bientot(g)}<small>${T("steamu.guide.etape", { n, total })}</small></div>
-      <div class="pas"><div class="num">${n}</div><p>${T(`steamu.guide.${g.id}.${n}`)}</p></div><pre>${esc(g.schemas[S.etape])}</pre>
+      <div class="pas"><div class="num">${n}</div><p>${T(`steamu.guide.${g.id}.${n}`)}</p></div>${dessinerSchema(g.schemas[S.etape])}
       <div class="pied"><button class="bouton" data-a="retour-import">${touche(2)}${T("steamu.retour")}</button><span class="prudence">${T(pr) === pr ? T("steamu.guide.prudence") : T(pr)}</span>
         <button class="bouton" data-a="avant">\u25C0</button><button class="bouton" data-a="apres">${n < total ? "\u25B6" : touche(1) + T("steamu.ok")}</button></div></div>`;
   };
@@ -440,6 +486,99 @@
         <button class="bouton" data-a="signaler-navigateur"><i class="pastille">${ico(ICO.internet)}</i>${T("steamu.signaler.navigateur")}</button>
         <button class="bouton" data-a="fermer-signaler">${touche(2)}${T("steamu.retour")}</button>
       </div>`;
+  };
+  const ledJeu = () => window.__pcvLedJeuId?.() || "";
+  const sansLed = () => {
+    const l = lireBool(window.__pcvLedSansCle, []);
+    return Array.isArray(l) ? l : [];
+  };
+  const AUTRES = () => [
+    { cle: "pcv-interface", def: "nouvelle", ic: "accueil", nom: "steamu.reg.accueil", choix: ["nouvelle", "ancienne"], apres: (v) => window.__pcvInterface?.(v) },
+    { cle: "pcv-accueil-jeux", def: "installes", ic: "bibliotheque", nom: "steamu.reg.jeux", choix: ["installes", "tous"] },
+    // les symboles de touches (barre-haut.js, __pcvTouche) : ceux de la manette branchée, ou une famille imposée (la Legion Go
+    // passe par Handheld Daemon, qui se fait passer pour une DualSense alors que ses boutons portent A B X Y)
+    { cle: "pcv-touches", def: "auto", ic: "manette", nom: "steamu.reg.touches", choix: ["auto", "xbox", "ps", "nintendo"] },
+    // (16/10) la console en main ou sur la télé (barre-haut.js, __pcvJoueurs : sur la télé, sa manette intégrée n'est plus un
+    // joueur du menu HOME) ; auto : l'écran externe piloté (main.py → machine), à forcer si la détection se trompe
+    { cle: "pcv-mode-console", def: "auto", ic: "ecran", nom: "steamu.reg.mode", choix: ["auto", "portable", "tele"] },
+    // les LED des sticks (led.js) : la couleur du thème (et l'ambiance du casino), rien, ou l'écran en jeu (Ambideck)
+    { cle: "pcv-led", def: "theme", ic: "soleil", nom: "steamu.reg.led", choix: ["theme", "non", "ecran"], apres: (v) => window.__pcvLedReglage?.(v)?.catch?.(() => {
+    }) },
+    // pour le jeu en cours seulement (« In this game » d'Ambideck) : montré seulement quand un jeu tourne ; oui = suivre l'écran
+    ...ledJeu() ? [{
+      ic: "ecran",
+      nom: "steamu.reg.led_jeu",
+      aide: "steamu.reg.led_jeu.aide",
+      oui: () => !sansLed().includes(ledJeu()),
+      basculer: () => {
+        const id = ledJeu(), l = sansLed();
+        ecrireBool(window.__pcvLedSansCle, l.includes(id) ? l.filter((x) => x !== id) : [...l, id]);
+      }
+    }] : [],
+    { cle: "pcv-casino-musique", def: true, ic: "musique", nom: "steamu.reg.musique_casino" }
+  ];
+  const valeur = (r) => lireBool(r.cle, r.def);
+  const ligneReglage = (r, a) => r.choix ? `<button class="bouton ligne-reg" data-a="${a}"><i class="pastille" style="--c:var(--c-autres)">${ico(ICO[r.ic])}</i><span>${T(r.nom)}</span><em>${T(r.nom + "." + valeur(r))}</em></button>` : `<button class="bouton confid-ligne${(r.oui ? r.oui() : valeur(r)) ? " oui" : ""}" data-a="${a}"><i class="pastille" style="--c:var(--c-autres)">${ico(ICO[r.ic])}</i>
+        <span>${T(r.nom)}${r.aide ? `<small>${T(r.aide)}</small>` : ""}</span><i class="inter"></i></button>`;
+  const dessinerAutres = () => `<div class="vue autres${S.og === "autres" ? " on" : ""}"><h3>${T("steamu.tab.autres")}</h3>
+      <div class="danger-liste">${AUTRES().map((r, i) => ligneReglage(r, "autre:" + i)).join("")}</div></div>`;
+  const dessinerListe = () => {
+    const r = AUTRES()[S.liste.i];
+    if (!r?.choix) return "";
+    const v = valeur(r);
+    return `<div class="entete-liste"><i class="pastille" style="--c:var(--c-autres)">${ico(ICO[r.ic])}</i>${T(r.nom)}</div>` + r.choix.map((c, k) => `<button class="bouton elt-liste${c === v ? " oui" : ""}${S.manette && k === S.liste.k ? " f" : ""}" data-a="choix:${k}">${T(r.nom + "." + c)}<i>${ico(ICO.ok)}</i></button>`).join("");
+  };
+  const choisir = (k) => {
+    const r = AUTRES()[S.liste?.i], c = r?.choix?.[k];
+    S.liste = null;
+    if (c === void 0) return;
+    ecrireBool(r.cle, c);
+    r.apres?.(c);
+    son("choisir");
+  };
+  const basculerAutre = (r) => {
+    if (r.basculer) r.basculer();
+    else ecrireBool(r.cle, !valeur(r));
+    son("choisir");
+  };
+  const BOITE = "pcv-arcade-boite", BOITE_REELLE = "pcv-arcade-boite-reelle";
+  const badgesIllimites = () => {
+    try {
+      return localStorage.getItem(BOITE_REELLE) != null;
+    } catch (e) {
+      return false;
+    }
+  };
+  const DEBUG = [
+    { cle: "pcv-casino-illimite", def: false, ic: "casino", nom: "steamu.debug.pieces", aide: "steamu.debug.pieces.aide" },
+    { ic: "epingle", nom: "steamu.debug.badges", aide: "steamu.debug.badges.aide", oui: badgesIllimites, basculer: async () => {
+      if (badgesIllimites()) {
+        localStorage.setItem(BOITE, localStorage.getItem(BOITE_REELLE));
+        localStorage.removeItem(BOITE_REELLE);
+        return dessiner();
+      }
+      const j = await window.__pcvArcade?.charger?.();
+      if (!j?.series?.length) return son("rate");
+      const t = Date.now(), b = {};
+      for (const s of j.series) for (const f of s.lots || []) b[`${s.id}/${f}`] = { n: 99, t };
+      localStorage.setItem(BOITE_REELLE, localStorage.getItem(BOITE) ?? "{}");
+      ecrireBool(BOITE, b);
+      dessiner();
+    } }
+  ];
+  const dessinerDebug = () => !S.debug ? "" : `<div class="vue debug${S.og === "debug" ? " on" : ""}"><h3>${T("steamu.tab.debug")}</h3>
+      <div class="danger-liste">${DEBUG.map((r, i) => ligneReglage(r, "debug:" + i)).join("")}</div></div>`;
+  const appuiVersion = () => {
+    if (S.debug) {
+      Object.assign(S, { og: "debug", zone: "colonne", curseur: onglets().length - 1 });
+      return son("choisir");
+    }
+    S.appuis = (Date.now() - (S.appuiT || 0) < 3e3 ? S.appuis : 0) + 1;
+    S.appuiT = Date.now();
+    if (S.appuis < 7) return son("bouge");
+    S.debug = true;
+    Object.assign(S, { appuis: 0, og: "debug", zone: "colonne", curseur: onglets().length - 1 });
+    son("choisir");
   };
   const AP = () => window.__pcvApparence;
   const hh = (m) => `${String(Math.floor((m % 1440 + 1440) % 1440 / 60)).padStart(2, "0")}:${String(Math.round((m % 60 + 60) % 60)).padStart(2, "0")}`;
@@ -498,25 +637,33 @@
       <p class="info">${esc(infoApparence())}</p>
       <div class="pied"><button class="bouton" data-a="retour-apparence">${touche(2)}${T("steamu.retour")}</button></div></div>`;
   let etat = null, etatImport = null, resultat = null, conflitsActifs = {};
-  const dessinerColonne = () => `<div class="colonne">${ONGLETS.map((o) => `<button class="bouton onglet${S.og === o.id ? " choisi" : ""}" data-a="og:${o.id}">
+  const dessinerColonne = () => `<div class="colonne">${onglets().map((o) => `<button class="bouton onglet${S.og === o.id ? " choisi" : ""}" data-a="og:${o.id}">
       <i class="pastille" style="--c:var(${o.c})">${ico(ICO[o.ic])}</i><span>${T(o.libelle)}</span></button>`).join("")}</div>`;
-  const SEL_CONTENU = { contrib: ".credit", import: ".imp-corps .bouton[data-a]", applis: ".app", confid: ".confid-ligne", aide: ".aide .danger-liste [data-a]", danger: ".danger .danger-liste [data-a]", apparence: ".apparence .ligne" };
+  const SEL_CONTENU = { contrib: ".credit, .contrib .version", import: ".imp-corps .bouton[data-a]", applis: ".app", confid: ".confid-ligne", aide: ".aide .danger-liste [data-a]", danger: ".danger .danger-liste [data-a]", apparence: ".apparence .ligne", autres: ".autres [data-a]", debug: ".debug [data-a]" };
   const contenuBoutons = () => [...page.querySelectorAll(SEL_CONTENU[S.og] || "#pcv-steamu-aucun")];
   const sansAnneau = () => document.querySelectorAll(".PageListColumn .pcv-f").forEach((t) => t.classList.remove("pcv-f"));
+  const entrer = (el, t0, sens = -1) => {
+    const a = el?.animate?.(
+      [{ opacity: 0, transform: `translateY(${sens * 12}%)` }, { opacity: 1, transform: "none" }],
+      { duration: 320, delay: 80, easing: "cubic-bezier(0, 0, .1, 1)", fill: "backwards" }
+    );
+    if (a) a.currentTime = performance.now() - t0;
+  };
   const dessiner = () => {
     const haut = [".colonne", ".contenu"].map((k) => page.querySelector(k)?.scrollTop || 0);
     sansAnneau();
-    page.innerHTML = `<div class="panneau">${dessinerColonne()}<div class="contenu">${dessinerContrib()}${dessinerImport()}${dessinerApplis(etat)}${dessinerConfid()}${dessinerAide()}${dessinerDanger()}${dessinerApparence()}</div></div><div class="voile${S.fenetre ? " on" : ""}"><div class="fenetre">${resultat ? `<h2>${resultat.titre}</h2><ul>${resultat.lignes.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` + (resultat.fini ? `<button class="bouton" data-a="fermer">${touche(1)}${T("steamu.ok")}</button>` : "") : ""}</div></div><div class="voile${S.confirm ? " on" : ""}"><div class="fenetre confirmation">${S.confirm ? confirmContenu() : ""}</div></div><div class="voile${S.signaler ? " on" : ""}"><div class="fenetre signaler">${S.signaler ? dessinerSignaler() : ""}</div></div>`;
+    page.innerHTML = `<div class="panneau">${dessinerColonne()}<div class="contenu">${dessinerContrib()}${dessinerImport()}${dessinerApplis(etat)}${dessinerConfid()}${dessinerAide()}${dessinerDanger()}${dessinerApparence()}${dessinerAutres()}${dessinerDebug()}</div></div><div class="voile${S.fenetre ? " on" : ""}"><div class="fenetre">${resultat ? `<h2>${resultat.titre}</h2><ul>${resultat.lignes.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` + (resultat.fini ? `<button class="bouton" data-a="fermer">${touche(1)}${T("steamu.ok")}</button>` : "") : ""}</div></div><div class="voile${S.confirm ? " on" : ""}"><div class="fenetre confirmation">${S.confirm ? confirmContenu() : ""}</div></div><div class="voile${S.signaler ? " on" : ""}"><div class="fenetre signaler">${S.signaler ? dessinerSignaler() : ""}</div></div><div class="voile${S.liste ? " on" : ""}" data-a="liste-fermer"><div class="fenetre liste-deroulante">${S.liste ? dessinerListe() : ""}</div></div>`;
     [".colonne", ".contenu"].forEach((k, i) => {
       const e = page.querySelector(k);
       if (e) e.scrollTop = haut[i];
     });
-    if (S.fenetre || S.confirm || S.signaler) return;
+    if (performance.now() - S.entree < 400) entrer(page.firstElementChild, S.entree);
+    if (S.fenetre || S.confirm || S.signaler || S.liste) return;
     if (S.zone === "colonne") {
       const f = page.querySelector(".onglet.choisi");
       if (f) {
         if (S.manette) f.classList.add("f");
-        f.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+        window.__pcvSuivre?.(f) || f.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
       }
       return;
     }
@@ -534,7 +681,7 @@
       const f = contenuBoutons()[S.curseur];
       if (f) {
         f.classList.add("f");
-        f.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+        window.__pcvSuivre?.(f) || f.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
       }
     }
   };
@@ -587,12 +734,12 @@
       S.actifs = S.natif && autre ? [...S.natif.classList].filter((k) => !autre.classList.contains(k) && !k.startsWith("gpfocus")) : [];
       S.natif?.classList.remove(...S.actifs);
       c.classList.add(...S.actifs);
-      Object.assign(S, { actif: true, zone: "onglet", og: "contrib", vueImport: "liste", curseur: 0, fenetre: false, confirm: null, highlightConfid: false, manette: false });
+      Object.assign(S, { entree: performance.now(), actif: true, zone: "onglet", og: "contrib", vueImport: "liste", curseur: 0, fenetre: false, confirm: null, highlightConfid: false, manette: false });
       document.body.classList.add("pcv-steamu-ouvert");
       page.hidden = false;
       son("choisir");
     }
-    c.scrollIntoView?.({ inline: "center", block: "nearest" });
+    c.scrollIntoView?.({ inline: "center", block: "nearest", behavior: "instant" });
     dessiner();
     rafraichir();
     return true;
@@ -607,11 +754,13 @@
     sansAnneau();
   };
   const ouvrirTuileNative = (i) => {
-    const t = natives()[i];
+    const t = natives()[i], meme = t?.getAttribute("aria-selected") === "true";
     fermer();
     if (t) {
       t.click();
+      if (meme) entrer(document.querySelector(".DialogContentTransition"), performance.now(), 1);
       window.__pcvNoeud?.(t)?.BTakeFocus?.(4);
+      requestAnimationFrame(() => t.scrollIntoView?.({ inline: "center", block: "nearest", behavior: "instant" }));
     }
     son("choisir");
   };
@@ -849,7 +998,7 @@
       lignesApparence()[+a.slice(2)]?.pas(1);
       son("bouge");
     } else if (a === "retour-apparence") {
-      Object.assign(S, { zone: "colonne", curseur: Math.max(0, ONGLETS.findIndex((o) => o.id === "apparence")) });
+      Object.assign(S, { zone: "colonne", curseur: Math.max(0, onglets().findIndex((o) => o.id === "apparence")) });
       son("retour");
     } else if (a === "paroles-bascule") {
       ecrireBool(CLE_PAROLES, !parolesActif());
@@ -874,7 +1023,20 @@
       if (!resultat?.fini) return;
       S.fenetre = false;
       son("retour");
-    }
+    } else if (a.startsWith("autre:")) {
+      const r = AUTRES()[+a.slice(6)];
+      if (r?.choix) {
+        S.liste = { i: +a.slice(6), k: Math.max(0, r.choix.indexOf(valeur(r))) };
+        son("choisir");
+      } else if (r) basculerAutre(r);
+    } else if (a.startsWith("choix:")) choisir(+a.slice(6));
+    else if (a === "liste-fermer") {
+      S.liste = null;
+      son("retour");
+    } else if (a.startsWith("debug:")) {
+      const r = DEBUG[+a.slice(6)];
+      if (r) basculerAutre(r);
+    } else if (a === "version") appuiVersion();
     dessiner();
   };
   page.addEventListener("click", (e) => {
@@ -919,22 +1081,48 @@
       else if (b === 1) agir("signaler-navigateur");
       return true;
     }
+    if (S.liste) {
+      const n = AUTRES()[S.liste.i]?.choix?.length || 0;
+      S.manette = true;
+      if (b === 9 || b === 10) {
+        const k = Math.max(0, Math.min(n - 1, S.liste.k + (b === 10 ? 1 : -1)));
+        son(k === S.liste.k ? "bord" : "bouge");
+        S.liste.k = k;
+        dessiner();
+      } else if (b === 1) agir("choix:" + S.liste.k);
+      else if (b === 2) agir("liste-fermer");
+      return true;
+    }
     if (b === 5 || b === 6) return false;
     S.manette = true;
     if (S.zone === "onglet") {
-      if (b === 2) return false;
-      if (b === 11 || b === 12) {
-        const total = 1 + natives().length;
-        const c = Math.max(0, Math.min(total - 1, S.curseur + (b === 12 ? 1 : -1)));
-        if (c !== S.curseur) son("bouge");
-        S.curseur = c;
+      const n0 = () => window.__pcvNoeud?.(natives()[0]);
+      if (document.querySelector("#header .gpfocus") || document.body.classList.contains("pcv-barre-nav")) {
+        if (b !== 10) return false;
+        window.__pcvBarreQuitter?.();
+        n0()?.BTakeFocus?.(4);
+        S.curseur = 0;
+        son("bouge");
         dessiner();
+        return true;
+      }
+      if (b === 2) return false;
+      if (b === 9) {
+        n0()?.BTakeFocus?.(4);
+        return false;
+      }
+      if (b === 11) {
+        son("bord");
+        return true;
+      }
+      if (b === 12) {
+        ouvrirTuileNative(0);
         return true;
       }
       if (b === 10 || b === 1) {
         if (S.curseur === 0) {
           S.zone = "colonne";
-          S.curseur = Math.max(0, ONGLETS.findIndex((o) => o.id === S.og));
+          S.curseur = Math.max(0, onglets().findIndex((o) => o.id === S.og));
           son("bouge");
           dessiner();
         } else ouvrirTuileNative(S.curseur - 1);
@@ -951,10 +1139,10 @@
         return true;
       }
       if (b === 9 || b === 10) {
-        const c = Math.max(0, Math.min(ONGLETS.length - 1, S.curseur + (b === 10 ? 1 : -1)));
+        const c = Math.max(0, Math.min(onglets().length - 1, S.curseur + (b === 10 ? 1 : -1)));
         if (c !== S.curseur) son("bouge");
         S.curseur = c;
-        S.og = ONGLETS[c].id;
+        S.og = onglets()[c].id;
         if (S.og !== "confid") S.highlightConfid = false;
         if (S.og === "import") S.vueImport = "liste";
         dessiner();
@@ -975,7 +1163,7 @@
       } else if (b === 2) agir("retour-import");
       else if (b === 9) {
         S.zone = "colonne";
-        S.curseur = Math.max(0, ONGLETS.findIndex((o) => o.id === S.og));
+        S.curseur = Math.max(0, onglets().findIndex((o) => o.id === S.og));
         dessiner();
       }
       return true;
@@ -984,7 +1172,7 @@
       const l2 = contenuBoutons();
       if (!l2.length || b === 2 || b === 9 && S.curseur === 0) {
         S.zone = "colonne";
-        S.curseur = Math.max(0, ONGLETS.findIndex((o) => o.id === S.og));
+        S.curseur = Math.max(0, onglets().findIndex((o) => o.id === S.og));
         son("retour");
         dessiner();
         return true;
@@ -1011,18 +1199,37 @@
       return true;
     }
     const l = contenuBoutons();
-    if (!l.length || b === 2 || b === 9 && S.curseur === 0) {
+    const voisin = () => {
+      const a = l[S.curseur]?.getBoundingClientRect();
+      if (!a) return -1;
+      let m = -1, sc = Infinity;
+      l.forEach((e, i) => {
+        if (i === S.curseur) return;
+        const r = e.getBoundingClientRect(), dx = r.left + r.width / 2 - a.left - a.width / 2, dy = r.top + r.height / 2 - a.top - a.height / 2;
+        const ok = b === 9 ? dy < -4 : b === 10 ? dy > 4 : Math.abs(dy) < a.height / 2 && (b === 11 ? dx < -4 : dx > 4);
+        if (!ok) return;
+        const s = b <= 10 ? Math.abs(dy) + 2 * Math.abs(dx) : Math.abs(dx) + 2 * Math.abs(dy);
+        if (s < sc) {
+          sc = s;
+          m = i;
+        }
+      });
+      return m;
+    };
+    const v = b >= 9 && b <= 12 ? voisin() : -1;
+    if (!l.length || b === 2 || (b === 9 || b === 11) && v < 0) {
       S.zone = "colonne";
-      S.curseur = Math.max(0, ONGLETS.findIndex((o) => o.id === S.og));
+      S.curseur = Math.max(0, onglets().findIndex((o) => o.id === S.og));
       son("retour");
       dessiner();
       return true;
     }
-    if (b === 9 || b === 10) {
-      const c = Math.max(0, Math.min(l.length - 1, S.curseur + (b === 10 ? 1 : -1)));
-      if (c !== S.curseur) son("bouge");
-      S.curseur = c;
-      dessiner();
+    if (b >= 9 && b <= 12) {
+      if (v >= 0) {
+        son("bouge");
+        S.curseur = v;
+        dessiner();
+      }
       return true;
     }
     if (b === 1) {

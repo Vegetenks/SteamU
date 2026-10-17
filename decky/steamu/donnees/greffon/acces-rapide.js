@@ -1,7 +1,11 @@
 (() => {
-  window.__pcvArFin?.();
+  try {
+    window.__pcvArFin?.();
+  } catch (e2) {
+  }
   const { O, principale, esc, module, magasin, ico, pastille, pile, etat, bouton, liste, listeChoisir, ecran } = window.__pcvPE;
-  const menus = () => principale().MenuStore, d = document, h = d.documentElement;
+  const B = window.__pcvBridge;
+  const d = document, h = d.documentElement;
   const T = (k, f, vars) => {
     try {
       return principale().m_BrowserWindow.__pcvT?.(k, vars) ?? f;
@@ -17,7 +21,6 @@
     }
   };
   const audio = () => module("audio", "m_mapAudioDevices", (v) => typeof v?.m_mapAudioDevices?.get === "function");
-  const bt = () => module("bt", "SetDiscovering", (v) => typeof v?.SetDiscovering === "function" && typeof v?.Pair === "function" && typeof v?.GetDeviceDetails === "function");
   const steamos = () => module("steamos", "SwitchToDesktop", (v) => typeof v?.SwitchToDesktop === "function" && typeof v?.GetState === "function");
   const gamescope = () => module("gamescope", "SetBlurParams", (v) => typeof v?.SetBlurParams === "function" && typeof v?.GetState === "function");
   const perf = () => module("perf", "SetGameSpecificProfileEnabled", (v) => typeof v?.Get === "function" && typeof v.Get()?.SetFPSLimit === "function")?.Get();
@@ -31,8 +34,8 @@
   };
   const jeu = () => {
     try {
-      const a = O.SteamUIStore.MainRunningApp;
-      return a && (O.appStore.GetAppOverviewByAppID(a.appid) || a);
+      const a = B.runningApp();
+      return a && (B.appOverview(a.appid) || a);
     } catch (x) {
       return null;
     }
@@ -163,8 +166,8 @@
   const BASCULES = {
     wifi: { lire: () => reseau().isWifiEnabled, ecrire: (v) => reseau().SetWifiEnabled(v), petit: (on) => on ? pointWifi()?.displayName || T("acces.aucun_reseau", "aucun r\xE9seau") : T("acces.desactive", "d\xE9sactiv\xE9") },
     bt: {
-      lire: () => !!client().system_bluetooth_enabled,
-      ecrire: (v) => reglage("system_bluetooth_enabled", v),
+      lire: () => B.bluetooth.isEnabled(),
+      ecrire: (v) => B.bluetooth.setEnabled(v),
       petit: (on) => on ? btEtat.co ? T("acces.connecte_n", "{n} connect\xE9{s}", { n: btEtat.co, s: btEtat.co > 1 ? "s" : "" }) : T("acces.active", "activ\xE9") : T("acces.desactive", "d\xE9sactiv\xE9")
     },
     avion: { lire: () => !!val(systeme().AirplaneModeEnabled), ecrire: (v) => systeme().SetAirplaneMode(v), petit: (on) => on ? T("acces.active", "activ\xE9") : T("acces.desactive", "d\xE9sactiv\xE9") },
@@ -190,7 +193,7 @@
   const outil = (a, p, c, nom, sous) => `<div class="outil"><div class="pilule verre" data-a="${a}">${pastille(p, c)}${nom}</div><span class="outil-badge">${sous}</span></div>`;
   const sousEcran = (cle, titre, p, c, corps, cl = "") => `<div class="voile sousecran ${cl}" data-sous="${cle}" hidden><div class="entete"><div class="pilule verre titre-s">${pastille(p, c)}<span>${titre}</span></div></div><div class="panneau verre">${corps}</div></div>`;
   const grandeBascule = (cle, p, nom, premier = true) => `<div class="grande-bascule verre${premier ? " premier" : ""}" data-a="bascule:${cle}" data-b="${cle}">${pastille(p)}${nom}<span class="inter"></span></div>`;
-  const html = `<div class="pilule verre titre-r entre" style="--d:.1s">${pastille("reglages", "var(--c-accueil)")}${T("acces.titre", "R\xE9glages rapides")}</div>${etat(true)}
+  const html = `<div class="pilule verre titre-r entre" style="--d:.1s">${pastille("reglages", "var(--c-accueil)")}${T("acces.titre", "R\xE9glages rapides")}</div>${etat()}
     <div class="carte verre batt entre" data-a="sous:batt">${pile("grosse")}<div><div class="pct"></div><div class="etat-b"></div></div></div>
     ${curseur("lum", "carte verre curseur gliss-card entre", `${pastille("soleil", "var(--c-soleil)")}${T("acces.luminosite", "Luminosit\xE9")}`, void 0, ' style="top:344px;--d:.04s"')}
     <div class="carte verre son-r entre" style="--d:.08s">${curseur("vol", "gliss-card", `${pastille("volume", "var(--c-accueil)")}${T("acces.volume", "Volume")}`)}
@@ -235,18 +238,13 @@
   const ICO_BT = { 4: "casque", 10: "manette", 11: "clavier" };
   const noms = /* @__PURE__ */ new Map();
   const majBt = async () => {
-    const S = bt();
-    if (!S) return;
-    try {
-      const o = (await S.GetState({})).Body().toObject();
-      btEtat.on = !!o.is_enabled;
-      btEtat.cherche = !!o.is_discovering;
-      await Promise.all((o.devices || []).filter((x) => !noms.get(x.id)).map((x) => S.GetDeviceDetails({ id: x.id }).then((r) => noms.set(x.id, r.Body().toObject().device?.name || "")).catch(() => {
-      })));
-      btEtat.liste = (o.devices || []).map((x) => ({ ...x, nom: noms.get(x.id) })).filter((x) => x.nom && (x.is_paired || !x.should_hide_hint));
-      btEtat.co = btEtat.liste.filter((x) => x.is_connected).length;
-    } catch (x) {
-    }
+    const o = await B.bluetooth.state();
+    if (!o) return;
+    btEtat.on = !!o.is_enabled;
+    btEtat.cherche = !!o.is_discovering;
+    await Promise.all((o.devices || []).filter((x) => !noms.get(x.id)).map((x) => B.bluetooth.deviceDetails(x.id).then((d2) => noms.set(x.id, d2?.name || ""))));
+    btEtat.liste = (o.devices || []).map((x) => ({ ...x, nom: noms.get(x.id) })).filter((x) => x.nom && (x.is_paired || !x.should_hide_hint));
+    btEtat.co = btEtat.liste.filter((x) => x.is_connected).length;
     peindreBascules();
     peindreListeBt();
   };
@@ -254,7 +252,7 @@
   const peindreListeBt = () => {
     if (appui) return;
     const l = e.$(".liste-bt"), f = e.focus()?.dataset.a;
-    const elt = (x) => `<div class="elt${x.is_connected ? " connecte" : ""}" data-a="btappareil:${esc(x.id)}">${pastille(ICO_BT[x.etype] || "bluetooth")}${esc(x.nom)}<span class="etat-elt">${x.is_pairing || x.operation_in_progress ? '<span class="tourne"></span>' : x.is_connected ? T("acces.connecte_statut", "Connect\xE9") : x.is_paired ? T("acces.associe", "Associ\xE9") : T("acces.appuie_appairer", "Appuie pour appairer")}</span></div>`;
+    const elt = (x) => `<div class="elt${x.is_connected ? " connecte" : ""}" data-a="btappareil:${esc(x.id)}"${x.is_paired ? ` data-y="oublier:${esc(x.id)}" data-y-nom="${esc(T("acces.bt_oublier", "Oublier"))}"` : ""}>${pastille(ICO_BT[x.etype] || "bluetooth")}${esc(x.nom)}<span class="etat-elt">${x.is_pairing || x.operation_in_progress ? '<span class="tourne"></span>' : x.is_connected ? T("acces.connecte_statut", "Connect\xE9") : x.is_paired ? T("acces.associe", "Associ\xE9") : T("acces.appuie_appairer", "Appuie pour appairer")}</span></div>`;
     const assoc = btEtat.liste.filter((x) => x.is_paired), trouves = btEtat.liste.filter((x) => !x.is_paired);
     l.innerHTML = !btEtat.on ? `<h3>${T("acces.appareils", "Appareils")}</h3><div class="vide">${T("acces.bt_desactive_texte", "Le Bluetooth est d\xE9sactiv\xE9.")}</div>` : `<h3>${T("acces.appareils_associes", "Appareils associ\xE9s")}</h3>${assoc.map(elt).join("") || `<div class="vide">${T("acces.aucun_point", "Aucun.")}</div>`}<h3>${T("acces.appareils_trouves", "Appareils trouv\xE9s")} ${btEtat.cherche ? '<span class="tourne"></span>' : ""}</h3>${trouves.map(elt).join("") || `<div class="vide">${btEtat.cherche ? T("acces.recherche_en_cours", "Recherche en cours\u2026") : T("acces.lance_rechercher", "Lance \xAB Rechercher \xBB.")}</div>`}`;
     e.$(".b-recherche").textContent = btEtat.cherche ? T("acces.recherche_court", "Recherche\u2026") : T("acces.rechercher", "Rechercher");
@@ -266,13 +264,21 @@
     majBt();
     if (chercher) {
       if (!BASCULES.bt.lire()) basculer("bt");
-      bt()?.SetDiscovering({ enabled: true });
+      B.bluetooth.setDiscovering(true);
+      setTimeout(() => {
+        const l = e.$(".liste-bt"), h2 = l?.querySelectorAll("h3")[1];
+        if (!h2) return;
+        l.scrollTop = Math.max(0, h2.offsetTop - 16);
+        let n = h2.nextElementSibling;
+        while (n && !n.matches("[data-a]")) n = n.nextElementSibling;
+        e.poser(n || e.$('[data-sous="bt"] [data-a="bt:recherche"]'));
+      }, 500);
     }
     clearInterval(suiviBt);
     suiviBt = setInterval(() => {
       if (sousOuvert() !== "bt") {
         clearInterval(suiviBt);
-        bt()?.SetDiscovering({ enabled: false });
+        B.bluetooth.setDiscovering(false);
         return;
       }
       majBt();
@@ -334,20 +340,20 @@
     return hh ? `${hh} h ${String(mm).padStart(2, "0")}` : `${mm} min`;
   };
   const etatPile = (p) => ({
-    branche: p.m_eACState === 2 || p.m_flBatteryLevel >= 0.99 && p.m_eBatteryState === 3,
-    s: p.m_eBatteryTimeConfidence === 1 && p.m_nBatterySecondsRemaining > 0 && p.m_nBatterySecondsRemaining < 20 * 3600 ? p.m_nBatterySecondsRemaining : 0
+    branche: p.acState === 2 || p.percent >= 0.99 && p.batteryState === 3,
+    s: p.confidence === 1 && p.secondsRemaining > 0 && p.secondsRemaining < 20 * 3600 ? p.secondsRemaining : 0
   });
   const ouvrirBatt = async () => {
     ouvrirSous("batt");
     peindreBatterie();
-    const p = magasin("SystemPowerStore"), { branche, s } = etatPile(p);
+    const p = B.battery(), { branche, s } = etatPile(p);
     let b = {};
     try {
-      b = await O.DeckyBackend.call("loader/call_plugin_method", window.__pcvGreffon.nom, "batterie") || {};
+      b = await B.callPlugin(window.__pcvGreffon.nom, "batterie") || {};
     } catch (x) {
     }
     const lignes = [
-      [branche ? T("acces.branchee", "Branch\xE9e") : T("acces.sur_batterie_reste", "Sur batterie, il te reste"), branche ? Math.round(p.m_flBatteryLevel * 100) >= 99 ? T("acces.charge_terminee", "charge termin\xE9e") : T("acces.en_charge", "en charge") : s > 0 && T("acces.temps_restant", "environ {temps}", { temps: duree(s) })],
+      [branche ? T("acces.branchee", "Branch\xE9e") : T("acces.sur_batterie_reste", "Sur batterie, il te reste"), branche ? Math.round(p.percent * 100) >= 99 ? T("acces.charge_terminee", "charge termin\xE9e") : T("acces.en_charge", "en charge") : s > 0 && T("acces.temps_restant", "environ {temps}", { temps: duree(s) })],
       [T("acces.consommation", "La console consomme"), b.watts != null && b.watts.toLocaleString(LOCALE()) + " W"],
       [T("acces.sante_batterie", "Sant\xE9 de la batterie"), b.sante != null && `${b.sante >= 90 ? T("acces.sante_tresbonne", "tr\xE8s bonne") : b.sante >= 80 ? T("acces.sante_bonne", "bonne") : T("acces.sante_fatiguee", "fatigu\xE9e")} (${b.sante} %)`, b.sante >= 80 ? "vert" : ""],
       [T("acces.cycles_charge", "Cycles de charge"), b.cycles != null && String(b.cycles)]
@@ -370,7 +376,7 @@
     ouvrirSous("decky");
   };
   let lect = [], cur = 0, luLe = 0, suiviLect = 0;
-  const appel = (m, ...a) => O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, m, ...a) ?? Promise.reject();
+  const appel = (m, ...a) => B.callPlugin(window.__pcvGreffon.nom, m, ...a);
   const tps = (s) => {
     s = Math.max(0, Math.floor(s || 0));
     const h2 = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = String(s % 60).padStart(2, "0");
@@ -477,11 +483,7 @@
     peindreLecteur();
   };
   const ouvrirAppli = (p) => {
-    try {
-      const id = String(p.jeu);
-      O.SteamClient.Apps.RaiseWindowForGame?.(id) ?? O.SteamClient.Apps.NavigateToRunningApp?.(id);
-    } catch (x) {
-    }
+    B.resumeApp(p.jeu);
     fermer();
   };
   const allerA = (n, pos) => {
@@ -524,9 +526,10 @@
     );
     else {
       const lignes = s === "actif" ? ly.lignes : [[0, ""]];
-      ly.mots = lignes.map((l, i) => l[1] ? motsLy(lignes, i, p.duree) : null);
+      const r = debitLy(lignes);
+      ly.mots = lignes.map((l, i) => l[1] ? motsLy(lignes, i, p.duree, r) : null);
       const vu = !ouverture && ly.entre ? " vu" : "";
-      z.innerHTML = fond + `<div class="pa-poch${vu ? " petit" : ""}" data-poch>${poch(p)}</div><div class="pa-mini${vu}"><h2 class="titre-m">${esc(p.titre || p.app)}</h2><div class="artiste">${art}</div></div><div class="ly-zone premier${vu}" data-y="pochette" data-y-nom="${T("paroles.pochette", "Pochette")}"><div class="ly-lista">` + lignes.map(([, x], i) => `<div class="lyl${x ? "" : " instru"}" data-i="${i}"><span class="lyl-in">${x ? ly.mots[i].map(([, , w]) => `<span class="m" data-m="${esc(w)}">${esc(w)}</span>`).join("") : PTS}</span></div>`).join("") + `</div><div class="ly-marqueur"></div></div><div class="pa-grande"><span data-poch>${poch(p)}</span><h2 class="titre-m">${esc(p.titre || p.app)}</h2><div class="artiste">${art}${p.album ? ", " + esc(p.album) : ""}</div></div>`;
+      z.innerHTML = fond + `<div class="pa-poch${vu ? " petit" : ""}" data-poch>${poch(p)}</div><div class="pa-mini${vu}"><h2 class="titre-m">${esc(p.titre || p.app)}</h2><div class="artiste">${art}</div></div><div class="ly-zone premier${vu}" data-y="pochette" data-y-nom="${T("paroles.pochette", "Pochette")}"><div class="ly-lista">` + lignes.map(([, x], i) => `<div class="lyl${x ? "" : " instru"}" data-i="${i}"><span class="lyl-in">${x ? ly.mots[i].map(([, , w]) => `<span class="m">${esc(w)}</span>`).join("") : PTS}</span></div>`).join("") + `</div><div class="ly-marqueur"></div></div><div class="pa-grande"><span data-poch>${poch(p)}</span><h2 class="titre-m">${esc(p.titre || p.app)}</h2><div class="artiste">${art}${p.album ? ", " + esc(p.album) : ""}</div></div>`;
       ly.foyer = -1;
       if (s === "actif") suivreParoles(true);
       else placerLy(0);
@@ -574,10 +577,14 @@
     };
     lyMinuteur = setTimeout(() => essayer(0), ouverture ? 0 : 600);
   };
-  const motsLy = (L, i, duree2) => {
+  const debitLy = (L) => {
+    const v = L.flatMap(([t, x], i) => x && L[i + 1] ? [(L[i + 1][0] - t) / x.length] : []).sort((a, b) => a - b);
+    return Math.max(0.04, Math.min(0.2, v.length >= 4 ? v[Math.floor(v.length / 4)] * 1.1 : 0.09));
+  };
+  const motsLy = (L, i, duree2, r) => {
     const [t, x, M] = L[i], suiv = L[i + 1]?.[0] ?? (duree2 || t + 8);
     if (M) return M.flatMap(([a, w], k) => w ? [[a, M[k + 1]?.[0] ?? Math.min(suiv, a + 2), w]] : []);
-    const n = x.length || 1, D = Math.min(suiv - t, 0.6 + 0.09 * n);
+    const n = x.length || 1, D = Math.min(suiv - t, n * r);
     let c = 0;
     return x.split(" ").map((w, k, a) => {
       w = k < a.length - 1 ? w + " " : w;
@@ -659,10 +666,7 @@
     const s = e.$('[data-sous="cadre"]');
     s.querySelector(".titre-s > span:last-child").textContent = titre;
     s.querySelector(".titre-s .pastille").innerHTML = ico(p || "prise");
-    try {
-      menus().OpenQuickAccessMenu(+onglet);
-    } catch (x) {
-    }
+    B.openQuickAccessTab(onglet);
     ouvrirSous("cadre");
     h.dataset.pcvPeCadre = "";
     e.racine.classList.add("en-cadre");
@@ -712,7 +716,7 @@
   };
   const peindreBatterie = () => {
     try {
-      const p = magasin("SystemPowerStore"), n = Math.round(Math.max(0, Math.min(1, p.m_flBatteryLevel)) * 100), { branche, s } = etatPile(p);
+      const p = B.battery(), n = Math.round(Math.max(0, Math.min(1, p.percent)) * 100), { branche, s } = etatPile(p);
       const t = branche ? n >= 99 ? T("acces.branchee_terminee", "Branch\xE9e, charge termin\xE9e") : T("acces.branchee_en_charge", "Branch\xE9e, en charge") : s > 0 ? T("acces.sur_batterie_encore", "Sur batterie, encore {temps}", { temps: duree(s) }) : T("acces.sur_batterie", "Sur batterie");
       e.$(".batt .pct").textContent = e.$(".pct-g").textContent = n + " %";
       e.$(".batt .etat-b").textContent = e.$(".etat-g").textContent = t;
@@ -758,13 +762,22 @@
     regle = el;
     el?.classList.add("regle");
   };
-  const fermer = () => {
-    try {
-      menus().CloseSideMenus();
-    } catch (x) {
-    }
-  };
+  const fermer = () => B.closeMenus();
   let enAttente = null;
+  const oublier = (id) => {
+    const x = btEtat.liste.find((a) => String(a.id) === id);
+    if (!x) return;
+    const v = e.$(".voile.confirme");
+    enAttente = () => {
+      B.bluetooth.forget(x.id)?.then?.(majBt);
+      setTimeout(majBt, 600);
+    };
+    v.querySelector(".grosse").innerHTML = ico("bluetooth");
+    v.querySelector("h2").textContent = T("acces.bt_oublier_titre", "Oublier \xAB {nom} \xBB ?", { nom: x.nom });
+    v.querySelector("p").textContent = T("acces.bt_oublier_texte", "Il faudra l'associer \xE0 nouveau pour s'en servir ici.");
+    v.querySelector(".ok").innerHTML = pastille("bluetooth", "var(--pcv-rouge)") + esc(T("acces.bt_oublier", "Oublier"));
+    e.ouvrirVoile(v);
+  };
   const basculer = (cle, sur) => {
     const b = BASCULES[cle];
     if (!b.ecrire) return e.bulle(T("acces.npd_pas_branche", "Pas encore branch\xE9 : Steam n'a pas de \xAB Ne pas d\xE9ranger \xBB \xE0 lui."));
@@ -797,10 +810,7 @@
     if (k === "pochette") return e.$(".pa-grande")?.classList.toggle("vu");
     const page = { avion: "Internet", nuit: "Display" }[k];
     if (page) {
-      try {
-        principale().m_Navigator.Settings(page);
-      } catch (x) {
-      }
+      B.navigate(page);
       fermer();
     }
   };
@@ -866,23 +876,20 @@
         enAttente = null;
         e.$(".voile.confirme").hidden = true;
         e.premier();
-        return cle && basculer(cle, true);
+        return typeof cle === "function" ? cle() : cle && basculer(cle, true);
       }
       if (k === "bt") return ouvrirBt(v === "recherche");
       if (k === "btappareil") {
-        const x = btEtat.liste.find((a) => String(a.id) === v), S = bt();
-        if (!x || !S) return;
-        (x.is_paired ? x.is_connected ? S.Disconnect({ id: x.id }) : S.Connect({ id: x.id }) : S.Pair({ id: x.id }))?.then?.(majBt);
+        const x = btEtat.liste.find((a) => String(a.id) === v);
+        if (!x) return;
+        (x.is_pairing ? B.bluetooth.cancelPair(x.id) : x.is_paired ? x.is_connected ? B.bluetooth.disconnect(x.id) : B.bluetooth.connect(x.id) : B.bluetooth.pair(x.id))?.then?.(majBt);
         return setTimeout(majBt, 300);
       }
       if (k === "wifi") {
         const a = reseau().accessPoints?.find((x) => x.key === v);
         if (!a) return;
         if (a.isConnected) return ouvrirWifid(a);
-        try {
-          principale().m_Navigator.Settings("Internet");
-        } catch (x) {
-        }
+        B.navigate("Internet");
         return fermer();
       }
       if (k === "greffon") {
@@ -1001,7 +1008,7 @@
     },
     // dans le cadre, les touches vont au contenu de Steam (sa navigation), sauf B
     laisser: (b) => !!cadre && b !== 2,
-    y: (el) => reglages(el.dataset.y),
+    y: (el) => el.dataset.y.startsWith("oublier:") ? oublier(el.dataset.y.slice(8)) : reglages(el.dataset.y),
     // LB / RB : un lecteur à l'autre ; X : lecture / pause du lecteur montré
     // (15/10 soir, l'auteur) LB / RB : morceau précédent / suivant (le lecteur revient au début du morceau s'il joue
     // depuis un moment, comme tout lecteur MPRIS) ; LT / RT : changer de lecteur, moins utile
@@ -1121,9 +1128,6 @@
     e.fin();
     clearInterval(suiviBt);
     clearInterval(suiviWifi);
-    try {
-      bt()?.SetDiscovering({ enabled: false });
-    } catch (x) {
-    }
+    B?.bluetooth?.setDiscovering(false);
   };
 })();

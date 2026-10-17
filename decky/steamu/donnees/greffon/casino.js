@@ -12164,23 +12164,12 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     const [sid, f] = String(id).split("/");
     return seriesPar.get(sid)?.tailles[f] || [1, 1];
   };
-  const SIGLES = { SMB: "Super Mario Bros.", SMB3: "Super Mario Bros. 3", SMW: "Super Mario World", NSMBU: "New Super Mario Bros. U", SMBUSA: "Super Mario Bros. 2" };
-  const GENERIQUES = /* @__PURE__ */ new Set(["pr", "chara", "char", "item", "obj", "enm", "enemy", "xx", "pkg", "icon", "cp", "sep", "tile", "ad", "r", "8bit", "anm", "etc", "int", "npc"]);
-  const nomBadge = (id) => {
-    const [sid, f] = String(id).split("/"), s = seriesPar.get(sid), m = morceauDe.get(id);
-    if (m) return nomBadge(m.de);
-    const base = f.replace(/\.png$/, "").replace(new RegExp("^Pr_" + sid + "_", "i"), "");
-    if (/^[\w-]{20,}$/.test(base) && !base.includes("_")) return Tr("casino.badge_secret");
-    if (s?.famille === "Pok\xE9mon" && /^\d{4}/.test(base)) return Tr("casino.pokemon_num", { n: +base.slice(0, 4) });
-    const mots = base.replace(/([a-z])([A-Z])/g, "$1 $2").split(/[_\s]+/).filter((x) => x && !/^\d+$/.test(x) && !GENERIQUES.has(x.replace(/\d+$/, "").toLowerCase()));
-    const propres = mots.filter((x) => !SIGLES[x]).map((x) => x.replace(/\d+$/, "")).filter(Boolean), sigle = mots.find((x) => SIGLES[x]);
-    const n = propres.slice(-2).join(" ");
-    return n ? n.charAt(0).toUpperCase() + n.slice(1) : sigle ? SIGLES[sigle] : s ? `${s.nom} n\xB0 ${s.lots.indexOf(f) + 1}` : "Badge";
-  };
-  const lisible = (n) => !!n && String(n).split(/\s+/).every((w) => w.length >= 3 && /[aeiouyàâäéèêëîïôöùûü]/i.test(w));
+  const LANGUES_NOMS = { fr: 0, en: 1, es: 2 };
   const nomComplet = (id) => {
-    const n = window.__pcvArcade?.info?.(id)?.nom || nomBadge(id), s = seriesPar.get(String(id).split("/")[0]);
-    return lisible(n) ? n : s?.nom || "Badge";
+    const m = morceauDe.get(id);
+    if (m) return nomComplet(m.de);
+    const f = String(id).split("/").pop().replace(/\.png$/, ""), N = vraies?.noms || nomsSeuls, i = N && (N.b[f] ?? N.b[f + "_Sep"]);
+    return i == null ? null : N.t[i]?.[LANGUES_NOMS[window.__pcvLangue?.()] ?? 0] || null;
   };
   const parties = () => {
     const p = lire(CLE.parties, null) || { jour: "", offertes: 0, bonus: 0, jetons: 0, bonusJetons: 0 };
@@ -12188,6 +12177,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       Object.assign(p, { jour: jourDe(), offertes: OFFERTES, jetons: 0, bonusJetons: 0 });
       ecrire(CLE.parties, p);
     }
+    if (!(p.bonus >= 0)) p.bonus = 0;
     return p;
   };
   const totalParties = () => {
@@ -12298,7 +12288,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
   const VITRE = { x0: -5.83, x1: 5.83, y0: 5.53 + BORNE.DY, y1: 12.85 + BORNE.DY + BORNE.DH, z: 10.16 };
   const ZONE_JEU = { x0: -7.65, x1: 7.65, y0: VITRE.y0 + 2.03, y1: VITRE.y1 - 0.25 };
   const W = 760, S = (ZONE_JEU.x1 - ZONE_JEU.x0) / W, H = Math.round((ZONE_JEU.y1 - ZONE_JEU.y0) / S), G = 1500, MU_S = 0.55, MU_K = 0.35;
-  const VITRE_CADRAGE = { y0: 5.53 + BORNE.DY, y1: 12.85 + BORNE.DY + 2 };
+  const VITRE_CADRAGE = { y0: VITRE.y0, y1: ZONE_JEU.y1 };
   const H0 = Math.round((12.85 - 5.53) / S);
   const R_BADGE = 52, K = 1.25;
   const contact = (a, b, nx, ny, d, kdx, kdy, mus, muk) => {
@@ -12833,14 +12823,14 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       return [x * 0.7, y * 0.94];
     },
     L0: Y_ECRAN + REPOS_VRAIE * E_ - PINCE.rail - 14,
-    x0: (ECRAN.l - Math.ceil(1.82 * 19.8) - 3) * E_,
+    x0: W - Math.max(...[OUVERTURE_REPOS, 1].flatMap((o) => [BRAS.coude, BRAS.pointe].map((p) => pointBras(1, o, p)[0]))) - 3 * E_,
     xmin: 0,
     decor: [0, 5, 6],
     ouvrir: 1.3,
     fermer: 1.4
   };
   GEO_VRAIE.Lmax = H - 10 - (PINCE.rail + 14) - GEO_VRAIE.pointe;
-  let vraies = null, attenteVraies = null, pinceGltf = null, bombeGltf = null;
+  let vraies = null, attenteVraies = null, pinceGltf = null, bombeGltf = null, nomsSeuls = null;
   const chargerVraies = () => attenteVraies ||= (async () => {
     try {
       vraies = JSON.parse(new TextDecoder().decode(await octets(PRIVE_BA.bornes + "index.json", "application/json")));
@@ -12890,8 +12880,21 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
   };
   const FLOTTE = 0.9;
   const BORD_VRAI = 3, GOULOTTE_VRAIE = { x: 320 * E_, rebord: 16 };
-  const SOL_VRAI = { polys: [[[0, ECRAN.h - 4], [GOULOTTE_VRAIE.x / E_ - GOULOTTE_VRAIE.rebord, ECRAN.h - 4], [GOULOTTE_VRAIE.x / E_ - GOULOTTE_VRAIE.rebord, ECRAN.h + 20], [0, ECRAN.h + 20]]] };
-  const trouesVraies = (m) => (m.vraie.chutes?.length ? m.vraie.chutes.map(([a, b]) => [a * E_, b * E_]) : [[GOULOTTE_VRAIE.x, ECRAN.l * E_]]).sort((p, q) => p[0] - q[0]);
+  const SOL_VRAI_HAUT = ECRAN.h - 16, SOL_VRAI_FIN = GOULOTTE_VRAIE.x / E_ - GOULOTTE_VRAIE.rebord;
+  const SOL_VRAI = { polys: [[[0, SOL_VRAI_HAUT], [SOL_VRAI_FIN, SOL_VRAI_HAUT], [SOL_VRAI_FIN, ECRAN.h + 20], [0, ECRAN.h + 20]]] };
+  const TROU_MIN = 16, BAS_TOUCHE = 6;
+  const trouesVraies = (m) => {
+    const pleins = [], r = [];
+    let x = 0;
+    for (const o of m.vraie.objets.length ? m.vraie.objets : [SOL_VRAI]) for (const P of o.polys || [])
+      if (Math.max(...P.map((p) => p[1])) >= ECRAN.h - BAS_TOUCHE) pleins.push([Math.min(...P.map((p) => p[0])), Math.max(...P.map((p) => p[0]))]);
+    for (const [a, b] of pleins.sort((p, q) => p[0] - q[0])) {
+      if (a - x > TROU_MIN) r.push([x, a]);
+      x = Math.max(x, b);
+    }
+    if (ECRAN.l - x > TROU_MIN) r.push([x, ECRAN.l]);
+    return r.map(([a, b]) => [a * E_, b * E_]);
+  };
   const dansChute = (m, x) => trouesVraies(m).some(([a, b]) => x > a - 20 && x < b + 20);
   const creerMondeVrai = (m) => {
     const mo = { parts: [], corps: [], segs: [], cines: [], cinesPrec: null, vrai: true };
@@ -13860,6 +13863,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
   const lecteurCasino = window.__pcvLecteurMusique?.();
   const musiqueUrl = {};
   const FONDU_CASINO = 1;
+  const volMusique = () => lire("pcv-volume-musique", 0.3);
   const finFonduCasino = (cible) => new Promise((ok) => {
     const g = lecteurCasino?._gain;
     if (!g) {
@@ -13890,11 +13894,11 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         lecteurCasino.dataset.chemin = "sons/" + p + ".mp3";
         lecteurCasino.currentTime = 0;
       }
-      lecteurCasino.volume = silencieux ? 0 : 0.35;
+      lecteurCasino.volume = silencieux ? 0 : volMusique();
       await lecteurCasino.play();
       if (musiqueVoulue !== p) return;
-      if (silencieux) finFonduCasino(0.35);
-      else lecteurCasino.volume = 0.35;
+      if (silencieux) finFonduCasino(volMusique());
+      else lecteurCasino.volume = volMusique();
     })();
   };
   const jingleAudio = new Audio(), jingleUrl = {};
@@ -17109,7 +17113,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     if (!E.mergeGeometries) return;
     const parMat = /* @__PURE__ */ new Map();
     for (const bo of bornes) {
-      bo.fusionnes = [];
       for (const g of [bo.fronton.groupe, bo.groupe.getObjectByName("meuble de la borne")]) {
         if (!g) continue;
         g.updateMatrixWorld(true);
@@ -17142,10 +17145,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       fusion.matrixAutoUpdate = false;
       scene.add(fusion);
       rangeeFusion.push(fusion);
-      for (const [o, bo] of l) {
-        o.visible = false;
-        bo.fusionnes.push(o);
-      }
+      for (const [o] of l) o.visible = false;
     }
   };
   let rangeeFusion = [];
@@ -17765,14 +17765,14 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       if (!t) return fondDessine(I, m, cadre);
       const k = Math.min(1, wp / hp / (ECRAN.l / ECRAN.h)), kh = Math.min(1, ECRAN.l / ECRAN.h / (wp / hp));
       t.repeat.set(k, kh);
-      t.offset.set((1 - k) / 2, (1 - kh) / 2);
+      t.offset.set((1 - k) / 2, 0);
       const fond = new T.Mesh(garder(new T.PlaneGeometry(wp, hp)), basique({ map: t }));
       fond.position.set(0, yc, zf);
       I.add(fond);
       for (const s_ of [-1, 1]) {
         const tm = garder(t.clone()), bk = PROFONDEUR_VRAIE.bandeMur * k;
         tm.repeat.set(bk, kh);
-        tm.offset.set(s_ < 0 ? (1 - k) / 2 : (1 + k) / 2 - bk, (1 - kh) / 2);
+        tm.offset.set(s_ < 0 ? (1 - k) / 2 : (1 + k) / 2 - bk, 0);
         tm.needsUpdate = true;
         const mur = new T.Mesh(garder(new T.PlaneGeometry(LONG_COTE, hp)), basique({ map: tm, color: COTE_VRAI, side: T.DoubleSide }));
         mur.position.set(s_ * xf, yc, zf + LONG_COTE / 2);
@@ -17781,10 +17781,10 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       }
       for (const [y, haut_] of [[haut, true], [SOL_VITRINE, false]]) {
         const tb = garder(t.clone());
-        tb.repeat.set(k, BANDE_VRAIE * kh);
-        tb.offset.set((1 - k) / 2, haut_ ? 1 - (1 - kh) / 2 - BANDE_VRAIE * kh : (1 - kh) / 2);
+        tb.repeat.set(k, haut_ ? kh - 1 : BANDE_VRAIE * kh);
+        tb.offset.set((1 - k) / 2, haut_ ? 1 : 0);
         tb.needsUpdate = true;
-        I.add(plaqueVitrine(y, basique({ map: tb, color: COTE_VRAI, side: T.DoubleSide })));
+        I.add(plaqueVitrine(y, basique({ map: tb, color: haut_ ? 16777215 : COTE_VRAI, side: T.DoubleSide })));
       }
     });
   };
@@ -17822,6 +17822,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     });
   };
   const Z_OBJETS = -0.3;
+  const CHUTE_VUE = { h: 8, pas: 23, tri: [7, 4.5], fond: "#141c4a", jaune: "#f8e020", cerne: "#5a4a10" };
   const objetsVrais = (bo, m, I) => {
     bo.planche = null;
     bo.tapis = null;
@@ -17865,22 +17866,40 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       });
       return e;
     });
-    const [xr] = versLocal(GOULOTTE_VRAIE.x, 0), lb = (VITRE.x1 - xr) * 0.55, [cg, xgo] = toile(256, Math.round(256 * 0.5 / lb));
-    xgo.fillStyle = C.triangleBord;
-    xgo.fillRect(0, 0, cg.width, cg.height);
-    for (let k = 0; k < 2; k++) {
-      const cx = (k + 0.5) * cg.width / 2, hh = cg.height;
-      xgo.fillStyle = C.triangle;
-      xgo.beginPath();
-      xgo.moveTo(cx - hh * 0.34, hh * 0.22);
-      xgo.lineTo(cx + hh * 0.34, hh * 0.22);
-      xgo.lineTo(cx, hh * 0.8);
-      xgo.closePath();
-      xgo.fill();
+    for (const [a, b] of trouesVraies(m)) {
+      const l = (b - a) / E_, n = Math.max(1, Math.round(l / CHUTE_VUE.pas)), Q = 4, [cg, xg] = toile(Math.round(l * Q), CHUTE_VUE.h * Q);
+      xg.fillStyle = CHUTE_VUE.fond;
+      xg.fillRect(0, 0, cg.width, cg.height);
+      xg.lineWidth = Q * 0.6;
+      xg.strokeStyle = CHUTE_VUE.cerne;
+      xg.fillStyle = CHUTE_VUE.jaune;
+      for (let k = 0; k < n; k++) {
+        const cx = (k + 0.5) * cg.width / n, [tl, th] = CHUTE_VUE.tri, y02 = (cg.height - th * Q) / 2;
+        xg.beginPath();
+        xg.moveTo(cx - tl * Q / 2, y02);
+        xg.lineTo(cx + tl * Q / 2, y02);
+        xg.lineTo(cx, y02 + th * Q);
+        xg.closePath();
+        xg.fill();
+        xg.stroke();
+      }
+      const [x0, y0] = versLocal(a, H - CHUTE_VUE.h * E_), [x1, y1] = versLocal(b, H);
+      const bande = new T.Mesh(garder(new T.PlaneGeometry(x1 - x0, y0 - y1)), basique({ map: texture(cg, { bord: true, flipY: true }) }));
+      bande.position.set((x0 + x1) / 2, (y0 + y1) / 2, Z.badges + Z_OBJETS + 0.02);
+      bande.renderOrder = 1;
+      I.add(bande);
     }
-    const bande = new T.Mesh(garder(new T.PlaneGeometry(lb, 0.5)), basique({ map: texture(cg, { bord: true, flipY: true }) }));
-    bande.position.set(xr + lb / 2, SOL_VITRINE + 0.26, VITRE.z - 0.3);
-    I.add(bande);
+    if (!m.vraie.objets.length) {
+      const [x0, y0] = versLocal(...ecranVersMonde(0, SOL_VRAI_HAUT)), [x1, y1] = versLocal(...ecranVersMonde(SOL_VRAI_FIN, ECRAN.h));
+      const sol = new T.Mesh(garder(new T.PlaneGeometry(x1 - x0, y0 - y1)), basique({ map: texBloc("caisse", x1 - x0, y0 - y1) }));
+      sol.position.set((x0 + x1) / 2, (y0 + y1) / 2, Z.badges + Z_OBJETS);
+      sol.renderOrder = 1;
+      I.add(sol);
+      const levre = new T.Mesh(garder(new T.CapsuleGeometry(0.13, Math.max(0.01, x1 - x0 - 0.26), 6, 10)), plastique(14890287));
+      levre.rotation.z = Math.PI / 2;
+      levre.position.set((x0 + x1) / 2, y0 + 0.06, Z.badges + Z_OBJETS + 0.02);
+      I.add(levre);
+    }
   };
   const DEVANT_VRAIE = 0.45;
   const RAIL_VRAI = { y: -0.12, r: 0.09, chariot: [0.7, 0.32, 0.42], teinte: 0.75, metal: 10133672 };
@@ -19160,8 +19179,9 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       const bo = bornes[i], c = centreVitre(bo), L = placeLuigi(bo).add(vec(0, LUIGI.debout * 0.62, 0)), m = c.clone().lerp(L, 0.5);
       return { pos: m.clone().addScaledVector(bo.n, 33).add(vec(0, 2.5, 0)), cible: m.clone().add(vec(0, -0.4, 0)), fov: 34 };
     },
+    // (16/10) la hauteur ET la largeur de la zone de jeu tiennent dans l'image, quel que soit le rapport de l'écran
     partie: (i) => {
-      const bo = bornes[i], c = centreVitreCadrage(bo), hv = (VITRE_CADRAGE.y1 - VITRE_CADRAGE.y0) * RANGEE.ECH, d = hv * 1.1 / (2 * Math.tan(16.5 * Math.PI / 180));
+      const bo = bornes[i], c = centreVitreCadrage(bo), t = 2 * Math.tan(16.5 * Math.PI / 180), hv = (VITRE_CADRAGE.y1 - VITRE_CADRAGE.y0) * RANGEE.ECH, lv = (ZONE_JEU.x1 - ZONE_JEU.x0) * RANGEE.ECH, d = Math.max(hv * 1.1 / t, lv * 1.1 / (t * (camera?.aspect || 1.6)));
       return { pos: c.clone().addScaledVector(bo.n, d).add(vec(0, 0.1, 0)), cible: c.clone(), fov: 33 };
     },
     // (9/10) le guichet de Luigi : la vue de la planche (variante B), Luigi derrière le comptoir, la bulle en bas à droite
@@ -19413,7 +19433,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       });
     }
     hud.action.classList.toggle("cache", !action);
-    hud.plaque.classList.toggle("cache", !gain?.nom && coffre?.phase !== "fiche");
+    hud.plaque.classList.toggle("cache", !gain?.nom && !(coffre?.phase === "fiche" && coffre.nom));
     majNav();
     majAnneau();
   };
@@ -19766,7 +19786,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       return;
     }
     const s = l[bo.i], ids = s.lots.map((f) => `${s.id}/${f}`);
-    $(".fiche b").textContent = `${s.nom} : ${s.sous}`;
+    $(".fiche b").textContent = bo.cur >= 0 && possede(b, ids[bo.cur]) && nomComplet(ids[bo.cur]) || `${s.nom} : ${s.sous}`;
     $(".fiche span").textContent = Tr("casino.badges_n_sur_m", { n: ids.filter((id) => possede(b, id)).length, total: ids.length });
     $(".total b").textContent = String(l.filter((x) => x.lots.every((f) => complet(b, `${x.id}/${f}`))).length);
     const t = $(".tableau-serie"), col = ids.length > 60 ? 16 : ids.length > 30 ? 12 : 10;
@@ -20084,8 +20104,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     const complete = s_ && s_.lots.every((f) => complet(b, `${sid}/${f}`)) && !m.serieFetee;
     const fete = texteFete(), texte = m.entrainement ? n > 1 ? Tr("casino.n_jetons", { n }) : Tr("casino.un_jeton") : complete ? Tr("casino.serie_complete_point") : fete[Math.min(n, fete.length) - 1];
     if (complete) m.serieFetee = true;
-    const nomB = m.entrainement ? null : window.__pcvArcade?.info?.(c.id)?.nom || nomBadge(c.id);
-    gain = { m, corps: g.slice(), fin: horloge + FETE.duree * (complete ? 1.6 : 1), nom: nomB && lisible(nomB) ? nomB : null };
+    gain = { m, corps: g.slice(), fin: horloge + FETE.duree * (complete ? 1.6 : 1), nom: m.entrainement ? null : nomComplet(c.id) };
     window.__pcvLed?.(n >= 3 ? "casino-gain-triple" : n === 2 ? "casino-gain-double" : "casino-gain");
     montrerTableau(bo, g.slice(-4), texte, !m.entrainement && !complete ? IU["gain" + Math.min(4, n)] : null);
     if (!m.entrainement) (session.corps ||= []).push(c);
@@ -20637,7 +20656,8 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     if (!id || !possede(boite(), id)) return son("refus", 0.6);
     c.phase = "fiche";
     son("piece");
-    remplacer("plaque", svgPlaque(nomComplet(id)));
+    c.nom = nomComplet(id);
+    if (c.nom) remplacer("plaque", svgPlaque(c.nom));
     matAutocollant(id, false, (e) => {
       if (coffre !== c || c.phase !== "fiche") return;
       const o = c.ouverte, [tl, th] = tailleDe(id), cote = o.l / PLANCHE.cols * 2.2 / (1 - 2 * e.marge), k = cote / Math.max(tl, th);
@@ -21392,8 +21412,8 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         majHud();
       }
     }
-    bornes.forEach((bo2, i) => {
-      if (bo2.interieur && machines[i]) majInterieur(bo2, machines[i]);
+    bornes.forEach((bo, i) => {
+      if (bo.interieur && machines[i]) majInterieur(bo, machines[i]);
     });
     majNav();
     if (gain && horloge >= gain.fin) finirGain();
@@ -21410,17 +21430,8 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     majMiiSalle();
     animerSalle(dt);
     for (const f of parImage) f(dt);
-    const plein = vue === "machine" && plan.t >= plan.d, bo = bornes[sel];
-    if (decor) decor.visible = !plein;
-    for (const b of bornes) {
-      b.groupe.visible = !plein || b === bo;
-      if (b.fusionnes && b.fusionnes.plein !== (plein && b === bo)) {
-        b.fusionnes.plein = plein && b === bo;
-        for (const o of b.fusionnes) o.visible = b.fusionnes.plein;
-      }
-    }
-    if (luigiObj) luigiObj.visible = !plein;
-    masquables ||= scene.children.filter((o) => o.name === "ampoules" || o.name === "halos" || o.name === "bornes : fusion" || o.isInstancedMesh || o === luigiOmbre);
+    const plein = vue === "machine" && plan.t >= plan.d;
+    masquables ||= scene.children.filter((o) => o.name === "ampoules" || o.name === "halos");
     for (const o of masquables) o.visible = !plein;
     if (dessiner) {
       rendu.info.reset();
@@ -21536,6 +21547,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     opts = o;
     pilote = !!o.pilote;
     ouvert = true;
+    window.__pcvMusique?.(false);
     window.__pcvLed?.("casino-entree", "#" + COULEURS_MEUBLE.rouge.toString(16).padStart(6, "0"));
     document.documentElement.classList.add("pcv-appli-plein");
     racine = document.createElement("div");
@@ -21767,9 +21779,21 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     racine = null;
     hud = null;
     musiqueVoulue = void 0;
+    window.__pcvMusique?.(null);
     if (lecteurCasino && !lecteurCasino.paused) finFonduCasino(0).then(() => lecteurCasino.pause());
   };
   fins.push(fermer);
+  const nomPourAccueil = (id) => {
+    if (!nomsSeuls && !vraies) {
+      nomsSeuls = { b: {}, t: [] };
+      Promise.all([chargerIndex(), octets(PRIVE_BA.bornes + "index.json", "application/json")]).then(([, b]) => {
+        nomsSeuls = JSON.parse(new TextDecoder().decode(b))?.noms || nomsSeuls;
+        window.__pcvConsoleMarquer?.();
+      }).catch(() => {
+      });
+    }
+    return nomComplet(id);
+  };
   window.__pcvCasinoBadges = {
     ouvrir,
     fermer,
@@ -21777,6 +21801,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     relacher,
     crediter,
     recouvert,
+    nom: nomPourAccueil,
     // les passants à venir (personnages qui se promènent dans le casino) : leurs places (assis ou debout, où regarder,
     // gestes possibles) et des chemins en boucle dans la salle (points du sol, unités de la salle)
     get passants() {

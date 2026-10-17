@@ -37,8 +37,11 @@
     .tpzb .champ input::placeholder { color: #8a93a2; }
     .tpzb .bt { flex: none; height: ${U(48)}; padding: 0 ${U(16)}; border-radius: ${U(24)}; display: flex; align-items: center; gap: ${U(6)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(15)}; font-weight: 900; white-space: nowrap; }
     .tpzb .bt.on { background: var(--pcv-cyan-plein); color: #fff; }
-    .tpzb .grille { position: absolute; left: ${U(48)}; top: ${U(140)}; width: ${U(600)}; height: ${U(462)}; overflow-y: auto; overflow-x: hidden; padding: ${U(14)} ${U(16)} ${U(30)};
-      scrollbar-width: none; touch-action: pan-y; -webkit-mask: linear-gradient(180deg, transparent 0, #000 ${U(14)}, #000 calc(100% - ${U(30)}), transparent); mask: linear-gradient(180deg, transparent 0, #000 ${U(14)}, #000 calc(100% - ${U(30)}), transparent); }
+    
+    .tpzb .source { position: absolute; left: ${U(72)}; top: ${U(140)}; font-size: ${U(14)}; font-weight: 800; color: var(--pcv-texte2); white-space: nowrap; }
+    
+    .tpzb .grille { position: absolute; left: ${U(48)}; top: ${U(158)}; width: ${U(600)}; height: ${U(422)}; overflow-y: auto; overflow-x: hidden; padding: ${U(14)} ${U(16)} ${U(40)};
+      scroll-padding: ${U(14)} 0 ${U(40)}; scrollbar-width: none; touch-action: pan-y; -webkit-mask: linear-gradient(180deg, transparent 0, #000 ${U(14)}, #000 calc(100% - ${U(30)}), transparent); mask: linear-gradient(180deg, transparent 0, #000 ${U(14)}, #000 calc(100% - ${U(30)}), transparent); }
     .tpzb .grille::-webkit-scrollbar { display: none; }
     .tpzb .rang { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: ${U(22)} ${U(20)}; }
     .tpzb .carte .vig { background: #dfe6ee center top / 100% 200% no-repeat; }
@@ -435,7 +438,7 @@
       else if (b === 2) fermerVerif(true);
       return true;
     }
-    if (tape()) {
+    if (tape() && b !== 5 && b !== 6) {
       if (b === 1) valider();
       else if (b === 2 || b === 10) {
         $(".champ input").blur();
@@ -539,7 +542,7 @@
     boite.className = "tpzb";
     boite.innerHTML = `<div class="barre"><label class="champ pf"><i>${LOUPE}</i><input type="text" maxlength="60" spellcheck="false" placeholder="${T("themeplaza.chercher_theme")}"></label>
         <div class="bt pf" data-b="tri"></div><div class="bt pf" data-b="musique">\u266A ${T("themeplaza.avec_musique")}</div></div>
-      <div class="grille"><div class="rang"></div></div>
+      <div class="source">${T("themeplaza.source")}</div><div class="grille"><div class="rang"></div></div>
       <div class="fiche"><div class="ecrans"></div><div class="infos"><h3></h3><div class="de"></div><p></p><div class="ch"></div>
         <div class="credit">Th\xE8me cr\xE9\xE9 par la communaut\xE9, h\xE9berg\xE9 sur ThemePlaza (themeplaza.art)</div>
         <div class="installer pf"><em></em><u>${o.T(1)}</u><span>Installer</span></div></div></div>

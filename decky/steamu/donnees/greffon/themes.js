@@ -105,7 +105,7 @@
       nom: Tr("families.wiiu.nom"),
       style: "verre",
       verre: ["#ffffff", "#f1f5fa"],
-      ombre: "0 8px 22px rgba(60, 85, 120, .16)",
+      ombre: "0 8px 22px rgb(from var(--pcv-ombre-c) r g b / .16)",
       symboles: ["manette", "sac", "personnes", "reponse", "bulle", "etoile", "note", "disque"],
       apps: {
         bibliotheque: P("#fbfcfd #f0f3f6 #e0e6ec", "#a9b8c7"),
@@ -131,7 +131,7 @@
       nom: Tr("families.ds3.nom"),
       style: "plat",
       verre: ["#ffffff", "#f2f3f5"],
-      ombre: "0 6px 14px rgba(40, 50, 70, .2)",
+      ombre: "0 6px 14px rgb(from var(--pcv-ombre-c) r g b / .2)",
       symboles: ["cartouche", "etoile", "note", "manette"],
       apps: {
         bibliotheque: P("#f8f9fa #eceff2", "#d3dae1", "grille #e4e8ec"),
@@ -218,9 +218,8 @@
       style: FAMILLES[f].style,
       nom: j.nom || joli(id),
       sous: j.sous || "th\xE8me import\xE9",
-      accent: couleurSure(j.accent, /^hsl\(\d{1,3} 72% 50%\)$/.test(accents["importe:" + id]) ? accents["importe:" + id] : "#ff5f95"),
-      accentAuto: auto,
-      accent2: couleurSure(j.accent2),
+      accent: /^hsl\(\d{1,3} 72% 50%\)$/.test(accents["importe:" + id]) ? accents["importe:" + id] : couleurSure(j.accent, "#ff5f95"),
+      // (la teinte tirée de l'image, une fois calculée, prime : curseur terne ou étranger) accentAuto: auto, accent2: couleurSure(j.accent2),
       // Themezer : fond « télé » (motif répété s'il l'est sur la Wii U) et fond « manette » (GamePad) gardés séparés, plaque
       // de verre sous la grille de l'accueil, icônes des applis (Switch)
       ...tz ? { tele: fichierTz(j.tele), teleMotif: !!j.teleMotif, manette: fichierTz(j.manette), plaque: true, sons: j.origine === "switch" ? "switch" : void 0 } : {},
@@ -238,7 +237,7 @@
     const groupes = {};
     for (const n of noms) {
       const m = n.match(/^(.+?)(?:-(haut|bas|apercu|dossier|dossier-ouvert))?\.([a-z0-9]+)$/i);
-      if (m) (groupes[m[1]] ||= {})[(m[2] || "") + "." + m[3].toLowerCase()] = n;
+      if (m) (groupes[m[1]] ||= {})[(m[2] ? "-" + m[2] : "") + "." + m[3].toLowerCase()] = n;
     }
     const res = [];
     for (const [id, g] of Object.entries(groupes)) {
@@ -412,7 +411,7 @@
   const img = (c) => c && (!anime() && fixes[c] || urls[c]) || null;
   const sourceAccueil = (t) => t.illustration ? illustration(t) : nets[t.id] || img(t.haut) || img(t.image) || img(t.tele) || img(t.manette) || img(t.bas);
   const sourceDouce = (t) => t.illustration ? illustration(t) : img(t.bas) || img(t.manette) || img(t.haut) || img(t.image) || img(t.tele);
-  const plaqueDe = (t) => !t.plaque ? null : img(t.manette) ? `linear-gradient(rgba(255,255,255,.12), rgba(255,255,255,.12)), url("${img(t.manette)}") center / cover no-repeat` : typeof doux[t.id] === "string" ? `linear-gradient(180deg, rgba(255,255,255,.28), color-mix(in srgb, ${t.accent} 22%, rgba(255,255,255,.2))), url("${doux[t.id]}") center / cover no-repeat` : null;
+  const plaqueDe = (t) => !t.plaque ? null : img(t.manette) ? `linear-gradient(rgba(255,255,255,.12), rgba(255,255,255,.12)), url("${img(t.manette)}") center / cover no-repeat` : typeof doux[t.id] === "string" ? "transparent" : null;
   const tuiles = /* @__PURE__ */ new Map();
   const fondsDe = (t, e, o = {}) => {
     const k = o.k || 1, fx = o.fixe === false ? "" : " fixed";
@@ -525,13 +524,17 @@
         if (nets[t.id]) reduits[t.id] = nets[t.id];
       } catch (e) {
       }
+      if (sa && t.cat === "importes" && reduits[t.id] && !fini && !(accents[t.id] && !estFaible(accents[t.id]))) {
+        b = sa === sd ? a : await decoder(sa, vecteur);
+        if (t.accentAuto || estFaible(t.accent) || etrangere(t.accent, b)) accentDe(t, b);
+      }
       if (sa && !reduits[t.id]) {
         b = sa === sd ? a : await decoder(sa, vecteur);
         const x = toile(800, 500);
         couvrir(x, b);
         reduits[t.id] = await enBlob(x, 0.85);
         const cle = t.fichier || t.id, dejaBon = accents[cle] && !estFaible(accents[cle]);
-        if ((t.fichier || t.accentAuto || estFaible(t.accent)) && !dejaBon && !fini) accentDe(t, b);
+        if ((t.fichier || t.accentAuto || estFaible(t.accent) || t.cat === "importes" && etrangere(t.accent, b)) && !dejaBon && !fini) accentDe(t, b);
       }
     } catch (e) {
     } finally {
@@ -595,7 +598,7 @@
   style.id = "pcv-themes-style";
   document.head.appendChild(style);
   fins.push(() => style.remove());
-  const ROUGE_RESERVE = { debut: 330, fin: 20, satMin: 0.35, lumMax: 0.72 };
+  const ROUGE_RESERVE = { debut: 330, fin: 12, satMin: 0.35, lumMax: 0.72 };
   const accentEstRouge = (c) => {
     const x = enHsl(c);
     if (!x) return false;
@@ -675,20 +678,30 @@
     musique();
     return t.id;
   };
+  const teintes = (im) => {
+    const x = toile(32, 32);
+    x.drawImage(im, 0, 0, 32, 32);
+    const d = x.getImageData(0, 0, 32, 32).data, poids = new Array(12).fill(0), somme = new Array(12).fill(0);
+    for (let p = 0; p < d.length; p += 4) {
+      const [R, G, B] = [d[p] / 255, d[p + 1] / 255, d[p + 2] / 255], mx = Math.max(R, G, B), mn = Math.min(R, G, B), s = mx ? (mx - mn) / mx : 0;
+      if (s < 0.12 || mx < 0.2) continue;
+      let h = mx === mn ? 0 : mx === R ? (G - B) / (mx - mn) : mx === G ? 2 + (B - R) / (mx - mn) : 4 + (R - G) / (mx - mn);
+      h = (h * 60 + 360) % 360;
+      const k = Math.floor(h / 30), w = s * mx;
+      poids[k] += w;
+      somme[k] += h * w;
+    }
+    return { poids, somme };
+  };
+  const etrangere = (c, im) => {
+    const x = enHsl(c);
+    if (!x) return false;
+    const { poids } = teintes(im), tot = poids.reduce((a, b) => a + b, 0);
+    return tot > 0 && poids[Math.floor(x[0] / 30) % 12] / tot < 0.08;
+  };
   const accentDe = (t, im) => {
     try {
-      const x = toile(32, 32);
-      x.drawImage(im, 0, 0, 32, 32);
-      const d = x.getImageData(0, 0, 32, 32).data, poids = new Array(12).fill(0), somme = new Array(12).fill(0);
-      for (let p = 0; p < d.length; p += 4) {
-        const [R, G, B] = [d[p] / 255, d[p + 1] / 255, d[p + 2] / 255], mx = Math.max(R, G, B), mn = Math.min(R, G, B), s = mx ? (mx - mn) / mx : 0;
-        if (s < 0.12 || mx < 0.2) continue;
-        let h = mx === mn ? 0 : mx === R ? (G - B) / (mx - mn) : mx === G ? 2 + (B - R) / (mx - mn) : 4 + (R - G) / (mx - mn);
-        h = (h * 60 + 360) % 360;
-        const k2 = Math.floor(h / 30), w = s * mx;
-        poids[k2] += w;
-        somme[k2] += h * w;
-      }
+      const { poids, somme } = teintes(im);
       const k = poids.indexOf(Math.max(...poids));
       if (!poids[k]) return;
       const a = accents[t.fichier || t.id] = `hsl(${Math.round(somme[k] / poids[k])} 72% 50%)`;
@@ -778,6 +791,12 @@
         const taille = 24 * p.s * K, sp = aplat(p.n, pal.motif, taille, p.rot);
         return { sp, x: p.x * K + taille / 2 - sp.width / 2, y: p.y * K + taille / 2 - sp.height / 2 };
       });
+      const tuile2 = document.createElement("canvas");
+      tuile2.width = Math.max(1, Math.ceil(d.tl));
+      tuile2.height = Math.max(1, Math.ceil(d.th));
+      const xt = tuile2.getContext("2d");
+      for (const p of d.places) xt.drawImage(p.sp, p.x, p.y);
+      d.motif = tuile2;
       return;
     }
     if (st === "etincelles") {
@@ -820,7 +839,10 @@
     if (d.places) {
       d.ox = ((d.ox || 0) + dt * 0.014 * K) % d.tl;
       d.oy = ((d.oy || 0) + dt * 9e-3 * K) % d.th;
-      for (let ty = -1; ty * d.th - d.oy < H; ty++) for (let tx = -1; tx * d.tl + d.ox < W; tx++) for (const p of d.places) x.drawImage(p.sp, tx * d.tl + d.ox + p.x, ty * d.th - d.oy + p.y);
+      const motif = x.createPattern(d.motif, "repeat");
+      motif.setTransform(new DOMMatrix().translate(d.ox, -d.oy));
+      x.fillStyle = motif;
+      x.fillRect(0, 0, W, H);
       return;
     }
     const k = W / 1280;
@@ -1050,9 +1072,26 @@
     });
     viser(neuf, volMusique());
   };
+  let mediasMuets = false;
+  const suivreMedias = setInterval(async () => {
+    let v = false;
+    try {
+      const a = O.SteamUIStore?.MainRunningApp?.appid;
+      if (a) {
+        const l = (await appeler("lecteurs").catch(() => null) || []).filter((x) => O.__pcvMemeJeu?.(x.jeu, a));
+        v = l.length > 0 && !l.some((x) => x.statut === "Playing");
+      }
+    } catch (e) {
+    }
+    if (v !== mediasMuets) {
+      mediasMuets = v;
+      musique();
+    }
+  }, 2e3);
+  fins.push(() => clearInterval(suivreMedias));
   const jeuEnCours = () => {
     try {
-      return !!O.SteamUIStore?.MainRunningApp;
+      return !!O.SteamUIStore?.MainRunningApp && !mediasMuets;
     } catch (e) {
       return false;
     }
@@ -1083,7 +1122,7 @@
       prechargee = fs;
       window.__pcvPrechargerSons(fs);
     }
-    const libre = !document.hidden && !jeuEnCours();
+    const libre = !document.hidden && !jeuEnCours() && !document.documentElement.classList.contains("pcv-ouvert-home");
     const voulu = !libre ? null : ecoute !== null ? ecoute : !lire("pcv-musique", false) ? null : musiqueDe(ec);
     if (voulu !== void 0) changer(voulu);
   };
@@ -1109,13 +1148,7 @@
   };
   monSon.pcvThemes = true;
   const pictoReg = (d) => `<svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="#5b6676" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-  const FAMILLES_TOUCHES = { auto: Tr("themes.app_auto"), xbox: "Xbox", ps: "PlayStation", nintendo: "Nintendo" };
-  const LED_NOMS = { theme: Tr("steamu.app.oui"), non: Tr("steamu.app.non"), ecran: Tr("themes.ecran") };
   const APPARENCES = { clair: Tr("themes.app_clair"), gris: Tr("themes.app_gris"), noir: Tr("themes.app_noir"), auto: Tr("themes.app_auto") };
-  const LED_SANS = window.__pcvLedSansCle = "pcv-led-sans";
-  const LED_IC = pictoReg('<circle cx="12" cy="12" r="4.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/>');
-  const ledJeu = () => window.__pcvLedJeuId?.() || "";
-  const sansListe = (v) => Array.isArray(v) ? v : [];
   const REGLAGES = [
     { cle: "pcv-musique", def: false, ic: pictoReg('<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>'), nom: Tr("themes.reg.musique"), val: (v) => v ? Tr("steamu.app.oui") : Tr("steamu.app.non"), suivant: (v) => !v },
     { cle: "pcv-volume-musique", def: 0.3, ic: pictoReg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>'), nom: Tr("themes.reg.volume"), niveaux: [0.15, 0.3, 0.5, 0.75] },
@@ -1133,93 +1166,21 @@
         return k[(k.indexOf(v) + 1) % k.length];
       }
     },
-    { cle: "pcv-interface", def: "nouvelle", ic: pictoReg('<path d="M4 11l8-6.5 8 6.5"/><path d="M6 9.5V19h12V9.5"/><path d="M10 19v-5h4v5"/>'), nom: Tr("themes.reg.accueil"), val: (v) => v === "nouvelle" ? Tr("themes.reg.nouveau") : Tr("themes.reg.ancien"), suivant: (v) => v === "nouvelle" ? "ancienne" : "nouvelle" },
     // sons (sons.js, __pcvSonsReglage) : le pack SteamU, ou les vrais sons de la console de la famille du thème (repli sur le
     // pack, emplacement par emplacement) ; « theme » par défaut : la console si ses sons sont importés, sinon SteamU
     {
       cle: "pcv-sons-famille",
       def: "theme",
-      get nom() {
-        return window.__pcvSonsReglage?.nom(consoleDe(courant)) ?? Tr("themes.reg.sons");
+      nom: Tr("themes.reg.sons"),
+      get bulle() {
+        return window.__pcvSonsReglage?.nom(consoleDe(courant));
       },
       ic: pictoReg('<path d="M3.5 12h1.5M7.5 8.5v7M11.5 5v14M15.5 8v8M19.5 10.5v3"/>'),
       val: (v) => window.__pcvSonsReglage?.val(v, consoleDe(courant)) ?? "SteamU",
       suivant: (v) => window.__pcvSonsReglage?.suivant(v, consoleDe(courant)) ?? v
-    },
-    // les jeux de l'accueil (console.js) : seulement ceux installés sur la console, ou tous ; le reste est dans la Bibliothèque
-    {
-      cle: "pcv-accueil-jeux",
-      def: "installes",
-      nom: Tr("themes.reg.jeux"),
-      ic: pictoReg('<path d="M7 8h10a4 4 0 0 1 3.9 4.9l-.6 2.6a2 2 0 0 1-3.4.9L15 14.5H9l-1.9 1.9a2 2 0 0 1-3.4-.9l-.6-2.6A4 4 0 0 1 7 8z"/><path d="M8 10.5v2.5M6.75 11.75h2.5"/>'),
-      val: (v) => v === "tous" ? Tr("themes.reg.tous") : Tr("themes.reg.installes"),
-      suivant: (v) => v === "tous" ? "installes" : "tous"
-    },
-    // les symboles de touches affichés (barre-haut.js, __pcvTouche) : ceux de la manette branchée, ou une famille imposée
-    // (la Legion Go passe par Handheld Daemon, qui se fait passer pour une DualSense alors que ses boutons portent A B X Y)
-    {
-      cle: "pcv-touches",
-      def: "auto",
-      nom: Tr("themes.reg.touches"),
-      ic: pictoReg('<circle cx="12" cy="6" r="2.6"/><circle cx="12" cy="18" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="12" r="2.6"/>'),
-      val: (v) => FAMILLES_TOUCHES[v] || Tr("themes.app_auto"),
-      suivant: (v) => {
-        const k = Object.keys(FAMILLES_TOUCHES);
-        return k[(k.indexOf(v) + 1) % k.length];
-      }
-    },
-    // les LED des sticks (led.js) : oui = la couleur du thème, et l'ambiance du casino quand on y entre ; non = on n'y touche pas ;
-    // écran = comme oui, mais en jeu les sticks suivent l'écran (Ambideck). court : le nom passe dans la bulle, pour que la ligne tienne
-    {
-      cle: "pcv-led",
-      def: "theme",
-      nom: Tr("themes.reg.led"),
-      court: true,
-      ic: LED_IC,
-      val: (v) => LED_NOMS[v] || LED_NOMS.theme,
-      suivant: (v) => {
-        const k = Object.keys(LED_NOMS);
-        return k[(k.indexOf(v) + 1) % k.length];
-      }
-    },
-    // éteindre le suivi de l'écran pour le jeu en cours seulement (comme « In this game » d'Ambideck) : montré seulement
-    // quand un jeu tourne (siJeu), la ligne des réglages garde sinon sa place
-    {
-      cle: LED_SANS,
-      def: [],
-      nom: Tr("themes.reg.led_jeu"),
-      court: true,
-      siJeu: true,
-      ic: LED_IC,
-      val: (v) => sansListe(v).includes(ledJeu()) ? Tr("steamu.app.non") : Tr("steamu.app.oui"),
-      suivant: (v) => {
-        const id = ledJeu(), l = sansListe(v);
-        return !id ? l : l.includes(id) ? l.filter((x) => x !== id) : [...l, id];
-      }
-    },
-    // mode débogage du casino de Luigi (casino-jeux.js, casino.js) : pièces illimitées, bourse et boîte jamais touchées
-    // musique du casino (casino.js, MUSIQUE_CLE) : celle de la salle, des tables et des bornes, ou le silence
-    {
-      cle: "pcv-casino-musique",
-      def: true,
-      nom: Tr("themes.reg.musique_casino"),
-      court: true,
-      ic: pictoReg('<path d="M9 17V5l10-2v12"/><circle cx="6.5" cy="17" r="2.5"/><circle cx="16.5" cy="15" r="2.5"/>'),
-      val: (v) => v ? Tr("steamu.app.oui") : Tr("steamu.app.non"),
-      suivant: (v) => !v
-    },
-    {
-      cle: "pcv-casino-illimite",
-      def: false,
-      nom: Tr("themes.reg.pieces_illimitees"),
-      court: true,
-      ic: pictoReg('<circle cx="12" cy="12" r="8.5"/><path d="M8.2 12c1.4-2.4 2.6-2.4 3.8 0s2.4 2.4 3.8 0c-1.4-2.4-2.6-2.4-3.8 0s-2.4 2.4-3.8 0z"/>'),
-      val: (v) => v ? Tr("steamu.app.oui") : Tr("steamu.app.non"),
-      suivant: (v) => !v
     }
   ];
   const PLAQUE = { cote: 30, haut: -12, bas: -10, rayon: 30, fondu: 18 };
-  const ONGLETS_DEFILE = 860;
   const CSS = `
     #pcv-themes.pcvth-hote { position: fixed; inset: ${U(98)} 0 0 0; z-index: 8600; background: var(--pcv-fond-page); opacity: 0; pointer-events: none; transform: scale(1.03); transition: opacity .22s, transform .22s; }
     #pcv-themes.pcvth-hote.on { opacity: 1; pointer-events: auto; transform: none; }
@@ -1244,22 +1205,28 @@
       border-radius: ${U(28)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(26)}; font-weight: 900; }
     .pcvth .tete i { width: ${U(42)}; height: ${U(42)}; border-radius: 50%; background: #fff; box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; }
     .pcvth .tete i::before { content: ""; width: ${U(24)}; height: ${U(24)}; background: #ff5f95; -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
-    .pcvth .onglets { position: absolute; left: ${U(250)}; top: ${U(14)}; height: ${U(48)}; display: flex; align-items: center; gap: ${U(6)}; padding: ${U(4)}; border-radius: ${U(24)};
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); }
-    .pcvth .onglets b { height: ${U(40)}; padding: 0 ${U(18)}; border-radius: ${U(20)}; display: flex; align-items: center; gap: ${U(8)}; font-size: ${U(16)}; font-weight: 800; white-space: nowrap; }
-    .pcvth .onglets b small { min-width: ${U(22)}; height: ${U(22)}; padding: 0 ${U(6)}; border-radius: ${U(11)}; background: rgba(120,135,155,.16); font-size: ${U(12)}; font-weight: 900; display: flex; align-items: center; justify-content: center; }
     
-    .pcvth .onglets .defile { position: relative; display: flex; align-items: center; gap: ${U(6)}; max-width: ${U(ONGLETS_DEFILE)}; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; scroll-behavior: smooth;
-      -webkit-mask: linear-gradient(90deg, transparent, #000 ${U(14)}, #000 calc(100% - ${U(14)}), transparent); mask: linear-gradient(90deg, transparent, #000 ${U(14)}, #000 calc(100% - ${U(14)}), transparent); padding: 0 ${U(10)}; }
+    .pcvth .onglets { position: absolute; left: ${U(250)}; top: ${U(14)}; height: ${U(48)}; max-width: calc(100vw - ${U(274)}); display: flex; align-items: center; gap: ${U(4)}; padding: ${U(4)}; border-radius: ${U(24)};
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); }
+    .pcvth .onglets b { height: ${U(40)}; padding: 0 ${U(11)}; border-radius: ${U(20)}; display: flex; align-items: center; gap: ${U(6)}; font-size: ${U(15)}; font-weight: 800; white-space: nowrap; }
+    .pcvth .onglets b small { min-width: ${U(20)}; height: ${U(20)}; padding: 0 ${U(5)}; border-radius: ${U(10)}; background: rgba(120,135,155,.16); font-size: ${U(11)}; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+    
+    .pcvth .onglets .defile { position: relative; flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: ${U(4)}; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; scroll-behavior: smooth;
+      padding: ${U(12)} ${U(10)}; margin: ${U(-12)} 0; }
+    .pcvth .onglets .defile.deborde { -webkit-mask: linear-gradient(90deg, transparent, #000 ${U(14)}, #000 calc(100% - ${U(14)}), transparent); mask: linear-gradient(90deg, transparent, #000 ${U(14)}, #000 calc(100% - ${U(14)}), transparent); }
     .pcvth .onglets .defile::-webkit-scrollbar { display: none; }
-    .pcvth .onglets b.actif { background: #2f3a4a; color: #fff; }
+    .pcvth .onglets b.actif { background: var(--pcv-cyan); color: var(--pcv-sur-accent); }   
     .pcvth .onglets b.actif small { background: rgba(255,255,255,.22); }
     .pcvth .onglets b.sel { transform: none; background: var(--pcv-cyan-plein); color: #fff; }
     .pcvth .onglets u { text-decoration: none; height: ${U(26)}; padding: 0 ${U(8)}; border-radius: ${U(13)}; display: flex; align-items: center; background: radial-gradient(circle at 50% 35%, #5c6678, #2f3a4a); color: #fff; font-size: ${U(11)}; font-weight: 900; }
-    .pcvth .etagere { position: absolute; left: ${U(48)}; top: ${U(80)}; width: ${U(600)}; height: ${U(520)}; overflow-y: auto; overflow-x: hidden; padding: ${U(14)} ${U(16)} ${U(30)};
-      scrollbar-width: none; touch-action: pan-y; -webkit-mask: linear-gradient(180deg, transparent 0, #000 ${U(14)}, #000 calc(100% - ${U(30)}), transparent); mask: linear-gradient(180deg, transparent 0, #000 ${U(14)}, #000 calc(100% - ${U(30)}), transparent); }
+    
+    .pcvth .etagere { position: absolute; left: ${U(48)}; top: ${U(80)}; width: ${U(600)}; height: ${U(500)}; overflow-y: auto; overflow-x: hidden; padding: ${U(14)} ${U(16)} ${U(40)};
+      scroll-padding: ${U(14)} 0 ${U(40)}; scrollbar-width: none; touch-action: pan-y; -webkit-mask: linear-gradient(180deg, transparent 0, #000 ${U(14)}, #000 calc(100% - ${U(30)}), transparent); mask: linear-gradient(180deg, transparent 0, #000 ${U(14)}, #000 calc(100% - ${U(30)}), transparent); }
     .pcvth .etagere::-webkit-scrollbar { display: none; }
-    .pcvth .rail { display: grid; grid-template-columns: repeat(3, 1fr); gap: ${U(22)} ${U(20)}; }
+    
+    .pcvth .chapeau { margin: 0 ${U(6)} ${U(14)}; font-size: ${U(16)}; font-weight: 800; color: var(--pcv-texte2); }
+    .pcvth .chapeau:empty { display: none; }
+    .pcvth .rail { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: ${U(22)} ${U(20)}; }   
     .pcvth .carte { position: relative; border-radius: ${U(22)}; padding: ${U(6)} ${U(6)} 0; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); }
     .pcvth .carte .vig { position: relative; height: ${U(108)}; border-radius: ${U(17)}; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
     .pcvth .vig .mp { position: absolute; left: 50%; top: ${U(8)}; width: ${U(56)}; height: ${U(10)}; margin-left: ${U(-28)}; border-radius: ${U(5)}; background: rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
@@ -1293,12 +1260,12 @@
     .pcvth .mini .tu.p { width: ${U(104)}; height: ${U(104)}; border-radius: ${U(16)}; padding: ${U(5)}; background: #fff; box-shadow: 0 ${U(3)} ${U(6)} rgba(0,0,0,.22); }
     .pcvth .mini .tu.p i { border-radius: ${U(11)}; }
     .pcvth .mini .tu.p.s { box-shadow: 0 0 0 ${U(4)} #fff, 0 0 0 ${U(9)} var(--a), 0 ${U(6)} ${U(14)} rgba(0,0,0,.25); transform: scale(1.08); }
-    .pcvth .mini .bu { position: absolute; top: ${U(452)}; height: ${U(54)}; padding: 0 ${U(22)} 0 ${U(8)}; border-radius: ${U(27)}; display: flex; align-items: center; gap: ${U(10)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(17)}; font-weight: 800; white-space: nowrap; }
+    .pcvth .mini .bu { position: absolute; top: ${U(452)}; height: ${U(54)}; padding: 0 ${U(22)} 0 ${U(8)}; border-radius: ${U(27)}; display: flex; align-items: center; gap: ${U(10)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(17)}; font-weight: 800; color: var(--pcv-texte); white-space: nowrap; }
     .pcvth .mini .bu i { width: ${U(38)}; height: ${U(38)}; border-radius: 50%; background: var(--k); }
     .pcvth .mini .zo, .pcvth .mini .bs { position: absolute; bottom: ${U(24)}; height: ${U(46)}; border-radius: ${U(23)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); }
-    .pcvth .vitrine .nom { position: absolute; left: ${U(20)}; bottom: ${U(18)}; z-index: 3; display: flex; align-items: baseline; gap: ${U(10)}; padding: ${U(8)} ${U(18)}; border-radius: ${U(20)}; background: rgba(255,255,255,.94);
-      box-shadow: 0 ${U(4)} ${U(12)} rgba(0,0,0,.14); font-size: ${U(22)}; font-weight: 900; color: #3a4252; max-width: calc(100% - ${U(150)}); white-space: nowrap; overflow: hidden; }
-    .pcvth .vitrine .nom small { font-size: ${U(14)}; font-weight: 800; color: #7a8494; overflow: hidden; text-overflow: ellipsis; }
+    .pcvth .vitrine .nom { position: absolute; left: ${U(20)}; bottom: ${U(18)}; z-index: 3; display: flex; align-items: baseline; gap: ${U(10)}; padding: ${U(8)} ${U(18)}; border-radius: ${U(20)}; background: color-mix(in srgb, var(--pcv-carte) 94%, transparent);
+      box-shadow: 0 ${U(4)} ${U(12)} rgba(0,0,0,.14); font-size: ${U(22)}; font-weight: 900; color: var(--pcv-texte); max-width: calc(100% - ${U(150)}); white-space: nowrap; overflow: hidden; }
+    .pcvth .vitrine .nom small { font-size: ${U(14)}; font-weight: 800; color: var(--pcv-texte2); overflow: hidden; text-overflow: ellipsis; }
     .pcvth .vitrine .fam { position: absolute; right: ${U(20)}; bottom: ${U(18)}; z-index: 3; padding: ${U(8)} ${U(14)}; border-radius: ${U(18)}; background: var(--a); color: #fff; font-size: ${U(14)}; font-weight: 900; box-shadow: 0 0 0 ${U(3)} #fff, 0 ${U(4)} ${U(12)} rgba(0,0,0,.16); }
     .pcvth .vitrine .note { position: absolute; right: ${U(20)}; top: ${U(70)}; z-index: 3; display: none; align-items: center; gap: ${U(8)}; padding: ${U(6)} ${U(14)} ${U(6)} ${U(8)}; border-radius: ${U(18)}; background: rgba(255,255,255,.94); font-size: ${U(14)}; font-weight: 900; color: #3a4252; }
     .pcvth .vitrine .note.on { display: flex; }
@@ -1318,16 +1285,15 @@
     .pcvth .act.plein { background: var(--pcv-cyan); color: #fff; box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${U(8)} ${U(18)} color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent); }
     .pcvth .act.plein u { background: #fff; color: var(--pcv-cyan-plein); }
     .pcvth .act.eteint { opacity: .45; }
-    .pcvth .reglages { position: absolute; left: ${U(24)}; top: ${U(616)}; display: flex; gap: ${U(6)}; }   
-    .pcvth .reg { height: ${U(50)}; padding: 0 ${U(12)} 0 ${U(6)}; border-radius: ${U(25)}; display: flex; align-items: center; gap: ${U(6)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(14)}; font-weight: 800; white-space: nowrap; }
-    .pcvth .reg > i { width: ${U(36)}; height: ${U(36)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; background: #eef2f6; font-size: ${U(17)}; }
+    
+    .pcvth .reglages { position: absolute; left: ${U(24)}; top: ${U(590)}; display: grid; grid-template-columns: repeat(3, auto); gap: ${U(6)}; }
+    .pcvth .reg { height: ${U(42)}; padding: 0 ${U(14)} 0 ${U(5)}; border-radius: ${U(21)}; display: flex; align-items: center; gap: ${U(6)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(14)}; font-weight: 800; white-space: nowrap; }
+    .pcvth .reg > i { width: ${U(32)}; height: ${U(32)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; background: #eef2f6; font-size: ${U(17)}; }
     .pcvth .reg em { font-style: normal; color: var(--pcv-cyan-plein); font-weight: 900; }
-    .pcvth .reg.serre { padding: 0 ${U(8)} 0 ${U(5)}; }   
-    .pcvth .reg.serre .nm { display: none; }   
     .pcvth .reg .nv { display: flex; gap: ${U(3)}; align-items: flex-end; height: ${U(18)}; }
     .pcvth .reg .nv b { width: ${U(6)}; border-radius: ${U(2)}; background: #d3dae2; }
     .pcvth .reg .nv b.on { background: var(--pcv-cyan-plein); }
-    .pcvth .retour { position: absolute; right: ${U(24)}; top: ${U(622)}; height: ${U(40)}; display: flex; align-items: center; gap: ${U(8)}; padding: 0 ${U(16)} 0 ${U(6)}; border-radius: ${U(20)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(15)}; font-weight: 800; }
+    .pcvth .retour { position: absolute; right: ${U(24)}; top: ${U(615)}; height: ${U(40)}; display: flex; align-items: center; gap: ${U(8)}; padding: 0 ${U(16)} 0 ${U(6)}; border-radius: ${U(20)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(15)}; font-weight: 800; }
     .pcvth .retour u { text-decoration: none; width: ${U(28)}; height: ${U(28)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 35%, #5c6678, #2f3a4a); color: #fff; font-size: ${U(13)}; font-weight: 900; }
     .pcvth .bandeau { position: absolute; left: 50%; bottom: ${U(28)}; transform: translate(-50%, ${U(20)}); opacity: 0; pointer-events: none; display: flex; align-items: center; gap: ${U(14)}; padding: ${U(8)} ${U(10)} ${U(8)} ${U(24)};
       border-radius: ${U(32)}; background: rgba(255,255,255,.97); box-shadow: 0 ${U(12)} ${U(30)} rgba(0,0,0,.25), 0 0 0 ${U(4)} var(--pcv-cyan-plein); font-size: ${U(18)}; font-weight: 900; color: #3a4252; transition: opacity .2s, transform .25s cubic-bezier(.3,1.5,.5,1); white-space: nowrap; }
@@ -1338,8 +1304,8 @@
     .pcvth.essai .bandeau { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
     .pcvth > :not(.bandeau) { transition: opacity .25s; }
     
-    .pcvth .act.rouge { background: linear-gradient(180deg, #ff8a8a, #e5484d); color: #fff; box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.35), 0 ${U(8)} ${U(18)} rgba(229,72,77,.4); }
-    .pcvth .act.rouge u { background: rgba(255,255,255,.3); }
+    .pcvth .act.rouge { flex: none; width: ${U(56)}; background: linear-gradient(180deg, #ff8a8a, #e5484d); color: #fff; box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.35), 0 ${U(8)} ${U(18)} rgba(229,72,77,.4); }
+    .pcvth .act.rouge u { width: ${U(36)}; height: ${U(36)}; background: rgba(255,255,255,.3); }
     .pcvth .act[hidden] { display: none; }
     
     .pcvth .sup { position: absolute; inset: 0; z-index: 6; display: none; }
@@ -1399,31 +1365,21 @@
   const reglageHTML = (r) => {
     const v = lire(r.cle, r.def);
     const val = r.niveaux ? `<span class="nv">${r.niveaux.slice(1).map((n, i) => `<b class="${v >= n - 1e-3 ? "on" : ""}" style="height:${40 + i * 30}%"></b>`).join("")}</span>${r.cle === "pcv-bruitages" && !(v > 0) ? `<em>${Tr("steamu.app.non")}</em>` : ""}` : `<em>${r.val(v)}</em>`;
-    return `<div class="reg pf" data-pcv-nom="${r.nom}"><i>${r.ic}</i>${r.niveaux || r.court ? "" : `<span class="nm">${r.nom} :</span>`} ${val}</div>`;
+    return `<div class="reg pf" data-pcv-nom="${r.bulle ?? r.nom}"><i>${r.ic}</i><span class="nm">${r.nom} :</span> ${val}</div>`;
   };
-  const ajusterReglages = () => {
-    const l = $(".reglages"), rv = racine?.querySelector(".retour");
-    if (!l || !rv) return;
-    const regs = [...l.children].filter((e) => e.querySelector(".nm")).reverse();
-    for (const e of regs) {
-      if (l.getBoundingClientRect().right <= rv.getBoundingClientRect().left - 8) break;
-      e.classList.add("serre");
-    }
-  };
-  const reglages = () => REGLAGES.filter((r) => !r.siJeu || ledJeu());
+  const reglages = () => REGLAGES;
   const rendreReglages = () => {
     $(".reglages").innerHTML = reglages().map(reglageHTML).join("");
-    ajusterReglages();
   };
   let jx = [];
   const construire = () => {
     racine = document.createElement("div");
     racine.className = "pcvth";
-    racine.innerHTML = `<div class="tete"><i style="--m:${echap(MASQUE_PINCEAU)}"></i>Th\xE8mes</div><div class="onglets"></div>
-      <div class="etagere"><div class="rail"></div></div>
+    racine.innerHTML = `<div class="tete"><i style="--m:${echap(MASQUE_PINCEAU)}"></i>${echap(Tr("themes.titre"))}</div><div class="onglets"></div>
+      <div class="etagere"><div class="chapeau"></div><div class="rail"></div></div>
       <div class="vitrine"><div class="ecran"><div class="mini"></div></div><div class="note"><i><b></b><b></b><b></b></i>Musique du th\xE8me</div><div class="nom"></div><div class="fam"></div></div>
       <div class="espaces"></div>
-      <div class="actions"><div class="act pf" data-a="ecouter"><u>${T(3)}</u><span>\xC9couter</span></div><div class="act pf" data-a="essayer"><u>${T(4)}</u>Essayer</div><div class="act pf plein" data-a="appliquer"><u>${T(1)}</u>Appliquer</div><div class="act pf rouge" data-a="supprimer" hidden><u>${icoSuppr()}</u>${echap(Tr("themes.supprimer"))}</div></div>
+      <div class="actions"><div class="act pf" data-a="ecouter"><u>${T(3)}</u><span>${echap(Tr("themes.ecouter"))}</span></div><div class="act pf" data-a="essayer"><u>${T(4)}</u>${echap(Tr("themes.essayer"))}</div><div class="act pf plein" data-a="appliquer"><u>${T(1)}</u>${echap(Tr("themes.appliquer"))}</div><div class="act pf rouge" data-a="supprimer" hidden aria-label="${echap(Tr("themes.supprimer"))}" data-pcv-nom="${echap(Tr("themes.supprimer"))}"><u>${icoSuppr()}</u></div></div>
       <div class="reglages"></div><div class="retour pf"><u>${T(2)}</u>${Tr("themes.revenir")}</div>
       <div class="bandeau"><span class="bn"></span><div class="act pf" data-b="garder"><u>${T(1)}</u>${Tr("themes.garder")}</div><div class="act pf" data-b="annuler"><u>${T(2)}</u>${Tr("themes.revenir")}</div></div>
       <div class="sup"><div class="voile"></div><div class="boite"><div class="t"><u>${icoSuppr()}</u><span></span></div><p></p>
@@ -1492,8 +1448,13 @@
     for (const el of [e, $(".vitrine")]) {
       el.style.setProperty("--a", t.accent);
     }
-    m.style.setProperty("--pcv-verre", `linear-gradient(180deg, ${v[0]}, ${v[1]})`);
-    m.style.setProperty("--pcv-ombre", FAMILLES[t.famille].ombre);
+    if (apparenceSombre()) {
+      m.style.removeProperty("--pcv-verre");
+      m.style.removeProperty("--pcv-ombre");
+    } else {
+      m.style.setProperty("--pcv-verre", `linear-gradient(180deg, ${v[0]}, ${v[1]})`);
+      m.style.setProperty("--pcv-ombre", FAMILLES[t.famille].ombre);
+    }
     m.style.setProperty("--a2", t.accent2 || t.accent);
     if (m.dataset.famille !== t.famille) {
       m.dataset.famille = t.famille;
@@ -1552,8 +1513,9 @@
     importeId: (id) => importes.some((t) => t.id === "importe:" + id)
   };
   const dessinerOnglets = () => {
-    $(".onglets").innerHTML = `<u>${T(5)}</u><span class="defile">` + CATS.map(([c, n]) => `<b data-cat="${c}" class="pf${c === cat ? " actif" : ""}">${n}${SITES[c] ? "" : `<small>${dans(c).length}</small>`}</b>`).join("") + `</span><u>${T(6)}</u>`;
+    $(".onglets").innerHTML = `<u>${T(5)}</u><span class="defile">` + CATS.map(([c, n]) => `<b data-cat="${c}" class="pf${c === cat ? " actif" : ""}">${n}${c === "fonds" || c === "importes" ? `<small>${dans(c).length}</small>` : ""}</b>`).join("") + `</span><u>${T(6)}</u>`;
     const d = $(".onglets .defile"), a = d.querySelector(".actif");
+    d.classList.toggle("deborde", d.scrollWidth > d.clientWidth + 1);
     if (!a) return;
     if (a.offsetLeft < d.scrollLeft + 10) d.scrollLeft = a.offsetLeft - 10;
     else if (a.offsetLeft + a.offsetWidth > d.scrollLeft + d.clientWidth - 10) d.scrollLeft = a.offsetLeft + a.offsetWidth - d.clientWidth + 10;
@@ -1562,6 +1524,7 @@
     if (!racine) return;
     const liste = dans(cat);
     dessinerOnglets();
+    $(".chapeau").textContent = cat === "couleurs" ? Tr("themes.couleurs_texte") : "";
     $(".rail").innerHTML = liste.length ? liste.map((t) => carte(t, jx)).join("") : `<div class="vide">${VIDES[cat] || ""}</div>`;
     rendreReglages();
     const sa = $('.actions [data-a="supprimer"]');
@@ -1626,10 +1589,7 @@
     const v = lire(r.cle, r.def);
     const n = r.niveaux ? r.niveaux[(r.niveaux.findIndex((x) => Math.abs(x - v) < 1e-3) + 1) % r.niveaux.length] : r.suivant(v);
     ecrire(r.cle, n);
-    if (r.cle === "pcv-interface") window.__pcvInterface?.(n);
     if (r.cle === "pcv-apparence") window.__pcvApparence?.choisir(n);
-    if (r.cle === "pcv-led") window.__pcvLedReglage?.(n)?.catch?.(() => {
-    });
     if (r.cle === "pcv-volume-musique") L.forEach((a) => {
       if (!a.paused && cibles.get(a) !== 0) viser(a, n);
     });
@@ -1952,7 +1912,7 @@
       }
       if (b === 10) {
         zone = "reglages";
-        rsel = reglages().length - 1;
+        rsel = 2;
         return bouge();
       }
       return true;
@@ -1963,7 +1923,7 @@
         return true;
       }
       if (b === 11) {
-        if (rsel === 0) {
+        if (rsel % 3 === 0) {
           son("bord");
           return true;
         }
@@ -1971,11 +1931,23 @@
         return bouge();
       }
       if (b === 12) {
-        if (rsel === reglages().length - 1) {
+        if (rsel % 3 === 2 || rsel === reglages().length - 1) {
           son("bord");
           return true;
         }
         rsel++;
+        return bouge();
+      }
+      if (b === 10) {
+        if (rsel + 3 >= reglages().length) {
+          son("bord");
+          return true;
+        }
+        rsel += 3;
+        return bouge();
+      }
+      if (b === 9 && rsel >= 3) {
+        rsel -= 3;
         return bouge();
       }
       if (b === 9 && SITES[cat]) {
@@ -1984,7 +1956,7 @@
         return bouge();
       }
       if (b === 9) {
-        zone = rsel >= 3 ? "actions" : "grille";
+        zone = rsel === 2 ? "actions" : "grille";
         if (zone !== "grille") return bouge();
         sel = Math.max(0, Math.min(n - 1, Math.floor((n - 1) / 3) * 3 + Math.min(2, rsel)));
         son("bouge");
@@ -2044,7 +2016,7 @@
     if (ecranId) return;
     for (const m of ms) {
       const c = m.target;
-      if (c === document.body || ECRANS_IDS.has(c.id) || c.classList?.contains("pcv-panneau") || [...m.addedNodes, ...m.removedNodes].some((n) => ECRANS_IDS.has(n.id) || n.classList?.contains("pcv-panneau"))) {
+      if (c === document.body || c === document.documentElement || ECRANS_IDS.has(c.id) || c.classList?.contains("pcv-panneau") || [...m.addedNodes, ...m.removedNodes].some((n) => ECRANS_IDS.has(n.id) || n.classList?.contains("pcv-panneau"))) {
         ecranId = requestAnimationFrame(() => {
           ecranId = 0;
           musique();
@@ -2055,6 +2027,7 @@
   };
   const obs = new MutationObserver(surEcran);
   obs.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-pcv-page", "hidden", "class", "data-ecran", "data-cat"] });
+  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
   let tic = 0;
   const suivi = setInterval(() => {
     brancher();

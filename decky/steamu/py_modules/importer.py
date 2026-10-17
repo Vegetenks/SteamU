@@ -3,6 +3,7 @@ import mii, badges, mii_moteur, moteur_ffl
 
 ICI = pathlib.Path(__file__).resolve().parent
 EMPREINTES = ICI.parent / "donnees" / "empreintes-sons.json"    
+RENOMMAGE_WIIU = ICI.parent / "donnees" / "sons-empreintes-wiiu.json"   
 CONNUS = ICI.parent / "donnees" / "fichiers-connus.json"        
 ANALYSE = ICI / "empreinte_son.py"
 EXTRAIRE = ICI / "extraire.py"
@@ -11,7 +12,7 @@ TEMP = None
 TRAVAIL = "steamu-import-"
 _travail = None                      
 
-VISAGES = ("AFLResHigh_2_3.dat", 4579008, "4a4be71d75162c20b48720ef89cd3d4e6cd4e8e21bcbc2aed63ee08d96de7722")
+VISAGES = ("AFLResHigh_2_3.dat",)   
 CLE_3DS = ("boot9.bin", 65536, "2f88744feed717856386400a44bba4b9ca62e76a32c715d4f309c399bf28166f")
 TAILLE_BASE_MAX = 4 * 1024 * 1024    
 FICHIERS_MAX = 5000                  
@@ -30,8 +31,8 @@ NOM_MAX, NOMS_MAX = 80, 10
 TETE = 0x200                         
 SAUTES = {"Nintendo 3DS"}            
 CHEMIN_SUR = re.compile(r"(?:[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}/){0,6}[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}")
-EXIGE = {"mii": ["mii/moteur/ffl-emscripten.js", "mii/AFLResHigh_2_3.dat", "mii/corps"], "casino": ["luigi", "casino-luigi/sons"], "badges": ["badges"], "sons": ["sons"]}
-MANQUE = {"mii/moteur/ffl-emscripten.js": "moteur-mii", "mii/AFLResHigh_2_3.dat": "visages", "mii/corps": "corps-mii", "luigi": "sm64ds",
+EXIGE = {"mii": ["mii/moteur/ffl-emscripten.js", "mii/AFLResHigh_2_3.dat"], "casino": ["luigi", "casino-luigi/sons"], "badges": ["badges"], "sons": ["sons"]}
+MANQUE = {"mii/moteur/ffl-emscripten.js": "moteur-mii", "mii/AFLResHigh_2_3.dat": "visages", "luigi": "sm64ds",
           "casino-luigi/sons": "sm64ds", "badges": "badges", "sons": "sons"}
 PERMIS = {"badge-arcade": ("badge-arcade/modeles/romfs/", "badge-arcade/romfs-eur/layout-png/", "sons/badge-arcade/romfs/"),
           "boss": ("badge-arcade/bornes/", "badges/"), "collection": ("badges/",), "machine-hall": ("badge-arcade/machine-hall.glb",),
@@ -187,6 +188,33 @@ def _ranger_connu(chemin, nom, x):
         if e["vers"].startswith("garde-robe/"): x["garde_robe"] = True
     else: r["deja"] += 1
 
+FFL_ENTETE, FFL_VERSION, FFL_TABLES = 0x4D00, 0x00070000, ((0x40, 0x1710), (0x1740, 0x4CD0))
+FFL_TAILLE = (1 << 20, 32 << 20)     
+FFL_PARTIES_MIN = 100                
+
+def _veut_ffl(tete, taille, nom):
+    return tete[:4] in (b"FFRA", b"ARFF") and FFL_TAILLE[0] <= taille <= FFL_TAILLE[1]
+
+def _ffl_valide(chemin):
+    taille = os.path.getsize(chemin)
+    with open(chemin, "rb") as f: e = f.read(FFL_ENTETE)
+    if len(e) < FFL_ENTETE: return False
+    o = ">" if e[:4] == b"FFRA" else "<"
+    if struct.unpack_from(o + "I", e, 4)[0] != FFL_VERSION: return False
+    n = 0
+    for debut, fin in FFL_TABLES:
+        for p in range(debut, fin, 16):
+            pos, brut, comp = struct.unpack_from(o + "III", e, p)
+            if not brut: continue
+            if not comp or pos < FFL_ENTETE or pos + comp > taille: return False
+            n += 1
+    return n >= FFL_PARTIES_MIN
+
+def _ranger_ffl(chemin, nom, x):
+    if not _ffl_valide(chemin): _abime(x["r"], nom); return
+    if _poser(chemin, x["prive"] / "mii" / VISAGES[0]): x["r"]["visages"] += 1
+    else: x["r"]["deja"] += 1
+
 def _veut_base(tete, taille, nom):
     return 0 < taille <= TAILLE_BASE_MAX and (tete[:4] == b"CFOG" or tete[0x100:0x104] == b"DIFF")
 
@@ -268,7 +296,7 @@ def _veut_tar(tete, taille, nom): return tete[257:262] == b"ustar" or tete[:2] =
 RECONNAISSEURS = [
     (_veut_connu, _ranger_connu),
     (_veut_zip, "zip"), (_veut_tar, "tar"),
-    (_sha_exacte(VISAGES), _ranger_exact(VISAGES, "mii", "visages")),
+    (_veut_ffl, _ranger_ffl),
     (_sha_exacte(CLE_3DS), _ranger_exact(CLE_3DS, "cles", "cle3ds")),
     (_veut_base, _ranger_base),
     (_veut_3ds, _ranger_3ds),
@@ -535,6 +563,27 @@ def _ranger_son(chemin, nom, res, x, piste, libres, convertis):
         _ecrire(str(cible) + ".boucle", {"debut": round(debut, 3), "fin": round(fin, 3),
                                          "source": "import : points de la musique de référence, recalés par l'empreinte sonore"})
 
+def _renommer_echantillons_wiiu(x):
+    pistes = (_lire(RENOMMAGE_WIIU) or {}).get("pistes", [])
+    if not pistes: return
+    dossier = x["prive"] / "sons/wiiu/ui/echantillons"
+    fichiers = sorted(f for f in dossier.glob("*.ogg") if f.stem.isdigit()) if dossier.is_dir() else []
+    if not fichiers: return
+    try:
+        p = subprocess.run([PYTHON, "-I", str(ANALYSE), "--lot", str(RENOMMAGE_WIIU)],
+                           input="".join(f"{f}\t{f.suffix[1:]}\n" for f in fichiers).encode(),
+                           capture_output=True, timeout=DELAI_ANALYSE * len(fichiers), env=_env())
+        resultats = [json.loads(l) for l in p.stdout[:1 << 20].decode("utf-8", "replace").splitlines()[:len(fichiers)]]
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return
+    for f, res in zip(fichiers, resultats):
+        piste = res.get("piste") if isinstance(res, dict) else None
+        if not piste or not _chemin_sur(piste) or not piste.startswith("wiiu/ui/echantillons/"): continue
+        cible = dossier / pathlib.Path(piste).name
+        if cible == f or cible.exists(): continue
+        try: os.replace(f, cible)
+        except OSError: pass
+
 def _cle(x):
     k = x["prive"] / "cles" / CLE_3DS[0]
     return str(k) if k.is_file() and k.stat().st_size == CLE_3DS[1] else "-"
@@ -572,6 +621,7 @@ def _finir(x):
     r, lot, prive = x["r"], x["lot"], x["prive"]
     if lot["ctr"]: _ouvrir_3ds(x)
     _ecouter(x)
+    _renommer_echantillons_wiiu(x)
     if lot["ba"]:
         m, s = _extraire(x, "badge-arcade", _lot(x, lot["ba"]))
         n = _placer(x, m, s, PERMIS["badge-arcade"]); r["badge_arcade"] += n
@@ -671,6 +721,7 @@ def etat(prive, references=None):
     if not (prive / "badge-arcade/modeles/romfs/pince-standard.glb").is_file() or not _plein(prive, "sons/badge-arcade/romfs"): c.append("ba-romfs")
     if not (prive / "badge-arcade/bornes/index.json").is_file(): c.append("ba-bornes")
     c = applis["mii"]["conseils"]
+    if not _plein(prive, "mii/corps"): c.append("corps-mii")
     if not (prive / "visiteurs/index.json").is_file() and (not (prive / "mii/corps/miiBodyM_wiiu.glb").is_file()
             or any(not (prive / e["vers"]).is_file() for e in _tenues_importees())): c.append("tenues-visiteurs")
     for f in ("3ds", "wiiu", "switch"):

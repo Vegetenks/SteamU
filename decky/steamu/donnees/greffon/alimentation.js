@@ -64,10 +64,10 @@
         eclair.className = "pcv-eclair";
         repere.appendChild(eclair);
       } else if (!charge && eclair) eclair.remove();
-      const pile = carte.parentElement, steam = !!pile.querySelector("{{Percentage@BatteryIcon}}")?.textContent.trim();
+      const pile = carte.parentElement;
       pileVue = pile;
       let pct = pile.querySelector(":scope > .pcv-pct");
-      if (steam || !s?.bHasBattery) pct?.remove();
+      if (!s?.bHasBattery) pct?.remove();
       else {
         if (!pct) {
           pct = document.createElement("div");

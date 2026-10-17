@@ -12,9 +12,9 @@ def _donnees():
     return "~/" + os.path.relpath(d, maison) if d and maison and d.startswith(maison.rstrip("/") + "/") else d
 GREFFON_JS = "window.__pcvGreffon = " + json.dumps({"nom": NOM, "donnees": _donnees()}, ensure_ascii=False)
 ANCIEN_NOM, ANCIEN_DOSSIER = "Premium Clear View", "premium-clear-view"
-SCRIPTS_PRINCIPALE = ["secours.js", "icones.js", "i18n.js", "apparence.js", "barre-haut.js", "bibliotheque.js", "alimentation.js", "accueil.js", "vendor/three.min.js", "vendor/three-gltf.js", "mii3d.js", "vrais-mii.js", "garde-robe.js", "sons.js", "nintendo.js", "credits.js", "steamu.js", "mii-base.js", "vendor/qrcodegen.js", "mii-qr.js", "mii-maker.js", "themes.js", "themeplaza.js", "themezer.js", "led.js", "console.js", "mii-accueil.js", "arcade.js", "luigi-vrai.js", "luigi-wonder.js", "casino.js", "casino-jeux.js", "deco.js", "dossiers.js", "perso.js", "fiche.js", "place.js", "place3d.js", "profil.js", "amis.js", "notifs.js", "medias.js", "recherche.js", "collections.js", "connexion.js"]
-SCRIPTS_MENU = ["secours.js", "icones.js", "menu-pont.js", "menus-commun.js", "menu-home.js"]
-SCRIPTS_ACCES = ["secours.js", "icones.js", "menus-commun.js", "acces-rapide.js"]   
+SCRIPTS_PRINCIPALE = ["secours.js", "icones.js", "i18n.js", "steam-bridge.js", "apparence.js", "barre-haut.js", "bibliotheque.js", "alimentation.js", "accueil.js", "vendor/three.min.js", "vendor/three-gltf.js", "mii3d.js", "vrais-mii.js", "garde-robe.js", "sons.js", "nintendo.js", "credits.js", "steamu.js", "mii-base.js", "vendor/qrcodegen.js", "mii-qr.js", "mii-maker.js", "themes.js", "themeplaza.js", "themezer.js", "led.js", "console.js", "mii-accueil.js", "arcade.js", "luigi-vrai.js", "luigi-wonder.js", "casino.js", "casino-jeux.js", "deco.js", "dossiers.js", "perso.js", "fiche.js", "place.js", "place3d.js", "profil.js", "amis.js", "notifs.js", "medias.js", "recherche.js", "collections.js", "connexion.js"]
+SCRIPTS_MENU = ["secours.js", "icones.js", "steam-bridge.js", "menu-pont.js", "menus-commun.js", "menu-home.js"]
+SCRIPTS_ACCES = ["secours.js", "icones.js", "steam-bridge.js", "menus-commun.js", "acces-rapide.js"]   
 SCRIPTS_BULLES = ["secours.js", "apparence-suivre.js"]   
 VENDOR_JS = "if (!(window.__pcvVendor || {})[%s]) {\n%s\n;(window.__pcvVendor ||= {})[%s] = 1; }"
 if os.environ.get("PCV_SANS_CONNEXION"): SCRIPTS_PRINCIPALE.remove("connexion.js")   

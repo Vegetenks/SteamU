@@ -54,6 +54,15 @@ window.__pcvCredits = {
     { "nom": "LRCLIB", "ico": "paroles", "cheznous": "Les paroles des morceaux", "lien": "lrclib.net" }
   ],
   "divers": [
+    {
+      "nom": "Input Prompts",
+      "ico": "manette",
+      "auteurs": "Kenney",
+      "cheznous": "Les silhouettes des manettes du menu HOME",
+      "licence": "CC0",
+      "lien": "kenney.nl/assets/input-prompts",
+      "detail": "greffon/icones.js : les trac\xE9s de controller_xboxone, controller_playstation4 (pav\xE9 tactile \xE9largi), controller_playstation5 (et la DualSense Edge, avec ses boutons Fn), controller_switch_pro de la Switch et de la Switch 2 (boutons de controller_generic), controller_steam et controller_generic (aussi la base de la 8BitDo Pro 2), version 1.5, recadr\xE9s sur la viewBox 24. Les Joy-Con et les consoles portables sont dessin\xE9s par SteamU dans le m\xEAme langage, d'apr\xE8s photos."
+    },
     { "nom": "Police Nunito", "ico": "etoile", "auteurs": "Vernon Adams", "licence": "OFL", "lien": "fonts.google.com/specimen/Nunito" },
     { "nom": "Algorithme xBR", "ico": "etoile", "auteurs": "Hyllian", "licence": "non pr\xE9cis\xE9e" }
   ]

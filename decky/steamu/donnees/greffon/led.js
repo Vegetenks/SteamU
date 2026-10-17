@@ -15,6 +15,7 @@
     "ecran-fin"
   ]);
   const MODES = ["theme", "non", "ecran"];
+  const SANS = window.__pcvLedSansCle = "pcv-led-sans";
   const DELAI_MS = 4e3;
   const lire = (k, d) => {
     try {
@@ -107,7 +108,7 @@
   };
   const ecranVoulu = () => {
     const id = jeuId();
-    return mode() === "ecran" && !!id && !lire(window.__pcvLedSansCle, []).includes(id);
+    return mode() === "ecran" && !!id && !lire(SANS, []).includes(id);
   };
   let ecranAvant = null;
   const suivreEcran = () => {

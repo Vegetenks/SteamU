@@ -116,14 +116,16 @@
     #pcv-notifs button { all: unset; cursor: pointer; box-sizing: border-box; }
     #pcv-notifs .tete { display: flex; justify-content: space-between; align-items: center; padding: ${u(4)} 0 ${u(10)}; }
     #pcv-notifs h2 { margin: 0; font-size: ${u(26)}; font-weight: 900; }
-    #pcv-notifs .apercu { padding: ${u(9)} ${u(18)}; border-radius: ${u(20)}; font-size: ${u(15)}; font-weight: 900; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(var(--pcv-ombre-rgb) / .13); }
+    #pcv-notifs .apercu { padding: ${u(9)} ${u(18)}; border-radius: ${u(20)}; font-size: ${u(15)}; font-weight: 900; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); }
     #pcv-notifs h3 { margin: ${u(18)} 0 ${u(10)}; font-size: ${u(15)}; font-weight: 900; color: var(--pcv-texte2); letter-spacing: .04em; text-transform: uppercase; }
     
-    #pcv-notifs .vide { padding: ${u(18)} ${u(22)}; border-radius: ${u(22)}; border: 2px dashed rgba(150,170,195,.45); font-size: ${u(15)}; font-weight: 800; color: var(--pcv-texte2);
-      box-shadow: 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} rgba(47,184,255,.2); }
+    #pcv-notifs .vide { padding: ${u(18)} ${u(22)}; border-radius: ${u(22)}; border: 2px dashed rgba(150,170,195,.45); font-size: ${u(15)}; font-weight: 800; color: var(--pcv-texte2); }
+    
+    #pcv-notifs:not(:has(.n)) .vide { box-shadow: 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} color-mix(in srgb, var(--pcv-cyan-plein) 20%, transparent); }
     #pcv-notifs .n { display: flex; align-items: center; gap: ${u(18)}; width: 100%; border-radius: ${u(26)}; padding: ${u(16)}; margin-bottom: ${u(14)};
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(var(--pcv-ombre-rgb) / .13); transition: box-shadow .12s; }
-    #pcv-notifs .n.sel, #pcv-notifs .n:hover { box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} rgba(47,184,255,.2), 0 ${u(14)} ${u(28)} rgba(47,184,255,.35); }
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); transition: box-shadow .12s; }
+    
+    body:not(.pcv-barre-nav) #pcv-notifs .n.sel { box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} color-mix(in srgb, var(--pcv-cyan-plein) 20%, transparent), 0 ${u(14)} ${u(28)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-notifs .n i { width: ${u(76)}; height: ${u(114)}; flex: none; border-radius: ${u(14)}; background: var(--pcv-creux) center / cover; box-shadow: 0 0 0 ${u(3)} var(--pcv-lisere); }
     #pcv-notifs .n .t { flex: 1; min-width: 0; }
     #pcv-notifs .n .type { font-size: ${u(14)}; font-weight: 900; }
@@ -132,15 +134,15 @@
     #pcv-notifs .n span.d { font-size: ${u(15)}; font-weight: 800; color: var(--pcv-texte2); }
     #pcv-notifs .n.s { padding: ${u(12)} ${u(16)}; }
     #pcv-notifs .n .ic { width: ${u(52)}; height: ${u(52)}; flex: none; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center;
-      background: var(--pcv-pastille); color: var(--pcv-texte2); box-shadow: 0 0 0 ${u(3)} var(--pcv-lisere), 0 ${u(2)} ${u(6)} rgb(var(--pcv-ombre-rgb) / .18); }
+      background: var(--pcv-pastille); color: var(--pcv-texte2); box-shadow: 0 0 0 ${u(3)} var(--pcv-lisere), 0 ${u(2)} ${u(6)} rgb(from var(--pcv-ombre-c) r g b / .18); }
     #pcv-notifs .n .ic img { width: 100%; height: 100%; object-fit: cover; }
     #pcv-notifs .n .ic svg { width: 64%; height: 64%; }
     #pcv-notifs .n .ic svg:not([fill]) { fill: currentColor; }
     #pcv-notifs .n.s .type { color: var(--pcv-texte2); }
     #pcv-notifs .n.s b { font-size: ${u(17)}; margin: ${u(2)} 0 0; }
-    #pcv-notifs .n.s .agir { padding: ${u(9)} ${u(18)}; color: var(--pcv-texte); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(4)} ${u(12)} rgb(var(--pcv-ombre-rgb) / .15); }
+    #pcv-notifs .n.s .agir { padding: ${u(9)} ${u(18)}; color: var(--pcv-texte); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(4)} ${u(12)} rgb(from var(--pcv-ombre-c) r g b / .15); }
     #pcv-notifs .n .agir { padding: ${u(12)} ${u(22)}; border-radius: ${u(22)}; font-size: ${u(15)}; font-weight: 900; color: var(--pcv-sur-accent); flex: none;
-      background: var(--pcv-cyan); box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} rgba(26,154,230,.35); }
+      background: var(--pcv-cyan); box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
   </style>
   <div class="tete"><h2>Notifications</h2><button class="apercu" data-apercu>Aper\xE7u rapide</button></div><div class="liste"></div>`;
   document.body.appendChild(racine);
@@ -244,7 +246,11 @@
   });
   window.__pcvNotifsMontrer = montrer;
   (window.__pcvManette ||= {}).notifs = (b) => {
-    if (racine.hidden) return false;
+    if (racine.hidden || document.body.classList.contains("pcv-barre-nav")) return false;
+    if (b === 9 && sel === 0) {
+      window.__pcvBarreEntrer?.("notifs");
+      return true;
+    }
     if (b === 9) sel = Math.max(0, sel - 1);
     else if (b === 10) sel = Math.min(items.length - 1, sel + 1);
     else if (b === 1) {
@@ -325,7 +331,7 @@
     #pcv-toasts { position: fixed; inset: 0; z-index: 9050; pointer-events: none; font-family: var(--pcv-police); color: var(--pcv-texte); }
     #pcv-toasts .b { position: absolute; pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: ${u(12)}; box-sizing: border-box;
       height: ${u(60)}; min-width: ${u(220)}; max-width: ${u(400)}; padding: 0 ${u(22)} 0 ${u(9)}; border-radius: ${u(22)};
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(10)} ${u(24)} rgb(var(--pcv-ombre-rgb) / .22);
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(10)} ${u(24)} rgb(from var(--pcv-ombre-c) r g b / .22);
       transform-origin: var(--pointe) ${u(-10)}; animation: pcvBulleNait .42s cubic-bezier(.2,.9,.3,1.25) both; }
     
     #pcv-toasts .b::before { content: ""; position: absolute; top: ${u(-8)}; left: calc(var(--pointe) - ${u(9)}); width: ${u(18)}; height: ${u(18)};

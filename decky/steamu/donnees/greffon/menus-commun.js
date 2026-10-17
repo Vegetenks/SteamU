@@ -130,7 +130,7 @@ window.__pcvPE = (() => {
   const flouCoupeFin = () => clearInterval(coupeT);
   const devant = () => {
     try {
-      return !!O.SteamUIStore.MainRunningApp && !!principale().m_BrowserWindow.document.querySelector("{{TransparentBackground@BasicHome}}");
+      return !!window.__pcvBridge.runningApp() && !!principale().m_BrowserWindow.document.querySelector("{{TransparentBackground@BasicHome}}");
     } catch (e) {
       return false;
     }
@@ -138,7 +138,7 @@ window.__pcvPE = (() => {
   const FLOU_MAQUETTE = 12, LARGEUR_FOND = 480;
   const photo = () => Promise.race([
     O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "instantane") ?? Promise.reject(),
-    new Promise((_, non) => setTimeout(non, 3e3))
+    new Promise((_, non) => setTimeout(non, 6e3))
   ]).then((u) => {
     if (!u) throw 0;
     const im = new Image();
@@ -192,7 +192,7 @@ window.__pcvPE = (() => {
   const ico = (n) => I.svg(n, { classe: "ico" });
   const pastille = (n, c) => `<span class="pastille"${c ? ` style="color:${c}"` : ""}>${ico(n)}</span>`;
   const pile = (cl = "") => `<span class="pile ${cl}" id="header"></span>`;
-  const etat = (tete) => `<div class="pilule verre etat entre" style="--d:.15s">${ico("wifi")}<span class="sep"></span>${pile()}<span class="heure"></span>${tete ? '<span class="tete"></span>' : ""}</div>`;
+  const etat = () => `<div class="pilule verre etat entre" style="--d:.15s">${ico("wifi")}<span class="sep"></span>${pile()}<span class="heure"></span></div>`;
   const bouton = (a, cl, dl, c, p, texte) => `<div class="bouton verre ${cl} entre" style="--d:${dl}s" data-a="${a}">${pastille(p, c)}${texte}</div>`;
   const liste = (e, cfg) => {
     const racine = e.racine, id = "liste-" + cfg.cle, depuis = e.focus();
@@ -231,6 +231,34 @@ window.__pcvPE = (() => {
     racine.hidden = true;
     racine.innerHTML = `<div class="fond"></div><div class="nacre"></div>${o.html}<div class="legende entre" style="--d:.46s"><div class="pilule verre" data-a="retour"><span class="touche b">B</span><span class="retour"></span></div><div class="pilule verre y-leg" data-a="y"><span class="touche y">Y</span><span class="y-txt">${T("menus.reglages") || "R\xE9glages"}</span></div><div class="pilule verre epaules-leg"><span class="touche epaule">LB</span><span class="touche epaule">RB</span>${T("menus.morceau") || "Morceau"}</div><div class="pilule verre epaules-leg"><span class="touche epaule">LT</span><span class="touche epaule">RT</span>${T("menus.lecteur") || "Lecteur"}</div><div class="pilule verre x-leg" data-a="x"><span class="touche x">X</span><span class="x-txt">${T("acces.pause_legende") || "Pause"}</span></div><div class="pilule verre"><span class="touche a">A</span>OK</div></div>`;
     d.body.appendChild(racine);
+    try {
+      const ms = principale().MenuStore, mien = o.id === "pcv-home" ? 1 : 2, v = ms.__pcvVideurs ||= {};
+      v[mien] = (suite) => {
+        if (racine.hidden || d.visibilityState !== "visible") return suite();
+        racine.classList.add("attente");
+        let fait = false;
+        const go = () => {
+          if (!fait) {
+            fait = true;
+            suite();
+          }
+        };
+        requestAnimationFrame(() => requestAnimationFrame(go));
+        setTimeout(go, 120);
+      };
+      if (!ms.__pcvOrig) {
+        const orig = ms.__pcvOrig = { CloseSideMenus: ms.CloseSideMenus, ToggleSideMenu: ms.ToggleSideMenu, OpenSideMenu: ms.OpenSideMenu };
+        const habille = (nom, ferme) => function(...a) {
+          const cur = ms.m_eOpenSideMenu, f = ms.__pcvVideurs?.[cur];
+          if (cur && ferme(cur, a[0], a[1]) && f) return f(() => orig[nom].apply(this, a));
+          return orig[nom].apply(this, a);
+        };
+        ms.CloseSideMenus = habille("CloseSideMenus", () => true);
+        ms.ToggleSideMenu = habille("ToggleSideMenu", (cur, x, forcer) => x === cur && !forcer);
+        ms.OpenSideMenu = habille("OpenSideMenu", (cur, x) => x !== cur);
+      }
+    } catch (e) {
+    }
     const $ = (s) => racine.querySelector(s), voile = () => [...racine.querySelectorAll(".voile:not([hidden])")].pop() || null;
     const fermerVoiles = () => racine.querySelectorAll(".voile").forEach((v) => {
       v.hidden = true;
@@ -254,9 +282,12 @@ window.__pcvPE = (() => {
         }
         h.classList.toggle("pcv-bat-bas", D.documentElement.classList.contains("pcv-bat-bas"));
         h.dataset.pcvApparence = D.documentElement.dataset.pcvApparence || "clair";
-        const ac = getComputedStyle(D.documentElement).getPropertyValue("--pcv-accent").trim();
-        if (ac) racine.style.setProperty("--pcv-accent", ac);
-        else racine.style.removeProperty("--pcv-accent");
+        const cs = getComputedStyle(D.documentElement);
+        for (const v of ["--pcv-accent", "--pcv-accent2", "--pcv-cyan", "--pcv-cyan-plein"]) {
+          const ac = cs.getPropertyValue(v).trim();
+          if (ac) racine.style.setProperty(v, ac);
+          else racine.style.removeProperty(v);
+        }
         const bac = getComputedStyle(D.documentElement).getPropertyValue("--pcv-bat-accent").trim();
         if (bac) racine.style.setProperty("--pcv-bat-accent", bac);
         else racine.style.removeProperty("--pcv-bat-accent");
@@ -264,7 +295,7 @@ window.__pcvPE = (() => {
       } catch (e) {
       }
       try {
-        const P = magasin("SystemPowerStore"), charge = P.m_bHasBattery && P.m_eACState === 2;
+        const B = window.__pcvBridge.battery(), charge = B?.present && B.charging;
         for (const svg of racine.querySelectorAll('.pile svg:is([viewBox="0 0 48 36"], [viewBox="0 0 42 36"])')) {
           const r = svg.parentElement, e = r.querySelector(".pcv-eclair");
           if (charge && !e) r.appendChild(Object.assign(d.createElement("div"), { className: "pcv-eclair" }));
@@ -272,17 +303,16 @@ window.__pcvPE = (() => {
         }
         for (const r of racine.querySelectorAll(".etat .pile > *")) {
           let p = r.querySelector(":scope > .pcv-pct");
-          const steam = !!r.querySelector("{{Percentage@BatteryIcon}}")?.textContent.trim();
-          if (steam || !P.m_bHasBattery) p?.remove();
+          if (!B?.present) p?.remove();
           else {
             if (!p) r.prepend(p = Object.assign(d.createElement("div"), { className: "pcv-pct" }));
-            p.textContent = Math.round(P.m_flBatteryLevel * 100) + "%";
+            p.textContent = Math.round(B.percent * 100) + "%";
           }
         }
       } catch (e) {
       }
       try {
-        const co = magasin("SystemNetworkStore").hasNetworkConnection;
+        const co = window.__pcvBridge.network().connected;
         racine.querySelectorAll(".etat .ico").forEach((i) => i.classList.toggle("coupe", !co));
       } catch (e) {
       }
@@ -290,12 +320,12 @@ window.__pcvPE = (() => {
         e.textContent = (/* @__PURE__ */ new Date()).toTimeString().slice(0, 5).replace(/^0/, "");
       });
       try {
-        const pers = O.g_FriendsUIApp.FriendStore.self.persona;
+        const pers = window.__pcvBridge.friends();
         racine.querySelectorAll(".pseudo").forEach((e) => {
-          e.textContent = pers.m_strPlayerName || "";
+          e.textContent = pers?.m_strPlayerName || "";
         });
         const tete = getComputedStyle(principale().m_BrowserWindow.document.documentElement).getPropertyValue("--pcv-tete-mii").trim();
-        racine.style.setProperty("--pcv-pe-tete", tete || `url(${JSON.stringify(pers.avatar_url_full || pers.avatar_url_medium || "")})`);
+        racine.style.setProperty("--pcv-pe-tete", tete || `url(${JSON.stringify(pers?.avatar_url_full || pers?.avatar_url_medium || "")})`);
       } catch (e) {
       }
     };
@@ -313,7 +343,11 @@ window.__pcvPE = (() => {
       focus?.classList.remove("f");
       focus = el || null;
       if (!doigt) focus?.classList.add("f");
-      if (focus?.closest(":is(.droite, .defile)")) focus.scrollIntoView({ block: "nearest" });
+      const dl = focus?.closest(":is(.droite, .defile)");
+      if (dl) {
+        if (focus === dl.querySelector("[data-a]")) dl.scrollTop = 0;
+        else focus.scrollIntoView({ block: "nearest" });
+      }
       legende();
       o.focus?.(focus);
     };
@@ -462,10 +496,19 @@ window.__pcvPE = (() => {
         racine.classList.add("attente");
         racine.hidden = true;
         delete h.dataset.pcvPe;
-        racine.classList.remove("anim");
+        racine.classList.remove("anim", "masque-ouverture");
         fermerVoiles();
         clearInterval(minute);
         o.fermer?.();
+        clearTimeout(apres);
+        apres = setTimeout(() => {
+          let m = 1;
+          try {
+            m = principale().MenuStore.m_eOpenSideMenu;
+          } catch (e) {
+          }
+          if (d.visibilityState !== "visible" && !m) fondJeu();
+        }, 400);
         return;
       }
       let dv = false;
@@ -483,6 +526,7 @@ window.__pcvPE = (() => {
       fermerVoiles();
       doigt = Date.now() - (window.__pcvParDoigt || 0) < 1500;
       window.__pcvParDoigt = 0;
+      if (!doigt) racine.classList.add("masque-ouverture");
       racine.classList.remove("anim");
       racine.hidden = false;
       h.dataset.pcvPe = "";
@@ -518,7 +562,7 @@ window.__pcvPE = (() => {
         flouCoupeFin();
         flouter(o.id, false);
         racine.classList.add("repli");
-        fondJeu();
+        fondJeu(false, true);
       } catch (e) {
       }
       if (!doigt) {
@@ -526,6 +570,7 @@ window.__pcvPE = (() => {
         void racine.offsetWidth;
         racine.classList.add("anim");
       }
+      racine.classList.remove("masque-ouverture");
     };
     const poserPhoto = (p) => {
       racine.style.setProperty("--pcv-jeu-flou", `url(${JSON.stringify(p.flou)})`);
@@ -533,13 +578,7 @@ window.__pcvPE = (() => {
       racine.classList.toggle("bandes", p.bande > 0);
       racine.classList.add("photo");
     };
-    const appid = () => {
-      try {
-        return O.SteamUIStore.MainRunningApp?.appid || 0;
-      } catch (e) {
-        return 0;
-      }
-    };
+    const appid = () => window.__pcvBridge.runningApp()?.appid || 0;
     const enData = async (u) => {
       const b = await (await fetch(u)).blob();
       return new Promise((ok) => {
@@ -548,12 +587,18 @@ window.__pcvPE = (() => {
         f.readAsDataURL(b);
       });
     };
-    let photos = 0, enCours = null;
-    const fondJeu = (sansFlou) => {
+    let photos = 0, enCours = null, apres = 0;
+    const fondJeu = (sansFlou, garder) => {
       const a = devant() ? appid() : 0, vieille = O.__pcvPhotoJeu?.appid === a ? O.__pcvPhotoJeu : null;
+      if (!a) {
+        delete O.__pcvPhotoJeu;
+        racine.classList.remove("photo", "bandes");
+        return Promise.resolve(null);
+      }
       if (!a && O.__pcvPhotoJeu?.appid) delete O.__pcvPhotoJeu;
       if (vieille) poserPhoto(vieille);
       else racine.classList.remove("photo");
+      if (garder) return Promise.resolve(vieille);
       if (enCours) return enCours;
       const n = ++photos;
       return enCours = photo().then(async (p) => {
@@ -593,7 +638,7 @@ window.__pcvPE = (() => {
     addEventListener("resize", echelle);
     let pileAbo = null;
     try {
-      pileAbo = O.SteamClient.System.RegisterForBatteryStateChanges(() => {
+      pileAbo = window.__pcvBridge.onBattery(() => {
         if (!racine.hidden) peindreEtat();
       });
     } catch (e) {
@@ -613,5 +658,5 @@ window.__pcvPE = (() => {
     };
     return { racine, $, voile, ouvrirVoile, fermerVoiles, premier, poser, legende, bulle, focus: () => focus, auDoigt: () => doigt, sous, fin, demarrer: tour, entrer, fondJeu, versScene };
   };
-  return { O, principale, devant, esc, req, module, magasin, flou, flouSuspendre, flouCoupe, flouCoupeFin, ico, pastille, pile, etat, bouton, liste, listeChoisir, ecran };
+  return { O, principale, devant, esc, req, module, magasin, flou, flouSuspendre, flouCoupe, flouCoupeFin, photo, ico, pastille, pile, etat, bouton, liste, listeChoisir, ecran };
 })();

@@ -30,16 +30,17 @@
     #pcv-amis .tete { display: flex; justify-content: space-between; align-items: center; padding: ${u(4)} ${u(44)} ${u(16)}; }
     #pcv-amis h2 { margin: 0; font-size: ${u(26)}; font-weight: 900; }
     #pcv-amis .onglets { display: flex; gap: ${u(10)}; }
-    #pcv-amis .onglet { padding: ${u(9)} ${u(18)}; border-radius: ${u(20)}; font-size: ${u(15)}; font-weight: 900; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(var(--pcv-ombre-rgb) / .13); }
+    #pcv-amis .onglet { padding: ${u(9)} ${u(18)}; border-radius: ${u(20)}; font-size: ${u(15)}; font-weight: 900; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); }
     #pcv-amis .onglet.actif { background: var(--pcv-cyan); color: var(--pcv-sur-accent);
-      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} rgba(26,154,230,.35); }
+      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-amis .grille { display: grid; grid-template-columns: repeat(4, 1fr); gap: ${u(22)}; padding: 0 ${u(44)} ${u(30)}; }
     #pcv-amis .ami { border-radius: ${u(26)}; padding: ${u(16)}; display: flex; flex-direction: column; align-items: center; gap: ${u(10)};
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(var(--pcv-ombre-rgb) / .13); transition: box-shadow .12s, transform .12s; }
-    #pcv-amis .ami:hover, #pcv-amis .ami:focus-visible, #pcv-amis .ami.sel { transform: translateY(${u(-3)});
-      box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} rgba(47,184,255,.2), 0 ${u(14)} ${u(28)} rgba(47,184,255,.35); }
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); transition: box-shadow .12s, transform .12s; }
+    
+    body:not(.pcv-barre-nav) #pcv-amis .ami.sel, #pcv-amis .ami:focus-visible { transform: translateY(${u(-3)});
+      box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} color-mix(in srgb, var(--pcv-cyan-plein) 20%, transparent), 0 ${u(14)} ${u(28)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-amis .av { position: relative; }
-    #pcv-amis .av img { width: ${u(84)}; height: ${u(84)}; border-radius: 50%; display: block; object-fit: cover; background: var(--pcv-creux); box-shadow: 0 0 0 ${u(4)} var(--pcv-lisere), 0 ${u(6)} ${u(14)} rgb(var(--pcv-ombre-rgb) / .22); }
+    #pcv-amis .av img { width: ${u(84)}; height: ${u(84)}; border-radius: 50%; display: block; object-fit: cover; background: var(--pcv-creux); box-shadow: 0 0 0 ${u(4)} var(--pcv-lisere), 0 ${u(6)} ${u(14)} rgb(from var(--pcv-ombre-c) r g b / .22); }
     #pcv-amis .ami.parti img { filter: saturate(.7); }
     #pcv-amis .av i { position: absolute; right: ${u(2)}; bottom: ${u(2)}; width: ${u(18)}; height: ${u(18)}; border-radius: 50%; box-shadow: 0 0 0 ${u(3)} var(--pcv-lisere); }
     #pcv-amis .ami b { font-size: ${u(17)}; font-weight: 900; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -55,9 +56,9 @@
     #pcv-amis .carte small { font-size: ${u(15)}; font-weight: 800; color: var(--pcv-texte2); }
     #pcv-amis .carte .actions { display: flex; gap: ${u(12)}; }
     #pcv-amis .carte .actions button { flex: 1; text-align: center; padding: ${u(14)} 0; border-radius: ${u(24)}; font-size: ${u(17)}; font-weight: 900;
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(4)} ${u(12)} rgb(var(--pcv-ombre-rgb) / .15); }
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(4)} ${u(12)} rgb(from var(--pcv-ombre-c) r g b / .15); }
     #pcv-amis .carte .actions button.cyan { background: var(--pcv-cyan); color: var(--pcv-sur-accent);
-      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} rgba(26,154,230,.35); }
+      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
   </style>
   <div class="tete"><h2>Amis</h2><div class="onglets"><button class="onglet" data-onglet="en-ligne"></button><button class="onglet" data-onglet="tous"></button></div></div>
   <div class="grille"></div><div class="carte-zone"></div>`;
@@ -120,7 +121,7 @@
   });
   window.__pcvAmisMontrer = montrer;
   (window.__pcvManette ||= {}).amis = (b) => {
-    if (racine.hidden) return false;
+    if (racine.hidden || document.body.classList.contains("pcv-barre-nav")) return false;
     const z = racine.querySelector(".carte-zone");
     if (z.innerHTML) {
       if (b === 2) z.innerHTML = "";
@@ -130,7 +131,10 @@
     const n = liste.length;
     if (b === 11) sel = Math.max(0, sel - 1);
     else if (b === 12) sel = Math.min(n - 1, sel + 1);
-    else if (b === 9) sel = Math.max(0, sel - 4);
+    else if (b === 9 && sel < 4) {
+      window.__pcvBarreEntrer?.("amis");
+      return true;
+    } else if (b === 9) sel = Math.max(0, sel - 4);
     else if (b === 10) sel = Math.min(n - 1, sel + 4);
     else if (b === 5 || b === 6) {
       onglet = onglet === "tous" ? "en-ligne" : "tous";

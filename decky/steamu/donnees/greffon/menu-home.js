@@ -1,7 +1,7 @@
 (() => {
   window.__pcvHomeFin?.();
-  const { O, principale, devant, esc, flouSuspendre, flouCoupe, flouCoupeFin, ico, pastille, etat, bouton, ecran } = window.__pcvPE, d = document;
-  const menus = () => principale().MenuStore;
+  const { O, principale, devant, esc, flouSuspendre, flouCoupe, flouCoupeFin, photo, ico, pastille, etat, bouton, ecran } = window.__pcvPE, d = document;
+  const B = window.__pcvBridge;
   const T = (k, f, vars) => {
     try {
       return principale().m_BrowserWindow.__pcvT?.(k, vars) ?? f;
@@ -9,6 +9,7 @@
       return f;
     }
   };
+  const PLACE_VIDE = "manette-inconnue";
   const APPLIS = [
     ["aller:accueil", T("spaces.accueil.nom", "Accueil"), "accueil", "#5fd0ff, #1a9ae6"],
     ["aller:bibliotheque", T("spaces.bibliotheque.nom", "Biblioth\xE8que"), "bibliotheque", "bibliotheque"],
@@ -31,20 +32,20 @@
     });
   };
   const html = `<div class="pilule verre moi entre" style="--d:.15s" data-a="amis"><span class="photo"></span><div><b class="pseudo"></b><small>\u25CF ${T("home.en_ligne", "En ligne")}</small></div></div>
-    <div class="pilule verre titre entre" style="--d:.15s">${ico("accueil")}${T("home.titre_menu", "Menu HOME")}</div>${etat(false)}
+    <div class="pilule verre titre entre" style="--d:.15s">${ico("accueil")}${T("home.titre_menu", "Menu HOME")}</div>${etat()}
     <div class="jeu verre entre"><div class="instantane"><div class="enpause">${ico("pause")}${T("home.en_pause", "En pause")}</div><div class="logo"></div></div>
       <div class="infos"><div class="sur">${T("home.sur", "Logiciel en cours")}</div><h1></h1><div class="temps"><span>${ico("horloge")}<b class="session"></b></span><small class="total"></small></div></div></div>
     <div class="actions">
-      <div class="bouton reprendre entre" style="--d:.08s" data-a="reprendre">${pastille("lecture")}${T("home.reprendre", "Continuer")}</div>
+      <div class="bouton reprendre entre" style="--d:.08s" data-a="reprendre">${pastille("lecture")}${T("home.reprendre", "Reprendre")}</div>
       ${bouton("controleur", "", 0.12, "var(--c-manette)", "manette", `<div>${T("home.controleur", "Contr\xF4leur")}<small>${T("home.controleur.aide", "param\xE8tres de ce jeu")}</small></div>`)}
       ${bouton("fiche", "", 0.16, "var(--c-medias)", "info", `<div>${T("home.fiche_titre", "Fiche du jeu")}<small>${T("home.fiche.aide", "guides, notes, infos")}</small></div>`)}
       ${bouton("fermer", "quitter", 0.2, "", "sortie", T("home.fermer", "Fermer le logiciel"))}</div>
     <div class="aucun"><p class="entre" style="--d:.06s">${T("home.aucun_jeu", "Aucun jeu en cours.")}</p><div class="choix-h">
       ${bouton("aller:accueil", "", 0.1, "var(--c-accueil)", "accueil", T("home.accueil", "Accueil"))}
       ${bouton("mode-emploi", "", 0.14, "var(--c-param)", "aide", `<div>${T("home.mode_emploi", "Mode d'emploi")}<small>${T("home.mode_emploi.aide", "l'aide de SteamU")}</small></div>`)}</div></div>
-    <div class="pilule verre manettes entre" style="--d:.15s" data-a="manettes"><span class="liste-m"></span>${T("home.manettes", "Param\xE8tres des manettes")}</div>
     <div class="icones">${APPLIS.map(([a, n, p, f], i) => `<div class="icone entre" style="--d:${(0.22 + i * 0.03).toFixed(2)}s" data-a="${a}">${pastille(p)}${n}</div>`).join("")}</div>
-    <div class="pilule verre alim entre" style="--d:.46s" data-a="aller:alimentation">${pastille("alimentation")}${T("home.alimentation", "Alimentation")}</div>
+    <div class="bas-g"><div class="pilule verre alim entre" style="--d:.46s" data-a="aller:alimentation">${pastille("alimentation")}${T("home.alimentation", "Alimentation")}</div>
+      <div class="joueurs entre" style="--d:.46s" data-a="manettes">${[1, 2, 3, 4].map((n) => `<span class="joueur vide"><b>${n}</b>${ico(PLACE_VIDE)}<i></i></span>`).join("")}</div></div>
     <div class="voile fermer" hidden><div class="fenetre verre"><span class="pastille grosse">${ico("sortie")}</span><h2></h2><p>${T("home.fermer_perte", "Les donn\xE9es non sauvegard\xE9es seront perdues.")}</p>
       <div class="choix">${bouton("fermer-ok", "", 0, "var(--c-quitter)", "sortie", T("home.fermer", "Fermer le logiciel"))}${bouton("retour", "premier", 0, "var(--c-accueil)", "fleche", T("home.annuler", "Annuler"))}</div></div></div>
     <div class="voile fiche" hidden><div class="fenetre verre"><h2>${T("home.fiche_titre", "Fiche du jeu")}</h2><div class="choix"></div></div></div>`;
@@ -71,8 +72,8 @@
   };
   const jeu = () => {
     try {
-      const a = O.SteamUIStore.MainRunningApp;
-      return a && (O.appStore.GetAppOverviewByAppID(a.appid) || a);
+      const a = B.runningApp();
+      return a && (B.appOverview(a.appid) || a);
     } catch (x) {
       return null;
     }
@@ -89,24 +90,74 @@
     $(".fermer h2").textContent = T("home.fermer_titre", "Fermer {nom} ?", { nom: a.display_name || T("home.logiciel", "le logiciel") });
     poserImage("--pcv-home-logo", [...perso("GetCustomLogoImageURLs", a), IMG(a.appid, "logo.png"), CDN(a.appid, "logo.png")]);
   };
-  let vivant = 0, enVol = false;
-  const suivreVivant = () => {
-    clearInterval(vivant);
-    vivant = setInterval(async () => {
-      if (enVol || d.visibilityState !== "visible" || e.racine.classList.contains("fige")) return;
-      enVol = true;
-      try {
-        const u = await O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "instantane");
-        if (u && d.visibilityState === "visible" && !e.racine.classList.contains("fige")) d.documentElement.style.setProperty("--pcv-home-image", `url(${JSON.stringify(u)})`);
-      } catch (x) {
-      } finally {
-        enVol = false;
+  const SEUIL_IPS = 55, PALIERS_IPS = [30, 15], ATTENTE_DIRECT_MS = 2e3;
+  let direct = null, directs = 0;
+  const apercu = (m, ...a) => B.callPlugin(window.__pcvGreffon.nom, m, ...a).catch(() => null);
+  const garder = (im) => {
+    if (!im?.naturalWidth || !menuOuvert()) return;
+    const c = d.createElement("canvas");
+    c.width = im.naturalWidth;
+    c.height = im.naturalHeight;
+    c.getContext("2d").drawImage(im, 0, 0);
+    c.toBlob((b) => b && d.documentElement.style.setProperty("--pcv-home-image", `url(${JSON.stringify(URL.createObjectURL(b))})`), "image/jpeg", 0.9);
+  };
+  const couper = () => {
+    directs++;
+    e.racine.classList.remove("en-direct");
+    garder(direct);
+    if (direct) apercu("apercu_fin", direct.src);
+    direct = null;
+    d.querySelectorAll("img.direct").forEach(lacher);
+  };
+  const lacher = (im) => {
+    im.onerror = null;
+    im.removeAttribute("src");
+    im.remove();
+  };
+  const noire = (im) => {
+    const c = d.createElement("canvas");
+    c.width = 16;
+    c.height = 9;
+    const x = c.getContext("2d", { willReadFrequently: true });
+    x.drawImage(im, 0, 0, 16, 9);
+    return x.getImageData(0, 0, 16, 9).data.every((v, i) => i % 4 === 3 || v < 4);
+  };
+  const enDirect = async (a, palier = 0) => {
+    if (!palier) couper();
+    const n = ++directs, u = await apercu("apercu", a.appid, PALIERS_IPS[palier]);
+    if (n !== directs || !u || !menuOuvert() || e.racine.classList.contains("fige")) {
+      if (u) apercu("apercu_fin", u);
+      if (n === directs) couper();
+      return;
+    }
+    const im = direct = Object.assign(d.createElement("img"), { className: "direct", crossOrigin: "anonymous", onerror: couper, src: u });
+    e.$(".instantane").prepend(im);
+    const t0 = performance.now();
+    let vu = false, juge = false, lent = 0, t1 = 0, k = 0;
+    const veiller = (t) => {
+      if (n !== directs) return;
+      if (!vu) {
+        if (im.naturalWidth) {
+          if (noire(im)) return couper();
+          vu = true;
+          t1 = t;
+          d.querySelectorAll("img.direct").forEach((x) => x !== im && lacher(x));
+          e.racine.classList.add("en-direct");
+        } else if (t - t0 > ATTENTE_DIRECT_MS) return couper();
+      } else if (++k, t - t1 >= 1e3) {
+        lent = juge && k * 1e3 / (t - t1) < SEUIL_IPS ? lent + 1 : 0;
+        if (lent >= 2) return palier + 1 < PALIERS_IPS.length ? enDirect(a, palier + 1) : couper();
+        juge = true;
+        t1 = t;
+        k = 0;
       }
-    }, 600);
+      requestAnimationFrame(veiller);
+    };
+    requestAnimationFrame(veiller);
   };
   const vignette = (a) => {
     const n = ++vignettes;
-    (devant() ? flouCoupe().then(() => e.fondJeu(true)).finally(flouCoupeFin) : Promise.reject()).then((p) => {
+    return (devant() ? flouCoupe().then(photo).finally(flouCoupeFin) : Promise.reject()).then((p) => {
       if (!p) throw 0;
       if (n === vignettes) {
         d.documentElement.style.setProperty("--pcv-home-image", `url(${JSON.stringify(p.net)})`);
@@ -119,13 +170,7 @@
     });
   };
   let vignettes = 0;
-  const menuOuvert = () => {
-    try {
-      return menus().m_eOpenSideMenu === 1;
-    } catch (x) {
-      return false;
-    }
-  };
+  const menuOuvert = () => B.menuState() === 1;
   const fige = (oui) => e.racine.classList.toggle("fige", oui);
   const figer = async (appid) => {
     const pg = O.__pcvPg;
@@ -161,12 +206,7 @@
       }
     }, 300);
   };
-  const fermerMenu = () => {
-    try {
-      menus().CloseSideMenus();
-    } catch (x) {
-    }
-  };
+  const fermerMenu = () => B.closeMenus();
   const entree = async (cle) => await window.__pcvJeuEntree?.(cle) || null;
   const page = (f) => {
     O.__pcvAller?.("accueil");
@@ -235,6 +275,7 @@
       flou(false);
       const { x, y, w, h: ht, W, H } = placerZoom(), z = scene.firstChild, i = z.firstChild, sx = W / w, sy = H / ht, k = w / W, dy = (ht - H * k) / 2;
       const o = { duration: ZOOM_MS, easing: "cubic-bezier(.45,0,.2,1)", fill: "forwards" };
+      if (direct && e.racine.classList.contains("en-direct")) i.appendChild(direct);
       scene.style.opacity = 1;
       scene.style.setProperty("--pcv-jeu-flou", e.racine.style.getPropertyValue("--pcv-jeu-flou") || "var(--pcv-home-image)");
       scene.classList.add("reprise");
@@ -279,24 +320,34 @@
     }
     if (!await Promise.race([O.__pcvJeuReprendre?.() ?? true, new Promise((r) => setTimeout(() => r(false), 4e3))])) return e.bulle(T("home.jeu_bloque", "Le jeu ne r\xE9pond pas : il n'a pas pu \xEAtre repris pour \xEAtre ferm\xE9."));
     fermerMenu();
-    try {
-      O.SteamClient.Apps.TerminateApp(a.GetGameID?.() || a.m_gameid || String(a.appid), false);
-    } catch (x) {
-    }
+    B.closeApp(a.GetGameID?.() || a.m_gameid || String(a.appid));
   };
-  const peindreManettes = () => {
-    let n = 0;
+  const peindreManettes = async () => {
+    let l = [];
     try {
-      n = (O.ControllerStore.m_controllerList || []).length;
+      l = await principale().m_BrowserWindow.__pcvJoueurs() || [];
     } catch (x) {
     }
-    e.$(".liste-m").innerHTML = Array.from({ length: Math.max(1, n) }, () => ico("manette")).join("");
+    e.racine.querySelectorAll(".joueur").forEach((el, i) => {
+      const m = l[i]?.c;
+      el.classList.toggle("vide", !m);
+      el.title = m?.strName || "";
+      el.querySelector("svg").outerHTML = window.__pcvIcones.svg(l[i]?.picto || PLACE_VIDE, { classe: "ico" });
+      el.querySelector("i").innerHTML = m ? window.__pcvIcones.svg("pile-manette", { classe: "ico", niveau: Math.min(3, Math.floor((m.ucBatteryLevel ?? 100) / 25)) }) : "";
+    });
+    e.$(".x-txt").textContent = T("home.manettes_court", "Manettes");
   };
   const e = ecran({
     id: "pcv-home",
     html,
     premier: ".reprendre, .aucun .bouton, .icone",
     // B ramène au jeu s'il était à l'écran ; sinon il referme le menu, on reste où l'on était (comme Steam)
+    touche: (b) => {
+      if (b === 3) e.racine.querySelector(".joueurs").click();
+    },
+    // (17/10) de la barre du haut (profil), ▼ va au premier bouton (Reprendre, ou Accueil s'il n'y a pas d'appli) : le
+    // voisin géométrique, qui pénalise l'écart de côté, préférait l'icône Accueil, juste dessous, au large Reprendre
+    voisin: (f, dx, dy) => dy > 0 && f.matches(".moi") ? [...e.racine.querySelectorAll(".reprendre, .aucun .bouton")].find((x) => x.offsetWidth) || void 0 : void 0,
     legende: () => devant() && T("home.retour_jeu", "Retour au jeu"),
     retour: () => devant() ? agrandirPuisReprendre() : fermerMenu(),
     agir: (k, v) => {
@@ -313,17 +364,10 @@
       }
       if (k === "manettes") {
         fermerMenu();
-        try {
-          principale().m_Navigator.Settings("Controller");
-        } catch (x) {
-        }
-        return;
+        return B.navigate("Controller");
       }
       if (k === "controleur") {
-        try {
-          principale().m_Navigator.ControllerConfigurator.Main(jeu().appid);
-        } catch (x) {
-        }
+        B.controllerConfig(jeu().appid);
         return fermerMenu();
       }
       if (k === "jeu") {
@@ -356,8 +400,7 @@
       fige(false);
       if (a) {
         peindreJeu(a);
-        vignette(a);
-        figer(a.appid);
+        Promise.allSettled([vignette(a), figer(a.appid)]).then(() => enDirect(a));
         requestAnimationFrame(placerZoom);
       } else e.fondJeu();
     },
@@ -379,7 +422,7 @@
       if (a) peindreJeu(a);
     },
     fermer: () => {
-      clearInterval(vivant);
+      couper();
       relacher();
       flou(true);
     }
@@ -387,6 +430,7 @@
   e.demarrer();
   window.__pcvHomeFin = () => {
     clearTimeout(sortie);
+    couper();
     scene.remove();
     e.fin();
     clearInterval(attente);

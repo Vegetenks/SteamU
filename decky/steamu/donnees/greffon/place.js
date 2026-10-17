@@ -12,14 +12,14 @@
   const TR = {
     amis: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.9.2 5 2.6 5 5.8"/>',
     boutique: '<path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
-    reglages: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+    reglages: window.__pcvIcones?.trace("parametres") || "",
     medias: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>',
     telech: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
     globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/>',
     bulle: '<path d="M4 5h16v11H9l-5 4z"/>',
     accueil: '<path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/>'
   };
-  const svg = (n, t, c, ep = 2.4) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="${ep}" stroke-linecap="round" stroke-linejoin="round">${TR[n]}</svg>`;
+  const svg = (n, t, c, ep = 2.4) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" color="${c}" fill="none" stroke="${c}" stroke-width="${ep}" stroke-linecap="round" stroke-linejoin="round">${TR[n]}</svg>`;
   const toucheHaut = () => {
     const [, c, h] = window.__pcvTouche?.(4) || ["Y", "#e0a100", "Y"];
     return [h, c];
@@ -96,12 +96,12 @@
     #pcv-place .cadre::after { content: ""; position: absolute; inset: 0 0 55% 0; background: linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0)); }
     #pcv-place .jaq { display: block; width: 100%; height: 100%; background: var(--pcv-creux) center 15% / cover; }
     #pcv-place .appli { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; background: var(--pcv-carte); }
-    #pcv-place .ico.sel { z-index: 50; transform: translateY(${u(-4)}); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} rgba(47,184,255,.2), 0 ${u(16)} ${u(30)} rgba(47,184,255,.4); }
+    #pcv-place .ico.sel { z-index: 50; transform: translateY(${u(-4)}); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} color-mix(in srgb, var(--pcv-cyan-plein) 20%, transparent), 0 ${u(16)} ${u(30)} color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent); }
     #pcv-place .ico .nom { position: absolute; left: 50%; top: calc(100% + ${u(14)}); transform: translateX(-50%); padding: ${u(5)} ${u(14)}; border-radius: ${u(14)};
       background: var(--pcv-bulle); color: var(--pcv-sur-accent); font-size: ${u(15)}; font-weight: 900; white-space: nowrap; opacity: 0; transition: opacity .15s; pointer-events: none; }
     #pcv-place .ico .nom::before { content: ""; position: absolute; left: 50%; top: ${u(-6)}; margin-left: ${u(-6)}; border: ${u(6)} solid transparent; border-top: 0; border-bottom-color: var(--pcv-bulle); }
     #pcv-place .ico.sel .nom { opacity: 1; }
-    #pcv-place .v { position: absolute; background: linear-gradient(180deg,var(--pcv-carte),var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), inset 0 0 0 1px var(--pcv-bord), 0 ${u(6)} ${u(18)} rgb(var(--pcv-ombre-rgb) / .13); }
+    #pcv-place .v { position: absolute; background: linear-gradient(180deg,var(--pcv-carte),var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), inset 0 0 0 1px var(--pcv-bord), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); }
     #pcv-place .haut-avatar { left: ${u(24)}; top: ${u(20)}; width: ${u(56)}; height: ${u(56)}; border-radius: 50%; padding: ${u(6)}; }
     #pcv-place .haut-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
     #pcv-place .retour { left: 50%; top: ${u(20)}; transform: translateX(-50%); height: ${u(52)}; border-radius: ${u(26)}; padding: 0 ${u(10)} 0 ${u(6)}; display: flex; align-items: center; gap: ${u(12)}; font-weight: 900; font-size: ${u(17)}; }
@@ -110,9 +110,9 @@
     #pcv-place .etat { right: ${u(24)}; top: ${u(20)}; height: ${u(52)}; border-radius: ${u(26)}; padding: 0 ${u(20)}; display: flex; align-items: center; gap: ${u(14)}; font-weight: 900; font-size: ${u(16)}; }
     #pcv-place .zoom { left: ${u(24)}; bottom: ${u(22)}; display: flex; align-items: center; gap: ${u(10)}; padding: ${u(8)} ${u(12)}; border-radius: ${u(26)}; z-index: 5; }
     #pcv-place .zoom button { width: ${u(38)}; height: ${u(38)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: ${u(22)}; font-weight: 900; color: var(--pcv-texte2);
-      background: linear-gradient(180deg,var(--pcv-carte),var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 2px 6px rgb(var(--pcv-ombre-rgb) / .18); }
+      background: linear-gradient(180deg,var(--pcv-carte),var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 2px 6px rgb(from var(--pcv-ombre-c) r g b / .18); }
     #pcv-place .zoom .pt { width: ${u(12)}; height: ${u(12)}; border-radius: 50%; background: var(--pcv-creux); transition: background .2s, box-shadow .2s; }
-    #pcv-place .zoom .pt.on { background: var(--pcv-cyan-plein); box-shadow: 0 0 0 ${u(3)} rgba(47,184,255,.25); }
+    #pcv-place .zoom .pt.on { background: var(--pcv-cyan-plein); box-shadow: 0 0 0 ${u(3)} color-mix(in srgb, var(--pcv-cyan-plein) 25%, transparent); }
     #pcv-place .dock { left: 50%; transform: translateX(-50%); bottom: ${u(20)}; padding: ${u(10)} ${u(14)}; border-radius: ${u(28)}; display: flex; gap: ${u(12)}; z-index: 5;
       background: color-mix(in srgb, var(--pcv-carte) 65%, transparent); backdrop-filter: blur(12px); }
     #pcv-place .dock-btn { width: ${u(60)}; height: ${u(60)}; border-radius: ${u(18)}; display: flex; align-items: center; justify-content: center;
@@ -123,9 +123,9 @@
     #pcv-place .carte .msg img { width: ${u(76)}; height: ${u(76)}; border-radius: ${u(18)}; box-shadow: 0 0 0 ${u(4)} var(--pcv-lisere), 0 4px 10px rgba(0,0,0,.15); object-fit: cover; }
     #pcv-place .carte .actions { display: flex; gap: ${u(12)}; }
     #pcv-place .carte .actions button { flex: 1; text-align: center; padding: ${u(14)} 0; border-radius: ${u(24)}; font-size: ${u(17)}; font-weight: 900;
-      background: linear-gradient(180deg,var(--pcv-carte),var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 ${u(4)} ${u(12)} rgb(var(--pcv-ombre-rgb) / .15); }
+      background: linear-gradient(180deg,var(--pcv-carte),var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 ${u(4)} ${u(12)} rgb(from var(--pcv-ombre-c) r g b / .15); }
     #pcv-place .carte .actions button.cyan { background: var(--pcv-cyan); color: var(--pcv-sur-accent);
-      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} rgba(26,154,230,.35); }
+      box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-bascule { all: unset; position: fixed; z-index: 9050; top: ${u(20)}; left: ${u(222)}; width: ${u(56)}; height: ${u(56)}; border-radius: 50%; cursor: pointer;
       display: flex; align-items: center; justify-content: center; background: var(--pcv-verre);
       box-shadow: var(--pcv-reflet), var(--pcv-ombre); }   
