@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.1-test (2026-10-18)
+
+- Fixed: SteamU no longer injects into Steam's desktop-mode windows (login, top menus); it only touches Game Mode / Big Picture (issue #1).
+- Faster return to the home screen (the grid is no longer rebuilt every time).
+- Notifications: delete one (Y or ✕), "Clear all", buttons reachable with the D-pad, a first-start "Import your Miis" notice.
+- Game page: Y adds or removes the game from the home screen.
+- One shared button legend across the interface.
+
 ## v0.1.0-test: first public test build (2026-10-16)
 
 First public release of SteamU, exported from the private development tree and published under AGPL-3.0-or-later.

@@ -333,6 +333,7 @@ def boucle(DOSSIER, ecrire=None):
                         if evaluer(c, NETTOYER_BOUTIQUE_JS): journal("boutique : rendue à Steam d'origine →", url[:60])
                     continue
                 if not url.startswith("about:blank"): continue
+                if not ("Gamepad" in url or "browserviewpopup=1" in url) or t.endswith("_desktop"): continue
                 v_page, s_page = deja(c, "theme-clair")
                 if v_page != v_theme and evaluer(c, poser_style("theme-clair", theme, v_theme)): journal("thème →", t)
                 liste = SCRIPTS_MENU if t.startswith("MainMenu") else SCRIPTS_ACCES if t.startswith("QuickAccess") else SCRIPTS_PRINCIPALE if ("Big" in t or t == "SP") else SCRIPTS_BULLES if t.startswith("notificationtoasts") else []   
