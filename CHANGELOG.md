@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.2-test (2026-10-18)
+
+- Home screen: the tile entry animations are released once played. The new home screen kept ~360 finished animations alive, one render layer per grid cell, which made memory and CPU climb, especially when Steam renders in software (issue #1).
+
 ## v0.1.1-test (2026-10-18)
 
 - Fixed: SteamU no longer injects into Steam's desktop-mode windows (login, top menus); it only touches Game Mode / Big Picture (issue #1).

@@ -1063,6 +1063,12 @@
       if (poser2) {
         d.classList.add("pose");
         d.style.animationDelay = 0.15 + ordre.indexOf(i) % 48 * 0.045 + "s";
+        d.addEventListener("animationend", (e) => {
+          if (e.animationName === "pcvPoseC") {
+            d.classList.remove("pose");
+            d.style.animationDelay = "";
+          }
+        }, { once: false });
       }
       d.dataset.i = i;
       grille.appendChild(d);

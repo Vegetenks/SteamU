@@ -7,7 +7,7 @@
 SteamU is a [Decky Loader](https://decky.xyz) plugin that gives Steam's Big Picture / gamepad UI a warm,
 Wii U / 3DS-inspired makeover: a grid home screen, a HOME menu, full-screen quick settings, a set of complete
 themes (day and night), a music player, a "plaza" screen, a Mii Maker, a badge-collecting casino mini-game, and
-more. It is still labelled `v0.1.1-test`: expect rough edges, and please open an issue if something looks wrong.
+more. It is still labelled `v0.1.2-test`: expect rough edges, and please open an issue if something looks wrong.
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how the plugin works internally.
 
