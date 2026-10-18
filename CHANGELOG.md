@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.4-test (2026-10-18)
+
+- Diagnostic report: a ~35 s performance measurement on the home screen (CPU and memory per Steam process), repeated while hiding the animated background, the home grid and CSS animations one at a time, to pinpoint what loads the CPU on your machine (issue #1).
+- The "Customize" bubble (Themes, Badges, Decorate) is now translated.
+
 ## v0.1.3-test (2026-10-18)
 
 - Main fix for issue #1: when Steam renders without the GPU (software rendering: llvmpipe, SwiftShader…), the animated background is automatically kept still. Each of its frames forced a full-screen redraw on the CPU: measured ~170% of a CPU core at rest on the home screen, down to ~15-20%. With a GPU, nothing changes.

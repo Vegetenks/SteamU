@@ -80,12 +80,12 @@
   const choixDe = {};
   const personnaliser = (i) => {
     const choix = [
-      { nom: "Th\xE8mes", teinte: "#ff8db5, #e8457c", svg: '<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.1 0-.9.7-1.5 1.6-1.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10" r="1"/>', faire: () => lancer("themes") },
-      { nom: "Badges", teinte: "#ffc24d, #e6940f", svg: '<circle cx="12" cy="10" r="6"/><path d="M8.5 15l-1.5 6 5-2.5 5 2.5-1.5-6"/>', faire: () => lancer("badges") },
-      window.__pcvDeco && { ic: "decorer", nom: "D\xE9corer", faire: () => window.__pcvDeco.ouvrir() }
+      { cle: "themes", nom: window.__pcvT("spaces.themes.nom"), teinte: "#ff8db5, #e8457c", svg: '<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.1 0-.9.7-1.5 1.6-1.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10" r="1"/>', faire: () => lancer("themes") },
+      { cle: "badges", nom: window.__pcvT("spaces.badges.nom"), teinte: "#ffc24d, #e6940f", svg: '<circle cx="12" cy="10" r="6"/><path d="M8.5 15l-1.5 6 5-2.5 5 2.5-1.5-6"/>', faire: () => lancer("badges") },
+      window.__pcvDeco && { ic: "decorer", nom: window.__pcvT("perso.decorer"), faire: () => window.__pcvDeco.ouvrir() }
     ].filter(Boolean);
     choix.forEach((c) => {
-      if (c.svg) choixDe[c.nom === "Th\xE8mes" ? "themes" : "badges"] = c;
+      if (c.cle) choixDe[c.cle] = c;
     });
     if (!window.__pcvDossiers?.choix(i, choix)) ouvrir("themes");
   };

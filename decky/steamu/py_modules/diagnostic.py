@@ -1,4 +1,4 @@
-import datetime, json, os, pathlib, platform, pwd, re, socket, urllib.request, zipfile
+import datetime, json, os, pathlib, platform, pwd, re, socket, time, urllib.request, zipfile
 
 import websocket
 
@@ -89,6 +89,57 @@ def steam(debogueur, local):
         except Exception as e: fenetres[t] = {"erreur": type(e).__name__}
     return infos, fenetres
 
+PHASES = [("normal", ""), ("sans_fond_anime", "canvas.pcv-fond{display:none!important}"),
+          ("sans_grille_accueil", "#pcv-console{display:none!important}"),
+          ("sans_animations_css", "html *{animation:none!important;transition:none!important}"), ("normal_fin", "")]
+STYLE_JS = r"""(() => { const d = SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BrowserWindow.document;
+  d.getElementById("pcv-essai-perf")?.remove(); const css = %s; if (css) { const s = d.createElement("style"); s.id = "pcv-essai-perf"; s.textContent = css; d.head.appendChild(s); }
+  return true; })()"""
+JS_ETAT = r"""(() => { const W = SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BrowserWindow, d = W.document;
+  return { page: d.body.dataset.pcvPage || null, tas_mo: Math.round((performance.memory?.usedJSHeapSize || 0) / 1048576),
+    noeuds: d.getElementsByTagName("*").length, animations: d.getAnimations ? d.getAnimations().length : null,
+    canvas: d.querySelectorAll("canvas").length, rendu_logiciel: W.__pcvRenduLogiciel ?? null }; })()"""
+ALLER_JS = r"""(() => { const a = window.__pcvAller; if (typeof a === "function") a(%s); return true; })()"""
+
+def _processus():
+    out = {}
+    for d in pathlib.Path("/proc").iterdir():
+        if not d.name.isdigit(): continue
+        try:
+            cmd = (d / "cmdline").read_bytes().split(b"\0")
+            if not cmd or b"steamwebhelper" not in cmd[0]: continue
+            t = next((a.split(b"=", 1)[1].decode() for a in cmd if a.startswith(b"--type=")), "principal")
+            st = (d / "stat").read_text().rsplit(")", 1)[1].split()
+            rss = int((d / "statm").read_text().split()[1]) * os.sysconf("SC_PAGE_SIZE") / 1048576
+            out[d.name] = (t, int(st[11]) + int(st[12]), rss)
+        except Exception: continue
+    return out
+
+def _mesure(duree=5):
+    tick = os.sysconf("SC_CLK_TCK"); a = _processus(); time.sleep(duree); b = _processus()
+    par_type = {}
+    for pid, (t, cpu, rss) in b.items():
+        x = par_type.setdefault(t, [0.0, 0.0]); x[0] += (cpu - a.get(pid, (t, cpu, 0))[1]) * 100 / (duree * tick); x[1] += rss
+    return {"processeur_pct_d_un_coeur": round(sum(v[0] for v in par_type.values())), "memoire_mo": round(sum(v[1] for v in par_type.values())),
+            "par_type": {k: {"processeur_pct": round(v[0]), "memoire_mo": round(v[1])} for k, v in sorted(par_type.items(), key=lambda kv: -kv[1][0])}}
+
+def performance(debogueur, local):
+    try:
+        cibles = json.load(urllib.request.urlopen(debogueur, timeout=3))
+        sj = next(c for c in cibles if c.get("title") == "SharedJSContext")
+    except Exception as e: return {"erreur": type(e).__name__}
+    res = {"coeurs": os.cpu_count(), "phases": {}}
+    try:
+        _evaluer(local, sj, ALLER_JS % '"accueil"'); time.sleep(3)
+        for nom, css in PHASES:
+            _evaluer(local, sj, STYLE_JS % json.dumps(css)); time.sleep(1)
+            res["phases"][nom] = {**_mesure(), "page": _evaluer(local, sj, JS_ETAT)}
+    except Exception as e: res["erreur"] = type(e).__name__
+    finally:
+        try: _evaluer(local, sj, STYLE_JS % json.dumps(""))
+        except Exception: pass
+    return res
+
 def systeme():
     os_rel = dict(re.findall(r'^(\w+)="?([^"\n]*)"?$', _lire("/etc/os-release"), re.M))
     return {"os": {k: os_rel[k] for k in ("NAME", "VERSION", "VERSION_ID", "ID", "VARIANT_ID", "BUILD_ID") if k in os_rel},
@@ -140,6 +191,7 @@ def resume_github(donnees, secrets):
 
 def rapport(maison, dossier_greffon, journaux, secours, etat_scripts, debogueur, local, maintenant=None):
     maintenant = maintenant or datetime.datetime.now()
+    perf = performance(debogueur, local)
     infos, fenetres = steam(debogueur, local)
     secrets = secrets_locaux(maison) + list(infos.pop("secrets", None) or [])
     try: version = json.loads(_lire(pathlib.Path(dossier_greffon, "package.json"))).get("version")
@@ -148,7 +200,7 @@ def rapport(maison, dossier_greffon, journaux, secours, etat_scripts, debogueur,
                "steamu": version, "decky": _lire(pathlib.Path(maison, "homebrew/services/.loader.version")) or None,
                **systeme(), "steam": infos, "secours": {"pause": secours.pause, "historique": secours.historique},
                "scripts_poses": {k: dict(v) for k, v in list(etat_scripts.items())}, "fenetres": fenetres, "greffons_decky": greffons(maison),
-               "conflits": conflits.conflits(maison, debogueur, local, _evaluer)}
+               "conflits": conflits.conflits(maison, debogueur, local, _evaluer), "performance": perf}
     nom = maintenant.strftime("steamu-diagnostic-%Y%m%d-%H%M.zip")
     cible = telechargements(maison) / nom
     tmp = cible.with_name("." + nom + ".tmp")
