@@ -1,10 +1,14 @@
-# SteamU v0.1.2 (test build)
+# SteamU v0.1.3 (test build)
 
-**SteamU v0.1.2 (test build).** This is an early version for testers: expect bugs, and please report them.
+**SteamU v0.1.3 (test build).** This is an early version for testers: expect bugs, and please report them.
 
 SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspired by the Wii U and 3DS home menus (home grid, HOME menu, quick settings, notifications, friends, plaza…).
 
-### What's new in v0.1.2
+### What's new in v0.1.3
+- Main fix for the lag/crash of issue #1: when Steam renders without the GPU (software rendering), the animated background is kept still automatically (~170% of a CPU core at rest down to ~20%). With a GPU, nothing changes.
+- The diagnostic report now says whether Steam renders with the GPU or in software.
+
+### v0.1.2
 - Home screen memory/CPU fix: tile entry animations are released once played (issue #1).
 
 ### v0.1.1
@@ -15,7 +19,7 @@ SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspi
 Full list in [CHANGELOG.md](../CHANGELOG.md).
 
 ### Install
-1. Download [SteamU-v0.1.2-test.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.2-test.zip).
+1. Download [SteamU-v0.1.3-test.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.3-test.zip).
 2. In Decky Loader: Settings → Developer → *Install plugin from ZIP file*, pick the zip.
 3. Restart Steam (or the console). The SteamU welcome screen appears: press A.
 
