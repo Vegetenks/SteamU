@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.5-test (2026-10-18)
+
+- Diagnostic report: the performance results are also saved step by step in Downloads (steamu-performance-….json), so they survive if Steam crashes during the measurement; the report records which home screen (new or old) was measured.
+
 ## v0.1.4-test (2026-10-18)
 
 - Diagnostic report: a ~35 s performance measurement on the home screen (CPU and memory per Steam process), repeated while hiding the animated background, the home grid and CSS animations one at a time, to pinpoint what loads the CPU on your machine (issue #1).

@@ -98,7 +98,8 @@ STYLE_JS = r"""(() => { const d = SteamUIStore.WindowStore.GamepadUIMainWindowIn
 JS_ETAT = r"""(() => { const W = SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BrowserWindow, d = W.document;
   return { page: d.body.dataset.pcvPage || null, tas_mo: Math.round((performance.memory?.usedJSHeapSize || 0) / 1048576),
     noeuds: d.getElementsByTagName("*").length, animations: d.getAnimations ? d.getAnimations().length : null,
-    canvas: d.querySelectorAll("canvas").length, rendu_logiciel: W.__pcvRenduLogiciel ?? null }; })()"""
+    canvas: d.querySelectorAll("canvas").length, rendu_logiciel: W.__pcvRenduLogiciel ?? null,
+    accueil: (() => { try { return JSON.parse(localStorage.getItem("pcv-interface")) || "nouvelle"; } catch (e) { return "nouvelle"; } })() }; })()"""
 ALLER_JS = r"""(() => { const a = window.__pcvAller; if (typeof a === "function") a(%s); return true; })()"""
 
 def _processus():
@@ -123,7 +124,7 @@ def _mesure(duree=5):
     return {"processeur_pct_d_un_coeur": round(sum(v[0] for v in par_type.values())), "memoire_mo": round(sum(v[1] for v in par_type.values())),
             "par_type": {k: {"processeur_pct": round(v[0]), "memoire_mo": round(v[1])} for k, v in sorted(par_type.items(), key=lambda kv: -kv[1][0])}}
 
-def performance(debogueur, local):
+def performance(debogueur, local, journal=None):
     try:
         cibles = json.load(urllib.request.urlopen(debogueur, timeout=3))
         sj = next(c for c in cibles if c.get("title") == "SharedJSContext")
@@ -134,6 +135,9 @@ def performance(debogueur, local):
         for nom, css in PHASES:
             _evaluer(local, sj, STYLE_JS % json.dumps(css)); time.sleep(1)
             res["phases"][nom] = {**_mesure(), "page": _evaluer(local, sj, JS_ETAT)}
+            if journal:
+                try: journal.write_text(json.dumps(res, ensure_ascii=False, indent=1))
+                except Exception: pass
     except Exception as e: res["erreur"] = type(e).__name__
     finally:
         try: _evaluer(local, sj, STYLE_JS % json.dumps(""))
@@ -191,7 +195,7 @@ def resume_github(donnees, secrets):
 
 def rapport(maison, dossier_greffon, journaux, secours, etat_scripts, debogueur, local, maintenant=None):
     maintenant = maintenant or datetime.datetime.now()
-    perf = performance(debogueur, local)
+    perf = performance(debogueur, local, telechargements(maison) / maintenant.strftime("steamu-performance-%Y%m%d-%H%M.json"))
     infos, fenetres = steam(debogueur, local)
     secrets = secrets_locaux(maison) + list(infos.pop("secrets", None) or [])
     try: version = json.loads(_lire(pathlib.Path(dossier_greffon, "package.json"))).get("version")
