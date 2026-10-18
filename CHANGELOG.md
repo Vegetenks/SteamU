@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.3-test (2026-10-18)
+
+- Main fix for issue #1: when Steam renders without the GPU (software rendering: llvmpipe, SwiftShader…), the animated background is automatically kept still. Each of its frames forced a full-screen redraw on the CPU: measured ~170% of a CPU core at rest on the home screen, down to ~15-20%. With a GPU, nothing changes.
+- The diagnostic report now tells how Steam renders (GPU or software).
+
 ## v0.1.2-test (2026-10-18)
 
 - Home screen: the tile entry animations are released once played. The new home screen kept ~360 finished animations alive, one render layer per grid cell, which made memory and CPU climb, especially when Steam renders in software (issue #1).

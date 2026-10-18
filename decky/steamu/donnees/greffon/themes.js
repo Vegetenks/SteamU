@@ -712,7 +712,17 @@
     }
   };
   const decors = /* @__PURE__ */ new Set();
-  const anime = () => lire("pcv-fond-anime", true);
+  const renduLogiciel = window.__pcvRenduLogiciel ??= (() => {
+    try {
+      const g = document.createElement("canvas").getContext("webgl");
+      if (!g) return true;
+      const e = g.getExtension("WEBGL_debug_renderer_info");
+      return /llvmpipe|swiftshader|softpipe|software/i.test(String(e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER)));
+    } catch (x) {
+      return false;
+    }
+  })();
+  const anime = () => !renduLogiciel && lire("pcv-fond-anime", true);
   const HOTES = Object.values(ESPACES).flatMap((d) => d.hotes || []);
   const SEL_HOTES = HOTES.map((h) => "#" + h).join(", ") + ", .pcv-panneau";
   const visible = (h) => {

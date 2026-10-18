@@ -60,6 +60,9 @@ STEAM_JS = r"""(async () => { const r = {}; try { const s = await SteamClient.Sy
   return r; })()"""
 FENETRE_JS = r"""(async (mesurer) => { const r = { erreurs: (window.__pcvErreurs || []).slice(-200), scripts: window.__pcvScripts || null,
   ecran: [screen.width, screen.height, devicePixelRatio, Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)], theme: !!document.getElementById("theme-clair") };
+  // (18/10, issue #1) comment Steam dessine : la carte graphique, ou le processeur (rendu logiciel : llvmpipe, SwiftShader…)
+  if (mesurer) try { const g = document.createElement("canvas").getContext("webgl"), x = g && g.getExtension("WEBGL_debug_renderer_info");
+    r.rendu = g ? String(x ? g.getParameter(x.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER)) : "pas de WebGL"; r.rendu_logiciel = window.__pcvRenduLogiciel ?? null; } catch (e) { r.rendu = "erreur"; }
   if (mesurer && document.visibilityState === "visible") r.hz = await new Promise((ok) => { let n = 0; const t0 = performance.now();
     const f = (t) => { n++; t - t0 < 1000 ? requestAnimationFrame(f) : ok(Math.round(n * 1000 / (t - t0))); }; requestAnimationFrame(f); setTimeout(() => ok(null), 2500); });
   return r; })(%s)"""
