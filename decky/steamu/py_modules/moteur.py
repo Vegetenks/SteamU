@@ -21,9 +21,18 @@ if os.environ.get("PCV_SANS_CONNEXION"): SCRIPTS_PRINCIPALE.remove("connexion.js
 
 CARTE_JS = r"""(() => { const chunk = window.webpackChunksteamui; if (!chunk) return null;
   let req; chunk.push([[Symbol()], {}, r => { req = r; }]); const out = {};
-  for (const id of Object.keys(req.m)) { let m; try { m = req(id); if (m && m.default && typeof m.default === 'object') m = m.default; } catch (e) { continue; }
-    if (!m || typeof m !== 'object') continue; const vals = Object.entries(m);
-    const cl = vals.filter(([k, v]) => typeof v === 'string' && /^[_a-zA-Z0-9-]{15,}( [_a-zA-Z0-9-]+)*$/.test(v) && /[A-Z]/.test(v) && /[a-z]/.test(v));
+  const classe = v => typeof v === 'string' && /^[_a-zA-Z0-9-]{15,}( [_a-zA-Z0-9-]+)*$/.test(v) && /[A-Z]/.test(v) && /[a-z]/.test(v);
+  for (const id of Object.keys(req.m)) {
+    // Lire les exports déjà chargés ; sinon, ne charger que les candidats qui contiennent plusieurs classes CSS.
+    // Appeler tous les modules de Steam au démarrage exécutait aussi ses services et leurs effets de bord.
+    let m = req.c?.[id]?.exports;
+    if (!m) { const textes = String(req.m[id]).matchAll(/["']([_a-zA-Z0-9-]{15,}(?: [_a-zA-Z0-9-]+)*)["']/g);
+      let n = 0; for (const x of textes) if (classe(x[1]) && ++n >= 2) break;
+      if (n < 2) continue;
+      try { m = req(id); } catch (e) { continue; } }
+    let vals; try { if (m && m.default && typeof m.default === 'object') m = m.default;
+      if (!m || typeof m !== 'object') continue; vals = Object.entries(m); } catch (e) { continue; }
+    const cl = vals.filter(([k, v]) => classe(v));
     if (cl.length < 2 || cl.length < vals.length * .5) continue; out[id] = Object.fromEntries(cl); }
   return out; })()"""
 
@@ -315,6 +324,7 @@ def boucle(DOSSIER, ecrire=None):
             boutique, v_boutique = preparer(DOSSIER / "boutique.css", lambda t: t) if (DOSSIER / "boutique.css").exists() else ("", "")
             nettoyer({c["id"] for c in cibles})
             for c in cibles:
+                if secours.pause or arreter: break
                 t, url = c["title"], c.get("url", "")
                 if c.get("type") != "page" or t == "SharedJSContext": continue
                 if url.startswith("data:text/html"):      
@@ -335,20 +345,24 @@ def boucle(DOSSIER, ecrire=None):
                 if not url.startswith("about:blank"): continue
                 if not ("Gamepad" in url or "browserviewpopup=1" in url) or t.endswith("_desktop"): continue
                 v_page, s_page = deja(c, "theme-clair")
-                if v_page != v_theme and evaluer(c, poser_style("theme-clair", theme, v_theme)): journal("thème →", t)
                 liste = SCRIPTS_MENU if t.startswith("MainMenu") else SCRIPTS_ACCES if t.startswith("QuickAccess") else SCRIPTS_PRINCIPALE if ("Big" in t or t == "SP") else SCRIPTS_BULLES if t.startswith("notificationtoasts") else []   
+                if liste is SCRIPTS_PRINCIPALE and s_page != v_scripts:
+                    secours.reposee(t, v_scripts)
+                    if secours.pause: break   
+                if v_page != v_theme and evaluer(c, poser_style("theme-clair", theme, v_theme)): journal("thème →", t)
                 if liste and s_page != v_scripts:
                     secours.posee(); poses = etat_scripts[t] = {}
                     evaluer(c, GREFFON_JS)   
-                    if liste is SCRIPTS_PRINCIPALE: secours.reposee(t, v_scripts)
                     try:
                         for n in liste:
+                            if secours.pause or arreter: break
                             if n not in scripts: continue
                             poses[n] = evaluer(c, scripts[n], erreur=True)[1] or "ok"
                             if poses[n] != "ok": journal("greffon : erreur à la pose de", n, "→", t, ":", poses[n][:160])
                     except Exception as e:
                         if liste is SCRIPTS_PRINCIPALE: secours.echec(type(e).__name__)
                         raise
+                    if secours.pause or arreter: break
                     evaluer(c, f"window.__pcvScripts = {json.dumps(v_scripts)}")
                     journal("greffon →", t, "(" + ", ".join(n for n in liste if n in scripts) + ")")
                     if liste is SCRIPTS_PRINCIPALE: garder = True
@@ -369,3 +383,4 @@ def boucle(DOSSIER, ecrire=None):
 
 if __name__ == "__main__":
     boucle(pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve())
+

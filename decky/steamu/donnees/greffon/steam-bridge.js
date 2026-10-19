@@ -1,6 +1,7 @@
 window.__pcvBridge = (() => {
   const O = window.opener || window;
   const req = () => O.__pcvReq ||= (() => {
+    if (!O.webpackChunksteamui) return void 0;
     let r;
     O.webpackChunksteamui.push([[/* @__PURE__ */ Symbol("pcv-bridge")], {}, (q) => {
       r = q;
@@ -8,10 +9,14 @@ window.__pcvBridge = (() => {
     return r;
   })();
   const found = O.__pcvModules ||= {};
+  const manquants = O.__pcvModulesManquants ||= /* @__PURE__ */ new Map(), ATTENTE_MODULE = 1e3;
   const findModule = (key, signature, test) => {
-    if (key in found) return found[key];
+    if (found[key] != null) return found[key];
+    const maintenant = Date.now();
+    if (maintenant - (manquants.get(key) ?? -Infinity) < ATTENTE_MODULE) return null;
+    manquants.set(key, maintenant);
     const r = req();
-    if (!r) return found[key] = null;
+    if (!r) return null;
     for (const id of Object.keys(r.m)) {
       if (!String(r.m[id]).includes(signature)) continue;
       let x;
@@ -23,15 +28,21 @@ window.__pcvBridge = (() => {
       if (!x || typeof x !== "object") continue;
       for (const v of Object.values(x)) {
         try {
-          if (test(v)) return found[key] = v;
+          if (test(v)) {
+            manquants.delete(key);
+            return found[key] = v;
+          }
         } catch (e) {
         }
       }
     }
-    return found[key] = null;
+    return null;
   };
   const globalStore = (name) => {
     if (O[name]) return O[name];
+    const cle = "global:" + name, maintenant = Date.now();
+    if (maintenant - (manquants.get(cle) ?? -Infinity) < ATTENTE_MODULE) return void 0;
+    manquants.set(cle, maintenant);
     const r = req();
     if (!r) return void 0;
     for (const id of Object.keys(r.m)) {

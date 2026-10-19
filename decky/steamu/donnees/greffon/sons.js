@@ -1,6 +1,6 @@
 (() => {
   const O = window.opener;
-  let ac = null;
+  let ac = window.__pcvAudioContext || null;
   const lire = (k, d) => {
     try {
       const v = localStorage.getItem(k);
@@ -317,7 +317,7 @@
   };
   for (const f of new Set(Object.values(PACK.bruitages))) chargerSon(fichierPack(f));
   const ctx = () => {
-    ac ||= new AudioContext();
+    if (!ac || ac.state === "closed") ac = window.__pcvAudioContext = new AudioContext();
     if (ac.state === "suspended") ac.resume().catch(() => {
     });
     return ac;
@@ -367,8 +367,9 @@
       this._buf = null;
       this._bornes = null;
       this._pos = 0;
-      this._pret = u ? this._charger(u) : null;
+      this._pret = null;
     }
+    // une piste en pause ne décode pas toute sa musique au démarrage ou à la repose
     get currentTime() {
       if (this._repli) return this._repli.currentTime;
       return this._src ? this._ou() : this._pos;
@@ -383,8 +384,9 @@
     }
     async play() {
       this._joue = true;
-      await this._pret;
-      if (!this._joue) return;
+      const u = this._url;
+      if (u) await (this._pret ||= this._charger(u));
+      if (!this._joue || u !== this._url) return;
       if (this._repli) return this._repli.play();
       if (this._buf && !this._src) this._lancer();
     }

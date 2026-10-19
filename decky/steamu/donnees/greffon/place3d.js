@@ -300,32 +300,8 @@
       return s;
     };
     let geoCadre = null, geoImage = null, geoHalo = null, matCadre = null;
-    const couches = (s) => {
-      const r = [];
-      let p = 0, c = "";
-      for (const car of s || "") {
-        if (car === "(") p++;
-        if (car === ")") p--;
-        if (car === "," && p === 0) {
-          r.push(c.trim());
-          c = "";
-        } else c += car;
-      }
-      if (c.trim()) r.push(c.trim());
-      return r;
-    };
-    const pct = (t) => t == null || t === "center" ? 50 : t === "left" || t === "top" ? 0 : t === "right" || t === "bottom" ? 100 : parseFloat(t) || 50;
-    const tailleWH = (taille, iw, ih, w, h) => {
-      const t = (taille || "cover").trim();
-      if (t === "cover" || t === "contain") {
-        const s = (t === "cover" ? Math.max : Math.min)(w / iw, h / ih);
-        return [iw * s, ih * s];
-      }
-      const [sw, sh] = t.split(/\s+/);
-      const dw = sw?.endsWith("%") ? w * parseFloat(sw) / 100 : iw;
-      const dh = !sh || sh === "auto" ? dw * ih / iw : sh.endsWith("%") ? h * parseFloat(sh) / 100 : ih;
-      return [dw, dh];
-    };
+    const couches = (s) => window.__pcvCouches.couches(s), pct = (t) => window.__pcvCouches.pct(t);
+    const tailleWH = (taille, iw, ih, w, h) => window.__pcvCouches.taille(taille, iw, ih, w, h);
     const composerCouches = (desc, fin) => {
       const urls = couches(desc.image).map((u2) => {
         const m = /^url\((.*)\)$/.exec(u2);

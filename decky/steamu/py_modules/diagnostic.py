@@ -57,12 +57,25 @@ STEAM_JS = r"""(async () => { const r = {}; try { const s = await SteamClient.Sy
   r.secrets = [s.sHostname, s.sProductSerialNumber]; } catch (e) { r.erreur = String(e); }
   try { const u = App.m_CurrentUser; r.secrets = (r.secrets || []).concat([u.strAccountName, u.strSteamID, u.strFamilyGroupName, u.strClientInstanceID]); } catch (e) {}
   try { r.langue = LocalizationManager.m_rgLocalesToUse[0]; } catch (e) {}
+  // (19/10, issue #1) la taille de la bibliothèque : l'accueil met tous les jeux installés sur la grille (raccourcis
+  // non-Steam compris, émulateurs) ; le même test que console.js (raccourci, installe)
+  try { const l = appStore.allApps || [], rac = (a) => a.app_type === 1073741824 || !!a.BIsShortcut?.(), ici = (a) => rac(a) || !!a.local_per_client_data?.installed;
+    const perso = (f, a) => { try { return (appStore[f](a) || []).length > 0; } catch (e) { return false; } };
+    r.bibliotheque = { total: l.length, installes_ici: l.filter(ici).length, raccourcis_non_steam: l.filter(rac).length,
+      installes_ailleurs: l.filter((a) => !ici(a) && (a.per_client_data || []).some((p) => p.clientid !== "0" && p.installed)).length,
+      images_perso: l.filter((a) => ici(a) && ["GetCustomHeroImageURLs", "GetCustomVerticalCapsuleURLs", "GetCustomLogoImageURLs", "GetCustomLandcapeImageURLs"].some((f) => perso(f, a))).length }; }
+  catch (e) { r.bibliotheque = { erreur: String(e) }; }
   return r; })()"""
 FENETRE_JS = r"""(async (mesurer) => { const r = { erreurs: (window.__pcvErreurs || []).slice(-200), scripts: window.__pcvScripts || null,
   ecran: [screen.width, screen.height, devicePixelRatio, Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)], theme: !!document.getElementById("theme-clair") };
   // (18/10, issue #1) comment Steam dessine : la carte graphique, ou le processeur (rendu logiciel : llvmpipe, SwiftShader…)
   if (mesurer) try { const g = document.createElement("canvas").getContext("webgl"), x = g && g.getExtension("WEBGL_debug_renderer_info");
     r.rendu = g ? String(x ? g.getParameter(x.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER)) : "pas de WebGL"; r.rendu_logiciel = window.__pcvRenduLogiciel ?? null; } catch (e) { r.rendu = "erreur"; }
+  // l'accueil : ses cases, ses tuiles de jeu, et ce que la voie des images en tient (console.js, mémoire __pcvTuiles-…)
+  if (mesurer) try { const d = document, M = Object.keys(window).filter((k) => k.startsWith("__pcvTuiles-")).map((k) => window[k])[0];
+    r.accueil = { cases: d.querySelectorAll("#pcv-console .cel").length, tuiles_jeux: d.querySelectorAll("#pcv-console .cel.jeu").length,
+      peintes: d.querySelectorAll("#pcv-console .cel.jeu .im[data-appid]").length, videos: d.querySelectorAll("#pcv-console video.pcv-anim").length,
+      copies: M?.copies?.size ?? null, images_animees: M?.animees?.size ?? null, tuiles_animees_reglage: (() => { try { return localStorage.getItem("pcv-tuiles-animees"); } catch (e) { return null; } })() }; } catch (e) { r.accueil = { erreur: String(e) }; }
   if (mesurer && document.visibilityState === "visible") r.hz = await new Promise((ok) => { let n = 0; const t0 = performance.now();
     const f = (t) => { n++; t - t0 < 1000 ? requestAnimationFrame(f) : ok(Math.round(n * 1000 / (t - t0))); }; requestAnimationFrame(f); setTimeout(() => ok(null), 2500); });
   return r; })(%s)"""
@@ -89,17 +102,20 @@ def steam(debogueur, local):
         except Exception as e: fenetres[t] = {"erreur": type(e).__name__}
     return infos, fenetres
 
-PHASES = [("normal", ""), ("sans_fond_anime", "canvas.pcv-fond{display:none!important}"),
+PHASES = [("normal", ""), ("sans_mii", "#pcv-mii-toile{display:none!important}"), ("sans_fond_anime", "canvas.pcv-fond{display:none!important}"),
           ("sans_grille_accueil", "#pcv-console{display:none!important}"),
           ("sans_animations_css", "html *{animation:none!important;transition:none!important}"), ("normal_fin", "")]
 STYLE_JS = r"""(() => { const d = SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BrowserWindow.document;
   d.getElementById("pcv-essai-perf")?.remove(); const css = %s; if (css) { const s = d.createElement("style"); s.id = "pcv-essai-perf"; s.textContent = css; d.head.appendChild(s); }
   return true; })()"""
 JS_ETAT = r"""(() => { const W = SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BrowserWindow, d = W.document;
-  return { page: d.body.dataset.pcvPage || null, tas_mo: Math.round((performance.memory?.usedJSHeapSize || 0) / 1048576),
+  return { page: d.body.dataset.pcvPage || null, tas_mo: W.performance?.memory ? Math.round(W.performance.memory.usedJSHeapSize / 1048576) : null,
     noeuds: d.getElementsByTagName("*").length, animations: d.getAnimations ? d.getAnimations().length : null,
     canvas: d.querySelectorAll("canvas").length, rendu_logiciel: W.__pcvRenduLogiciel ?? null,
-    accueil: (() => { try { return JSON.parse(localStorage.getItem("pcv-interface")) || "nouvelle"; } catch (e) { return "nouvelle"; } })() }; })()"""
+    accueil: (() => { try { return JSON.parse(W.localStorage.getItem("pcv-interface")) || "nouvelle"; } catch (e) { return null; } })() }; })()"""
+MII_ARRET_JS = r"""(() => { const W = SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BrowserWindow, M = W.__pcvMiiAccueil;
+  const vu = !!(M?.marche?.() ?? W.document.querySelector("#pcv-mii-toile.vu")); if (vu) try { M?.arreter?.(); } catch (e) {} return vu; })()"""   
+MII_RELANCE_JS = r"""(() => { try { SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BrowserWindow.__pcvMiiAccueil?.demarrer?.(); } catch (e) {} return true; })()"""
 ALLER_JS = r"""(() => { const a = window.__pcvAller; if (typeof a === "function") a(%s); return true; })()"""
 
 def _processus():
@@ -133,8 +149,11 @@ def performance(debogueur, local, journal=None):
     try:
         _evaluer(local, sj, ALLER_JS % '"accueil"'); time.sleep(3)
         for nom, css in PHASES:
-            _evaluer(local, sj, STYLE_JS % json.dumps(css)); time.sleep(1)
+            _evaluer(local, sj, STYLE_JS % json.dumps(css))
+            if nom == "sans_mii": res["mii_tournaient"] = _evaluer(local, sj, MII_ARRET_JS)
+            time.sleep(1)
             res["phases"][nom] = {**_mesure(), "page": _evaluer(local, sj, JS_ETAT)}
+            if nom == "sans_mii" and res.get("mii_tournaient"): _evaluer(local, sj, MII_RELANCE_JS)   
             if journal:
                 try: journal.write_text(json.dumps(res, ensure_ascii=False, indent=1))
                 except Exception: pass
@@ -193,7 +212,31 @@ def resume_github(donnees, secrets):
     return {k: (caviarder(v, secrets) if isinstance(v, str) else [caviarder(x, secrets) for x in v] if isinstance(v, list) else v)
             for k, v in r.items()}
 
-def rapport(maison, dossier_greffon, journaux, secours, etat_scripts, debogueur, local, maintenant=None):
+def session():
+    r = {"gamescope": False}
+    for d in pathlib.Path("/proc").iterdir():
+        if not d.name.isdigit(): continue
+        nom = _lire(d / "comm").strip()
+        if nom.startswith("gamescope"): r["gamescope"] = True
+        if nom == "steam" and "environnement" not in r:
+            try: env = dict(x.split("=", 1) for x in (d / "environ").read_bytes().decode("utf8", "replace").split("\0") if "=" in x)
+            except Exception: continue
+            r["environnement"] = {k: env.get(k) for k in ("XDG_CURRENT_DESKTOP", "XDG_SESSION_DESKTOP", "XDG_SESSION_TYPE", "GAMESCOPE_WAYLAND_DISPLAY", "SteamDeck", "SteamGamepadUI")}
+    r["mode"] = "jeu" if r["gamescope"] else "bureau"
+    return r
+
+JOURNAUX_STEAM = ("cef_log.txt", "cef_log.previous.txt", "console-linux.txt", "console-linux.previous.txt")
+MOTIFS_PLANTAGE = re.compile(r"fatal|crash|out of memory|\boom\b|gpu.process|gpu process|renderer|sigsegv|sigabrt|killed|webhelper.*(exit|restart|died)|context lost", re.I)
+def journaux_steam(maison):
+    r = {}
+    for base in (".local/share/Steam/logs", ".steam/steam/logs"):
+        for n in JOURNAUX_STEAM:
+            f = pathlib.Path(maison, base, n)
+            if n in r or not f.is_file(): continue
+            r[n] = "\n".join([l for l in _lire(f).splitlines() if MOTIFS_PLANTAGE.search(l) and "Fontconfig" not in l][-150:])
+    return r
+
+def rapport(maison, dossier_greffon, journaux, secours, etat_scripts, debogueur, local, maintenant=None, imports=None):
     maintenant = maintenant or datetime.datetime.now()
     perf = performance(debogueur, local, telechargements(maison) / maintenant.strftime("steamu-performance-%Y%m%d-%H%M.json"))
     infos, fenetres = steam(debogueur, local)
@@ -204,7 +247,8 @@ def rapport(maison, dossier_greffon, journaux, secours, etat_scripts, debogueur,
                "steamu": version, "decky": _lire(pathlib.Path(maison, "homebrew/services/.loader.version")) or None,
                **systeme(), "steam": infos, "secours": {"pause": secours.pause, "historique": secours.historique},
                "scripts_poses": {k: dict(v) for k, v in list(etat_scripts.items())}, "fenetres": fenetres, "greffons_decky": greffons(maison),
-               "conflits": conflits.conflits(maison, debogueur, local, _evaluer), "performance": perf}
+               "conflits": conflits.conflits(maison, debogueur, local, _evaluer), "performance": perf, "imports": imports,
+               "session": session()}
     nom = maintenant.strftime("steamu-diagnostic-%Y%m%d-%H%M.zip")
     cible = telechargements(maison) / nom
     tmp = cible.with_name("." + nom + ".tmp")
@@ -212,7 +256,9 @@ def rapport(maison, dossier_greffon, journaux, secours, etat_scripts, debogueur,
         z.writestr("rapport.json", caviarder(json.dumps(donnees, ensure_ascii=False, indent=1), secrets))
         for j in sorted(pathlib.Path(journaux).glob("*.log"), key=lambda f: f.stat().st_mtime)[-3:]:
             z.writestr("journaux/" + caviarder(j.name, secrets), caviarder(_lire(j), secrets))
+        for n, t in journaux_steam(maison).items(): z.writestr("journaux-steam/" + n, caviarder(t, secrets))
     os.replace(tmp, cible)
     if os.geteuid() == 0:   
         st = os.stat(cible.parent); os.chown(cible, st.st_uid, st.st_gid)
     return nom, resume_github(donnees, secrets)
+

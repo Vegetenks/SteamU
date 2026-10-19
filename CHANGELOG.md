@@ -2,6 +2,15 @@
 
 ## v0.1.5-test (2026-10-18)
 
+- Main fix for issue #1: the home screen no longer decodes full-size game images. Every installed game is on the home grid, and each tile used to load its artwork at full size (heroes of 3840 × 1240, ~19 MB once decoded), with its fallback images stacked underneath. Custom artwork (non-Steam shortcuts, SteamGridDB) was never shrunk at all, and animated custom artwork (animated PNG/WebP) was decoded again at full size for every frame of its animation. With a large library, Chromium's image cache overflowed and kept re-decoding, until steamwebhelper fell over. Now:
+  - each tile shows a copy shrunk to its on-screen size, made two at a time and kept between sessions;
+  - only tiles on or near the screen are painted;
+  - animated artwork shows its first frame (as before for Steam's own images).
+  Measured on a Legion Go 2: 316 image decodes every 5 s on the home screen before, none after; GPU process time divided by ~9.
+- All image work for the tiles (shrinking, checking logos and artwork, framing covers) now goes through one bounded queue, tiles on screen first. If an image can't be read, the tile uses its next fallback instead of the full-size original. Unused copies are released (32 MB budget), off-screen videos are unloaded, and a reloaded plugin stops its previous instance's work.
+- Startup: SteamU no longer runs Steam's own modules just to find its CSS classes, and stops loading right away when its crash safety triggers. Music is only decoded when it starts playing.
+- Optional animated tiles (off by default): an animated artwork plays as a small video made once, instead of being decoded at full size for every frame.
+- Diagnostic report: now records the size of your library (installed games, non-Steam shortcuts, custom artwork), the state of the home grid, whether Steam runs in Game Mode or Desktop Mode, and the crash-related lines of Steam's own logs. Memory is now read in the Big Picture window.
 - Diagnostic report: the performance results are also saved step by step in Downloads (steamu-performance-….json), so they survive if Steam crashes during the measurement; the report records which home screen (new or old) was measured.
 
 ## v0.1.4-test (2026-10-18)

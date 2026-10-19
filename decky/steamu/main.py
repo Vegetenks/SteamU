@@ -438,8 +438,12 @@ class Plugin:
     async def diagnostic(self):
         import asyncio, diagnostic, moteur
         try:
+            def imports():   
+                try:
+                    import importer; prive = self._dedans("."); return importer.etat(prive) if prive else {}
+                except Exception as e: return {"erreur": type(e).__name__}
             nom, resume = await asyncio.get_running_loop().run_in_executor(None, lambda: diagnostic.rapport(
-                decky.DECKY_USER_HOME, ICI, decky.DECKY_PLUGIN_LOG_DIR, moteur.secours, moteur.etat_scripts, moteur.DEBOGUEUR, moteur.local))
+                decky.DECKY_USER_HOME, ICI, decky.DECKY_PLUGIN_LOG_DIR, moteur.secours, moteur.etat_scripts, moteur.DEBOGUEUR, moteur.local, imports=imports()))
             decky.logger.info(f"SteamU : rapport de diagnostic écrit ({nom})")
             return {"fichier": nom, "resume": resume}
         except Exception as e:

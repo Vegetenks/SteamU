@@ -1,5 +1,10 @@
 (() => {
-  document.getElementById("pcv-console")?.remove();
+  window.__pcvTuilesFin?.();
+  const ancienneRacine = document.getElementById("pcv-console");
+  if (ancienneRacine) {
+    ancienneRacine.hidden = true;
+    ancienneRacine.remove();
+  }
   clearInterval(window.__pcvConsole);
   clearInterval(window.__pcvPassants);
   clearInterval(window.__pcvDefile);
@@ -110,6 +115,9 @@
     #pcv-console .chem .ap b.a { display: flex; align-items: center; justify-content: center; }
     #pcv-console .chem .ap b.a svg { width: 70%; height: 70%; }
     
+    #pcv-console .cel .im > video.pcv-anim, #pcv-console .cel .im > .pcv-anim-dessus { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; pointer-events: none; }
+    #pcv-console .cel .im > video.pcv-anim { object-fit: fill; background: var(--pcv-creux); }
+    #pcv-console .cel .im > video.pcv-anim.attente { opacity: 0; }
     #pcv-console .cel .im .nuage { position: absolute; right: 5%; bottom: 4%; z-index: 1; width: max(28%, calc(var(--u) * 16)); aspect-ratio: 1;
       filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 2) rgba(0,0,0,.35)); }
     #pcv-console .cel .im .nuage svg { display: block; width: 100%; height: 100%; }
@@ -605,7 +613,7 @@
     ARTAUTO[id] = 1;
     ecrire("pcv-art-auto-essaye", ARTAUTO);
     O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "art_auto_chercher", a.display_name || "").then(async (r) => {
-      if (!r?.trouve || !sansArt(a)) return;
+      if (tuilesFinies || !r?.trouve || !sansArt(a)) return;
       const SC2 = O.SteamClient?.Apps ? O.SteamClient : window.SteamClient;
       if (!SC2?.Apps?.SetCustomArtworkForApp) return;
       for (const { base64, ext, assetType } of Object.values(r.images || {})) {
@@ -634,7 +642,7 @@
       ...nonSteam ? [...perso("GetCustomLandcapeImageURLs", a), icone2] : [IMG(a.appid, "library_600x900.jpg"), vert, CDN(a.appid, "library_600x900.jpg")]
     ].filter(Boolean);
   };
-  const imageJeu = (a) => imagesJeu(a).map(urlCss).join(",");
+  const imageJeu = (a, el) => (el ? couche(el, a, imagesJeu(a)) : imagesJeu(a).map(urlCss)).join(",");
   const TUILES_DEFAUT = {
     1304930: "logo",
     1326470: "logo",
@@ -664,66 +672,70 @@
   };
   const CADRES = lire("pcv-cadrage", {}), enCadrage = /* @__PURE__ */ new Set();
   const cadrer = (id, el, urls = [IMG(id, "library_600x900.jpg"), CDN(id, "library_600x900.jpg")]) => {
-    if (enCadrage.has(id)) return;
+    if (!origine && !el.__pcvProche || enCadrage.has(id)) return;
     enCadrage.add(id);
-    const essai = (url, suite) => {
-      const im = new Image();
-      im.crossOrigin = "anonymous";
-      im.onload = () => {
-        try {
-          const W = 30, H = 45, cv = document.createElement("canvas");
-          cv.width = W;
-          cv.height = H;
-          const x = cv.getContext("2d", { willReadFrequently: true });
-          x.drawImage(im, 0, 0, W, H);
-          const d = x.getImageData(0, 0, W, H).data, L = (i, j) => {
-            const q = (j * W + i) * 4;
-            return 0.3 * d[q] + 0.59 * d[q + 1] + 0.11 * d[q + 2];
-          };
-          const e = [];
-          for (let j = 0; j < H; j++) {
-            let t = 0;
-            for (let i = 0; i < W - 1; i++) {
-              t += Math.abs(L(i + 1, j) - L(i, j));
-              if (j < H - 1) t += Math.abs(L(i, j + 1) - L(i, j));
-            }
-            e.push(t);
+    charge(urls, tailleTuile(el)).then((im) => {
+      if (tuilesFinies || !im) return;
+      try {
+        const W = 30, H = 45, cv = document.createElement("canvas");
+        cv.width = W;
+        cv.height = H;
+        const x = cv.getContext("2d", { willReadFrequently: true });
+        x.drawImage(im, 0, 0, W, H);
+        const d = x.getImageData(0, 0, W, H).data, L = (i, j) => {
+          const q = (j * W + i) * 4;
+          return 0.3 * d[q] + 0.59 * d[q + 1] + 0.11 * d[q + 2];
+        };
+        const e = [];
+        for (let j = 0; j < H; j++) {
+          let t = 0;
+          for (let i = 0; i < W - 1; i++) {
+            t += Math.abs(L(i + 1, j) - L(i, j));
+            if (j < H - 1) t += Math.abs(L(i, j + 1) - L(i, j));
           }
-          let best = 0, bo = 0;
-          for (let o = 0; o <= H - W; o++) {
-            let t = 0;
-            for (let j = o; j < o + W; j++) t += e[j];
-            t *= 1 - 0.15 * o / (H - W);
-            if (t > best) {
-              best = t;
-              bo = o;
-            }
-          }
-          CADRES[id] = Math.round(bo / (H - W) * 100);
-          ecrire("pcv-cadrage", CADRES);
-          if (el.isConnected && el.dataset.facon === "cadrage") el.style.backgroundPosition = `center ${CADRES[id]}%`;
-        } catch (err) {
-          suite?.();
+          e.push(t);
         }
-      };
-      im.onerror = () => suite?.();
-      im.src = url;
-    };
-    const suivant = (k) => k < urls.length && essai(urls[k], () => suivant(k + 1));
-    suivant(0);
+        let best = 0, bo = 0;
+        for (let o = 0; o <= H - W; o++) {
+          let t = 0;
+          for (let j = o; j < o + W; j++) t += e[j];
+          t *= 1 - 0.15 * o / (H - W);
+          if (t > best) {
+            best = t;
+            bo = o;
+          }
+        }
+        CADRES[id] = Math.round(bo / (H - W) * 100);
+        ecrire("pcv-cadrage", CADRES);
+        if (el.isConnected && el.dataset.facon === "cadrage") el.style.backgroundPosition = `center ${CADRES[id]}%`;
+      } catch (err) {
+      }
+    });
   };
   const AUTO = lire("pcv-tuile-auto", {}), enVerif = /* @__PURE__ */ new Map();
-  const charge = (l) => new Promise((ok) => {
-    const un = (k) => {
-      if (k >= l.length) return ok(null);
+  const charge = async (l, S = TUILE.pas) => {
+    for (const url of l.filter(Boolean)) {
+      const u = await copieDe(absolu(url), S);
+      if (!u) continue;
+      const lectures = MEMOIRE.lectures;
+      lectures.set(u, (lectures.get(u) || 0) + 1);
       const im = new Image();
-      im.crossOrigin = "anonymous";
-      im.onload = () => ok(im.naturalWidth > 8 ? im : null);
-      im.onerror = () => un(k + 1);
-      im.src = l[k];
-    };
-    un(0);
-  });
+      im.src = u;
+      try {
+        await im.decode();
+        if (im.naturalWidth > 8) {
+          im.__pcvOrigine = absolu(url);
+          return im;
+        }
+      } catch (e) {
+      } finally {
+        const n = lectures.get(u) - 1;
+        if (n) lectures.set(u, n);
+        else lectures.delete(u);
+      }
+    }
+    return null;
+  };
   const lireLogo = (im) => {
     try {
       const N = 48, cv = document.createElement("canvas");
@@ -750,26 +762,37 @@
       return { l: null, b: [0, 1, 0, 1] };
     }
   };
-  const imagesDetails = (id) => Promise.race([new Promise((ok) => setTimeout(() => ok(null), 4e3)), Promise.resolve(O.appDetailsStore?.RequestAppDetails(id)).catch(() => null)]).then(() => {
+  const imagesDetails = async (id) => {
+    let minuteur;
+    try {
+      await Promise.race([new Promise((ok) => {
+        minuteur = setTimeout(() => ok(null), 4e3);
+      }), Promise.resolve().then(() => O.appDetailsStore?.RequestAppDetails(id)).catch(() => null)]);
+    } finally {
+      clearTimeout(minuteur);
+    }
     const D = O.appDetailsStore, abs = (l) => (l || []).map(absolu);
     try {
       return [abs(D.GetLogoImagesForAppId(id)?.rgLogoImages), abs(D.GetHeroImagesForAppId(id)?.rgHeroImages)];
     } catch (e) {
       return [[], []];
     }
-  });
-  const verifier = (a) => {
+  };
+  const verifier = (a, el) => {
+    if (el && !origine && !el.__pcvProche) return;
     const id = a.appid;
     if (AUTO[id] && "b" in AUTO[id] || AUTO[id] && !AUTO[id].r && "l" in AUTO[id] && AUTO[id].d || enVerif.has(id)) return;
-    enVerif.set(id, imagesDetails(id).then(([dl, dh]) => Promise.all([
-      charge([...perso("GetCustomLogoImageURLs", a), IMG(id, "logo.png"), CDN(id, "logo.png"), ...dl]),
-      charge([...perso("GetCustomHeroImageURLs", a), IMG(id, "library_hero.jpg"), CDN(id, "library_hero.jpg"), ...dh])
+    const S = el ? tailleTuile(el) : TUILE.pas;
+    enVerif.set(id, enFile(() => imagesDetails(id)).then((d) => d || [[], []]).then(([dl, dh]) => Promise.all([
+      charge([...perso("GetCustomLogoImageURLs", a), IMG(id, "logo.png"), CDN(id, "logo.png"), ...dl], S),
+      charge([...perso("GetCustomHeroImageURLs", a), IMG(id, "library_hero.jpg"), CDN(id, "library_hero.jpg"), ...dh], S)
     ])).then(([logo, fond]) => {
-      AUTO[id] = { a: !!(logo && fond), r: logo ? +(logo.naturalWidth / logo.naturalHeight).toFixed(2) : 0, ...logo ? lireLogo(logo) : { l: null }, lu: logo?.src, fu: fond?.src, d: 1 };
+      if (tuilesFinies) return;
+      AUTO[id] = { a: !!(logo && fond), r: logo ? +(logo.naturalWidth / logo.naturalHeight).toFixed(2) : 0, ...logo ? lireLogo(logo) : { l: null }, lu: logo?.__pcvOrigine, fu: fond?.__pcvOrigine, d: 1 };
       ecrire("pcv-tuile-auto", AUTO);
-      enVerif.delete(id);
-      grille.querySelectorAll(`.cel.jeu .im[data-appid="${id}"]`).forEach((el) => peindreJeu(el, a));
-    }));
+      grille.querySelectorAll(`.cel.jeu .im[data-appid="${id}"]`).forEach((el2) => peindreJeu(el2, a));
+    }).catch(() => {
+    }).finally(() => enVerif.delete(id)));
   };
   const placeLogo = (id) => {
     const v = AUTO[id], r = v?.r;
@@ -779,65 +802,606 @@
     const pos2 = (c, t) => Math.abs(1 - t) < 0.01 ? 50 : +((0.5 - c * t) / (1 - t) * 100).toFixed(1);
     return [`${+(L * 100).toFixed(1)}% auto`, `${pos2((x0 + x1) / 2, L)}% ${pos2((y0 + y1) / 2, H)}%`];
   };
-  const REDUITS = window.__pcvDecorsReduits ||= /* @__PURE__ */ new Map(), H_DECOR = 512, H_LOGO = 256;
-  const reduit = (url, el, a, hMax = H_DECOR, png = false) => {
-    const r = REDUITS.get(url);
-    if (typeof r === "string") return r;
-    if (!r) REDUITS.set(url, fetch(url).then((x) => x.blob()).then((b) => createImageBitmap(b)).then(async (bm) => {
-      if (bm.height < hMax * 1.25) {
-        bm.close();
-        return url;
-      }
-      const p = await createImageBitmap(bm, { resizeWidth: Math.round(bm.width * hMax / bm.height), resizeHeight: hMax, resizeQuality: "high" });
-      bm.close();
-      const c = new OffscreenCanvas(p.width, p.height);
-      c.getContext("2d").drawImage(p, 0, 0);
-      p.close();
-      return URL.createObjectURL(await c.convertToBlob(png ? { type: "image/png" } : { type: "image/jpeg", quality: 0.9 }));
-    }).catch(() => url).then((u) => {
-      REDUITS.set(url, u);
-      return u;
-    }));
-    REDUITS.get(url).then((u) => {
-      if (u !== url && el.isConnected && el.dataset.appid === String(a.appid)) peindreJeu(el, a);
+  const TUILE = {
+    marge: 1.25,
+    // la copie fait 1,25 fois la taille où la tuile est vue à son plus grand (choisie, portée)
+    agrandie: 1.15,
+    // la plus grande échelle qu'une tuile prend à l'écran (portée au-dessus d'un dossier)
+    long: 2.5,
+    // et son grand côté au moins 2,5 fois la tuile (un logo peut déborder de sa boîte)
+    gain: 0.8,
+    // en deçà de 20 % de pixels en moins, l'image d'origine est gardée
+    pas: 64,
+    // tailles arrondies par paliers (le même jeu de copies sert tant que le zoom ne change pas beaucoup)
+    qualite: 0.92,
+    // WebP pour les photos ; une image PNG reste en PNG (transparence et motifs fins d'un logo intacts)
+    delai: 15e3,
+    // une source muette ne retient pas indéfiniment une place de la file
+    memoire: 32 * 1024 * 1024,
+    // budget des blobs compressés ; ne pas révoquer une image encore utilisée
+    cache: "pcv-tuiles-v9",
+    anciens: ["pcv-tuiles-v8", "pcv-tuiles-v7", "pcv-tuiles-v6", "pcv-tuiles-legeres-v5", "pcv-tuiles-legeres-v4", "pcv-tuiles-legeres-v3"]
+  };
+  window.__pcvTuilesLegeres?.arreter?.();
+  delete window.__pcvTuilesLegeres;
+  for (const n of ["__pcvReduits2", "__pcvDecorsReduits", "__pcvCopiesTuiles"]) {
+    window[n]?.forEach?.((u) => {
+      if (typeof u === "string" && u.startsWith("blob:")) URL.revokeObjectURL(u);
     });
-    return url;
+    delete window[n];
+  }
+  TUILE.anciens.forEach((n) => {
+    caches.delete(n).catch(() => {
+    });
+    const ancien = window["__pcvTuiles-" + n];
+    if (!ancien) return;
+    for (const m of [ancien.copies, ancien.videos]) m?.forEach((v) => Promise.resolve(v).then((u) => {
+      if (typeof u === "string" && u.startsWith("blob:")) URL.revokeObjectURL(u);
+    }).catch(() => {
+    }));
+    delete window["__pcvTuiles-" + n];
+  });
+  const MEMOIRE = window["__pcvTuiles-" + TUILE.cache] ||= {};
+  for (const [n, f] of Object.entries({ copies: Map, dernieres: Map, decodees: Map, animees: Set, origines: Map, videos: Map, blobs: Map, lectures: Map })) MEMOIRE[n] ||= new f();
+  const COPIES = MEMOIRE.copies;
+  const tailleTuile = (el) => !el.__pcvProche || racine.hidden || document.hidden ? TUILE.pas : Math.max(TUILE.pas, Math.ceil((el.offsetWidth || 160) * (devicePixelRatio || 1) * TUILE.agrandie * TUILE.marge / TUILE.pas) * TUILE.pas);
+  let enCopie = 0, tuilesFinies = false;
+  const aCopier = [], lecturesImages = /* @__PURE__ */ new Set(), annulationsVideos = /* @__PURE__ */ new Set();
+  const copieSuivante = () => {
+    while (!tuilesFinies && enCopie < 2 && aCopier.length) {
+      enCopie++;
+      aCopier.shift().lancer();
+    }
+  };
+  const enFile = (f) => new Promise((ok) => {
+    if (tuilesFinies) return ok(null);
+    aCopier.push({ annuler: () => ok(null), lancer: () => Promise.resolve().then(() => tuilesFinies ? null : f()).catch(() => null).then(ok).finally(() => {
+      enCopie--;
+      copieSuivante();
+    }) });
+    copieSuivante();
+  });
+  let magasin;
+  const ouvrirMagasin = async () => {
+    if (magasin === void 0) {
+      try {
+        magasin = await caches.open(TUILE.cache);
+      } catch (e) {
+        magasin = null;
+      }
+    }
+    return magasin;
+  };
+  const BLOBS = MEMOIRE.blobs;
+  let purgeMemoire = 0;
+  const toucherBlob = (u) => {
+    const b = BLOBS.get(u);
+    if (b) b.date = performance.now();
+  };
+  const oublierBlob = (u) => {
+    if (typeof u === "string" && u.startsWith("blob:")) URL.revokeObjectURL(u);
+    BLOBS.delete(u);
+  };
+  const purgerMemoire = () => {
+    purgeMemoire = 0;
+    if (tuilesFinies) return;
+    let octets = 0;
+    BLOBS.forEach((b) => {
+      octets += b.taille;
+    });
+    if (octets <= TUILE.memoire) return;
+    const utilisees = new Set(MEMOIRE.lectures.keys());
+    grille.querySelectorAll(".cel.jeu > .im, .pcv-anim-dessus, video.pcv-anim").forEach((el) => {
+      for (const u2 of (el.style.backgroundImage || "").match(/blob:[^'\")\s,]+/g) || []) utilisees.add(u2);
+      const u = el.getAttribute("src");
+      if (u) utilisees.add(u);
+    });
+    const retirees = /* @__PURE__ */ new Set();
+    for (const [u, b] of [...BLOBS].sort((a, b2) => a[1].date - b2[1].date)) {
+      if (octets <= TUILE.memoire) break;
+      if (utilisees.has(u) || typeof MEMOIRE.decodees.get(u)?.then === "function") continue;
+      oublierBlob(u);
+      retirees.add(u);
+      octets -= b.taille;
+      MEMOIRE.decodees.delete(u);
+      MEMOIRE.origines.delete(u);
+    }
+    for (const m of [COPIES, MEMOIRE.videos, MEMOIRE.dernieres]) m.forEach((v, k) => {
+      if (retirees.has(v)) m.delete(k);
+    });
+  };
+  const programmerPurge = () => {
+    if (!tuilesFinies && !purgeMemoire) purgeMemoire = setTimeout(purgerMemoire, 1e3);
+  };
+  const garderBlob = (b) => {
+    if (tuilesFinies) return null;
+    const u = URL.createObjectURL(b);
+    BLOBS.set(u, { taille: b.size, date: performance.now() });
+    programmerPurge();
+    return u;
+  };
+  const animee = async (b) => {
+    const t = new Uint8Array(await b.slice(0, 65536).arrayBuffer());
+    const a = (k, d = 0) => [...k].every((c, i) => t[d + i] === c.charCodeAt(0));
+    const cherche = (k) => {
+      for (let i = 0; i + k.length <= t.length; i++) if (a(k, i)) return true;
+      return false;
+    };
+    return a("GIF8") || a("RIFF") && a("WEBP", 8) && cherche("ANIM") || t[1] === 80 && a("PNG", 1) && cherche("acTL");
+  };
+  const ANIMEES = MEMOIRE.animees, ORIGINES = MEMOIRE.origines;
+  const lireImage = async (u) => {
+    const controle = new AbortController(), minuterie = setTimeout(() => controle.abort(), TUILE.delai);
+    if (tuilesFinies) {
+      clearTimeout(minuterie);
+      return null;
+    }
+    lecturesImages.add(controle);
+    try {
+      const r = await fetch(u, { credentials: "omit", signal: controle.signal });
+      return r.ok ? await r.blob() : null;
+    } finally {
+      clearTimeout(minuterie);
+      lecturesImages.delete(controle);
+    }
+  };
+  const copier = async (u, S) => {
+    const m = await ouvrirMagasin(), req = `https://pcv.tuiles/?s=${S}&u=${encodeURIComponent(u)}`;
+    const deja = m && await m.match(req).catch(() => null);
+    if (deja) {
+      if (deja.headers.get("X-Pcv-Anime") === "1") ANIMEES.add(u);
+      const b = await deja.blob();
+      return b.size ? garderBlob(b) : u;
+    }
+    return enFile(async () => {
+      const b = await lireImage(u);
+      if (!b) return null;
+      const anime = await animee(b);
+      if (anime) ANIMEES.add(u);
+      const im = await createImageBitmap(b).catch(() => null);
+      if (!im) return null;
+      let sortie = new Blob([]);
+      try {
+        if (tuilesFinies) return null;
+        const w = im.width, h2 = im.height, k = Math.min(1, Math.max(S / Math.min(w, h2), TUILE.long * S / Math.max(w, h2)));
+        if (k < TUILE.gain || anime) {
+          const pw = Math.max(1, Math.round(w * k)), ph = Math.max(1, Math.round(h2 * k));
+          const p = await createImageBitmap(im, { resizeWidth: pw, resizeHeight: ph, resizeQuality: "high" });
+          try {
+            const c = new OffscreenCanvas(pw, ph);
+            c.getContext("2d").drawImage(p, 0, 0);
+            sortie = await c.convertToBlob(await b.slice(1, 4).text() === "PNG" ? { type: "image/png" } : { type: "image/webp", quality: TUILE.qualite });
+          } finally {
+            p.close();
+          }
+        }
+      } finally {
+        im.close();
+      }
+      if (tuilesFinies) return null;
+      m?.put(req, new Response(sortie, { headers: { "X-Pcv-Anime": anime ? "1" : "0" } })).catch(() => {
+      });
+      return sortie.size ? garderBlob(sortie) : u;
+    });
+  };
+  const copieDe = (u, S) => {
+    if (tuilesFinies) return null;
+    const k = u + "|" + S;
+    let c = COPIES.get(k);
+    if (c === void 0) COPIES.set(k, c = copier(u, S).catch(() => null).then((r) => {
+      if (tuilesFinies) {
+        oublierBlob(r);
+        return null;
+      }
+      if (COPIES.get(k) === c) COPIES.set(k, r);
+      if (r && r !== u) ORIGINES.set(r, u);
+      return r;
+    }));
+    if (typeof c === "string") toucherBlob(c);
+    return c;
+  };
+  const copieTuile = (u, S, el, a) => {
+    const c = copieDe(u, S);
+    if (c === null) return null;
+    const D = MEMOIRE.decodees, pret = typeof c === "string" && D.get(c) === true;
+    if (pret) {
+      MEMOIRE.dernieres.set(u, c);
+      return c;
+    }
+    Promise.resolve(c).then((r) => {
+      if (!r) return;
+      if (!D.has(r)) {
+        const im = new Image();
+        im.src = r;
+        D.set(r, im.decode().catch(() => {
+        }).then(() => D.set(r, true)));
+      }
+      return D.get(r);
+    }).then(() => {
+      if (!tuilesFinies && el.isConnected && el.dataset.appid === String(a.appid)) peindreJeu(el, a);
+    });
+    return MEMOIRE.dernieres.get(u);
+  };
+  let origine = false;
+  const couche = (el, a, l) => {
+    l = l.filter(Boolean);
+    if (origine) return l.map(urlCss);
+    const S = el.__pcvS = tailleTuile(el);
+    for (const u of l) {
+      const c = copieTuile(absolu(u), S, el, a);
+      if (c === void 0) return [];
+      if (c) return [urlCss(c)];
+    }
+    return [];
+  };
+  const couchesCss = (s) => {
+    const r = [];
+    let p = 0, c = "";
+    for (const car of s || "") {
+      if (car === "(") p++;
+      if (car === ")") p--;
+      if (car === "," && p === 0) {
+        r.push(c.trim());
+        c = "";
+      } else c += car;
+    }
+    if (c.trim()) r.push(c.trim());
+    return r;
+  };
+  const pctCss = (t) => t == null || t === "center" ? 50 : t === "left" || t === "top" ? 0 : t === "right" || t === "bottom" ? 100 : parseFloat(t) || 50;
+  const tailleCss = (taille, iw, ih, w, h2) => {
+    const t = (taille || "cover").trim();
+    if (t === "cover" || t === "contain") {
+      const s = (t === "cover" ? Math.max : Math.min)(w / iw, h2 / ih);
+      return [iw * s, ih * s];
+    }
+    const [sw, sh] = t.split(/\s+/);
+    const dw = sw?.endsWith("%") ? w * parseFloat(sw) / 100 : iw;
+    const dh = !sh || sh === "auto" ? dw * ih / iw : sh.endsWith("%") ? h2 * parseFloat(sh) / 100 : ih;
+    return [dw, dh];
+  };
+  window.__pcvCouches = { couches: couchesCss, pct: pctCss, taille: tailleCss };
+  const webm = /* @__PURE__ */ (() => {
+    const vint = (n) => {
+      const o = new Uint8Array(8);
+      o[0] = 1;
+      for (let i = 7; i >= 1; i--) {
+        o[i] = n % 256;
+        n = Math.floor(n / 256);
+      }
+      return o;
+    };
+    const cat = (l) => {
+      const o = new Uint8Array(l.reduce((s, x) => s + x.length, 0));
+      let p = 0;
+      for (const x of l) {
+        o.set(x, p);
+        p += x.length;
+      }
+      return o;
+    };
+    const idb = (id) => {
+      const b = [];
+      while (id > 0) {
+        b.unshift(id & 255);
+        id = Math.floor(id / 256);
+      }
+      return new Uint8Array(b);
+    };
+    const el = (id, ...enfants) => {
+      const d = cat(enfants);
+      return cat([idb(id), vint(d.length), d]);
+    };
+    const ui = (id, v) => {
+      const b = [];
+      do {
+        b.unshift(v & 255);
+        v = Math.floor(v / 256);
+      } while (v > 0);
+      return el(id, new Uint8Array(b));
+    };
+    const fl = (id, v) => {
+      const d = new Uint8Array(8);
+      new DataView(d.buffer).setFloat64(0, v);
+      return el(id, d);
+    };
+    const st = (id, s) => el(id, new TextEncoder().encode(s));
+    return (morceaux, w, h2, dureeMs) => {
+      const amas = [];
+      let cour = null;
+      for (const m of morceaux) {
+        if (!cour || m.cle || m.ms - cour.t > 3e4) {
+          cour = { t: m.ms, blocs: [] };
+          amas.push(cour);
+        }
+        const r = m.ms - cour.t, b = new Uint8Array(4 + m.data.length);
+        b[0] = 129;
+        b[1] = r >> 8 & 255;
+        b[2] = r & 255;
+        b[3] = m.cle ? 128 : 0;
+        b.set(m.data, 4);
+        cour.blocs.push(el(163, b));
+      }
+      return new Blob([
+        el(440786851, ui(17030, 1), ui(17143, 1), ui(17138, 4), ui(17139, 8), st(17026, "webm"), ui(17031, 2), ui(17029, 2)),
+        el(
+          408125543,
+          el(357149030, ui(2807729, 1e6), st(19840, "SteamU"), st(22337, "SteamU"), fl(17545, dureeMs)),
+          el(374648427, el(174, ui(215, 1), ui(29637, 1), ui(131, 1), st(134, "V_VP8"), el(224, ui(176, w), ui(186, h2)))),
+          ...amas.map((a) => el(524531317, ui(231, a.t), ...a.blocs))
+        )
+      ], { type: "video/webm" });
+    };
+  })();
+  const VIDEO = { images: 900, debit: 7e5, cle: 90, file: 8 };
+  const fabriquerVideo = async (u, T2, position) => {
+    const m = await ouvrirMagasin(), req = `https://pcv.tuiles/video?t=${T2}&p=${encodeURIComponent(position)}&u=${encodeURIComponent(u)}`;
+    const deja = m && await m.match(req).catch(() => null);
+    if (deja) {
+      const b = await deja.blob();
+      return b.size ? garderBlob(b) : null;
+    }
+    if (typeof ImageDecoder === "undefined" || typeof VideoEncoder === "undefined") return null;
+    return enFile(async () => {
+      const b = await lireImage(u);
+      if (!b) return null;
+      const t = String.fromCharCode(...new Uint8Array(await b.slice(0, 12).arrayBuffer()));
+      const dec = new ImageDecoder({ data: b.stream(), type: t.startsWith("GIF8") ? "image/gif" : t.slice(8, 12) === "WEBP" ? "image/webp" : "image/png" });
+      let enc, erreur = null, liberer = null;
+      const annuler2 = () => {
+        erreur = new Error("tuiles arr\xEAt\xE9es");
+        liberer?.();
+      };
+      annulationsVideos.add(annuler2);
+      try {
+        await dec.tracks.ready;
+        await dec.completed;
+        if (tuilesFinies || erreur) return null;
+        const n = Math.min(VIDEO.images, dec.tracks.selectedTrack.frameCount);
+        const [px, py] = position.split(/\s+/).map(pctCss), c = new OffscreenCanvas(T2, T2), x = c.getContext("2d"), morceaux = [];
+        let ts = 0;
+        enc = new VideoEncoder({ output: (ch) => {
+          const d = new Uint8Array(ch.byteLength);
+          ch.copyTo(d);
+          morceaux.push({ data: d, ms: Math.round(ch.timestamp / 1e3), cle: ch.type === "key" });
+        }, error: (e) => {
+          erreur = e;
+          liberer?.();
+        } });
+        enc.configure({ codec: "vp8", width: T2, height: T2, bitrate: VIDEO.debit, framerate: 30, latencyMode: "quality" });
+        for (let i = 0; i < n && !erreur; i++) {
+          const { image } = await dec.decode({ frameIndex: i });
+          const iw = image.displayWidth, ih = image.displayHeight, k = Math.max(T2 / iw, T2 / ih);
+          const d = image.duration || 33333;
+          try {
+            x.fillStyle = "#000";
+            x.fillRect(0, 0, T2, T2);
+            x.drawImage(image, (T2 - iw * k) * px / 100, (T2 - ih * k) * py / 100, iw * k, ih * k);
+          } finally {
+            image.close();
+          }
+          const f = new VideoFrame(c, { timestamp: ts, duration: d });
+          try {
+            enc.encode(f, { keyFrame: i % VIDEO.cle === 0 });
+          } finally {
+            f.close();
+          }
+          ts += d;
+          while (enc.encodeQueueSize > VIDEO.file && !erreur) await new Promise((r) => {
+            const fini = () => {
+              enc.removeEventListener("dequeue", fini);
+              liberer = null;
+              r();
+            };
+            liberer = fini;
+            enc.addEventListener("dequeue", fini, { once: true });
+            if (enc.encodeQueueSize <= VIDEO.file || erreur) fini();
+          });
+        }
+        if (!erreur) await enc.flush();
+        if (tuilesFinies || erreur || !morceaux.length) return null;
+        const sortie = webm(morceaux, T2, T2, ts / 1e3);
+        m?.put(req, new Response(sortie)).catch(() => {
+        });
+        return garderBlob(sortie);
+      } finally {
+        annulationsVideos.delete(annuler2);
+        if (enc && enc.state !== "closed") enc.close();
+        dec.close();
+      }
+    });
+  };
+  const VIDEOS = MEMOIRE.videos;
+  const videoVisible = (el) => !racine.hidden && !document.hidden && el.__pcvProche === true;
+  const videoDe = (u, T2, position, el) => {
+    const k = `${u}|${T2}|${position}`;
+    let c = VIDEOS.get(k);
+    if (tuilesFinies) return null;
+    if (c === void 0) VIDEOS.set(k, c = fabriquerVideo(u, T2, position).catch(() => null).then((r) => {
+      if (tuilesFinies) {
+        oublierBlob(r);
+        return null;
+      }
+      if (VIDEOS.get(k) === c) VIDEOS.set(k, r);
+      return r;
+    }));
+    if (!(c instanceof Promise)) {
+      toucherBlob(c);
+      return c;
+    }
+    c.then((r) => {
+      if (!tuilesFinies && r && el.isConnected && el.dataset.appid) animer(el);
+    });
+    return void 0;
+  };
+  const animer = (el) => {
+    const v0 = el.querySelector(":scope > video.pcv-anim:not(.attente)"), d0 = el.querySelector(":scope > .pcv-anim-dessus");
+    const sans = () => el.querySelectorAll(":scope > video.pcv-anim, :scope > .pcv-anim-dessus").forEach((x) => {
+      if (x.tagName === "VIDEO") {
+        x.pause();
+        x.removeAttribute("src");
+        x.load();
+      }
+      x.remove();
+    });
+    if (!videoVisible(el) || !el.dataset.appid || !ANIMEES.size || lire("pcv-tuiles-animees", false) !== true) return sans();
+    const imgs = couchesCss(el.style.backgroundImage), tailles = couchesCss(el.style.backgroundSize || IM_DEFAUT.taille), positions = couchesCss(el.style.backgroundPosition || IM_DEFAUT.position);
+    const de = (l, i2) => l[i2 % l.length];
+    const i = imgs.findIndex((c, k) => {
+      const u2 = /^url\("?(.+?)"?\)$/.exec(c)?.[1];
+      return u2 && ANIMEES.has(ORIGINES.get(u2) || u2) && de(tailles, k) === "cover";
+    });
+    if (i < 0) return sans();
+    const u = /^url\("?(.+?)"?\)$/.exec(imgs[i])[1], T2 = Math.max(64, Math.round(tailleTuile(el) / TUILE.marge / 16) * 16);
+    const src = videoDe(ORIGINES.get(u) || u, T2, de(positions, i), el);
+    if (src === null) return sans();
+    const poser2 = (v2) => {
+      const d = d0 || Object.assign(document.createElement("div"), { className: "pcv-anim-dessus" });
+      if (d.previousElementSibling !== v2) v2.after(d);
+      d.style.backgroundImage = imgs.slice(0, i).join(",");
+      d.style.backgroundSize = imgs.slice(0, i).map((_, k) => de(tailles, k)).join(",");
+      d.style.backgroundPosition = imgs.slice(0, i).map((_, k) => de(positions, k)).join(",");
+      d.style.backgroundRepeat = "no-repeat";
+      el.style.backgroundImage = "none";
+    };
+    if (v0) poser2(v0);
+    if (src === void 0 || v0?.dataset.src === src || el.querySelector(`:scope > video.attente[data-src="${src}"]`)) {
+      if (v0) {
+        if (videoVisible(el)) v0.play().catch(() => {
+        });
+        else v0.pause();
+      }
+      return;
+    }
+    const v = Object.assign(document.createElement("video"), { className: "pcv-anim attente", muted: true, loop: true, playsInline: true, disablePictureInPicture: true, src });
+    v.dataset.src = src;
+    v.addEventListener("loadeddata", () => {
+      if (!v.isConnected) return;
+      if (v.duration > 0 && isFinite(v.duration)) v.currentTime = performance.now() / 1e3 % v.duration;
+      el.querySelectorAll(":scope > video.pcv-anim").forEach((x) => x !== v && x.remove());
+      v.classList.remove("attente");
+      poser2(v);
+      if (videoVisible(el)) v.play().catch(() => {
+      });
+    }, { once: true });
+    el.prepend(v);
+  };
+  const proches = new IntersectionObserver((l) => l.forEach((x) => {
+    const el = x.target, a = el.__pcvJeu;
+    if (!a) return;
+    el.__pcvProche = !!x.rootBounds?.width && x.isIntersecting;
+    const v = el.querySelector(":scope > video.pcv-anim");
+    if (!videoVisible(el)) {
+      if (!tuilesFinies && !racine.hidden && !document.hidden && el.dataset.appid) peindreJeu(el, a);
+      return v?.pause();
+    }
+    peindreJeu(el, a);
+    rechauffer();
+  }), { root: racine, rootMargin: "50%" });
+  let rechauffe = 0;
+  const rechauffer = () => {
+    if (rechauffe) return;
+    const suite = () => {
+      rechauffe = 0;
+      if (tuilesFinies || !racine.isConnected || racine.hidden || document.hidden) return;
+      if (aCopier.length > 1) {
+        rechauffe = setTimeout(() => {
+          rechauffe = 0;
+          rechauffer();
+        }, 250);
+        return;
+      }
+      const el = [...grille.querySelectorAll(".cel.jeu > .im:not([data-appid])")].find((e) => e.__pcvJeu);
+      if (!el) return;
+      peindreJeu(el, el.__pcvJeu);
+      rechauffer();
+    };
+    rechauffe = (window.requestIdleCallback || ((f) => setTimeout(f, 50)))(suite, { timeout: 1e3 });
+  };
+  const retailler = new ResizeObserver((l) => l.forEach(({ target: el }) => {
+    clearTimeout(el.__pcvRetaille);
+    el.__pcvRetaille = setTimeout(() => {
+      if (!tuilesFinies && el.isConnected && !racine.hidden && el.offsetWidth && el.dataset.appid && el.__pcvS && tailleTuile(el) !== el.__pcvS) peindreJeu(el, el.__pcvJeu);
+    }, 300);
+  }));
+  window.__pcvTuilesProches?.disconnect();
+  window.__pcvTuilesProches = proches;
+  window.__pcvTuilesTailles?.disconnect();
+  window.__pcvTuilesTailles = retailler;
+  document.removeEventListener("visibilitychange", window.__pcvTuilesVisibilite);
+  window.__pcvTuilesVisibilite = () => {
+    grille.querySelectorAll(".cel.jeu > .im").forEach((el) => {
+      if (el.__pcvProche && el.__pcvJeu) peindreJeu(el, el.__pcvJeu);
+    });
+    if (!document.hidden) rechauffer();
+  };
+  document.addEventListener("visibilitychange", window.__pcvTuilesVisibilite);
+  window.__pcvTuilesFin = () => {
+    tuilesFinies = true;
+    clearTimeout(rechauffe);
+    window.cancelIdleCallback?.(rechauffe);
+    rechauffe = 0;
+    clearTimeout(purgeMemoire);
+    purgeMemoire = 0;
+    proches.disconnect();
+    retailler.disconnect();
+    document.removeEventListener("visibilitychange", window.__pcvTuilesVisibilite);
+    grille.querySelectorAll(".im").forEach((el) => clearTimeout(el.__pcvRetaille));
+    grille.querySelectorAll("video.pcv-anim").forEach((v) => {
+      v.pause();
+      v.removeAttribute("src");
+      v.load();
+    });
+    aCopier.splice(0).forEach((t) => t.annuler());
+    lecturesImages.forEach((c) => c.abort());
+    annulationsVideos.forEach((f) => f());
+    for (const m of [COPIES, VIDEOS]) m.forEach((v, k) => {
+      if (typeof v?.then === "function") m.delete(k);
+    });
   };
   const peindreJeu = (el, a) => {
+    if (tuilesFinies) return;
+    peindreCouches(el, a);
+    if (!origine) {
+      animer(el);
+      programmerPurge();
+    }
+  };
+  const peindreCouches = (el, a) => {
     const id = a.appid;
     el.dataset.appid = id;
     el.style.backgroundSize = el.style.backgroundPosition = el.style.backgroundRepeat = "";
     let m = faconVoulue(a);
     const verts = perso("GetCustomVerticalCapsuleURLs", a);
-    if (raccourci(a)) essayerArtAuto(a);
+    if (raccourci(a) && (origine || el.__pcvProche)) essayerArtAuto(a);
     if (raccourci(a) || verts.length) {
-      verifier(a);
+      verifier(a, el);
       if (m === "jaquette" && verts.length) {
         el.dataset.facon = m;
-        el.style.backgroundImage = imageJeu(a);
+        el.style.backgroundImage = imageJeu(a, el);
         return;
       }
       if (AUTO[id]?.a && m !== "cadrage") m = "logo";
       else if (verts.length) {
         el.dataset.facon = "cadrage";
-        el.style.backgroundImage = imageJeu(a);
+        el.style.backgroundImage = imageJeu(a, el);
         if (CADRES[id] != null) el.style.backgroundPosition = `center ${CADRES[id]}%`;
         else cadrer(id, el, verts);
         return;
       } else {
         el.dataset.facon = "jaquette";
-        el.style.backgroundImage = imageJeu(a);
+        el.style.backgroundImage = imageJeu(a, el);
         el.style.backgroundPosition = "center";
         return;
       }
     } else if (m === "auto") {
-      verifier(a);
+      verifier(a, el);
       m = AUTO[id] ? AUTO[id].a ? "logo" : "cadrage" : "cadrage";
-    } else if (m === "logo" || m === "carre") verifier(a);
+    } else if (m === "logo" || m === "carre") verifier(a, el);
     if (m === "logo" && AUTO[id] && !AUTO[id].a) m = "cadrage";
     if (m === "carre" && AUTO[id] && !AUTO[id].a) {
       el.dataset.facon = m;
-      el.style.backgroundImage = [urlCss(CDN(id, "hero_capsule.jpg")), imageJeu(a)].join(",");
+      el.style.backgroundImage = [...couche(el, a, [CDN(id, "hero_capsule.jpg")]), imageJeu(a, el)].filter(Boolean).join(",");
       el.style.backgroundSize = "cover";
       el.style.backgroundRepeat = "no-repeat";
       el.style.backgroundPosition = "center 30%";
@@ -845,19 +1409,18 @@
     }
     el.dataset.facon = m;
     if (m === "jaquette") {
-      el.style.backgroundImage = imageJeu(a);
+      el.style.backgroundImage = imageJeu(a, el);
       return;
     }
     if (m === "cadrage") {
-      el.style.backgroundImage = imageJeu(a);
+      el.style.backgroundImage = imageJeu(a, el);
       if (CADRES[id] != null) el.style.backgroundPosition = `center ${CADRES[id]}%`;
       else cadrer(id, el, [IMG(id, "library_600x900.jpg"), CDN(id, "library_600x900.jpg"), ...perso("GetCachedVerticalCapsuleURL", a).map(absolu)]);
       return;
     }
-    const u = (l2) => l2.filter(Boolean).map(urlCss);
-    const v = AUTO[id], logos = u(v?.lu ? [reduit(v.lu, el, a, H_LOGO, true)] : [...perso("GetCustomLogoImageURLs", a), IMG(id, "logo.png"), CDN(id, "logo.png")]);
-    const fonds = u(v?.fu ? [reduit(v.fu, el, a)] : [...perso("GetCustomHeroImageURLs", a), IMG(id, "library_hero.jpg"), CDN(id, "library_hero.jpg"), CDN(id, "header.jpg")]);
-    const carres = m === "carre" ? u([CDN(id, "hero_capsule.jpg")]) : [], [tl, pl] = placeLogo(id);
+    const v = AUTO[id], logos = couche(el, a, v?.lu ? [v.lu] : [...perso("GetCustomLogoImageURLs", a), IMG(id, "logo.png"), CDN(id, "logo.png")]);
+    const fonds = couche(el, a, v?.fu ? [v.fu] : [...perso("GetCustomHeroImageURLs", a), IMG(id, "library_hero.jpg"), CDN(id, "library_hero.jpg"), CDN(id, "header.jpg")]);
+    const carres = m === "carre" ? couche(el, a, [CDN(id, "hero_capsule.jpg")]) : [], [tl, pl] = placeLogo(id);
     const l = v?.l, halo = l == null ? [] : [`radial-gradient(ellipse 60% 42% at center, ${l < 0.45 ? "rgb(var(--pcv-halo-rgb) / .66)" : "rgba(0,0,0,.5)"}, transparent)`];
     el.style.backgroundImage = [...carres, ...logos, ...halo, ...fonds].join(",");
     el.style.backgroundSize = [...carres.map(() => "cover"), ...logos.map(() => tl), ...halo.map(() => "100% 100%"), ...fonds.map(() => "cover")].join(",");
@@ -865,7 +1428,12 @@
     el.style.backgroundPosition = [...carres.map(() => "center 30%"), ...logos.map(() => pl), ...halo.map(() => "center"), ...fonds.map(() => "center")].join(",");
   };
   window.__pcvImageJeu = (a, el) => {
-    peindreJeu(el, a);
+    origine = true;
+    try {
+      peindreJeu(el, a);
+    } finally {
+      origine = false;
+    }
     return { image: el.style.backgroundImage, taille: el.style.backgroundSize || IM_DEFAUT.taille, position: el.style.backgroundPosition || IM_DEFAUT.position, repete: el.style.backgroundRepeat || "no-repeat" };
   };
   const TRACES = { page: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>', image: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>' };
@@ -1020,6 +1588,8 @@
     const ordre = cases.map((_, i) => i).sort(() => Math.random() - 0.5), limite = colonneLimite(z);
     reserve = reserver(cases);
     const { grands, ancreDe } = reserve;
+    proches.disconnect();
+    retailler.disconnect();
     grille.innerHTML = "";
     cases.forEach((c, i) => {
       const d = document.createElement("div");
@@ -1027,7 +1597,9 @@
       if (a) {
         d.className = "cel jeu";
         d.innerHTML = '<div class="im"></div>';
-        peindreJeu(d.firstChild, a);
+        d.firstChild.__pcvJeu = a;
+        proches.observe(d.firstChild);
+        retailler.observe(d.firstChild);
         if (distant(a)) {
           const n = document.createElement("i");
           n.className = "nuage";
