@@ -1,12 +1,16 @@
-# SteamU v0.1.4 (test build)
+# SteamU v0.1.5 (test build)
 
-**SteamU v0.1.4 (test build).** This is an early version for testers: expect bugs, and please report them.
+**SteamU v0.1.5 (test build).** This is an early version for testers: expect bugs, and please report them.
 
 SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspired by the Wii U and 3DS home menus (home grid, HOME menu, quick settings, notifications, friends, plaza…).
 
-### What's new in v0.1.4
-- Diagnostic report: a ~35 s performance measurement on the home screen, repeated while hiding SteamU elements one at a time, to pinpoint what loads the CPU on your machine (issue #1). Stay on the screen while it runs.
-- The "Customize" bubble (Themes, Badges, Decorate) is now translated.
+### What's new in v0.1.5
+- Main fix for issue #1: the home screen no longer decodes full-size game artwork. Each tile shows a copy shrunk to its on-screen size, made in a bounded queue (tiles on screen first) and kept between sessions. Custom and animated artwork (SteamGridDB, non-Steam shortcuts) is shrunk too; animated artwork shows its first frame. Large libraries (hundreds or thousands of games and shortcuts) no longer load everything at once.
+- Startup is lighter, and SteamU stops loading right away when its crash safety triggers.
+- Diagnostic report: also records your library size, Game Mode or Desktop Mode, and the crash-related lines of Steam's logs. If the home screen won't open, use the button from the Decky panel (Quick Access → Decky → SteamU → *Diagnostic report*).
+
+### v0.1.4
+- Diagnostic report: a ~35 s performance measurement on the home screen, repeated while hiding SteamU elements one at a time (issue #1).
 
 ### v0.1.3
 - Main fix for the lag/crash of issue #1: when Steam renders without the GPU (software rendering), the animated background is kept still automatically (~170% of a CPU core at rest down to ~20%). With a GPU, nothing changes.
@@ -23,7 +27,7 @@ SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspi
 Full list in [CHANGELOG.md](../CHANGELOG.md).
 
 ### Install
-1. Download [SteamU-v0.1.4-test.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.4-test.zip).
+1. Download [SteamU-v0.1.5-test.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.5-test.zip).
 2. In Decky Loader: Settings → Developer → *Install plugin from ZIP file*, pick the zip.
 3. Restart Steam (or the console). The SteamU welcome screen appears: press A.
 
