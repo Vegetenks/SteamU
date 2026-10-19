@@ -179,6 +179,9 @@ testers' Steam Decks. Expect some screens to look better on one screen size than
 still be French-only. No telemetry, no analytics, no network calls beyond the few documented, opt-in integrations
 described in `ARCHITECTURE.md`.
 
+What's planned next (performance first) is in [`ROADMAP.md`](ROADMAP.md); what changed in each version is in
+[`CHANGELOG.md`](CHANGELOG.md).
+
 ## License
 
 AGPL-3.0-or-later, see [`LICENSE`](LICENSE). Third-party code bundled for convenience (a DBus client, a
