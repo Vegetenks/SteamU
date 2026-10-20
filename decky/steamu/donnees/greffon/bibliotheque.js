@@ -69,6 +69,32 @@
     if (etiq.hidden) etiq.hidden = false;
     if (bulle.hidden) bulle.hidden = false;
   }, 120);
+  clearInterval(window.__pcvGrilleDebut);
+  let grilleVue = null, tDebut = 0;
+  window.__pcvGrilleDebut = setInterval(() => {
+    const grille = document.body.dataset.pcvPage === "bibliotheque" ? document.querySelector("._3vHkmRShhzwd67_MtEq8-n") : null;
+    if (!grille) { grilleVue = null; return; }
+    if (grille !== grilleVue) { grilleVue = grille; tDebut = Date.now(); }
+    if (Date.now() - tDebut > 3000 || grille.querySelector(".gpfocus")) return;
+    for (let p = grille; p && p !== document.body; p = p.parentElement) {
+      if (p.scrollTop > 0 && /auto|scroll/.test(getComputedStyle(p).overflowY)) { p.style.scrollBehavior = "auto"; p.scrollTop = 0; }
+    }
+  }, 100);
+  clearInterval(window.__pcvOngletsSuivi);
+  let dernierOnglet = null;
+  window.__pcvOngletsSuivi = setInterval(() => {
+    const f = document.querySelector(".gpfocus");
+    if (!f || f === dernierOnglet) return;
+    const u = innerHeight / 800, r = f.getBoundingClientRect();
+    if (r.top < 90 * u || r.top > 145 * u || r.height > 70 * u) return;
+    dernierOnglet = f;
+    for (let p = f.parentElement; p && p !== document.body; p = p.parentElement) {
+      if (/auto|scroll/.test(getComputedStyle(p).overflowX) && p.scrollWidth > p.clientWidth + 1) {
+        f.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+        break;
+      }
+    }
+  }, 150);
   document.getElementById("pcv-trier")?.remove();
   const trier = document.createElement("button");
   trier.id = "pcv-trier";

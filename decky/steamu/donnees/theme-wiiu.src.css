@@ -819,7 +819,7 @@ svg:has(> path[d^="M3 33H10.54"]) > path:nth-child(4) { d: var(--pcv-wifi-d3); }
 
 {{TabHeaderRowWrapper@TabRow}} { height: calc(var(--u) * 140) !important; background: transparent !important; box-shadow: none !important; }
 {{TabRow@TabRowTabs}} {
-  position: absolute !important; left: calc(var(--u) * 44) !important; right: calc(var(--u) * 44) !important; top: calc(var(--u) * 96) !important;
+  position: absolute !important; left: calc(var(--u) * 24) !important; right: calc(var(--u) * 24) !important; top: calc(var(--u) * 96) !important;
   height: calc(var(--u) * 40) !important; padding: 0 !important; margin: 0 !important;
 }
 {{TabRow@TabRowTabs}} {{Glyphs@TabRow}} { display: none !important; }
@@ -861,6 +861,15 @@ svg:has(> path[d^="M3 33H10.54"]) > path:nth-child(4) { d: var(--pcv-wifi-d3); }
 {{FixCenterAlignScroll@TabRow}} { padding-left: 0 !important; margin-left: 0 !important; left: 0 !important; position: relative !important; }
 {{TabsRowScroll@TabRow}} { padding: 0 !important; justify-content: flex-start !important; }
 {{TabRowTabs@TabRow}} { justify-content: flex-start !important; padding: 0 !important; }
+/* SteamU: catégories nombreuses (ex. Unifideck) -> la rangée défile vers la droite au lieu d'être coupée.
+   Zone agrandie (haut/bas/gauche) pour ne pas rogner le halo de l'onglet sélectionné, et arrêtée avant le bouton Trier. */
+body[data-pcv-page="bibliotheque"] {{TabRow@TabRowTabs}}, {{GamepadTabbedPage@TabRow}}:has({{CSSGrid@Container}}) {{TabRow@TabRowTabs}} { top: calc(var(--u) * 76) !important; height: calc(var(--u) * 80) !important; left: calc(var(--u) * 4) !important; right: calc(var(--u) * 84) !important; }
+{{TabsRowScroll@TabRow}} { overflow-x: auto !important; overflow-y: hidden !important; scroll-behavior: smooth; scrollbar-width: none; }
+{{TabsRowScroll@TabRow}}::-webkit-scrollbar { display: none; }
+{{FixCenterAlignScroll@TabRow}} { overflow: visible !important; width: max-content !important; min-width: 100% !important; flex-wrap: nowrap !important; }
+body[data-pcv-page="bibliotheque"] {{FixCenterAlignScroll@TabRow}}, {{GamepadTabbedPage@TabRow}}:has({{CSSGrid@Container}}) {{FixCenterAlignScroll@TabRow}} { box-sizing: border-box !important; align-items: center !important; padding: calc(var(--u) * 20) calc(var(--u) * 44) calc(var(--u) * 20) calc(var(--u) * 20) !important; }
+body[data-pcv-page="bibliotheque"] {{TabsRowScroll@TabRow}}, {{GamepadTabbedPage@TabRow}}:has({{CSSGrid@Container}}) {{TabsRowScroll@TabRow}} { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--u) * 36), transparent) !important; mask-image: linear-gradient(to right, #000 calc(100% - var(--u) * 36), transparent) !important; }
+{{Tab@TabTitle}} { flex-shrink: 0 !important; white-space: nowrap !important; }
 {{CSSGrid@Container}} { padding-left: calc(var(--u) * 16) !important; }
 {{CSSGrid@Container}} {{LibraryItemBox@Draggable}}.gpfocus {
   box-shadow: var(--pcv-jaquette-choisie) !important;
