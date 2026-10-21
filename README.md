@@ -182,6 +182,10 @@ described in `ARCHITECTURE.md`.
 What's planned next (performance first) is in [`ROADMAP.md`](ROADMAP.md); what changed in each version is in
 [`CHANGELOG.md`](CHANGELOG.md).
 
+## Contributors
+
+- [@lieserlV](https://github.com/lieserlV): first tester; found the large-library crash (#1) and contributed the scrolling category row for libraries with many categories (#6, in v0.1.6).
+
 ## License
 
 AGPL-3.0-or-later, see [`LICENSE`](LICENSE). Third-party code bundled for convenience (a DBus client, a
