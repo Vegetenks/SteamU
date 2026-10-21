@@ -841,7 +841,7 @@
       preparer(d, t, e, K);
       d.force = d.apercu ? 1 : +getComputedStyle(document.documentElement).getPropertyValue("--pcv-decor") || 1;
     }
-    if (!d.apercu) d.hote.classList.add("pcv-fond-vivant");
+    if (!d.apercu && !d.hote.classList.contains("pcv-fond-vivant")) d.hote.classList.add("pcv-fond-vivant");
     const x = d.x;
     x.setTransform(1, 0, 0, 1, 0, 0);
     x.clearRect(0, 0, W, H);
@@ -871,6 +871,7 @@
       x.restore();
     }
   };
+  const FOND = { pas: 33, avance: 12 };
   let boucleId = 0, attente = 0;
   const boucle = (t) => {
     boucleId = 0;
@@ -896,20 +897,19 @@
       }
       if (!d.vu) continue;
       actif = true;
-      if (t - d.der >= 33) {
-        const dt = Math.min(100, t - (d.der || t - 33));
+      {
+        const dt = Math.min(100, t - (d.der || t - FOND.pas));
         d.der = t;
         dessiner(d, dt);
       }
-      prochaine = Math.min(prochaine, d.der + 33);
+      prochaine = Math.min(prochaine, d.der + FOND.pas);
     }
     if (decors.size) {
-      const att = actif ? prochaine - performance.now() - 12 : 500;
-      if (att < 4) boucleId = requestAnimationFrame(boucle);
-      else attente = setTimeout(() => {
+      const att = actif ? prochaine - performance.now() - FOND.avance : 500;
+      attente = setTimeout(() => {
         attente = 0;
         boucleId = requestAnimationFrame(boucle);
-      }, att);
+      }, Math.max(0, att));
     }
   };
   const relancer = () => {

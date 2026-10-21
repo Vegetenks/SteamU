@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.6-test (2026-10-21)
+
+Tested on a Bazzite KDE machine in Desktop Mode with Big Picture at login, like issue #1's reporter.
+
+- Library: when there are many categories (Unifideck's GOG, Epic, Amazon… or your own collections), the tab row now scrolls horizontally and the selected tab is brought back to the centre. Based on a pull request by @lieserlV (#6).
+- SteamU waits until Steam has finished signing in (account choice, PIN) before showing anything (#2).
+- Light mode: Steam texts that stayed white on light backgrounds (Storage, account switcher…) now follow the theme's text colour (#3).
+- On a new home grid, system apps (Customize, casino…) come before the games; Settings → SteamU → Troubleshooting can put them back at the start (#4).
+- Machines without a battery no longer show a battery in the quick settings and status pills (#5).
+- Tiles no longer flicker or turn blank when changing the zoom or scrolling; animated tiles no longer turn white. Game logos can still flicker briefly on zoom changes (being worked on).
+
 ## v0.1.5-test (2026-10-18)
 
 - Main fix for issue #1: the home screen no longer decodes full-size game images. Every installed game is on the home grid, and each tile used to load its artwork at full size (heroes of 3840 × 1240, ~19 MB once decoded), with its fallback images stacked underneath. Custom artwork (non-Steam shortcuts, SteamGridDB) was never shrunk at all, and animated custom artwork (animated PNG/WebP) was decoded again at full size for every frame of its animation. With a large library, Chromium's image cache overflowed and kept re-decoding, until steamwebhelper fell over. Now:

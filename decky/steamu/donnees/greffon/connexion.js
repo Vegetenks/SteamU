@@ -1,31 +1,14 @@
 ((forcer) => {
+  window.__pcvConnexionArreter?.();
   document.getElementById("pcv-connexion")?.remove();
   if (!forcer && sessionStorage.getItem("pcvConnexionVue")) return "d\xE9j\xE0 vue pendant cette session";
   const T = window.__pcvT || ((c) => c);
-  const O = window.opener;
-  let pseudo = "", nbJeux = 0;
-  try {
-    pseudo = O.g_FriendsUIApp.FriendStore.self.persona.m_strPlayerName;
-  } catch (e) {
-  }
-  try {
-    nbJeux = O.collectionStore?.collectionsFromStorage ? O.collectionStore.allGamesCollection.visibleApps.length : 0;
-  } catch (e) {
-    try {
-      nbJeux = (O.appStore.allApps || []).filter((a) => a.app_type === 1).length;
-    } catch (e2) {
-    }
-  }
+  const compteCourant = () => window.__pcvBridge?.compteCourant?.() ?? null;
+  const resumeBibliotheque = () => window.__pcvBridge?.resumeBibliotheque?.() ?? { pret: false, nombreJeux: null };
+  const compte = compteCourant(), bibliotheque = resumeBibliotheque();
+  const pseudo = compte?.nom || "", nbJeux = bibliotheque.pret ? bibliotheque.nombreJeux : null;
   const jeuxTexte = (n) => n === 1 ? T("connexion.jeu_un", { n }) : T("connexion.jeu_plusieurs", { n });
-  const avatarDe = () => document.querySelector("#header_profile img")?.src || (() => {
-    try {
-      const p = O.g_FriendsUIApp.FriendStore.self.persona;
-      return p.avatar_url_full || p.avatar_url_medium || "";
-    } catch (e) {
-      return "";
-    }
-  })();
-  const avatar = avatarDe();
+  const avatar = compte?.avatar || "";
   const echappe = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const urlSure = (u2) => {
     const s = String(u2 ?? "").trim(), t = s.replace(/[\x00-\x20]/g, "");
@@ -63,6 +46,31 @@
   const u = (n) => `calc(var(--u) * ${n})`;
   const racine = document.createElement("div");
   racine.id = "pcv-connexion";
+  let arrete = false, completer = 0, sortie = 0, attentePlace = 0, touche = null, manette = null;
+  let sortieTerminee = false, placeTerminee = false;
+  const vivant = () => !arrete && document.body.contains(racine);
+  const retirerEntrees = () => {
+    if (completer) {
+      clearInterval(completer);
+      completer = 0;
+    }
+    if (touche) window.removeEventListener("keydown", touche, true);
+    if (window.__pcvManette?.connexion === manette) delete window.__pcvManette.connexion;
+    const tuile = racine.querySelector(".tuile");
+    if (tuile) tuile.onclick = null;
+  };
+  const arreter = () => {
+    if (arrete) return;
+    arrete = true;
+    retirerEntrees();
+    clearTimeout(sortie);
+    clearTimeout(attentePlace);
+    racine.remove();
+    if (window.__pcvConnexionArreter === arreter) delete window.__pcvConnexionArreter;
+  };
+  const terminer = () => {
+    if (sortieTerminee && placeTerminee) arreter();
+  };
   racine.innerHTML = `<style>
     #pcv-connexion { position: fixed; inset: 0; z-index: 9800; overflow: hidden; font-family: var(--pcv-police); color: var(--pcv-texte);
       background: var(--pcv-fond-page); }   
@@ -124,7 +132,7 @@
       <button class="tuile" aria-label="${echappe(T("connexion.commencer_aria", { pseudo }))}"><img data-pcv-avatar ${avatar ? `src="${urlSure(avatar)}"` : ""} alt=""></button></div>
     <div class="perso">${teteMii ? `<img src="${teteMii}" alt="">` : `<img data-pcv-avatar ${avatar ? `src="${urlSure(avatar)}"` : ""} alt="">`}</div>
     <div class="infos"><span><small>${T("connexion.pseudo_label")}</small><b data-pcv-pseudo>${echappe(pseudo)}</b></span><span style="width:2px;height:${u(56)};background:var(--pcv-texte2);opacity:.3"></span>
-      <span><small>${T("connexion.bibliotheque_label")}</small><b style="color:var(--pcv-cyan-plein)" data-pcv-nbjeux>${nbJeux ? jeuxTexte(nbJeux) : "\u2026"}</b></span></div>
+      <span><small>${T("connexion.bibliotheque_label")}</small><b style="color:var(--pcv-cyan-plein)" data-pcv-nbjeux>${nbJeux !== null ? jeuxTexte(nbJeux) : "\u2026"}</b></span></div>
   </div>
   <div class="intro"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" width="1280" height="800">
   <!-- La Legion Go 2 dessin\xE9e \xE0 la mani\xE8re des illustrations de la Wii U : plastique blanc, traits gris doux,
@@ -200,32 +208,49 @@
 </g></svg>
 </div>`;
   document.body.appendChild(racine);
+  window.__pcvConnexionArreter = arreter;
   window.__pcvNomMachine?.().then((n) => {
+    if (!vivant()) return;
     const e = racine.querySelector(".nom-systeme");
     if (n && e) e.textContent = n;
   }).catch(() => {
   });
   const valider = () => {
-    if (racine.classList.contains("part")) return;
+    if (!vivant() || racine.classList.contains("part")) return;
     sessionStorage.setItem("pcvConnexionVue", "1");
     const c = document.createElement("span");
     c.className = "coins";
     racine.querySelector(".tuile").appendChild(c);
     racine.classList.add("part");
-    try {
-      if (!/^\/routes\/library\/home/.test(O.location.pathname)) O.__pcvAller?.(1);
-    } catch (e) {
-    }
+    retirerEntrees();
+    window.__pcvBridge?.ouvrirAccueil?.();
+    if (arrete) return;
     let essais = 0;
     const versPlace = () => {
-      if (window.__pcvPlace3D) return window.__pcvPlaceMontrer?.(true);
-      if (++essais < 12) setTimeout(versPlace, 250);
+      if (arrete) return;
+      if (window.__pcvPlace3D) {
+        window.__pcvPlaceMontrer?.(true);
+        placeTerminee = true;
+        terminer();
+      } else if (++essais < 12) attentePlace = setTimeout(versPlace, 250);
+      else {
+        placeTerminee = true;
+        terminer();
+      }
     };
-    setTimeout(versPlace, 250);
-    window.removeEventListener("keydown", touche, true);
-    setTimeout(() => racine.remove(), 600);
+    attentePlace = setTimeout(versPlace, 250);
+    sortie = setTimeout(() => {
+      if (arrete) return;
+      racine.remove();
+      sortieTerminee = true;
+      terminer();
+    }, 600);
   };
-  const touche = (e) => {
+  touche = (e) => {
+    if (!vivant()) {
+      arreter();
+      return;
+    }
     if (e.key === "Enter" || e.key === " ") {
       valider();
       e.stopPropagation();
@@ -234,34 +259,35 @@
   };
   racine.querySelector(".tuile").onclick = valider;
   window.addEventListener("keydown", touche, true);
-  (window.__pcvManette ||= {}).connexion = (b) => {
-    if (!document.body.contains(racine)) return false;
+  manette = (b) => {
+    if (!vivant()) {
+      arreter();
+      return false;
+    }
     if (b === 1) valider();
     return true;
   };
-  const completer = setInterval(() => {
-    if (!document.body.contains(racine)) return clearInterval(completer);
-    let p = "";
-    try {
-      p = O.g_FriendsUIApp.FriendStore.self.persona.m_strPlayerName;
-    } catch (e) {
+  (window.__pcvManette ||= {}).connexion = manette;
+  completer = setInterval(() => {
+    if (!vivant()) return arreter();
+    const p = compteCourant(), b = resumeBibliotheque();
+    if (p) {
+      racine.querySelectorAll("[data-pcv-pseudo]").forEach((e) => {
+        e.textContent = p.nom;
+      });
+      racine.querySelectorAll("[data-pcv-avatar]").forEach((e) => {
+        if (!p.avatar) e.removeAttribute("src");
+        else if (e.getAttribute("src") !== p.avatar) e.src = p.avatar;
+      });
+      racine.querySelector(".tuile").setAttribute("aria-label", T("connexion.commencer_aria", { pseudo: p.nom }));
     }
-    const a = avatarDe();
-    if (p) racine.querySelectorAll("[data-pcv-pseudo]").forEach((b) => {
-      b.textContent = p;
+    if (b.pret) racine.querySelectorAll("[data-pcv-nbjeux]").forEach((e) => {
+      e.textContent = jeuxTexte(b.nombreJeux);
     });
-    if (a) racine.querySelectorAll("[data-pcv-avatar]").forEach((i) => {
-      if (i.src !== a) i.src = a;
-    });
-    let n = 0;
-    try {
-      n = O.collectionStore?.collectionsFromStorage ? O.collectionStore.allGamesCollection.visibleApps.length : 0;
-    } catch (e) {
+    if (p && b.pret) {
+      clearInterval(completer);
+      completer = 0;
     }
-    if (n) racine.querySelectorAll("[data-pcv-nbjeux]").forEach((b) => {
-      b.textContent = jeuxTexte(n);
-    });
-    if (p && a && n) clearInterval(completer);
   }, 300);
   return "connexion affich\xE9e";
 })(window.__pcvForcerConnexion);

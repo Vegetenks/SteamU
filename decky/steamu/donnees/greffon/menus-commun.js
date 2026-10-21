@@ -191,8 +191,8 @@ window.__pcvPE = (() => {
   const I = window.__pcvIcones;
   const ico = (n) => I.svg(n, { classe: "ico" });
   const pastille = (n, c) => `<span class="pastille"${c ? ` style="color:${c}"` : ""}>${ico(n)}</span>`;
-  const pile = (cl = "") => `<span class="pile ${cl}" id="header"></span>`;
-  const etat = () => `<div class="pilule verre etat entre" style="--d:.15s">${ico("wifi")}<span class="sep"></span>${pile()}<span class="heure"></span></div>`;
+  const pile = (cl = "", cachee = false) => `<span class="pile ${cl}" id="header"${cachee ? " hidden" : ""}></span>`;
+  const etat = () => `<div class="pilule verre etat entre" style="--d:.15s">${ico("wifi")}<span class="sep"></span>${pile("", true)}<span class="heure"></span></div>`;
   const bouton = (a, cl, dl, c, p, texte) => `<div class="bouton verre ${cl} entre" style="--d:${dl}s" data-a="${a}">${pastille(p, c)}${texte}</div>`;
   const liste = (e, cfg) => {
     const racine = e.racine, id = "liste-" + cfg.cle, depuis = e.focus();
@@ -296,6 +296,9 @@ window.__pcvPE = (() => {
       }
       try {
         const B = window.__pcvBridge.battery(), charge = B?.present && B.charging;
+        racine.querySelectorAll(".etat > .pile").forEach((p) => {
+          p.hidden = B?.present !== true;
+        });
         for (const svg of racine.querySelectorAll('.pile svg:is([viewBox="0 0 48 36"], [viewBox="0 0 42 36"])')) {
           const r = svg.parentElement, e = r.querySelector(".pcv-eclair");
           if (charge && !e) r.appendChild(Object.assign(d.createElement("div"), { className: "pcv-eclair" }));
@@ -639,7 +642,10 @@ window.__pcvPE = (() => {
     let pileAbo = null;
     try {
       pileAbo = window.__pcvBridge.onBattery(() => {
-        if (!racine.hidden) peindreEtat();
+        if (!racine.hidden) {
+          peindreEtat();
+          o.batterie?.();
+        }
       });
     } catch (e) {
     }

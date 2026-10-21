@@ -187,7 +187,7 @@
     const I = window.__pcvIcones, B = window.__pcvBridge;
     const etat = document.createElement("div");
     etat.className = "pilule verre etat";
-    etat.innerHTML = `${I.svg("wifi", { classe: "ico" })}<span class="sep"></span><span class="pile"></span><span class="heure"></span>`;
+    etat.innerHTML = `${I.svg("wifi", { classe: "ico" })}<span class="sep"></span><span class="pile" hidden></span><span class="heure"></span>`;
     racine.appendChild(etat);
     const peindreEtatAccueil = () => {
       try {
@@ -201,6 +201,7 @@
       }
       try {
         const b = B.battery(), charge = b?.present && b.charging;
+        etat.querySelector(".pile").hidden = b?.present !== true;
         for (const svg of etat.querySelectorAll('.pile svg:is([viewBox="0 0 48 36"], [viewBox="0 0 42 36"])')) {
           const r = svg.parentElement, ec = r.querySelector(".pcv-eclair");
           if (charge && !ec) r.appendChild(Object.assign(document.createElement("div"), { className: "pcv-eclair" }));
@@ -617,11 +618,13 @@
     const rechercheTxt = T("barre.rechercher");
     if (champ2 && champ2.placeholder !== rechercheTxt) champ2.placeholder = rechercheTxt;
   };
+  const PASTILLE_NEUTRE = "var(--pcv-touche-neutre)", PASTILLE_PS = "var(--pcv-touche-ps)";
+  const TOUCHE_MENU = '<svg viewBox="0 0 24 24" style="width:1.1em;height:1.1em" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="2.6" stroke-linecap="round"><path d="M6 7.5h12M6 12h12M6 16.5h12"/></svg>';
   const TOUCHES = {
-    xbox: { 1: ["A", "#2fbf71"], 2: ["B", "#e5484d"], 3: ["X", "#2a8cff"], 4: ["Y", "#e0a100"], 5: ["LB", "#5b6676"], 6: ["RB", "#5b6676"] },
-    ps: { 1: ["\u2715", "#6f9bff"], 2: ["\u25CB", "#ff6b6b"], 3: ["\u25A1", "#e58ad6"], 4: ["\u25B3", "#3ec7a6"], 5: ["L1", "#5b6676"], 6: ["R1", "#5b6676"] },
-    nintendo: { 1: ["A", "#5b6676"], 2: ["B", "#5b6676"], 3: ["X", "#5b6676"], 4: ["Y", "#5b6676"], 5: ["L", "#5b6676"], 6: ["R", "#5b6676"] },
-    deck: { 1: ["A", "#5b6676"], 2: ["B", "#5b6676"], 3: ["X", "#5b6676"], 4: ["Y", "#5b6676"], 5: ["L1", "#5b6676"], 6: ["R1", "#5b6676"] }
+    xbox: { 1: ["A", "#2fbf71"], 2: ["B", "#e5484d"], 3: ["X", "#2a8cff"], 4: ["Y", "#e0a100"], 5: ["LB", PASTILLE_NEUTRE], 6: ["RB", PASTILLE_NEUTRE] },
+    ps: { 1: ["\u2715", "#6f9bff"], 2: ["\u25CB", "#ff6b6b"], 3: ["\u25A1", "#e58ad6"], 4: ["\u25B3", "#3ec7a6"], 5: ["L1", PASTILLE_NEUTRE], 6: ["R1", PASTILLE_NEUTRE] },
+    nintendo: { 1: ["A", PASTILLE_NEUTRE], 2: ["B", PASTILLE_NEUTRE], 3: ["X", PASTILLE_NEUTRE], 4: ["Y", PASTILLE_NEUTRE], 5: ["L", PASTILLE_NEUTRE], 6: ["R", PASTILLE_NEUTRE] },
+    deck: { 1: ["A", PASTILLE_NEUTRE], 2: ["B", PASTILLE_NEUTRE], 3: ["X", PASTILLE_NEUTRE], 4: ["Y", PASTILLE_NEUTRE], 5: ["L1", PASTILLE_NEUTRE], 6: ["R1", PASTILLE_NEUTRE] }
   };
   const ECHANGE = { 1: 2, 2: 1, 3: 4, 4: 3 };
   const PS = {
@@ -630,7 +633,6 @@
     3: ["\u25A1", "#f08fd2", '<rect x="6.5" y="6.5" width="11" height="11" rx=".9"/>'],
     4: ["\u25B3", "#3fd3a6", '<path d="M12 5.3l6.8 11.6H5.2z"/>']
   };
-  const PASTILLE_PS = "#2c2f36";
   const dessinPS = (n) => `<svg viewBox="0 0 24 24" style="width:1.55em;height:1.55em;display:inline-block;vertical-align:-.4em;flex:none" fill="none" stroke="${PS[n][1]}" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-label="${PS[n][0]}">${PS[n][2]}</svg>`;
   const echapT = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   let appareil = window.__pcvAppareil || null;
@@ -764,8 +766,17 @@
   const detachee = () => [machine?.legion?.left, machine?.legion?.right].includes("detached");
   window.__pcvTouche = (code) => {
     const h = document.documentElement.dataset, k = "pcvInverse" in h ? ECHANGE[code] || code : code;
+    if (k === 13 || k === 14) {
+      if (h.pcvManette === "nintendo") {
+        const t3 = k === 13 ? "\u2212" : "+";
+        return [t3, PASTILLE_NEUTRE, t3];
+      }
+      const ps = h.pcvManette === "ps", t2 = k === 13 ? ps ? "Create" : "View" : "\u2261";
+      const html = k === 14 ? TOUCHE_MENU : window.__pcvIcones?.svg?.(ps ? "creer" : "vue", { attrs: 'style="width:1.1em;height:1.1em" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"' });
+      return [t2, ps ? PASTILLE_PS : PASTILLE_NEUTRE, html || echapT(t2)];
+    }
     if (h.pcvManette === "ps" && PS[k]) return [PS[k][0], PASTILLE_PS, dessinPS(k)];
-    const [t, c] = (TOUCHES[h.pcvManette] || TOUCHES.xbox)[k] || ["?", "#5b6676"];
+    const [t, c] = (TOUCHES[h.pcvManette] || TOUCHES.xbox)[k] || ["?", PASTILLE_NEUTRE];
     return [t, c, echapT(t)];
   };
   suivre();

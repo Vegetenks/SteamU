@@ -11,8 +11,9 @@
   removeEventListener("resize", window.__pcvConsoleTaille);
   const T = window.__pcvT || ((c) => c);
   const O = window.opener;
-  const IMG = (id, f) => `https://steamloopback.host/assets/${id}/${f}`;
-  const absolu = (u) => u.startsWith("/") ? "https://steamloopback.host" + u : u;
+  const ORIGINE_STEAM = "https://steamloopback.host";
+  const IMG = (id, f) => `${ORIGINE_STEAM}/assets/${id}/${f}`;
+  const absolu = (u) => u.startsWith("/") ? ORIGINE_STEAM + u : u;
   const CDN = (id, f) => `https://shared.steamstatic.com/store_item_assets/steam/apps/${id}/${f}`;
   const h = (min) => min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}`;
   const ilya = (rt) => {
@@ -94,8 +95,8 @@
     #pcv-console .fantome { position: fixed; left: 0; top: 0; z-index: 20; pointer-events: none; transform-origin: 50% 50%; will-change: transform;
       box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), 0 calc(var(--u) * 22) calc(var(--u) * 34) rgba(0,0,0,.32); }
     #pcv-console .fantome.vide { box-shadow: none; }
-    #pcv-console .cel.vise-libre { box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), 0 0 0 calc(var(--u) * 8) #ff8a1f !important; background: color-mix(in srgb, var(--pcv-carte) 18%, transparent) !important; }
-    #pcv-console .cel.vise-echange { box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), 0 0 0 calc(var(--u) * 8) #ff8a1f !important; transform: scale(.9); opacity: .8; transition: transform .15s, opacity .15s; }
+    #pcv-console .cel.vise-libre { box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), 0 0 0 calc(var(--u) * 8) var(--pcv-rangement) !important; background: color-mix(in srgb, var(--pcv-carte) 18%, transparent) !important; }
+    #pcv-console .cel.vise-echange { box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), 0 0 0 calc(var(--u) * 8) var(--pcv-rangement) !important; transform: scale(.9); opacity: .8; transition: transform .15s, opacity .15s; }
     #pcv-console .cel .im { width: 100%; height: 100%; border-radius: calc(var(--u) * var(--c) * .15); background: var(--pcv-creux) ${IM_DEFAUT.position} / ${IM_DEFAUT.taille}; position: relative; overflow: hidden; }
     #pcv-console .cel .im::after { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, color-mix(in srgb, var(--pcv-carte) 40%, transparent), transparent 35%); }
     
@@ -118,6 +119,7 @@
     #pcv-console .cel .im > video.pcv-anim, #pcv-console .cel .im > .pcv-anim-dessus { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; pointer-events: none; }
     #pcv-console .cel .im > video.pcv-anim { object-fit: fill; background: var(--pcv-creux); }
     #pcv-console .cel .im > video.pcv-anim.attente { opacity: 0; }
+    #pcv-console .cel .im.pcv-anim-actif { background-image: none !important; }
     #pcv-console .cel .im .nuage { position: absolute; right: 5%; bottom: 4%; z-index: 1; width: max(28%, calc(var(--u) * 16)); aspect-ratio: 1;
       filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 2) rgba(0,0,0,.35)); }
     #pcv-console .cel .im .nuage svg { display: block; width: 100%; height: 100%; }
@@ -170,7 +172,7 @@
     #pcv-console .chem.a-ec em { display: none; }
     html[data-pcv-dossier="image"] #pcv-console .chem .ec { top: 15%; }
     
-    #pcv-console .cel.cible { z-index: 4; transform: scale(1.1); box-shadow: 0 0 0 calc(var(--u) * 5) var(--pcv-lisere), 0 0 0 calc(var(--u) * 10) #ff8a1f, 0 calc(var(--u) * 14) calc(var(--u) * 26) rgba(0,0,0,.25) !important; }
+    #pcv-console .cel.cible { z-index: 4; transform: scale(1.1); box-shadow: 0 0 0 calc(var(--u) * 5) var(--pcv-lisere), 0 0 0 calc(var(--u) * 10) var(--pcv-rangement), 0 calc(var(--u) * 14) calc(var(--u) * 26) rgba(0,0,0,.25) !important; }
     #pcv-console .cel.cible .av { transform: perspective(calc(var(--u) * 200)) rotateX(-32deg); }
     #pcv-console .cel.cible .ap b { --dy: -14%; }
     
@@ -222,7 +224,7 @@
     body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.sel { transform: none; box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 2px color-mix(in srgb, var(--pcv-carte) 80%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 20) rgba(0,0,0,.16); }
     body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.vide.sel { box-shadow: none; }
     body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.sel::before, body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.sel > .bdg::after { content: none; }
-    #pcv-console .entete button.cible { transform: scale(1.1); box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), 0 0 0 calc(var(--u) * 8) #ff8a1f; }
+    #pcv-console .entete button.cible { transform: scale(1.1); box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), 0 0 0 calc(var(--u) * 8) var(--pcv-rangement); }
     body.pcv-deco #pcv-console .entete { visibility: hidden; }
     #pcv-console .note { position: absolute; left: 50%; top: calc(var(--u) * 58); transform: translateX(-50%); padding: calc(var(--u) * 7) calc(var(--u) * 18); border-radius: calc(var(--u) * 20); z-index: 7;
       background: rgba(47,58,74,.88); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 16); font-weight: 800; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .3s; }
@@ -235,7 +237,7 @@
       box-shadow: inset 0 0 0 calc(var(--u) * var(--si, 0)) var(--pcv-cyan-plein); }
     body:not(.pcv-zone-jaquettes) #pcv-console .cel.sel { transform: none; box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 2px color-mix(in srgb, var(--pcv-carte) 80%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 20) rgba(0,0,0,.16); }
     #pcv-console .cel.porte { transform: scale(1.15) rotate(5deg) translateY(calc(var(--u) * -8)) !important; z-index: 9;
-      box-shadow: 0 0 0 calc(var(--u) * 5) var(--pcv-lisere), 0 0 0 calc(var(--u) * 10) #ff8a1f, 0 calc(var(--u) * 22) calc(var(--u) * 34) rgba(0,0,0,.3) !important; }
+      box-shadow: 0 0 0 calc(var(--u) * 5) var(--pcv-lisere), 0 0 0 calc(var(--u) * 10) var(--pcv-rangement), 0 calc(var(--u) * 22) calc(var(--u) * 34) rgba(0,0,0,.3) !important; }
     #pcv-console .cel.pulse { animation: pcvPulseC .5s ease-in-out 2; }
     @keyframes pcvPoseC { from { opacity: 0 } to { opacity: 1 } }
     @keyframes pcvPulseC { 50% { box-shadow: inset 0 2px 1px var(--pcv-reflet-haut), 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) #7fdcff, 0 0 calc(var(--u) * var(--sg, 26) * 1.5) calc(var(--u) * var(--sw, 5)) rgba(31,179,242,.7) } }
@@ -262,7 +264,7 @@
     #pcv-console .bas { position: absolute; left: calc(var(--u) * 400); right: calc(var(--u) * 34); bottom: calc(var(--u) * 24); display: flex; justify-content: flex-end; gap: calc(var(--u) * 12); }
     
     #pcv-console .etat { position: absolute; left: 50%; top: calc(var(--u) * 6); transform: translateX(-50%); padding: calc(var(--u) * 6) calc(var(--u) * 18); border-radius: calc(var(--u) * 20);
-      background: #ff8a1f; color: var(--pcv-sur-accent); font-size: calc(var(--u) * 16); font-weight: 800; z-index: 7; white-space: nowrap; display: flex; align-items: center; gap: calc(var(--u) * 6); }
+      background: var(--pcv-rangement); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 16); font-weight: 800; z-index: 7; white-space: nowrap; display: flex; align-items: center; gap: calc(var(--u) * 6); }
     #pcv-console .etat span { display: flex; align-items: center; }
     #pcv-console .etat u { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; min-width: calc(var(--u) * 22); height: calc(var(--u) * 22); padding: 0 calc(var(--u) * 4);
       margin-right: calc(var(--u) * 5); border-radius: calc(var(--u) * 11); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 12); font-weight: 900; box-shadow: 0 0 0 calc(var(--u) * 2) color-mix(in srgb, var(--pcv-carte) 85%, transparent); }
@@ -485,6 +487,20 @@
       return String(Math.random());
     }
   };
+  const applisDevant = (l) => {
+    const places = [], applis = [], jeux = [];
+    l.forEach((c, i) => {
+      if (c.bd == null && (c.appli || c.app)) {
+        places.push(i);
+        (c.appli ? applis : jeux).push(c);
+      }
+    });
+    const ordre = [...applis, ...jeux];
+    places.forEach((i, n) => {
+      l[i] = ordre[n];
+    });
+    return l;
+  };
   const construireCases = () => {
     const connus = apps(), tous = montres(), mode2 = reglageJeux();
     vueJeux = mode2;
@@ -502,7 +518,9 @@
     if (!range) l = nouveaux;
     else {
       const tient = (c) => c.bd != null;
-      l = [...nouveaux, ...l];
+      let debutJeux = 0;
+      while (debutJeux < l.length && l[debutJeux].appli) debutJeux++;
+      l = [...l.slice(0, debutJeux), ...nouveaux, ...l.slice(debutJeux)];
       const sortis = [];
       nouveaux.forEach(() => {
         const s = l.findIndex(tient);
@@ -529,6 +547,7 @@
       while (l.length <= apres) l.push({ vide: 1 });
       l[apres++] = { appli: k };
     }
+    if (!range) applisDevant(l);
     l.forEach((c) => {
       if (c.dossier) [c.l, c.masques] = compacter(c.l);
     });
@@ -766,7 +785,7 @@
     let minuteur;
     try {
       await Promise.race([new Promise((ok) => {
-        minuteur = setTimeout(() => ok(null), 4e3);
+        minuteur = setTimeout(() => ok(null), TUILE.detailsDelai);
       }), Promise.resolve().then(() => O.appDetailsStore?.RequestAppDetails(id)).catch(() => null)]);
     } finally {
       clearTimeout(minuteur);
@@ -817,8 +836,18 @@
     // WebP pour les photos ; une image PNG reste en PNG (transparence et motifs fins d'un logo intacts)
     delai: 15e3,
     // une source muette ne retient pas indéfiniment une place de la file
+    detailsDelai: 4e3,
+    paralleles: 2,
+    purgeDelai: 1e3,
+    chauffeDelai: 250,
+    reposDelai: 50,
+    reposMax: 1e3,
+    tailleDelai: 300,
+    // millisecondes
     memoire: 32 * 1024 * 1024,
     // budget des blobs compressés ; ne pas révoquer une image encore utilisée
+    adresseCache: "https://pcv.tuiles/",
+    // clé synthétique de Cache Storage, jamais une requête réseau
     cache: "pcv-tuiles-v9",
     anciens: ["pcv-tuiles-v8", "pcv-tuiles-v7", "pcv-tuiles-v6", "pcv-tuiles-legeres-v5", "pcv-tuiles-legeres-v4", "pcv-tuiles-legeres-v3"]
   };
@@ -848,7 +877,7 @@
   let enCopie = 0, tuilesFinies = false;
   const aCopier = [], lecturesImages = /* @__PURE__ */ new Set(), annulationsVideos = /* @__PURE__ */ new Set();
   const copieSuivante = () => {
-    while (!tuilesFinies && enCopie < 2 && aCopier.length) {
+    while (!tuilesFinies && enCopie < TUILE.paralleles && aCopier.length) {
       enCopie++;
       aCopier.shift().lancer();
     }
@@ -911,7 +940,7 @@
     });
   };
   const programmerPurge = () => {
-    if (!tuilesFinies && !purgeMemoire) purgeMemoire = setTimeout(purgerMemoire, 1e3);
+    if (!tuilesFinies && !purgeMemoire) purgeMemoire = setTimeout(purgerMemoire, TUILE.purgeDelai);
   };
   const garderBlob = (b) => {
     if (tuilesFinies) return null;
@@ -946,7 +975,7 @@
     }
   };
   const copier = async (u, S) => {
-    const m = await ouvrirMagasin(), req = `https://pcv.tuiles/?s=${S}&u=${encodeURIComponent(u)}`;
+    const m = await ouvrirMagasin(), req = `${TUILE.adresseCache}?s=${S}&u=${encodeURIComponent(u)}`;
     const deja = m && await m.match(req).catch(() => null);
     if (deja) {
       if (deja.headers.get("X-Pcv-Anime") === "1") ANIMEES.add(u);
@@ -1133,9 +1162,9 @@
       ], { type: "video/webm" });
     };
   })();
-  const VIDEO = { images: 900, debit: 7e5, cle: 90, file: 8 };
+  const VIDEO = { images: 900, debit: 7e5, cle: 90, file: 8, coteMin: 64, pas: 16, loinMs: 1e4 };
   const fabriquerVideo = async (u, T2, position) => {
-    const m = await ouvrirMagasin(), req = `https://pcv.tuiles/video?t=${T2}&p=${encodeURIComponent(position)}&u=${encodeURIComponent(u)}`;
+    const m = await ouvrirMagasin(), req = `${TUILE.adresseCache}video?t=${T2}&p=${encodeURIComponent(position)}&u=${encodeURIComponent(u)}`;
     const deja = m && await m.match(req).catch(() => null);
     if (deja) {
       const b = await deja.blob();
@@ -1236,15 +1265,27 @@
   };
   const animer = (el) => {
     const v0 = el.querySelector(":scope > video.pcv-anim:not(.attente)"), d0 = el.querySelector(":scope > .pcv-anim-dessus");
-    const sans = () => el.querySelectorAll(":scope > video.pcv-anim, :scope > .pcv-anim-dessus").forEach((x) => {
-      if (x.tagName === "VIDEO") {
-        x.pause();
-        x.removeAttribute("src");
-        x.load();
-      }
-      x.remove();
-    });
-    if (!videoVisible(el) || !el.dataset.appid || !ANIMEES.size || lire("pcv-tuiles-animees", false) !== true) return sans();
+    const sans = () => {
+      el.classList.remove("pcv-anim-actif");
+      el.querySelectorAll(":scope > video.pcv-anim, :scope > .pcv-anim-dessus").forEach((x) => {
+        if (x.tagName === "VIDEO") {
+          x.pause();
+          x.removeAttribute("src");
+          x.load();
+        }
+        x.remove();
+      });
+    };
+    if (!el.dataset.appid || !ANIMEES.size || lire("pcv-tuiles-animees", false) !== true) return sans();
+    clearTimeout(el.__pcvLoin);
+    if (!videoVisible(el)) {
+      const vs = el.querySelectorAll(":scope > video.pcv-anim");
+      vs.forEach((x) => x.pause());
+      if (vs.length) el.__pcvLoin = setTimeout(() => {
+        if (!videoVisible(el)) sans();
+      }, VIDEO.loinMs);
+      return;
+    }
     const imgs = couchesCss(el.style.backgroundImage), tailles = couchesCss(el.style.backgroundSize || IM_DEFAUT.taille), positions = couchesCss(el.style.backgroundPosition || IM_DEFAUT.position);
     const de = (l, i2) => l[i2 % l.length];
     const i = imgs.findIndex((c, k) => {
@@ -1252,9 +1293,10 @@
       return u2 && ANIMEES.has(ORIGINES.get(u2) || u2) && de(tailles, k) === "cover";
     });
     if (i < 0) return sans();
-    const u = /^url\("?(.+?)"?\)$/.exec(imgs[i])[1], T2 = Math.max(64, Math.round(tailleTuile(el) / TUILE.marge / 16) * 16);
-    const src = videoDe(ORIGINES.get(u) || u, T2, de(positions, i), el);
-    if (src === null) return sans();
+    const u = /^url\("?(.+?)"?\)$/.exec(imgs[i])[1], T2 = Math.max(VIDEO.coteMin, Math.round(tailleTuile(el) / TUILE.marge / VIDEO.pas) * VIDEO.pas);
+    const garder = v0 && +v0.dataset.t >= T2;
+    const src = garder ? v0.dataset.src : videoDe(ORIGINES.get(u) || u, T2, de(positions, i), el);
+    if (src === null) return v0 ? void 0 : sans();
     const poser2 = (v2) => {
       const d = d0 || Object.assign(document.createElement("div"), { className: "pcv-anim-dessus" });
       if (d.previousElementSibling !== v2) v2.after(d);
@@ -1262,7 +1304,7 @@
       d.style.backgroundSize = imgs.slice(0, i).map((_, k) => de(tailles, k)).join(",");
       d.style.backgroundPosition = imgs.slice(0, i).map((_, k) => de(positions, k)).join(",");
       d.style.backgroundRepeat = "no-repeat";
-      el.style.backgroundImage = "none";
+      el.classList.add("pcv-anim-actif");
     };
     if (v0) poser2(v0);
     if (src === void 0 || v0?.dataset.src === src || el.querySelector(`:scope > video.attente[data-src="${src}"]`)) {
@@ -1275,14 +1317,20 @@
     }
     const v = Object.assign(document.createElement("video"), { className: "pcv-anim attente", muted: true, loop: true, playsInline: true, disablePictureInPicture: true, src });
     v.dataset.src = src;
-    v.addEventListener("loadeddata", () => {
+    v.dataset.t = T2;
+    const montrer = () => {
       if (!v.isConnected) return;
-      if (v.duration > 0 && isFinite(v.duration)) v.currentTime = performance.now() / 1e3 % v.duration;
       el.querySelectorAll(":scope > video.pcv-anim").forEach((x) => x !== v && x.remove());
       v.classList.remove("attente");
       poser2(v);
       if (videoVisible(el)) v.play().catch(() => {
       });
+    };
+    v.addEventListener("loadeddata", () => {
+      if (!v.isConnected) return;
+      if (!(v.duration > 0 && isFinite(v.duration))) return montrer();
+      v.addEventListener("seeked", montrer, { once: true });
+      v.currentTime = performance.now() / 1e3 % v.duration;
     }, { once: true });
     el.prepend(v);
   };
@@ -1304,11 +1352,11 @@
     const suite = () => {
       rechauffe = 0;
       if (tuilesFinies || !racine.isConnected || racine.hidden || document.hidden) return;
-      if (aCopier.length > 1) {
+      if (aCopier.length >= TUILE.paralleles) {
         rechauffe = setTimeout(() => {
           rechauffe = 0;
           rechauffer();
-        }, 250);
+        }, TUILE.chauffeDelai);
         return;
       }
       const el = [...grille.querySelectorAll(".cel.jeu > .im:not([data-appid])")].find((e) => e.__pcvJeu);
@@ -1316,13 +1364,13 @@
       peindreJeu(el, el.__pcvJeu);
       rechauffer();
     };
-    rechauffe = (window.requestIdleCallback || ((f) => setTimeout(f, 50)))(suite, { timeout: 1e3 });
+    rechauffe = (window.requestIdleCallback || ((f) => setTimeout(f, TUILE.reposDelai)))(suite, { timeout: TUILE.reposMax });
   };
   const retailler = new ResizeObserver((l) => l.forEach(({ target: el }) => {
     clearTimeout(el.__pcvRetaille);
     el.__pcvRetaille = setTimeout(() => {
       if (!tuilesFinies && el.isConnected && !racine.hidden && el.offsetWidth && el.dataset.appid && el.__pcvS && tailleTuile(el) !== el.__pcvS) peindreJeu(el, el.__pcvJeu);
-    }, 300);
+    }, TUILE.tailleDelai);
   }));
   window.__pcvTuilesProches?.disconnect();
   window.__pcvTuilesProches = proches;
@@ -1359,11 +1407,36 @@
       if (typeof v?.then === "function") m.delete(k);
     });
   };
+  const DESSOUS_MS = 1500;
+  const garderDessous = (el, avant2) => {
+    if (origine || el.classList.contains("pcv-anim-actif") || !avant2.image || avant2.image === "none" || avant2.image === el.style.backgroundImage || !/url\(/.test(el.style.backgroundImage)) return;
+    const de = (l, i) => l[i % l.length], ai = couchesCss(avant2.image), as = couchesCss(avant2.taille || IM_DEFAUT.taille), ap = couchesCss(avant2.position || IM_DEFAUT.position);
+    const anciennes = ai.map((c, k) => [c, de(as, k), de(ap, k)]).filter(([c]) => c.startsWith("url("));
+    if (!anciennes.length) return;
+    const n = { image: el.style.backgroundImage, taille: el.style.backgroundSize, position: el.style.backgroundPosition, repete: el.style.backgroundRepeat };
+    const ni = couchesCss(n.image), ns = couchesCss(n.taille || IM_DEFAUT.taille), np = couchesCss(n.position || IM_DEFAUT.position);
+    el.style.backgroundImage = [...ni, ...anciennes.map((x) => x[0])].join(",");
+    el.style.backgroundSize = [...ni.map((_, k) => de(ns, k)), ...anciennes.map((x) => x[1])].join(",");
+    el.style.backgroundPosition = [...ni.map((_, k) => de(np, k)), ...anciennes.map((x) => x[2])].join(",");
+    el.style.backgroundRepeat = "no-repeat";
+    const composee = el.style.backgroundImage;
+    clearTimeout(el.__pcvDessous);
+    el.__pcvDessous = setTimeout(() => {
+      if (el.style.backgroundImage !== composee) return;
+      el.style.backgroundImage = n.image;
+      el.style.backgroundSize = n.taille;
+      el.style.backgroundPosition = n.position;
+      el.style.backgroundRepeat = n.repete;
+    }, DESSOUS_MS);
+  };
   const peindreJeu = (el, a) => {
     if (tuilesFinies) return;
+    const avant2 = el.__pcvDessous && el.__pcvAvant || { image: el.style.backgroundImage, taille: el.style.backgroundSize, position: el.style.backgroundPosition };
     peindreCouches(el, a);
     if (!origine) {
       animer(el);
+      garderDessous(el, avant2);
+      el.__pcvAvant = avant2;
       programmerPurge();
     }
   };
@@ -1442,7 +1515,7 @@
     return window.__pcvDossiers?.choix(i, FACONS.map((f) => ({
       svg: TRACES.image,
       teinte: f === actuel ? "#5fd0ff, #1a9ae6" : "#c3ccd8, #8f9bab",
-      nom: (f === actuel ? "\u2713 " : "") + NOMS_FACONS[f] + (f === "auto" && TUILES_DEFAUT[a.appid] ? " (valeur par d\xE9faut)" : ""),
+      nom: (f === actuel ? "\u2713 " : "") + NOMS_FACONS[f] + (f === "auto" && TUILES_DEFAUT[a.appid] ? ` (${T("console.valeur_defaut")})` : ""),
       faire: () => {
         const c = choixTuiles();
         if (f === "auto") delete c[a.appid];
@@ -1454,12 +1527,12 @@
     })));
   };
   const menuJeu = (a, i) => window.__pcvDossiers?.choix(i, [
-    { svg: TRACES.page, teinte: "#7fd17f, #3aa64a", nom: "Page du jeu", faire: () => voir(a) },
-    { svg: TRACES.image, teinte: "#5fd0ff, #1a9ae6", nom: "Image de la tuile", faire: () => changerImage(a, i) },
+    { svg: TRACES.page, teinte: "#7fd17f, #3aa64a", nom: T("console.page_jeu"), faire: () => voir(a) },
+    { svg: TRACES.image, teinte: "#5fd0ff, #1a9ae6", nom: T("console.image_tuile"), faire: () => changerImage(a, i) },
     {
       svg: window.__pcvIcones?.trace("epingle") || "",
       teinte: "#c9a4ff, #8a5ce6",
-      nom: window.__pcvT("accueil.retirer"),
+      nom: T("accueil.retirer"),
       faire: () => {
         accueilRetirer(a.appid, true);
         window.__pcvSon?.("retour");
@@ -1702,7 +1775,7 @@
   };
   const aide = () => {
     const e = $(".etat"), glyphe = (k) => {
-      const [t, c, h2] = window.__pcvTouche?.(k) || ["?", "#5b6676"], u = document.createElement("u");
+      const [t, c, h2] = window.__pcvTouche?.(k) || ["?", "var(--pcv-touche-neutre)"], u = document.createElement("u");
       if (h2) u.innerHTML = h2;
       else u.textContent = t;
       u.style.background = c;
@@ -2702,6 +2775,18 @@
     marquer(false);
     return true;
   };
+  const remettreApplisDevant = () => {
+    if (!principal.length) return false;
+    if (porte >= 0) annuler();
+    finAppui();
+    badgeMain = null;
+    applisDevant(principal);
+    montrerVue();
+    sauver();
+    infosDe = -1;
+    dessiner(true);
+    return true;
+  };
   const APERCU = { l: 320, h: 200 };
   const apercu = async () => {
     const z = ZOOMS[zi], r = z.r, k = APERCU.h / 800, pas = z.c + z.g, l = principal, { grands, ancreDe } = reserver(l, r);
@@ -2774,6 +2859,7 @@
   window.__pcvGrille = {
     disposition,
     chargerDisposition,
+    remettreApplisDevant,
     apercu,
     cases: () => cases,
     zooms: () => ZOOMS,
@@ -2942,23 +3028,11 @@
     if (f === famille) return;
     famille = f;
     racine.querySelectorAll("[data-touche]").forEach((e) => {
-      const [t, c, h3] = toucheOuStart(+e.dataset.touche);
+      const [t, c, h3] = window.__pcvTouche?.(+e.dataset.touche) || ["?", "var(--pcv-touche-neutre)"];
       if (h3) e.innerHTML = h3;
       else e.textContent = t;
       if (e.tagName === "U" || e.tagName === "B") e.style.background = c;
     });
-  };
-  const TROIS_TRAITS = '<svg viewBox="0 0 24 24" style="width:1.1em;height:1.1em" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M6 7.5h12M6 12h12M6 16.5h12"/></svg>';
-  const toucheOuStart = (k) => {
-    const r = window.__pcvTouche?.(k);
-    if (k !== 14 && k !== 13 || r && r[0] !== "?") return r || ["?", "#5b6676"];
-    const f = document.documentElement.dataset.pcvManette;
-    if (k === 13) return f === "nintendo" ? ["\u2212", "#5b6676", "\u2212"] : [
-      f === "ps" ? "Create" : "View",
-      f === "ps" ? "#2c2f36" : "#5b6676",
-      window.__pcvIcones.svg(f === "ps" ? "creer" : "vue", { attrs: 'style="width:1.1em;height:1.1em" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"' })
-    ];
-    return f === "nintendo" ? ["+", "#5b6676", "+"] : ["\u2261", f === "ps" ? "#2c2f36" : "#5b6676", TROIS_TRAITS];
   };
   const legende = () => {
     if (window.__pcvZone !== "jaquettes") {

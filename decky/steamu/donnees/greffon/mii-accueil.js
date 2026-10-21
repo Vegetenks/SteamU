@@ -2201,14 +2201,6 @@
     a.u = x - SOL.r.left;
     [a.x, a.y] = ancre(SOL, "dessus", a.u);
   };
-  const apparaitre = async (a, x, o = {}) => {
-    surSol(a, x);
-    nuage(a, a.x, a.y, 8, o.gris);
-    echelleMii(a, 0.01);
-    a.mii.capVise = a.mii.cap = 0;
-    await attendre(a, 0.22, (t) => echelleMii(a, rebond(Math.min(1, t / 0.22))));
-    echelleMii(a, 1);
-  };
   const disparaitre = async (a, o = {}) => {
     nuage(a, a.x, a.y, 9, o.gris);
     await attendre(a, 0.2, (t) => echelleMii(a, 1 - Math.min(1, t / 0.2)));

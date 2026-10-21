@@ -83,6 +83,38 @@ window.__pcvBridge = (() => {
     }
   };
   return {
+    // Contrats pour nos écrans : données simples, jamais un objet observable de Steam ni son DOM.
+    // null signifie « profil pas encore disponible » ; un avatar vide est une valeur valide.
+    compteCourant: () => {
+      try {
+        const p = O.g_FriendsUIApp?.FriendStore?.self?.persona;
+        if (!p || typeof p.m_strPlayerName !== "string" || !p.m_strPlayerName) return null;
+        return {
+          nom: p.m_strPlayerName,
+          avatar: typeof p.avatar_url_full === "string" && p.avatar_url_full || typeof p.avatar_url_medium === "string" && p.avatar_url_medium || ""
+        };
+      } catch (e) {
+        return null;
+      }
+    },
+    // Ne jamais lire visibleApps avant collectionsFromStorage : Steam mémorise l'erreur de calcul.
+    // Une bibliothèque vide est prête ; aucune énumération de allApps pendant l'attente.
+    resumeBibliotheque: () => {
+      try {
+        if (!O.collectionStore?.collectionsFromStorage) return { pret: false, nombreJeux: null };
+        const n = O.collectionStore.allGamesCollection.visibleApps.length;
+        return Number.isSafeInteger(n) && n >= 0 ? { pret: true, nombreJeux: n } : { pret: false, nombreJeux: null };
+      } catch (e) {
+        return { pret: false, nombreJeux: null };
+      }
+    },
+    // Adaptation provisoire à l'hôte Steam : la vue n'a pas à connaître ses routes.
+    ouvrirAccueil: () => {
+      try {
+        if (!/^\/routes\/library\/home/.test(O.location?.pathname || "")) O.__pcvAller?.(1);
+      } catch (e) {
+      }
+    },
     // the app running in the foreground (null if none) ; appOverview() : its full card (name, playtime, images...)
     runningApp: () => {
       try {

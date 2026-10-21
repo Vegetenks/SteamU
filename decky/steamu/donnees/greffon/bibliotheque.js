@@ -69,6 +69,16 @@
     if (etiq.hidden) etiq.hidden = false;
     if (bulle.hidden) bulle.hidden = false;
   }, 120);
+  document.removeEventListener("focusin", window.__pcvOngletCentre, true);
+  document.addEventListener("focusin", window.__pcvOngletCentre = (e) => {
+    if (document.body.dataset.pcvPage !== "bibliotheque") return;
+    for (let p = e.target.parentElement; p && p !== document.body; p = p.parentElement) {
+      if (p.scrollWidth > p.clientWidth + 1 && p.scrollHeight <= p.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(p).overflowX)) {
+        e.target.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+        return;
+      }
+    }
+  }, true);
   document.getElementById("pcv-trier")?.remove();
   const trier = document.createElement("button");
   trier.id = "pcv-trier";
