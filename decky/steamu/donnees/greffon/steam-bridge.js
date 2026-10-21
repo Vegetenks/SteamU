@@ -1,3 +1,25 @@
+try {
+  window.__pcvAbonnementJeuDevant?.unregister?.();
+} catch (e) {
+}
+try {
+  const S = (window.opener || window).SteamClient;
+  window.__pcvAbonnementJeuDevant = S?.System?.UI?.RegisterForFocusChangeEvents?.((e) => {
+    const id = e?.focusedApp?.appid, devant = !!id && id !== 769;
+    if (devant !== !!window.__pcvJeuDevant) {
+      window.__pcvJeuDevant = devant;
+      window.dispatchEvent(new CustomEvent("pcv-jeu-devant", { detail: devant }));
+    }
+  });
+} catch (e) {
+}
+{
+  const TDP_ECONOMIE_W = 8;
+  window.__pcvEconomie = () => {
+    const w = window.__pcvBridge?.limiteTdp?.();
+    return w != null && w < TDP_ECONOMIE_W;
+  };
+}
 window.__pcvBridge = (() => {
   const O = window.opener || window;
   const req = () => O.__pcvReq ||= (() => {
@@ -109,6 +131,35 @@ window.__pcvBridge = (() => {
       }
     },
     // Adaptation provisoire à l'hôte Steam : la vue n'a pas à connaître ses routes.
+    // (21/10) le TDP réglé dans les réglages rapides, en watts ; null sans limite (automatique) ou sans SteamOS
+    limiteTdp: () => {
+      try {
+        const c = O.settingsStore?.m_ClientSettings;
+        return c?.steamos_tdp_limit_enabled && c.steamos_tdp_limit > 0 ? c.steamos_tdp_limit : null;
+      } catch (e) {
+        return null;
+      }
+    },
+    // (21/10) Steam a-t-il un écran par-dessus (astuces de premier lancement, fenêtre, menu, clavier, verrouillage) ?
+    // La règle est celle de barre-haut.js (__pcvSteamDessus), qui rend déjà les touches à Steam dans ce cas
+    steamDessus: () => {
+      try {
+        return !!window.__pcvSteamDessus?.();
+      } catch (e) {
+        return false;
+      }
+    },
+    // (21/10) Steam demande-t-il « Qui joue ? » à chaque lancement ? (réglage de son écran de choix de compte ; 0 = oui,
+    // relevé sur Steam, 1 = non) → Promise<boolean>, false si la fonction manque
+    choixCompteAuDemarrage: () => {
+      try {
+        const u = O.SteamClient?.User;
+        return typeof u?.GetStartupUserChooserState === "function" ? Promise.resolve(u.GetStartupUserChooserState()).then((e) => e === 0).catch(() => false) : Promise.resolve(false);
+      } catch (e) {
+        return Promise.resolve(false);
+      }
+    },
+    // (appelée sur son objet : détachée, elle ne répondait pas)
     ouvrirAccueil: () => {
       try {
         if (!/^\/routes\/library\/home/.test(O.location?.pathname || "")) O.__pcvAller?.(1);
@@ -260,3 +311,11 @@ window.__pcvBridge = (() => {
     callPlugin: (pluginName, method, ...args) => O.DeckyBackend?.call("loader/call_plugin_method", pluginName, method, ...args) ?? Promise.reject(new Error("Decky absent"))
   };
 })();
+window.__pcvClonePile = (s) => {
+  const c = s.cloneNode(true);
+  c.querySelectorAll("*").forEach((x) => {
+    if (!x.children.length && /%/.test(x.textContent)) x.remove();
+  });
+  for (const n of c.querySelectorAll("[class]")) if (!n.matches("{{BatteryIcon@LegacySizing}}")) n.removeAttribute("class");
+  return c;
+};

@@ -46,7 +46,7 @@
   const u = (n) => `calc(var(--u) * ${n})`;
   const racine = document.createElement("div");
   racine.id = "pcv-connexion";
-  let arrete = false, completer = 0, sortie = 0, attentePlace = 0, touche = null, manette = null;
+  let arrete = false, completer = 0, sortie = 0, attentePlace = 0, attenteDessus = 0, touche = null, manette = null;
   let sortieTerminee = false, placeTerminee = false;
   const vivant = () => !arrete && document.body.contains(racine);
   const retirerEntrees = () => {
@@ -65,6 +65,7 @@
     retirerEntrees();
     clearTimeout(sortie);
     clearTimeout(attentePlace);
+    clearTimeout(attenteDessus);
     racine.remove();
     if (window.__pcvConnexionArreter === arreter) delete window.__pcvConnexionArreter;
   };
@@ -264,10 +265,25 @@
       arreter();
       return false;
     }
+    if (racine.style.visibility === "hidden") return false;
     if (b === 1) valider();
     return true;
   };
   (window.__pcvManette ||= {}).connexion = manette;
+  racine.style.visibility = "hidden";
+  const montrer = () => {
+    if (!vivant()) return;
+    if (window.__pcvBridge?.steamDessus?.()) {
+      attenteDessus = setTimeout(montrer, 250);
+      return;
+    }
+    racine.style.visibility = "";
+  };
+  Promise.resolve(window.__pcvBridge?.choixCompteAuDemarrage?.()).catch(() => false).then((choisi) => {
+    if (!vivant()) return;
+    if (choisi) valider();
+    else montrer();
+  });
   completer = setInterval(() => {
     if (!vivant()) return arreter();
     const p = compteCourant(), b = resumeBibliotheque();

@@ -39,16 +39,15 @@
       return Promise.reject(e);
     }
   };
-  const sonde = document.createElement("i");
+  const toile = document.createElement("canvas").getContext("2d");
   const couleurTheme = () => {
     const v = getComputedStyle(document.documentElement).getPropertyValue("--pcv-accent").trim();
     if (!v) return null;
-    sonde.style.color = "";
-    sonde.style.color = v;
-    if (!sonde.style.color) return null;
-    (document.body || document.documentElement).appendChild(sonde);
-    const c = getComputedStyle(sonde).color;
-    sonde.remove();
+    toile.fillStyle = "#000001";
+    toile.fillStyle = v;
+    const c = toile.fillStyle;
+    if (c === "#000001") return null;
+    if (c[0] === "#") return c;
     const m = c.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
     return m ? "#" + m.slice(1, 4).map((x) => (+x).toString(16).padStart(2, "0")).join("") : null;
   };

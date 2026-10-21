@@ -455,6 +455,21 @@ html[data-pcv-apparence="gris"]:root, html[data-pcv-apparence="noir"]:root, html
 
 @media (max-width: 900px) { .tab_Settings {{PanelSectionRow@PanelSection}}:has(.gpfocus) {{FieldIcon@FieldLabel}}::after { color: var(--pcv-sur-accent) !important; } }
 
+.DialogContent:has([data-appid][role="button"]) { overflow: hidden !important; height: 100% !important; }
+.DialogContent:has([data-appid][role="button"]) :is(.DialogContent_InnerWidth, .DialogBody) { height: 100% !important; }
+.DialogContent:has([data-appid][role="button"]) .DialogBody { display: flex !important; flex-direction: column !important; gap: calc(var(--u) * 6) !important; }
+.DialogContent:has([data-appid][role="button"]) .DialogBody > :first-child { flex: none !important; zoom: .72; }
+.DialogContent:has([data-appid][role="button"]) .DialogBody > :nth-child(2) > :first-child { flex: none !important; zoom: .8; }
+.DialogContent:has([data-appid][role="button"]) :is(.DialogBody > :nth-child(2), .DialogBody > :nth-child(2) > :last-child) {
+  flex: 1 1 0 !important; min-height: 0 !important; height: auto !important; display: flex !important; flex-direction: column !important;
+}
+.DialogContent:has([data-appid][role="button"]) .DialogBody > :nth-child(2) > :last-child > :last-child { flex: 1 1 0 !important; min-height: 0 !important; height: auto !important; }
+
+:where(html:not([data-pcv-apparence="gris"]):not([data-pcv-apparence="noir"])) [data-appid][role="button"]:focus-within {
+  background: var(--pcv-cyan-plein) !important; color: var(--pcv-sur-accent) !important; border-radius: calc(var(--u) * 12) !important;
+}
+:where(html:not([data-pcv-apparence="gris"]):not([data-pcv-apparence="noir"])) [data-appid][role="button"]:focus-within :not(img, svg, svg *) { color: inherit !important; }
+
 :where(html:not([data-pcv-apparence="gris"]):not([data-pcv-apparence="noir"]))
 :where({{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList}} *,
   .ModalOverlayContent {{GamepadDialogContent@ModalPosition}} *) {

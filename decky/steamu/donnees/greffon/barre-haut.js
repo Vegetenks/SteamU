@@ -196,7 +196,7 @@
       }
       try {
         const s = [...document.querySelectorAll("{{HeaderItem@Header}}{{BatteryIcon@HeaderItem}}")].find((x) => !x.closest(".pile"));
-        etat.querySelector(".pile").replaceChildren(...s ? [s.cloneNode(true)] : []);
+        etat.querySelector(".pile").replaceChildren(...s ? [window.__pcvClonePile(s)] : []);
       } catch (e) {
       }
       try {

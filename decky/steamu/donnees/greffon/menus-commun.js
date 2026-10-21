@@ -291,7 +291,7 @@ window.__pcvPE = (() => {
         const bac = getComputedStyle(D.documentElement).getPropertyValue("--pcv-bat-accent").trim();
         if (bac) racine.style.setProperty("--pcv-bat-accent", bac);
         else racine.style.removeProperty("--pcv-bat-accent");
-        racine.querySelectorAll(".pile").forEach((p) => p.replaceChildren(...s ? [s.cloneNode(true)] : []));
+        racine.querySelectorAll(".pile").forEach((p) => p.replaceChildren(...s ? [window.__pcvClonePile(s)] : []));
       } catch (e) {
       }
       try {

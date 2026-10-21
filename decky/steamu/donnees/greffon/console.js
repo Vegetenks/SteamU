@@ -12,9 +12,9 @@
   const T = window.__pcvT || ((c) => c);
   const O = window.opener;
   const ORIGINE_STEAM = "https://steamloopback.host";
-  const IMG = (id, f) => `${ORIGINE_STEAM}/assets/${id}/${f}`;
+  const IMG = (id, f) => `${ORIGINE_STEAM}/assets/${BANC_SOURCE.get(id) ?? id}/${f}`;
   const absolu = (u) => u.startsWith("/") ? ORIGINE_STEAM + u : u;
-  const CDN = (id, f) => `https://shared.steamstatic.com/store_item_assets/steam/apps/${id}/${f}`;
+  const CDN = (id, f) => `https://shared.steamstatic.com/store_item_assets/steam/apps/${BANC_SOURCE.get(id) ?? id}/${f}`;
   const h = (min) => min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}`;
   const ilya = (rt) => {
     const j = Math.floor((Date.now() / 1e3 - rt) / 86400);
@@ -29,6 +29,7 @@
       return d;
     }
   };
+  const BANC = Math.max(0, Math.min(5e3, +lire("pcv-banc-biblio", 0) || 0)), BANC_BASE = 3e9, BANC_SOURCE = /* @__PURE__ */ new Map();
   const ecrire = (k, v) => {
     try {
       localStorage.setItem(k, JSON.stringify(v));
@@ -41,8 +42,8 @@
     etaitVisible = false;
     return m;
   };
-  const ZOOMS = [{ r: 1, c: 250, g: 34 }, { r: 2, c: 180, g: 26 }, { r: 3, c: 136, g: 20 }, { r: 4, c: 104, g: 16 }, { r: 5, c: 84, g: 12 }, { r: 6, c: 70, g: 9 }, { r: 7, c: 60, g: 8 }, { r: 8, c: 52, g: 6 }];
-  const JOUR = [0.12, 0.115, 0.11, 0.1, 0.09, 0.08, 0.07, 0.065];
+  const ZOOMS = [{ r: 1, c: 250, g: 34 }, { r: 2, c: 180, g: 26 }, { r: 3, c: 136, g: 20 }, { r: 4, c: 104, g: 16 }, { r: 5, c: 84, g: 13 }, { r: 6, c: 70, g: 11 }, { r: 7, c: 60, g: 10 }, { r: 8, c: 52, g: 9 }];
+  const JOUR = [0.12, 0.115, 0.11, 0.1, 0.1, 0.1, 0.1, 0.1];
   const FORMES = { wiiu: { debord: 0, marge: 0.04 }, "3ds": { joint: JOUR, marge: 0.02 } };
   const familleTheme = () => document.documentElement.dataset.pcvFamille === "3ds" ? "3ds" : "wiiu";
   const forme = (z = ZOOMS[zi]) => {
@@ -294,7 +295,22 @@
   let cible = -1;
   const RACCOURCI = 1073741824;
   const raccourci = (a) => a.app_type === RACCOURCI || !!a.BIsShortcut?.();
-  const apps = () => new Map((O.appStore.allApps || []).filter((a) => a.app_type === 1 || raccourci(a)).map((a) => [a.appid, a]));
+  let appsMemo = null, appsT = -1e9;
+  const apps = () => {
+    const t = performance.now();
+    if (appsMemo && t - appsT < 500) return appsMemo;
+    const m = new Map((O.appStore.allApps || []).filter((a) => a.app_type === 1 || raccourci(a)).map((a) => [a.appid, a]));
+    if (BANC) {
+      const vrais = [...m.values()].filter((a) => a.app_type === 1);
+      for (let i = 0; i < BANC && vrais.length; i++) {
+        const src = vrais[i % vrais.length], id = BANC_BASE + i;
+        BANC_SOURCE.set(id, src.appid);
+        m.set(id, Object.assign({}, src, { appid: id, display_name: `${src.display_name} ${i + 1}`, local_per_client_data: { installed: true }, rt_last_time_played: 0 }));
+      }
+    }
+    appsT = t;
+    return appsMemo = m;
+  };
   const installe = (a) => raccourci(a) || !!a.local_per_client_data?.installed;
   const distant = (a) => !installe(a) && (a.per_client_data || []).some((p) => p.clientid !== "0" && p.installed);
   const reglageJeux = () => {
@@ -781,8 +797,9 @@
       return { l: null, b: [0, 1, 0, 1] };
     }
   };
-  const imagesDetails = async (id) => {
+  const imagesDetails = async (idJeu) => {
     let minuteur;
+    const id = BANC_SOURCE.get(idJeu) ?? idJeu;
     try {
       await Promise.race([new Promise((ok) => {
         minuteur = setTimeout(() => ok(null), TUILE.detailsDelai);
@@ -873,7 +890,8 @@
   const MEMOIRE = window["__pcvTuiles-" + TUILE.cache] ||= {};
   for (const [n, f] of Object.entries({ copies: Map, dernieres: Map, decodees: Map, animees: Set, origines: Map, videos: Map, blobs: Map, lectures: Map })) MEMOIRE[n] ||= new f();
   const COPIES = MEMOIRE.copies;
-  const tailleTuile = (el) => !el.__pcvProche || racine.hidden || document.hidden ? TUILE.pas : Math.max(TUILE.pas, Math.ceil((el.offsetWidth || 160) * (devicePixelRatio || 1) * TUILE.agrandie * TUILE.marge / TUILE.pas) * TUILE.pas);
+  const LARGEUR_TOUR = { n: 0 };
+  const tailleTuile = (el) => !el.__pcvProche || racine.hidden || document.hidden ? TUILE.pas : Math.max(TUILE.pas, Math.ceil(((el.__pcvLargeurTour === LARGEUR_TOUR.n ? el.__pcvLargeur : el.offsetWidth) || 160) * (devicePixelRatio || 1) * TUILE.agrandie * TUILE.marge / TUILE.pas) * TUILE.pas);
   let enCopie = 0, tuilesFinies = false;
   const aCopier = [], lecturesImages = /* @__PURE__ */ new Set(), annulationsVideos = /* @__PURE__ */ new Set();
   const copieSuivante = () => {
@@ -1241,7 +1259,7 @@
     });
   };
   const VIDEOS = MEMOIRE.videos;
-  const videoVisible = (el) => !racine.hidden && !document.hidden && el.__pcvProche === true;
+  const videoVisible = (el) => !racine.hidden && !document.hidden && !window.__pcvJeuDevant && !window.__pcvEconomie?.() && el.__pcvProche === true;
   const videoDe = (u, T2, position, el) => {
     const k = `${u}|${T2}|${position}`;
     let c = VIDEOS.get(k);
@@ -1334,18 +1352,37 @@
     }, { once: true });
     el.prepend(v);
   };
-  const proches = new IntersectionObserver((l) => l.forEach((x) => {
-    const el = x.target, a = el.__pcvJeu;
-    if (!a) return;
-    el.__pcvProche = !!x.rootBounds?.width && x.isIntersecting;
-    const v = el.querySelector(":scope > video.pcv-anim");
-    if (!videoVisible(el)) {
-      if (!tuilesFinies && !racine.hidden && !document.hidden && el.dataset.appid) peindreJeu(el, a);
-      return v?.pause();
+  const PROCHE_MARGE = 0.5;
+  let prochesId = 0;
+  const majProches = () => {
+    prochesId = 0;
+    if (tuilesFinies || !racine.isConnected) return;
+    const cache = racine.hidden || document.hidden, z = ZOOMS[zi], pas = (z.c + z.g) * (innerHeight / 800);
+    const rr = racine.getBoundingClientRect(), rg = grille.getBoundingClientRect(), larg = rr.width || innerWidth;
+    const c0 = Math.floor((rr.left - rg.left - larg * PROCHE_MARGE) / pas), c1 = Math.ceil((rr.left - rg.left + larg * (1 + PROCHE_MARGE)) / pas);
+    const tour = ++LARGEUR_TOUR.n, aPeindre = [];
+    for (const el of grille.querySelectorAll(".cel.jeu > .im")) {
+      const a = el.__pcvJeu;
+      if (!a) continue;
+      const col = Math.floor(+el.parentElement.dataset.i / z.r), pres = !cache && col >= c0 && col <= c1, avant2 = el.__pcvProche === true;
+      if (pres) {
+        el.__pcvLargeur = el.offsetWidth;
+        el.__pcvLargeurTour = tour;
+      }
+      aPeindre.push([el, a, pres, avant2]);
     }
-    peindreJeu(el, a);
-    rechauffer();
-  }), { root: racine, rootMargin: "50%" });
+    for (const [el, a, pres, avant2] of aPeindre) {
+      el.__pcvProche = pres;
+      if (pres) {
+        if (!avant2 || !el.dataset.appid || el.__pcvS && tailleTuile(el) !== el.__pcvS) peindreJeu(el, a);
+      } else if (avant2 && el.dataset.appid) peindreJeu(el, a);
+    }
+    LARGEUR_TOUR.n++;
+    if (!cache) rechauffer();
+  };
+  const prochesPlus = () => {
+    if (!prochesId) prochesId = requestAnimationFrame(majProches);
+  };
   let rechauffe = 0;
   const rechauffer = () => {
     if (rechauffe) return;
@@ -1366,14 +1403,14 @@
     };
     rechauffe = (window.requestIdleCallback || ((f) => setTimeout(f, TUILE.reposDelai)))(suite, { timeout: TUILE.reposMax });
   };
-  const retailler = new ResizeObserver((l) => l.forEach(({ target: el }) => {
-    clearTimeout(el.__pcvRetaille);
-    el.__pcvRetaille = setTimeout(() => {
-      if (!tuilesFinies && el.isConnected && !racine.hidden && el.offsetWidth && el.dataset.appid && el.__pcvS && tailleTuile(el) !== el.__pcvS) peindreJeu(el, el.__pcvJeu);
-    }, TUILE.tailleDelai);
-  }));
-  window.__pcvTuilesProches?.disconnect();
-  window.__pcvTuilesProches = proches;
+  let retailleId = 0;
+  const retailler = new ResizeObserver(() => {
+    clearTimeout(retailleId);
+    retailleId = setTimeout(prochesPlus, TUILE.tailleDelai);
+  });
+  retailler.observe(grille);
+  window.__pcvTuilesProches?.disconnect?.();
+  delete window.__pcvTuilesProches;
   window.__pcvTuilesTailles?.disconnect();
   window.__pcvTuilesTailles = retailler;
   document.removeEventListener("visibilitychange", window.__pcvTuilesVisibilite);
@@ -1381,7 +1418,7 @@
     grille.querySelectorAll(".cel.jeu > .im").forEach((el) => {
       if (el.__pcvProche && el.__pcvJeu) peindreJeu(el, el.__pcvJeu);
     });
-    if (!document.hidden) rechauffer();
+    prochesPlus();
   };
   document.addEventListener("visibilitychange", window.__pcvTuilesVisibilite);
   window.__pcvTuilesFin = () => {
@@ -1391,10 +1428,10 @@
     rechauffe = 0;
     clearTimeout(purgeMemoire);
     purgeMemoire = 0;
-    proches.disconnect();
+    cancelAnimationFrame(prochesId);
+    clearTimeout(retailleId);
     retailler.disconnect();
     document.removeEventListener("visibilitychange", window.__pcvTuilesVisibilite);
-    grille.querySelectorAll(".im").forEach((el) => clearTimeout(el.__pcvRetaille));
     grille.querySelectorAll("video.pcv-anim").forEach((v) => {
       v.pause();
       v.removeAttribute("src");
@@ -1422,6 +1459,7 @@
     const composee = el.style.backgroundImage;
     clearTimeout(el.__pcvDessous);
     el.__pcvDessous = setTimeout(() => {
+      el.__pcvDessous = 0;
       if (el.style.backgroundImage !== composee) return;
       el.style.backgroundImage = n.image;
       el.style.backgroundSize = n.taille;
@@ -1661,8 +1699,6 @@
     const ordre = cases.map((_, i) => i).sort(() => Math.random() - 0.5), limite = colonneLimite(z);
     reserve = reserver(cases);
     const { grands, ancreDe } = reserve;
-    proches.disconnect();
-    retailler.disconnect();
     grille.innerHTML = "";
     cases.forEach((c, i) => {
       const d = document.createElement("div");
@@ -1671,8 +1707,6 @@
         d.className = "cel jeu";
         d.innerHTML = '<div class="im"></div>';
         d.firstChild.__pcvJeu = a;
-        proches.observe(d.firstChild);
-        retailler.observe(d.firstChild);
         if (distant(a)) {
           const n = document.createElement("i");
           n.className = "nuage";
@@ -1718,6 +1752,7 @@
       d.dataset.i = i;
       grille.appendChild(d);
     });
+    prochesPlus();
     racine.querySelectorAll(".zoom i").forEach((e, k) => e.classList.toggle("on", k === zi));
     if (fusionAnimer >= 0) {
       grille.children[fusionAnimer]?.querySelector(".bdg")?.animate([
@@ -1744,6 +1779,7 @@
       elan = null;
     }
     grille.style.transform = `translateX(calc(var(--u) * ${-decal * (z.c + z.g)}))`;
+    prochesPlus();
   };
   const texte = (el, t) => {
     const n = el.firstChild;
@@ -1851,8 +1887,9 @@
     dessiner(false, true);
     void grille.offsetWidth;
     grille.style.transition = "";
+    const apres = [...grille.children].map((e) => e.getBoundingClientRect());
     [...grille.children].forEach((e, i) => {
-      const a = avant2[i], b = e.getBoundingClientRect();
+      const a = avant2[i], b = apres[i];
       if (!a || b.right < 0 || b.left > innerWidth) return;
       if (a.right < 0 || a.left > innerWidth) {
         e.animate([{ opacity: 0, transform: "scale(.6)" }, { opacity: 1, transform: "none" }], { duration: 300, easing: "ease-out" });
@@ -2501,6 +2538,7 @@
   };
   const poser3d = () => {
     grille.style.transform = `translate3d(${pos}px, 0, 0)`;
+    prochesPlus();
   };
   const arreterElan = () => {
     if (!elan) return false;
@@ -3059,8 +3097,11 @@
     const maintenant = Date.now();
     if (maintenant - dernierTour > 2e4) window.__pcvAccueilPose = false;
     dernierTour = maintenant;
-    const visible = /^\/routes\/library\/home/.test(O.location.pathname) && mode() === "nouvelle" && !!O.appStore?.allApps?.length;
-    if (racine.hidden !== !visible) racine.hidden = !visible;
+    const visible = /^\/routes\/library\/home/.test(O.location.pathname) && mode() === "nouvelle" && !!O.appStore?.allApps?.length && !window.__pcvJeuDevant;
+    if (racine.hidden !== !visible) {
+      racine.hidden = !visible;
+      prochesPlus();
+    }
     if (!visible && etaitVisible) {
       window.__pcvZone = void 0;
       document.body.classList.remove("pcv-zone-jaquettes");

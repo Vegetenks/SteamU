@@ -4889,6 +4889,7 @@
       return null;
     };
     if (document.hidden) return non("cach\xE9e");
+    if (window.__pcvJeuDevant) return non("jeu au premier plan");
     const o = ["pcv-place", "pcv-connexion", "pcv-profil", "pcv-miimaker"].find(ouvert);
     if (o) return non(o);
     if (document.querySelector(".pcv-panneau.on")) return non("panneau");

@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.1.7-test (2026-10-21)
+
+- Settings → Storage: the game list now fills the card (drives and usage bar are more compact), so several games are visible instead of one.
+- Light mode, Settings → Storage: the selected game row was unreadable (Steam's dark grey background under dark text); it now uses SteamU's highlight (#3).
+- Plaza: Miis talk much less, speech bubbles vary (never the same twice in a row) and come with long silences, like on the Wii U.
+- Plaza: a short fade between the plaza and the home screen; the full opening animation plays only once per session.
+- LEDs: no more small hitch every 10 seconds (reading the theme colour no longer touches the page).
+- Status pill: CSS Loader battery themes (e.g. "Mobile Battery Theme") no longer mix with SteamU's battery icon.
+- Updating SteamU without restarting Steam no longer breaks the top bar.
+- Game page: play time is rounded to the minute (non-Steam shortcuts showed "16 h 53.60000000000002").
+- Changing the grid zoom quickly no longer stutters: tile sizes and the animated background are measured once per change instead of on every tile and every frame.
+- At 5 to 8 rows, tiles no longer touch each other: the gap between them stays at 10% of a tile step instead of shrinking to 6.5%.
+- When Steam has just shown its own account chooser ("Who's playing?", and the PIN) at startup, SteamU no longer shows its welcome screen on top: you land on the home screen directly. With automatic sign-in, the welcome screen is unchanged.
+- Game logos no longer flicker on zoom changes and scrolling: the previous logo stays underneath until the new one is drawn.
+- On the very first Big Picture launch, Steam's own tips ("Welcome to Big Picture", "Steam Menu"…) no longer appear underneath SteamU's welcome screen: it waits until Steam has nothing on top.
+- While a game is in the foreground, SteamU's home screen, Miis, animated background and animated tiles are paused: the Steam window no longer redraws behind the game (it was taking about 100 frames per second of GPU time from the game).
+- Large libraries: the home screen no longer watches every tile on every frame, which lowers idle CPU with thousands of games.
+- Small power budgets: below 8 W of TDP (quick settings), the animated background stays still and animated tiles show their first frame; they come back as soon as the TDP is raised or set to automatic.
+
 ## v0.1.6-test (2026-10-21)
 
 Tested on a Bazzite KDE machine in Desktop Mode with Big Picture at login, like issue #1's reporter.
