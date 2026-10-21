@@ -1,8 +1,17 @@
-# SteamU v0.1.5 (test build)
+# SteamU v0.1.6 (test build)
 
-**SteamU v0.1.5 (test build).** This is an early version for testers: expect bugs, and please report them.
+**SteamU v0.1.6 (test build).** This is an early version for testers: expect bugs, and please report them.
 
 SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspired by the Wii U and 3DS home menus (home grid, HOME menu, quick settings, notifications, friends, plaza…).
+
+### What's new in v0.1.6
+- Tested on Bazzite KDE in Desktop Mode with Big Picture at login.
+- SteamU now waits until Steam has finished signing in (account choice, PIN) before showing anything (#2).
+- Light mode: Steam texts that stayed white on light backgrounds now follow the theme's text colour (#3).
+- On a new home grid, system apps (Customize, casino…) come first; Settings → SteamU → Troubleshooting → *Move system apps back to the beginning* does it on an existing grid (#4).
+- No battery shown on machines without one (#5).
+- Library: the category row scrolls when there are many categories (Unifideck…), thanks to @lieserlV (#6).
+- Tiles no longer flicker or turn blank on zoom changes and scrolling (logos may still flicker briefly).
 
 ### What's new in v0.1.5
 - Main fix for issue #1: the home screen no longer decodes full-size game artwork. Each tile shows a copy shrunk to its on-screen size, made in a bounded queue (tiles on screen first) and kept between sessions. Custom and animated artwork (SteamGridDB, non-Steam shortcuts) is shrunk too; animated artwork shows its first frame. Large libraries (hundreds or thousands of games and shortcuts) no longer load everything at once.
@@ -27,7 +36,7 @@ SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspi
 Full list in [CHANGELOG.md](../CHANGELOG.md).
 
 ### Install
-1. Download [SteamU-v0.1.5-test.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.5-test.zip).
+1. Download [SteamU-v0.1.6-test.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.6-test.zip).
 2. In Decky Loader: Settings → Developer → *Install plugin from ZIP file*, pick the zip.
 3. Restart Steam (or the console). The SteamU welcome screen appears: press A.
 
