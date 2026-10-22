@@ -28,8 +28,9 @@
     for (let f = el[k], i = 0; f && i < 15; i++, f = f.return) if (f.memoizedProps?.app?.appid) return f.memoizedProps.app;
     return null;
   };
-  const duree = (min) => !min ? "Jamais jou\xE9" : min < 60 ? `${min} min de jeu` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")} de jeu`;
-  const date = (rt) => rt ? ", derni\xE8re partie le " + new Date(rt * 1e3).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "";
+  const Tb = (k, v) => window.__pcvT?.(k, v) ?? k;
+  const duree = (min) => (min = Math.round(min || 0), !min) ? Tb("biblio.jamais") : min < 60 ? Tb("biblio.min", { n: min }) : Tb("biblio.heures", { h: Math.floor(min / 60), m: String(min % 60).padStart(2, "0") });
+  const date = (rt) => rt ? new Date(rt * 1e3).toLocaleDateString(window.__pcvLocale?.() || "fr-FR", { day: "numeric", month: "short" }) : "";
   let dernier = null;
   window.__pcvBiblio = setInterval(() => {
     const p = window.opener?.location.pathname || "";
@@ -61,7 +62,8 @@
     if (dernier !== app.appid) {
       dernier = app.appid;
       etiq.textContent = app.display_name;
-      bulle.querySelector("span").textContent = duree(app.minutes_playtime_forever) + date(app.rt_last_time_played);
+      const t = duree(app.minutes_playtime_forever), d = date(app.rt_last_time_played);
+      bulle.querySelector("span").textContent = d ? Tb("biblio.temps_der", { temps: t, date: d }) : t;
       bulle.style.animation = "none";
       void bulle.offsetWidth;
       bulle.style.animation = "";

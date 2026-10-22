@@ -24,6 +24,7 @@
   const css = (s) => s.replace(/(-?\d*\.?\d+)u\b/g, "calc(var(--u) * $1)");
   const echap = (s) => String(s).replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";");
   const son = (n) => window.__pcvSon?.(n);
+  const T = window.__pcvT || ((c) => c);
   const acc = () => window.__pcvGrille, arc = () => window.__pcvArcade;
   const U = () => innerHeight / 800;
   const RANGEES = { min: 4, max: 8, cle: "pcv-deco-rangees", depart: 5 };
@@ -107,14 +108,14 @@
     body.pcv-deco #pcv-console .bas, body.pcv-deco #pcv-console .zoom, body.pcv-deco #pcv-console .etat, body.pcv-deco #pcv-console .passants { visibility: hidden; }
   `)}</style>
   <div class="aide"></div>
-  <button class="fl g" aria-label="D\xE9filer \xE0 gauche">\u2039</button><button class="fl d" aria-label="D\xE9filer \xE0 droite">\u203A</button>
+  <button class="fl g" aria-label="${T("deco.defiler_gauche")}">\u2039</button><button class="fl d" aria-label="${T("deco.defiler_droite")}">\u203A</button>
   <div class="empreinte" hidden></div>
-  <div class="choix-b" hidden><button aria-label="Retirer ce badge">\u2715</button></div>
+  <div class="choix-b" hidden><button aria-label="${T("deco.retirer_badge")}">\u2715</button></div>
   <div class="tiroir"><div class="poignee"></div>
     <div class="haut"><div class="onglets"></div>
-      <div class="zm"><button data-z="-1" aria-label="Moins de rang\xE9es">\u2212</button><span></span><button data-z="1" aria-label="Plus de rang\xE9es">+</button></div>
-      <button class="bt place"><u data-touche="4"></u>+ de place</button>
-      <button class="bt fin"><u data-touche="2"></u>Termin\xE9</button></div>
+      <div class="zm"><button data-z="-1" aria-label="${T("deco.moins_rangees")}">\u2212</button><span></span><button data-z="1" aria-label="${T("deco.plus_rangees")}">+</button></div>
+      <button class="bt place"><u data-touche="4"></u>${T("deco.plus_de_place")}</button>
+      <button class="bt fin"><u data-touche="2"></u>${T("deco.termine")}</button></div>
     <div class="bande"></div></div>
   <div class="fantome" hidden></div>`;
   document.body.appendChild(racine);
@@ -282,16 +283,16 @@
     observateur?.disconnect();
     it = Math.min(it, Math.max(0, items().length - 1));
     if (chargement) {
-      bande.innerHTML = `<div class="vide-p">La bo\xEEte \xE0 badges s'ouvre\u2026</div>`;
+      bande.innerHTML = `<div class="vide-p">${T("deco.boite_ouvre")}</div>`;
       return;
     }
     if (!series.length) {
-      bande.innerHTML = `<div class="vide-p">Pas encore de badges \xE0 poser : gagne-les \xE0 l'arcade (bouton Badges), ils t'attendront ici.</div>`;
+      bande.innerHTML = `<div class="vide-p">${T("deco.pas_de_badges")}</div>`;
       return;
     }
     bande.innerHTML = items().map((o, k) => {
       const large = o.w > o.h, bw = large ? 170 : 80, s = Math.min((bw - 14) / o.w, 66 / o.h);
-      return `<div class="it${large ? " large" : ""}" data-k="${k}" data-id="${echap(o.id)}"><img alt="" draggable="false" style="width:calc(var(--u) * ${(o.w * s).toFixed(1)});height:calc(var(--u) * ${(o.h * s).toFixed(1)})">` + (o.morceaux ? `<span class="tag">${o.w}\xD7${o.h}</span>` : o.morceau ? `<span class="tag mo">morceau ${o.morceau.k + 1}/${o.morceau.sur}</span>` : "") + `<em></em></div>`;
+      return `<div class="it${large ? " large" : ""}" data-k="${k}" data-id="${echap(o.id)}"><img alt="" draggable="false" style="width:calc(var(--u) * ${(o.w * s).toFixed(1)});height:calc(var(--u) * ${(o.h * s).toFixed(1)})">` + (o.morceaux ? `<span class="tag">${o.w}\xD7${o.h}</span>` : o.morceau ? `<span class="tag mo">${T("deco.morceau_n", { k: o.morceau.k + 1, n: o.morceau.sur })}</span>` : "") + `<em></em></div>`;
     }).join("");
     observateur = new IntersectionObserver((es) => es.forEach((e) => {
       if (!e.isIntersecting) return;
@@ -326,7 +327,7 @@
   };
   const majZoom = () => {
     const z = acc()?.zoom();
-    if (z) $(".zm span").textContent = `${z.r} rang\xE9es`;
+    if (z) $(".zm span").textContent = T("deco.n_rangees", { n: z.r });
   };
   const majTouches = () => racine.querySelectorAll("u[data-touche]").forEach((e) => {
     const [t, c, h] = window.__pcvTouche?.(+e.dataset.touche) || ["?", "#5b6676"];
@@ -341,13 +342,13 @@
   const majAide = () => {
     const el = $(".aide");
     let h;
-    if (porte) h = manette ? `${glyphe(1)} le poser ${glyphe(3)} le rendre \xE0 la bo\xEEte ${glyphe(2)} le remettre` : "Pose-le sur des cases libres. Dans le tiroir, il retourne dans ta bo\xEEte";
+    if (porte) h = manette ? T("deco.aide_porte_manette", { a: glyphe(1), x: glyphe(3), b: glyphe(2) }) : T("deco.aide_porte");
     else if (main) {
       const u = adresse(main.o.id), n = nombre(main.o);
-      h = `${u ? `<img src="${u}" alt="">` : ""}<b>\xD7${n}</b> en main : ${manette ? `${glyphe(1)} sur une case libre ${glyphe(2)} le reposer` : "touche ou balaie les cases libres, retouche-le dans le tiroir pour le reposer"}`;
-    } else if (chargement) h = "La bo\xEEte \xE0 badges s'ouvre\u2026";
-    else if (!series.length) h = "D\xE9coration : glisse les badges pos\xE9s, \u2715 pour les rendre \xE0 la bo\xEEte";
-    else h = manette ? `${glyphe(1)} prendre un badge ${glyphe(5)} ${glyphe(6)} s\xE9ries ${glyphe(2)} terminer` : "Glisse un badge du tiroir vers une case libre, ou touche-le pour en poser en s\xE9rie";
+      h = `${u ? `<img src="${u}" alt="">` : ""}<b>\xD7${n}</b> ${manette ? T("deco.aide_main_manette", { a: glyphe(1), b: glyphe(2) }) : T("deco.aide_main")}`;
+    } else if (chargement) h = T("deco.boite_ouvre");
+    else if (!series.length) h = T("deco.aide_sans_series");
+    else h = manette ? T("deco.aide_manette", { a: glyphe(1), lb: glyphe(5), rb: glyphe(6), b: glyphe(2) }) : T("deco.aide");
     el.innerHTML = h;
   };
   const placer = (el, R) => {

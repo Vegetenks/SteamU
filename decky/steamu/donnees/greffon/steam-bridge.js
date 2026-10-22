@@ -211,8 +211,9 @@ window.__pcvBridge = (() => {
     // brings a running app's window to the front (used for "open the app" from a notification/media player card)
     resumeApp: (appid) => {
       try {
-        const id = String(appid);
-        return O.SteamClient.Apps.RaiseWindowForGame?.(id) ?? O.SteamClient.Apps.NavigateToRunningApp?.(id);
+        const id = String(appid), a = O.SteamClient.Apps;
+        if (typeof a.RaiseWindowForGame === "function") return a.RaiseWindowForGame(id);
+        return a.NavigateToRunningApp?.(id);
       } catch (e) {
       }
     },

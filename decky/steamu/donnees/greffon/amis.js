@@ -5,12 +5,13 @@
   const u = (n) => `calc(var(--u) * ${n})`;
   const fs = () => O.g_FriendsUIApp.FriendStore;
   const COULEUR = (p) => p.m_unGamePlayedAppID ? "var(--pcv-vert)" : p.m_ePersonaState === 0 ? "#aab4c2" : p.m_ePersonaState === 1 ? "#1a9ae6" : "#e0a100";
+  const T = (k, v) => window.__pcvT?.(k, v) ?? k;
   const depuis = (t) => {
-    if (!t) return "Hors ligne";
+    if (!t) return T("etat.hors_ligne");
     const m = Math.floor((Date.now() / 1e3 - t) / 60);
-    return m < 60 ? `Vu il y a ${Math.max(1, m)} min` : m < 2880 ? `Vu il y a ${Math.floor(m / 60)} h` : `Vu il y a ${Math.floor(m / 1440)} jours`;
+    return m < 60 ? T("amis.vu_min", { n: Math.max(1, m) }) : m < 2880 ? T("amis.vu_h", { n: Math.floor(m / 60) }) : T("amis.vu_jours", { n: Math.floor(m / 1440) });
   };
-  const ligne = (p) => p.m_unGamePlayedAppID ? "Joue \xE0 " + (O.appStore.GetAppOverviewByAppID?.(p.m_unGamePlayedAppID)?.display_name || p.m_strGameExtraInfo || "un jeu") : p.m_ePersonaState === 1 ? "En ligne" : p.m_ePersonaState > 1 ? "Absent" : depuis(p.m_rtLastSeenOnline);
+  const ligne = (p) => p.m_unGamePlayedAppID ? T("amis.joue_a", { jeu: O.appStore.GetAppOverviewByAppID?.(p.m_unGamePlayedAppID)?.display_name || p.m_strGameExtraInfo || T("amis.un_jeu") }) : p.m_ePersonaState === 1 ? T("home.en_ligne") : p.m_ePersonaState > 1 ? T("etat.absent") : depuis(p.m_rtLastSeenOnline);
   const echappe = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const urlSure = (u2) => {
     const s = String(u2 ?? "").trim(), t = s.replace(/[\x00-\x20]/g, "");
@@ -60,7 +61,7 @@
     #pcv-amis .carte .actions button.cyan { background: var(--pcv-cyan); color: var(--pcv-sur-accent);
       box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
   </style>
-  <div class="tete"><h2>Amis</h2><div class="onglets"><button class="onglet" data-onglet="en-ligne"></button><button class="onglet" data-onglet="tous"></button></div></div>
+  <div class="tete"><h2>${T("spaces.amis.nom")}</h2><div class="onglets"><button class="onglet" data-onglet="en-ligne"></button><button class="onglet" data-onglet="tous"></button></div></div>
   <div class="grille"></div><div class="carte-zone"></div>`;
   document.body.appendChild(racine);
   window.__pcvFond?.(racine);
@@ -68,19 +69,19 @@
   const remplir = () => {
     const tous = [...fs().all_friends].map((f) => ({ f, p: f.persona })).filter((x) => x.p);
     const enLigne = tous.filter((x) => x.p.m_ePersonaState > 0);
-    racine.querySelector('[data-onglet="en-ligne"]').textContent = `En ligne (${enLigne.length})`;
-    racine.querySelector('[data-onglet="tous"]').textContent = `Tous (${tous.length})`;
+    racine.querySelector('[data-onglet="en-ligne"]').textContent = T("amis.onglet_en_ligne", { n: enLigne.length });
+    racine.querySelector('[data-onglet="tous"]').textContent = T("amis.onglet_tous", { n: tous.length });
     racine.querySelectorAll(".onglet").forEach((b) => b.classList.toggle("actif", b.dataset.onglet === onglet));
     liste = (onglet === "tous" ? tous : enLigne).sort((a, b) => !!b.p.m_unGamePlayedAppID - !!a.p.m_unGamePlayedAppID || (b.p.m_ePersonaState > 0) - (a.p.m_ePersonaState > 0) || (b.p.m_rtLastSeenOnline || 0) - (a.p.m_rtLastSeenOnline || 0));
     sel = Math.min(sel, Math.max(0, liste.length - 1));
     racine.querySelector(".grille").innerHTML = liste.length ? liste.map(({ p }, i) => `<button class="ami${p.m_unGamePlayedAppID ? " joue" : p.m_ePersonaState === 0 ? " parti" : ""}${i === sel ? " sel" : ""}" data-i="${i}">
-      <span class="av"><img src="${echappe(urlSure(p.avatar_url_medium))}" alt=""><i style="background:${COULEUR(p)}"></i></span><b>${echappe(p.m_strPlayerName)}</b><small>${echappe(ligne(p))}</small></button>`).join("") : `<div class="vide">Aucun ami en ligne pour l'instant.</div>`;
+      <span class="av"><img src="${echappe(urlSure(p.avatar_url_medium))}" alt=""><i style="background:${COULEUR(p)}"></i></span><b>${echappe(p.m_strPlayerName)}</b><small>${echappe(ligne(p))}</small></button>`).join("") : `<div class="vide">${T("amis.aucun")}</div>`;
   };
   const carte = (i) => {
     const { p } = liste[i], z = racine.querySelector(".carte-zone"), id = p.m_steamid?.ConvertTo64BitString?.();
     z.innerHTML = `<div class="voile"></div><div class="carte"><div class="haut"><img src="${echappe(urlSure(p.avatar_url_full || p.avatar_url_medium))}" alt="">
       <span><b>${echappe(p.m_strPlayerName)}</b><small>${echappe(ligne(p))}</small></span></div>
-      <div class="actions"><button class="cyan" data-act="ecrire">Lui \xE9crire</button><button data-act="profil">Voir son profil</button><button data-act="fermer">Fermer</button></div></div>`;
+      <div class="actions"><button class="cyan" data-act="ecrire">${T("amis.ecrire")}</button><button data-act="profil">${T("amis.voir_profil")}</button><button data-act="fermer">${T("dispo.fermer")}</button></div></div>`;
     const fermer = () => {
       z.innerHTML = "";
     };

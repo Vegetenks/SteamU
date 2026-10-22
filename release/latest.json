@@ -1,0 +1,46 @@
+{
+ "version": "0.1.8",
+ "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.8.zip",
+ "sha256": "21e1420916982398f6eb0abb7dd90dd8a8f1c6910da6cb5235d4a416a81c85fd",
+ "notes": {
+  "en": [
+   "SteamU can now update itself from GitHub. When a new version is out, a pinned notification appears; \"See more\" shows what's new, and \"Install\" installs it through Decky.",
+   "You can turn off the update check in Settings, SteamU, Privacy.",
+   "If SteamU's safety net has to stop it, a short crash report is saved in your Downloads folder by itself, and a notification tells you about it the next time it starts.",
+   "Crash reports now include Decky's log.",
+   "HOME Menu: \"Close Software\" works again without the Pause Games plugin (reported on a ROG Ally).",
+   "Resetting SteamU and \"Erase everything\" now ask you to pick between two real buttons, with \"Cancel\" chosen first: pressing A twice no longer erases everything.",
+   "Themes, \"Delete theme\": B cancels the request instead of closing the panel, and the A key is drawn on the chosen button.",
+   "HOME Menu and quick settings: they no longer leave work running in the background once closed, and the paused game's picture no longer takes memory afterwards.",
+   "Resuming a game no longer resumes it twice in a row.",
+   "Texts that stayed in French are now translated: HOME Menu, quick settings, friends, your page, notifications, folders, game page, themes, arcade, casino, Mii Maker, plaza and credits.",
+   "Dates and times follow Steam's language."
+  ],
+  "fr": [
+   "SteamU peut maintenant se mettre à jour depuis GitHub. Quand une nouvelle version sort, une notification épinglée apparaît : « Voir plus » montre les nouveautés, et « Installer » l'installe avec Decky.",
+   "Tu peux couper la recherche des mises à jour dans Paramètres, SteamU, Confidentialité.",
+   "Si le filet de secours doit arrêter SteamU, un court rapport de plantage est enregistré tout seul dans ton dossier Téléchargements, et une notification te le dit au démarrage suivant.",
+   "Les rapports de plantage contiennent maintenant le journal de Decky.",
+   "Menu HOME : « Fermer le logiciel » marche de nouveau sans le greffon Pause Games (signalé sur une ROG Ally).",
+   "Réinitialiser SteamU et « Tout effacer » demandent maintenant de choisir entre deux vrais boutons, « Annuler » choisi d'abord : deux appuis sur A ne suffisent plus à tout effacer.",
+   "Thèmes, « Supprimer le thème » : B annule la demande au lieu de fermer le panneau, et la touche A est dessinée sur le bouton choisi.",
+   "Menu HOME et réglages rapides : ils ne laissent plus de travail en arrière-plan une fois fermés, et l'image du jeu en pause n'occupe plus de mémoire après la fermeture.",
+   "Reprendre un jeu ne le relance plus deux fois de suite.",
+   "Les textes restés en français sont maintenant traduits : menu HOME, réglages rapides, amis, ta page, notifications, dossiers, fiche du jeu, thèmes, arcade, casino, Mii Maker, place et crédits.",
+   "Les dates et les heures suivent la langue de Steam."
+  ],
+  "es": [
+   "SteamU ya puede actualizarse desde GitHub. Cuando sale una versión nueva, aparece una notificación fija: « Ver más » muestra las novedades e « Instalar » la instala con Decky.",
+   "Puedes desactivar la búsqueda de actualizaciones en Ajustes, SteamU, Privacidad.",
+   "Si la red de seguridad tiene que detener SteamU, se guarda solo un breve informe de fallo en tu carpeta Descargas, y una notificación te avisa en el siguiente inicio.",
+   "Los informes de fallo ahora incluyen el registro de Decky.",
+   "Menú HOME: « Cerrar software » vuelve a funcionar sin el complemento Pause Games (avisado en una ROG Ally).",
+   "Restablecer SteamU y « Borrar todo » ahora piden elegir entre dos botones reales, con « Cancelar » elegido primero: dos pulsaciones de A ya no bastan para borrarlo todo.",
+   "Temas, « Eliminar el tema »: B cancela la petición en lugar de cerrar el panel, y la tecla A aparece en el botón elegido.",
+   "Menú HOME y ajustes rápidos: ya no dejan trabajo en segundo plano al cerrarse, y la imagen del juego en pausa ya no ocupa memoria después.",
+   "Reanudar un juego ya no lo reanuda dos veces seguidas.",
+   "Los textos que seguían en francés ya están traducidos: menú HOME, ajustes rápidos, amigos, tu página, notificaciones, carpetas, ficha del juego, temas, arcade, casino, Mii Maker, plaza y créditos.",
+   "Las fechas y horas siguen el idioma de Steam."
+  ]
+ }
+}

@@ -4900,6 +4900,7 @@
     }
     if (document.querySelector(".gpfocus")?.closest(".contextMenuItem, .FullModalOverlay")) return non("fen\xEAtre de Steam");
     if (document.querySelector("#pcv-amis .carte-zone > *")) return non("carte d'ami");
+    if (document.querySelector("#pcv-notifs .quoi:not([hidden])")) return non("Quoi de neuf");
     const el = document.elementFromPoint(innerWidth / 2, innerHeight * 0.62);
     if (!el) return non("rien au milieu");
     for (const [nom, id] of Object.entries(RACINES)) {

@@ -1,5 +1,6 @@
 (() => {
   const T = window.THREE, E = window.__pcvESM;
+  const Tr = window.__pcvT || ((c) => c);
   if (!T || !E?.GLTFLoader) return "luigi-vrai : three.js ou son GLTFLoader absent";
   const reprise = window.__pcvLuigiVrai?.reprise?.() ?? null;
   window.__pcvLuigiVrai?.fin?.();
@@ -9,51 +10,51 @@
   const QUI = "luigi-vrai";
   const REPLIQUES = {
     accueil: [
-      "Bienvenue au casino de Luigi ! Oh yeah !",
-      "Ah, te voil\xE0 ! Les machines brillent rien que pour toi ce soir.",
-      "Entre donc ! Ici, c'est Luigi qui tient la maison\u2026 pas Mario !",
-      "Bonsoir, bonsoir ! Une petite partie avant de dormir ?",
-      "Approche, approche ! Le croupier ne mord pas."
+      "luigi.vrai.accueil_1",
+      "luigi.vrai.accueil_2",
+      "luigi.vrai.accueil_3",
+      "luigi.vrai.accueil_4",
+      "luigi.vrai.accueil_5"
     ],
     cartes: [
-      "Je bats les cartes\u2026 comme au bon vieux temps !",
-      "\xC9toile, champignon, fleur\u2026 Ah non, \xE7a, c'est l'autre jeu.",
-      "Regarde bien mes mains\u2026 Hop ! Tu n'as rien vu.",
-      "Une carte pour toi, une carte pour moi\u2026 H\xE9 h\xE9."
+      "luigi.vrai.cartes_1",
+      "luigi.vrai.cartes_2",
+      "luigi.vrai.cartes_3",
+      "luigi.vrai.cartes_4"
     ],
     designer: [
-      "Celle-l\xE0 ! Je la sens bien, celle-l\xE0.",
-      "Psst\u2026 Celle-ci a l'air d'avoir bon c\u0153ur aujourd'hui.",
-      "Essaie donc celle-l\xE0. Luigi a du flair !",
-      "Regarde : celle-ci clignote plus fort que les autres !"
+      "luigi.vrai.designer_1",
+      "luigi.vrai.designer_2",
+      "luigi.vrai.designer_3",
+      "luigi.vrai.designer_4"
     ],
     gagne: [
-      "Oh yeah ! Bien jou\xE9 !",
-      "Gotcha ! Il est \xE0 toi !",
-      "Wahoo ! M\xEAme Mario n'aurait pas fait mieux !",
-      "Bravo ! Tu vas finir par vider mon casino !",
-      "Mamma mia, quelle adresse !"
+      "luigi.vrai.gagne_1",
+      "luigi.vrai.gagne_2",
+      "luigi.vrai.gagne_3",
+      "luigi.vrai.gagne_4",
+      "luigi.vrai.gagne_5"
     ],
     rate: [
-      "Mamma mia\u2026 C'\xE9tait tout pr\xE8s !",
-      "Oh non\u2026 La pince a gliss\xE9. Ce n'est pas moi, promis !",
-      "H\xE9 h\xE9\u2026 On dira que c'\xE9tait l'\xE9chauffement.",
-      "Ne t'en fais pas, moi aussi je rate. Souvent. Tr\xE8s souvent.",
-      "Oh-oh\u2026 La prochaine sera la bonne !"
+      "luigi.vrai.rate_1",
+      "luigi.vrai.rate_2",
+      "luigi.rate_2",
+      "luigi.vrai.rate_3",
+      "luigi.vrai.rate_4"
     ],
     salut: [
-      "\xC0 bient\xF4t ! Je garde ta place au chaud.",
-      "Ciao ! Reviens vite, les badges vont s'ennuyer.",
-      "Bonne nuit ! Et chut, pas un mot \xE0 Mario.",
-      "\xC0 la prochaine ! Le casino de Luigi ne ferme jamais."
+      "luigi.vrai.salut_1",
+      "luigi.vrai.salut_2",
+      "luigi.aurevoir_3",
+      "luigi.vrai.salut_3"
     ],
-    noeud: ["Toujours tir\xE9 \xE0 quatre \xE9pingles, le croupier !", "Un croupier, \xE7a soigne son n\u0153ud. Hm hm."],
+    noeud: ["luigi.vrai.noeud_1", "luigi.vrai.noeud_2"],
     attente: [
-      "Alors, on h\xE9site ?",
-      "Les pi\xE8ces ne vont pas se jouer toutes seules !",
-      "Il para\xEEt qu'il y a de nouveaux badges aujourd'hui\u2026",
-      "Prends ton temps\u2026 Luigi a toute la nuit.",
-      "Psst ! La machine du fond\u2026 Non, rien."
+      "luigi.vrai.attente_1",
+      "luigi.vrai.attente_2",
+      "luigi.vrai.attente_3",
+      "luigi.vrai.attente_4",
+      "luigi.vrai.attente_5"
     ]
   };
   const auHasard = (l) => l[Math.floor(Math.random() * l.length)];
@@ -65,7 +66,7 @@
     do
       r = auHasard(l);
     while (l.length > 1 && r === dernieres[nom]);
-    return dernieres[nom] = r;
+    return Tr(dernieres[nom] = r);
   };
   const lireModele = async (o) => {
     if (o.lire) return o.lire(FICHIER);

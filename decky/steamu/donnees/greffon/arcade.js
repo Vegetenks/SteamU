@@ -1,6 +1,8 @@
 (() => {
   window.__pcvArcade?.fermer?.();
   const T = window.__pcvT || ((c) => c);
+  const nBadges = (n) => T(n > 1 ? "arcade.n_badges" : "arcade.un_badge", { n });
+  const nMorceaux = (n, total) => T(n > 1 ? "arcade.n_morceaux_sur" : "arcade.un_morceau_sur", { n, total });
   const O = window.opener || {};
   const lire = (k, d) => {
     try {
@@ -268,11 +270,11 @@
   const nomBadge = (id) => {
     const [sid, f] = String(id).split("/"), s = seriesPar.get(sid);
     const base = f.replace(/\.png$/, "").replace(new RegExp("^Pr_" + sid + "_", "i"), "");
-    if (/^[\w-]{20,}$/.test(base) && !base.includes("_")) return "Badge secret";
-    if (s?.famille === "Pok\xE9mon" && /^\d{4}/.test(base)) return `Pok\xE9mon n\xB0 ${+base.slice(0, 4)}`;
+    if (/^[\w-]{20,}$/.test(base) && !base.includes("_")) return T("casino.badge_secret");
+    if (s?.famille === "Pok\xE9mon" && /^\d{4}/.test(base)) return T("casino.pokemon_num", { n: +base.slice(0, 4) });
     const mots = base.replace(/([a-z])([A-Z])/g, "$1 $2").split(/[_\s]+/).map((m) => SIGLES[m] || m.replace(/\d+$/, "")).filter((m) => m && !/^\d+$/.test(m) && !GENERIQUES.has(m.toLowerCase()));
     const n = mots.slice(-2).join(" ");
-    return n ? n.charAt(0).toUpperCase() + n.slice(1) : s ? `${s.nom} n\xB0 ${s.lots.indexOf(f) + 1}` : "Badge";
+    return n ? n.charAt(0).toUpperCase() + n.slice(1) : s ? T("arcade.serie_num", { nom: s.nom, n: s.lots.indexOf(f) + 1 }) : T("arcade.badge");
   };
   const parties = () => {
     const p = lire(CLE.parties, null) || { jour: "", offertes: 0, bonus: 0, jetons: 0, bonusJetons: 0 };
@@ -349,7 +351,7 @@
     return noms;
   };
   let machines = [], machinesDe = "";
-  const ENTRAINEMENT = { cle: "entrainement", type: "pince", entrainement: true, nom: T("casino.entrainement"), sous: "gratuit, pour se faire la main", famille: "Entra\xEEnement", stock: [] };
+  const ENTRAINEMENT = { cle: "entrainement", type: "pince", entrainement: true, nom: T("casino.entrainement"), sous: T("arcade.entrainement_sous"), famille: "Entra\xEEnement", stock: [] };
   const machineDe = (s, type, stock) => ({ cle: s.id, type, serie: s, nom: s.nom, sous: s.sous, famille: s.famille, icone: s.icone ? `${s.id}/${s.icone}` : null, stock });
   const stockDe = (s, type, mode, r, b) => {
     const petits = melanger(s.lots.filter((f) => !s.tailles[f]), r).map((f) => `${s.id}/${f}`), grands = s.lots.filter((f) => s.tailles[f]).map((f) => `${s.id}/${f}`);
@@ -1132,7 +1134,7 @@
     box-sizing: content-box; animation: pcvA-flotte 2.4s ease-in-out infinite alternate; }
   .pcv-arcade .fiche .socle .assemble img { cursor: pointer; }
   .pcv-arcade .case.plein { box-shadow: inset 0 0 0 4u #ffd23f; }
-  .pcv-arcade .case.g::before { content: "GRAND"; position: absolute; left: 50%; bottom: -5u; transform: translateX(-50%); padding: 1u 7u; border-radius: 8u; background: #ff8ab0; color: var(--pcv-sur-accent); font-size: 10u; font-weight: 900; z-index: 1; }
+  .pcv-arcade .case.g::before { content: ${JSON.stringify(T("arcade.grand_maj"))}; position: absolute; left: 50%; bottom: -5u; transform: translateX(-50%); padding: 1u 7u; border-radius: 8u; background: #ff8ab0; color: var(--pcv-sur-accent); font-size: 10u; font-weight: 900; z-index: 1; }
   .pcv-arcade .case.choisi { box-shadow: 0 0 0 4u var(--pcv-anneau-c), 0 0 0 8u #ffd23f; background: rgba(255,255,255,.22); }
   .pcv-arcade .boite .aide { z-index: 2; }
   .pcv-arcade .vide-b { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: 520u; text-align: center; color: var(--pcv-sur-accent); font-size: 19u; font-weight: 800; line-height: 1.4; }
@@ -1217,15 +1219,15 @@
     }, 24) };
   };
   const ASTUCES = [
-    "Garde le doigt sur la vitre pour viser, l\xE2che pour faire descendre la pince !",
-    "Les grands badges sont lourds : vise bien le milieu, sinon ils glissent.",
-    "Chaque succ\xE8s d\xE9bloqu\xE9 dans tes jeux te rapporte une partie. Joue, et reviens me voir !",
-    "Le pousseur ne pousse que vers la fente : place le bras juste derri\xE8re le tas.",
-    "\xC0 l'entra\xEEnement, 10 jetons attrap\xE9s = 1 partie offerte. Pratique, non ?",
-    "Les machines changent chaque jour. Demain, d'autres s\xE9ries !",
-    "Dans ta bo\xEEte, choisis un badge et colle-le sur ton accueil.",
-    "Un grand badge se gagne en morceaux. Colle-les c\xF4te \xE0 c\xF4te sur l'accueil et ils se rassemblent !",
-    "Tu pr\xE9f\xE8res gagner les grands badges d'un coup ? Appuie sur X dans le hall."
+    T("arcade.astuce_1"),
+    T("arcade.astuce_2"),
+    T("arcade.astuce_3"),
+    T("arcade.astuce_4"),
+    T("arcade.astuce_5"),
+    T("arcade.astuce_6"),
+    T("arcade.astuce_7"),
+    T("arcade.astuce_8"),
+    T("arcade.astuce_9")
   ];
   const touches = (l) => l.map(([t, n, a]) => `<button data-action="${a}"><span class="tch">${t}</span>${n}</button>`).join("");
   const JETONS = ["#ff6f9f", "#ffc63a", "#39b8f0", "#5fd38a", "#b47cff"];
@@ -1239,11 +1241,11 @@
   const htmlBorne = (m, i) => `<div class="borne" data-i="${i}" style="left:${u(i * PAS_HALL + 25)};--c:${m.coul[0]};--c2:${m.coul[1]};--c3:${m.coul[2]}">
     <div class="bloc" style="animation-delay:${(0.12 + i * 0.08).toFixed(2)}s"><i class="ombre"></i>
       <div class="caisse"><div class="vitre"><div class="tas"><i class="plancher"></i>${apercu(m)}</div>${m.type === "pousseur" ? '<i class="bras-mini"></i>' : '<i class="pince-mini"><b></b></i>'}<i class="reflet"></i></div>
-        <div class="plaque">${m.entrainement ? "ENTRA\xCENEMENT" : m.type === "pince" ? "PINCE" : "POUSSEUR"}</div>
+        <div class="plaque">${T(m.entrainement ? "arcade.plaque_entrainement" : m.type === "pince" ? "arcade.plaque_pince" : "arcade.plaque_pousseur")}</div>
         <div class="pupitre"><i class="manche"></i><i class="bouton"></i></div><div class="trappe"></div></div>
       <div class="fronton"><i class="amp h a1"></i><i class="amp h a2"></i><i class="amp h a3"></i><i class="amp b a1"></i><i class="amp b a2"></i><i class="amp b a3"></i>
         <span class="ic">${m.icone ? `<img data-id="${echap(m.icone)}" alt="">` : m.entrainement ? "\u{1F3AF}" : "\u{1F3C5}"}</span><span class="tx"><b>${echap(m.nom)}</b><small>${echap(m.sous)}</small></span></div>
-      <div class="prix">${m.entrainement ? "GRA-<br>TUIT" : "1<br>partie"}</div></div></div>`;
+      <div class="prix">${T(m.entrainement ? "arcade.prix_gratuit" : "arcade.prix_partie")}</div></div></div>`;
   const guirlande = () => {
     let s = "", k = 0;
     const C = ["#ff5d8f", "#ffd23f", "#39c6ff", "#7be36b", "#c47bff"];
@@ -1261,15 +1263,15 @@
     const d = /* @__PURE__ */ new Date(), f = new Date(d);
     f.setHours(24, 0, 0, 0);
     const m = Math.round((f - d) / 6e4);
-    return `${d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}, nouvelles machines dans ${m >= 60 ? Math.floor(m / 60) + " h " : ""}${m % 60} min`;
+    return T("arcade.nouvelles_machines", { date: d.toLocaleDateString(window.__pcvLocale?.() || "fr-FR", { weekday: "long", day: "numeric", month: "long" }), duree: `${m >= 60 ? Math.floor(m / 60) + " h " : ""}${m % 60} min` });
   };
   const htmlSalle = () => `<div class="salle">
       <div class="mur"><i class="rayures"></i><i class="projo p1"></i><i class="projo p2"></i><div class="auvent"></div><div class="festons"></div>${guirlande()}</div>
       <div class="sol"><i></i></div>
       <div class="rail">${machines.map(htmlBorne).join("")}</div>
-      <div class="hud-g"><span class="logo">\u{1F3AA}</span><span><b>Arcade \xE0 badges</b><small class="jour">${quand()}</small></span></div>
+      <div class="hud-g"><span class="logo">\u{1F3AA}</span><span><b>${T("arcade.titre")}</b><small class="jour">${quand()}</small></span></div>
       <div class="aide">${aideHall()}</div></div>`;
-  const aideHall = () => touches([["\u25C0 \u25B6", "Machines", "rien"], ["A", "S'approcher", "approcher"], ["X", `Grands badges : ${modeGrands() === "morceaux" ? "en morceaux" : "entiers"}`, "mode"], ["Y", "Ma bo\xEEte", "boite"]]);
+  const aideHall = () => touches([["\u25C0 \u25B6", T("arcade.machines"), "rien"], ["A", T("arcade.approcher"), "approcher"], ["X", T(modeGrands() === "morceaux" ? "arcade.mode_morceaux" : "arcade.mode_entiers"), "mode"], ["Y", T("arcade.ma_boite"), "boite"]]);
   const basculerMode = () => {
     if (vue !== "hall" || boiteOuverte) return;
     const mode = modeGrands() === "morceaux" ? "entiers" : "morceaux";
@@ -1280,7 +1282,7 @@
     placerRail();
     allumer();
     son("ouvre");
-    dire(mode === "morceaux" ? "Grands badges en morceaux, comme dans l'appli ! Gagne chaque morceau, puis colle-les c\xF4te \xE0 c\xF4te sur l'accueil." : "Grands badges entiers ! Un seul coup de pince pour tout le badge\u2026 mais ils sont lourds !", true);
+    dire(T(mode === "morceaux" ? "arcade.dire_morceaux" : "arcade.dire_entiers"), true);
   };
   const chargerImages = (zone) => zone?.querySelectorAll("img[data-id]:not([src])").forEach((im) => poserImage(im, im.dataset.id));
   const placerRail = () => {
@@ -1301,14 +1303,14 @@
     presentation = setTimeout(() => {
       const m = machines[sel];
       if (!m || vue !== "hall") return;
-      dire(m.entrainement ? "L'entra\xEEnement ! C'est gratuit : 10 jetons attrap\xE9s = 1 partie offerte." : `${m.nom}, ${m.sous} ! ${m.type === "pince" ? "Une pince" : "Un pousseur"} avec ${m.file.length} badge${m.file.length > 1 ? "s" : ""} dedans.${resume(m)}`, true);
+      dire(m.entrainement ? T("arcade.dire_entrainement") : T(m.type === "pince" ? "arcade.presente_pince" : "arcade.presente_pousseur", { nom: m.nom, sous: m.sous, badges: nBadges(m.file.length) }) + resume(m), true);
     }, 420);
   };
   const resume = (m) => {
     const b = boite(), morceaux = m.file.filter((id) => morceauDe.has(id));
-    if (morceaux.some((id) => possede(b, morceauDe.get(id).de))) return " Il y a des morceaux qui te manquent !";
-    if (morceaux.length) return ` Dont ${morceaux.length} morceaux de grands badges \xE0 rassembler !`;
-    return m.file.some((id) => tailleDe(id)[0] * tailleDe(id)[1] > 1) ? " Il y a m\xEAme des grands badges !" : "";
+    if (morceaux.some((id) => possede(b, morceauDe.get(id).de))) return " " + T("arcade.resume_manque");
+    if (morceaux.length) return " " + T("arcade.resume_morceaux", { n: morceaux.length });
+    return m.file.some((id) => tailleDe(id)[0] * tailleDe(id)[1] > 1) ? " " + T("arcade.resume_grands") : "";
   };
   const choisir = (i, bruit = true) => {
     i = clamp(i, 0, machines.length - 1);
@@ -1320,7 +1322,7 @@
   const construire = () => {
     racine.innerHTML = `<style>${STYLE}</style>${htmlSalle()}<div class="jeu"></div>
       <div class="hud-d"><div class="pil parties"><span class="piece">\u2605</span><span><span class="n"></span><small class="detail"></small></span></div>
-        <button class="pil boite-b" data-action="boite"><span class="coffre">\u{1F3C5}</span><span><span class="n nb"></span><small>ma bo\xEEte</small></span></button></div>
+        <button class="pil boite-b" data-action="boite"><span class="coffre">\u{1F3C5}</span><span><span class="n nb"></span><small>${T("arcade.ma_boite")}</small></span></button></div>
       <div class="pipo">${PIPO}</div><div class="bulle"><em>PIPO</em><p></p></div>
       <div class="boite"></div><div class="gain"></div>`;
     hote = $(".pipo");
@@ -1339,15 +1341,15 @@
     const el = $(".hud-d .parties");
     if (!el) return;
     const avant = el.querySelector(".n").textContent;
-    el.querySelector(".n").textContent = `${n} partie${n > 1 ? "s" : ""}`;
-    el.querySelector(".detail").textContent = p.bonus ? `${p.offertes} du jour + ${p.bonus} gagn\xE9e${p.bonus > 1 ? "s" : ""}` : `${OFFERTES} offertes chaque jour`;
+    el.querySelector(".n").textContent = T(n > 1 ? "arcade.n_parties" : "arcade.une_partie", { n });
+    el.querySelector(".detail").textContent = p.bonus ? T(p.bonus > 1 ? "arcade.detail_bonus_n" : "arcade.detail_bonus_1", { o: p.offertes, b: p.bonus }) : T("arcade.offertes_jour", { n: OFFERTES });
     if (avant && avant !== el.querySelector(".n").textContent) {
       el.classList.remove("saute");
       void el.offsetWidth;
       el.classList.add("saute");
     }
     const nb = Object.keys(b).filter((id) => !morceauDe.has(id)).length + [...morceauxDe.keys()].filter((id) => !b[id] && complet(b, id)).length;
-    $(".hud-d .nb").textContent = `${nb} badge${nb > 1 ? "s" : ""}`;
+    $(".hud-d .nb").textContent = nBadges(nb);
   };
   const htmlJeu = (m) => `<div class="cabine" style="--c:${m.coul[0]};--c2:${m.coul[1]};--c3:${m.coul[2]}">
       <div class="caisse"></div>
@@ -1355,25 +1357,25 @@
         <span class="ic">${m.icone ? `<img data-id="${echap(m.icone)}" alt="">` : m.entrainement ? "\u{1F3AF}" : "\u{1F3C5}"}</span><span class="tx"><b>${echap(m.nom)}</b><small>${echap(m.sous)}</small></span></div>
       <div class="vitre-jeu"><canvas></canvas><i class="reflet"></i></div>
       <div class="commandes"><button class="bt g" data-dir="-1">\u25C0</button><button class="bt d" data-dir="1">\u25B6</button>
-        <div class="consigne">${m.type === "pince" ? "Garde le doigt sur la vitre pour viser,<br>l\xE2che-le pour faire descendre la pince." : "Place le bras derri\xE8re le tas,<br>puis pousse vers la fente !"}</div>
-        <button class="bt a"><span class="tch">A</span>${m.type === "pince" ? "Descendre" : "Pousser"}</button></div></div>
+        <div class="consigne">${T(m.type === "pince" ? "arcade.consigne_pince" : "arcade.consigne_pousseur")}</div>
+        <button class="bt a"><span class="tch">A</span>${T(m.type === "pince" ? "arcade.descendre" : "arcade.pousser")}</button></div></div>
     <div class="cote">
-      <div class="carte"><span class="t">${m.entrainement ? "ENTRA\xCENEMENT" : m.type === "pince" ? "MACHINE \xC0 PINCE" : "MACHINE \xC0 POUSSER"}</span><b class="dedans"></b><div class="detail-m"></div></div>
-      ${m.entrainement ? `<div class="carte"><span class="t">JETONS DU JOUR</span><b class="nj"></b><div class="jetons"></div></div>` : `<div class="carte"><span class="t">TA COLLECTION</span><b class="prog"></b><div class="jauge"><i></i></div></div>`}
-      <button class="carte" data-action="boite"><span class="coffre">\u{1F3C5}</span>Ma bo\xEEte<span class="tch" style="margin-left:auto">Y</span></button>
-      <button class="carte" data-action="hall"><span class="coffre" style="background:linear-gradient(180deg,#ffc0d8,#ff8ab0)">\u25C0</span>Le hall<span class="tch" style="margin-left:auto">B</span></button></div>`;
+      <div class="carte"><span class="t">${T(m.entrainement ? "arcade.plaque_entrainement" : m.type === "pince" ? "arcade.machine_pince" : "arcade.machine_pousseur")}</span><b class="dedans"></b><div class="detail-m"></div></div>
+      ${m.entrainement ? `<div class="carte"><span class="t">${T("arcade.jetons_du_jour")}</span><b class="nj"></b><div class="jetons"></div></div>` : `<div class="carte"><span class="t">${T("arcade.ta_collection")}</span><b class="prog"></b><div class="jauge"><i></i></div></div>`}
+      <button class="carte" data-action="boite"><span class="coffre">\u{1F3C5}</span>${T("arcade.ma_boite")}<span class="tch" style="margin-left:auto">Y</span></button>
+      <button class="carte" data-action="hall"><span class="coffre" style="background:linear-gradient(180deg,#ffc0d8,#ff8ab0)">\u25C0</span>${T("arcade.le_hall")}<span class="tch" style="margin-left:auto">B</span></button></div>`;
   const majCote = () => {
     const m = mJeu;
     if (!m || !racine) return;
     const n = m.monde?.corps.length || 0, grands = m.monde?.corps.filter((c) => c.taille[0] * c.taille[1] > 1).length || 0;
     const d = $(".cote .dedans");
-    if (d) d.textContent = m.entrainement ? `${n} jetons` : `${m.file.length} badge${m.file.length > 1 ? "s" : ""}`;
+    if (d) d.textContent = m.entrainement ? T("arcade.n_jetons", { n }) : nBadges(m.file.length);
     const nm = m.monde?.corps.filter((c) => morceauDe.has(c.id)).length || 0;
     const dm = $(".cote .detail-m");
-    if (dm) dm.textContent = m.entrainement ? "Gratuit, \xE0 volont\xE9." : `${n} dans la vitre${grands ? `, dont ${grands} grand${grands > 1 ? "s" : ""}` : nm ? `, dont ${nm} morceaux` : ""}`;
+    if (dm) dm.textContent = m.entrainement ? T("arcade.gratuit_volonte") : T("arcade.dans_vitre", { n }) + (grands ? T(grands > 1 ? "arcade.dont_grands" : "arcade.dont_grand", { n: grands }) : nm ? T("arcade.dont_morceaux", { n: nm }) : "");
     if (m.entrainement) {
       const p = parties(), k = p.jetons % JETONS_PAR_PARTIE, fini = p.bonusJetons >= BONUS_ENTRAINEMENT;
-      $(".cote .nj").textContent = fini ? "Bonus du jour pris !" : `${k} / ${JETONS_PAR_PARTIE} \u2192 1 partie`;
+      $(".cote .nj").textContent = fini ? T("arcade.bonus_pris") : T("arcade.jetons_vers_partie", { k, n: JETONS_PAR_PARTIE });
       $(".cote .jetons").innerHTML = Array.from({ length: JETONS_PAR_PARTIE }, (_, i) => `<i class="${fini || i < k ? "on" : ""}"></i>`).join("");
     } else if (m.serie) {
       const b = boite(), a = completes(b, m.serie);
@@ -1393,10 +1395,10 @@
     brancherJeu();
     majCote();
     demarrer();
-    if (m.entrainement) dire("Ici on s'entra\xEEne gratuitement. Vise un jeton et l\xE2che !", true);
-    else if (!m.file.length) dire("Cette machine est vide : tu as tout gagn\xE9 ! Bravo, champion !", true);
-    else if (!totalParties()) dire("Tu n'as plus de parties\u2026 Reviens demain, ou d\xE9bloque des succ\xE8s dans tes jeux !", true);
-    else dire(m.type === "pince" ? "Vise bien, et que la pince soit avec toi !" : "Pousse doucement\u2026 tout ce qui tombe dans la fente est \xE0 toi !", true);
+    if (m.entrainement) dire(T("arcade.dire_ici_entraine"), true);
+    else if (!m.file.length) dire(T("arcade.dire_vide_champion"), true);
+    else if (!totalParties()) dire(T("arcade.dire_plus_parties"), true);
+    else dire(T(m.type === "pince" ? "arcade.dire_vise" : "arcade.dire_pousse"), true);
   };
   const revenirHall = () => {
     const m = mJeu;
@@ -1515,7 +1517,7 @@
       c.fillStyle = "#8a5a00";
       c.font = "900 17px Nunito, sans-serif";
       c.textAlign = "center";
-      c.fillText("SORTIE", g.chute / 2 - 1, g.haut + 56);
+      c.fillText(T("arcade.sortie"), g.chute / 2 - 1, g.haut + 56);
     } else {
       const g = POUSSE;
       const tb = c.createLinearGradient(0, g.table, 0, H);
@@ -1547,7 +1549,7 @@
       c.fillStyle = "#8a5a00";
       c.font = "900 17px Nunito, sans-serif";
       c.textAlign = "center";
-      c.fillText("FENTE", (g.bord + W) / 2 + 2, g.table - 94);
+      c.fillText(T("arcade.fente"), (g.bord + W) / 2 + 2, g.table - 94);
     }
     return f;
   };
@@ -1784,14 +1786,14 @@
     el?.classList.remove("secoue");
     void el?.offsetWidth;
     el?.classList.add("secoue");
-    dire("Oh non, plus de parties ! Reviens demain, ou d\xE9bloque des succ\xE8s dans tes jeux : chacun t'en offre une.", true);
+    dire(T("arcade.dire_refus"), true);
   };
   const jouer = () => {
     const m = mJeu, j = m?.jeu;
     if (!j || j.etat !== "attente") return;
     if (!m.monde.corps.length) {
       son("refus");
-      dire("Cette machine est vide. Essaie sa voisine !", true);
+      dire(T("arcade.dire_vide_voisine"), true);
       return;
     }
     if (!m.entrainement && !depenser()) return refus();
@@ -1814,7 +1816,7 @@
     if (m.entrainement) {
       if (!g.length) {
         son("rate");
-        dire(j.glisses ? "Il a gliss\xE9 ! Serre-le bien au milieu." : "Rat\xE9 ! Recommence, c'est gratuit.", true);
+        dire(T(j.glisses ? "arcade.dire_glisse_milieu" : "arcade.dire_rate_gratuit"), true);
         return;
       }
       const p = parties();
@@ -1829,13 +1831,13 @@
       son("jeton");
       majCote();
       majHud();
-      dire(bonus ? "Bravo ! 10 jetons : je t'offre une partie !" : `${g.length > 1 ? g.length + " jetons" : "Un jeton"} ! Encore ${JETONS_PAR_PARTIE - p.jetons % JETONS_PAR_PARTIE} pour une partie offerte.`, true);
+      dire(bonus ? T("arcade.dire_bonus_jetons") : (g.length > 1 ? T("casino.n_jetons", { n: g.length }) : T("casino.un_jeton")) + " " + T("arcade.encore_pour_partie", { n: JETONS_PAR_PARTIE - p.jetons % JETONS_PAR_PARTIE }), true);
       if (bonus) son("gagne");
       return;
     }
     if (!g.length) {
       son("rate");
-      dire(j.glisses ? "A\xEFe, il a gliss\xE9 de la pince ! Vise plus au centre." : m.type === "pince" ? "Presque ! La prochaine sera la bonne." : "\xC7a bouge, \xE7a bouge\u2026 encore une pouss\xE9e !", true);
+      dire(T(j.glisses ? "arcade.dire_glisse_pince" : m.type === "pince" ? "arcade.dire_presque" : "arcade.dire_ca_bouge"), true);
       return;
     }
     montrerGains(m, g);
@@ -1851,15 +1853,15 @@
     const el = $(".gain"), b = boite(), inf = info(c.id), mo = inf?.morceau;
     const [col, rang] = c.taille, k = Math.max(col, rang), l = col / k * (k > 1 ? 300 : 230), h = rang / k * (k > 1 ? 300 : 230), U_ = innerHeight / 800;
     const n = mo ? nbMorceaux(b, mo.de) : 0, fini = !!mo && n === mo.sur;
-    const actes = mo ? [["morceau", "A", "Coller ce morceau"], ...fini ? [["entier", "X", "Coller le badge entier"]] : [], ["suite", "B", "Continuer"]] : [["coller", "A", "Coller sur l'accueil"], ["suite", "B", "Continuer"]];
+    const actes = mo ? [["morceau", "A", T("arcade.coller_morceau")], ...fini ? [["entier", "X", T("arcade.coller_entier")]] : [], ["suite", "B", T("steamu.continuer")]] : [["coller", "A", T("arcade.coller_accueil")], ["suite", "B", T("steamu.continuer")]];
     gainOuvert = { id: c.id, de: mo?.de, sel: 0, actes: actes.map((x) => x[0]), suite: () => montrerGains(m, liste) };
-    const titre = fini ? "Grand badge complet !" : c.fois > 1 ? `Encore un ! (\xD7${c.fois})` : mo ? "Nouveau morceau !" : "Nouveau badge !";
+    const titre = fini ? T("arcade.titre_complet") : c.fois > 1 ? T("arcade.titre_encore", { n: c.fois }) : T(mo ? "arcade.titre_morceau" : "arcade.titre_badge");
     el.innerHTML = `<div class="rayons"></div><div class="confettis">${Array.from({ length: 46 }, (_, i) => `<i style="left:${(Math.random() * 100).toFixed(1)}%;background:${JETONS[i % 5]};--x:${u(Math.round(Math.random() * 300 - 150))};--a:${Math.round(Math.random() * 900 - 450)}deg;--d:${(1.6 + Math.random() * 1.6).toFixed(2)}s;--r:${(0.35 + Math.random() * 0.5).toFixed(2)}s"></i>`).join("")}</div>
       <img class="vole" alt="" style="width:${u(l)};height:${u(h)}">
       <div class="carte-g ${actes.length > 2 ? "trois" : ""}">${mo ? `<div class="avec-g">${assemblage(mo.de, b, 112, mo.numero - 1)}<div>` : ""}
-        <div class="titre">${titre}</div><p class="nom">${echap(inf?.nom || "Badge")}</p>
-        <p class="ser">${echap(inf?.serieNom || m.nom)}${mo ? `, morceau ${mo.numero} sur ${mo.sur}` : col * rang > 1 ? `, grand badge ${col}\xD7${rang}` : ""}</p>
-        ${mo ? `<p class="prog">${n} morceau${n > 1 ? "x" : ""} sur ${mo.sur}${fini ? " : il est complet !" : ""}</p></div></div>` : ""}
+        <div class="titre">${titre}</div><p class="nom">${echap(inf?.nom || T("arcade.badge"))}</p>
+        <p class="ser">${echap(inf?.serieNom || m.nom)}${mo ? T("arcade.ser_morceau", { n: mo.numero, total: mo.sur }) : col * rang > 1 ? T("arcade.ser_grand", { taille: `${col}\xD7${rang}` }) : ""}</p>
+        ${mo ? `<p class="prog">${nMorceaux(n, mo.sur)}${fini ? T("arcade.il_est_complet") : ""}</p></div></div>` : ""}
         <div class="choix">${boutons(actes)}</div></div>`;
     el.classList.add("on");
     poserImage(el.querySelector(".vole"), c.id);
@@ -1874,7 +1876,7 @@
       { transform: "translate(-50%, -50%) scale(1) rotate(360deg)" }
     ], { duration: 1100, easing: "cubic-bezier(.3,.7,.4,1)", fill: "backwards" });
     el.querySelectorAll(".choix button").forEach((x) => x.onclick = () => choixGain(x.dataset.acte));
-    dire(fini ? "INCROYABLE ! Tu as tous les morceaux : le grand badge est complet !" : mo ? `Un morceau de grand badge ! Encore ${mo.sur - n} \xE0 trouver.` : c.fois > 1 ? "Encore un pour ta bo\xEEte ! Tu en as une belle pile." : col * rang > 1 ? "INCROYABLE ! Un grand badge ! Tu es un vrai champion !" : "Bravo ! Quel joli badge !", true);
+    dire(fini ? T("arcade.dire_grand_complet") : mo ? T("arcade.dire_un_morceau", { n: mo.sur - n }) : T(c.fois > 1 ? "arcade.dire_encore_un" : col * rang > 1 ? "arcade.dire_grand_badge" : "arcade.dire_joli_badge"), true);
   };
   const choixGain = (acte) => {
     const g = gainOuvert;
@@ -1896,7 +1898,7 @@
     } catch (e) {
     }
     if (accueil !== "nouvelle") {
-      dire("Les badges se collent sur le nouvel accueil ! Choisis-le dans Th\xE8mes, r\xE9glage \xAB Accueil \xBB.", true);
+      dire(T("arcade.dire_nouvel_accueil"), true);
       son("bord");
       return;
     }
@@ -1924,11 +1926,11 @@
     bs.ordre = index ? index.series.map((s) => ({ s, n: completes(b, s), f: avancee(b, s) / s.lots.length })).sort((x, y) => (y.f > 0) - (x.f > 0) || y.f - x.f) : [];
     const total = bs.ordre.reduce((a, x) => a + x.n, 0), nbS = bs.ordre.filter((x) => x.f).length;
     const enCours = [...morceauxDe.keys()].filter((id) => possede(b, id) && !complet(b, id)).length;
-    el.innerHTML = `<div class="tete-b"><span class="coffre">\u{1F3C5}</span><b>Ma bo\xEEte \xE0 badges</b><small>${total} badge${total > 1 ? "s" : ""}${enCours ? `, ${enCours} grand${enCours > 1 ? "s" : ""} en morceaux` : ""} \xB7 ${nbS} s\xE9rie${nbS > 1 ? "s" : ""} commenc\xE9e${nbS > 1 ? "s" : ""}</small></div>
+    el.innerHTML = `<div class="tete-b"><span class="coffre">\u{1F3C5}</span><b>${T("arcade.boite_titre")}</b><small>${nBadges(total)}${enCours ? T(enCours > 1 ? "arcade.grands_en_morceaux" : "arcade.grand_en_morceaux", { n: enCours }) : ""}${T(nbS > 1 ? "arcade.series_commencees" : "arcade.serie_commencee", { n: nbS })}</small></div>
       <div class="onglets">${bs.ordre.map(({ s, n, f }, i) => `<div class="ong ${f ? "" : "zero"}" data-i="${i}"><span class="ic">${s.icone ? `<img data-id="${echap(s.id + "/" + s.icone)}" alt="">` : "\u{1F3C5}"}</span>
         <span class="tx"><b>${echap(s.nom)}</b><small>${echap(s.sous)}</small><span class="jauge"><i style="width:${(100 * f).toFixed(1)}%"></i></span></span><em>${n}/${s.lots.length}</em></div>`).join("")}</div>
-      <div class="velours">${index ? `<div class="titre-s"></div><div class="grille"></div>` : `<div class="vide-b">Ta bo\xEEte est vide pour l'instant.<br>Les badges arrivent quand la collection est rang\xE9e dans le dossier priv\xE9 de la console (outils/badges-extraire.py).</div>`}<div class="fiche"></div></div>
-      <div class="aide">${touches([["\u25B2 \u25BC", "S\xE9ries", "rien"], ["A", "Voir", "rien"], ["B", "Fermer", "fermer-boite"]])}</div>`;
+      <div class="velours">${index ? `<div class="titre-s"></div><div class="grille"></div>` : `<div class="vide-b">${T("arcade.boite_vide")}</div>`}<div class="fiche"></div></div>
+      <div class="aide">${touches([["\u25B2 \u25BC", T("arcade.series"), "rien"], ["A", T("notifs.voir"), "rien"], ["B", T("casino.fermer"), "fermer-boite"]])}</div>`;
     el.classList.add("on");
     plus_tard(() => boiteOuverte && racine.classList.add("boite-on"), 480);
     bs.zone = "s";
@@ -1957,7 +1959,7 @@
     const b = boite(), s = o.s;
     el.querySelectorAll(".ong").forEach((x, i) => x.classList.toggle("choisi", i === bs.s));
     montrer(el.querySelector(".onglets"), el.querySelector(".ong.choisi"));
-    el.querySelector(".titre-s").innerHTML = `${echap(s.nom)}<small>${echap(s.sous)}, ${o.n} sur ${s.lots.length}</small>`;
+    el.querySelector(".titre-s").innerHTML = `${echap(s.nom)}<small>${echap(s.sous)}, ${T("arcade.n_sur", { n: o.n, total: s.lots.length })}</small>`;
     const gr = el.querySelector(".grille");
     gr.innerHTML = s.lots.map((f, i) => {
       const id = `${s.id}/${f}`, a = b[id], gd = s.tailles[f], p = morceauxDe.get(id);
@@ -1998,15 +2000,15 @@
     if (!id || !possede(b, id)) return son("refus");
     const inf = info(id), fi = $(".boite .fiche"), [col, rang] = s.tailles[f] || [1, 1], p = morceauxDe.get(id), a = b[id];
     son("pop");
-    const date = (t) => new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+    const date = (t) => new Date(t).toLocaleDateString(window.__pcvLocale?.() || "fr-FR", { day: "numeric", month: "long" });
     if (p) {
       const n = nbMorceaux(b, id), fini = n === p.length, k = Math.max(0, p.findIndex((x) => aMorceau(b, x)));
       ficheOuverte = { id, morceaux: p, col, rang, k, fini, sel: 0 };
       fi.innerHTML = `<div class="carte-f"><div class="socle"><div class="rayons"></div>${assemblage(id, b, 236, k)}</div>
         <div class="texte"><b>${echap(inf.nom)}</b><div class="ser">${echap(inf.serieNom)}</div>
-          <div class="puces"><span class="${fini ? "ok" : ""}">${fini ? "Complet : " : ""}${n} morceau${n > 1 ? "x" : ""} sur ${p.length}</span><span>Grand badge ${col}\xD7${rang}</span></div>
-          <p class="note">${fini ? "D'un bloc, ou morceau par morceau : c\xF4te \xE0 c\xF4te sur l'accueil, ils se rassemblent." : "Les morceaux gris\xE9s t'attendent dans les machines. Choisis un morceau pour le coller."}</p></div>
-        <div class="choix ${fini ? "trois" : ""}">${boutons([["morceau", "A", "Coller ce morceau"], ...fini ? [["entier", "X", "Coller le badge entier"]] : [], ["ranger", "B", "Ranger"]])}</div></div>`;
+          <div class="puces"><span class="${fini ? "ok" : ""}">${fini ? T("arcade.complet_prefixe") : ""}${nMorceaux(n, p.length)}</span><span>${T("arcade.grand_badge_taille", { taille: `${col}\xD7${rang}` })}</span></div>
+          <p class="note">${T(fini ? "arcade.note_complet" : "arcade.note_incomplet")}</p></div>
+        <div class="choix ${fini ? "trois" : ""}">${boutons([["morceau", "A", T("arcade.coller_morceau")], ...fini ? [["entier", "X", T("arcade.coller_entier")]] : [], ["ranger", "B", T("arcade.ranger")]])}</div></div>`;
       chargerImages(fi);
       fi.querySelectorAll(".assemble img").forEach((im) => im.onclick = (e) => {
         e.stopPropagation();
@@ -2017,8 +2019,8 @@
     } else {
       ficheOuverte = { id, sel: 0 };
       fi.innerHTML = `<div class="carte-f"><div class="socle"><div class="rayons"></div><img alt="" style="${col !== rang ? col > rang ? `height:${u(110)}` : `width:${u(110)}` : ""}"></div>
-        <div class="texte"><b>${echap(inf.nom)}</b><div class="ser">${echap(inf.serieNom)}</div><div class="puces"><span>\xD7${Math.trunc(+a?.n) || 1} dans ta bo\xEEte</span>${col * rang > 1 ? `<span>Grand badge ${col}\xD7${rang}</span>` : ""}${a ? `<span>Gagn\xE9 le ${date(a.t)}</span>` : ""}</div></div>
-        <div class="choix">${boutons([["coller", "A", "Coller sur l'accueil"], ["ranger", "B", "Ranger"]])}</div></div>`;
+        <div class="texte"><b>${echap(inf.nom)}</b><div class="ser">${echap(inf.serieNom)}</div><div class="puces"><span>${T("arcade.n_dans_boite", { n: Math.trunc(+a?.n) || 1 })}</span>${col * rang > 1 ? `<span>${T("arcade.grand_badge_taille", { taille: `${col}\xD7${rang}` })}</span>` : ""}${a ? `<span>${T("arcade.gagne_le", { date: date(a.t) })}</span>` : ""}</div></div>
+        <div class="choix">${boutons([["coller", "A", T("arcade.coller_accueil")], ["ranger", "B", T("arcade.ranger")]])}</div></div>`;
       poserImage(fi.querySelector(".socle > img"), id);
     }
     fi.classList.add("on");
@@ -2318,8 +2320,8 @@
     window.__pcvMusique?.("mii-maker-main");
     const p = parties(), nb = machines.length - 1;
     dire(nb ? T("luigi.benvenuto_arcade", { nb, s: nb > 1 ? "s" : "" }) : T("luigi.solo_entrainement"), true);
-    if (!nb) dire("Pour remplir les autres, range ta collection de badges dans le dossier priv\xE9 de la console.");
-    else if (!p.offertes && !p.bonus) dire("Tu as jou\xE9 toutes tes parties du jour. D\xE9bloque des succ\xE8s dans tes jeux pour en gagner d'autres !");
+    if (!nb) dire(T("arcade.dire_remplir"));
+    else if (!p.offertes && !p.bonus) dire(T("arcade.dire_toutes_jouees"));
     const minute = setInterval(() => {
       const q = $(".hud-g .jour");
       if (q) q.textContent = quand();
@@ -2329,7 +2331,7 @@
       if (racine !== r0 || !noms.length) return;
       majHud();
       son("piece");
-      dire(noms.length === 1 ? `Tu as d\xE9bloqu\xE9 \xAB ${noms[0].nom} \xBB sur ${noms[0].jeu} : une partie en cadeau !` : `Tu as d\xE9bloqu\xE9 ${noms.length} succ\xE8s dans tes jeux : ${noms.length} parties en cadeau !`);
+      dire(noms.length === 1 ? T("arcade.dire_succes_1", { nom: noms[0].nom, jeu: noms[0].jeu }) : T("arcade.dire_succes_n", { n: noms.length }));
     });
   };
   const fermer = () => {

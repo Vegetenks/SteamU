@@ -204,7 +204,7 @@
     else ACTIONS[a]?.();
   };
   const heure = () => {
-    racine.querySelector(".heure").textContent = (/* @__PURE__ */ new Date()).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    racine.querySelector(".heure").textContent = (/* @__PURE__ */ new Date()).toLocaleTimeString(window.__pcvLocale?.() || "fr-FR", { hour: "2-digit", minute: "2-digit" });
   };
   heure();
   window.__pcvPlaceHeure = setInterval(() => {

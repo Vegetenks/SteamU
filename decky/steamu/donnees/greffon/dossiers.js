@@ -90,7 +90,7 @@
   <div class="voile"></div><div class="menu"></div>
   <div class="carte dispo"><div class="t">${rond("dossier", { svg: window.__pcvIcones.trace("dispositions") })}<span>${T("dispo.titre")}</span></div>
     <div class="fen"><div class="rang"></div></div><p class="info"></p><div class="bts leg"></div></div>
-  <div class="carte nom"><div class="t">${rond("nom")}<span>Nom du dossier</span></div>
+  <div class="carte nom"><div class="t">${rond("nom")}<span>${T("dossier.nom")}</span></div>
     <input type="text" spellcheck="false" autocomplete="off" enterkeyhint="done"><div class="reste"></div>
     <div class="bts"><button class="non"></button><button class="oui"></button></div></div>
   <div class="carte sup"><div class="t">${rond("suppr")}<span></span></div><p></p>
@@ -127,12 +127,12 @@
     if (!a) return false;
     const d = a.dossier?.(), deco = !!window.__pcvDeco;
     return choix(i, [
-      !d && deco && { ic: "decorer", nom: "D\xE9corer", faire: () => window.__pcvDeco.ouvrir({ case: i }) },
-      !d && { ic: "dossier", nom: "Cr\xE9er un dossier", faire: () => creer(i) },
-      d && { ic: "nom", nom: "Renommer le dossier", faire: () => renommer(d.id) },
-      d?.ec && { ic: "decoller", nom: "D\xE9coller le badge", faire: () => a.decollerDossier?.(d.id) },
+      !d && deco && { ic: "decorer", nom: T("perso.decorer"), faire: () => window.__pcvDeco.ouvrir({ case: i }) },
+      !d && { ic: "dossier", nom: T("dossier.creer"), faire: () => creer(i) },
+      d && { ic: "nom", nom: T("dossier.renommer"), faire: () => renommer(d.id) },
+      d?.ec && { ic: "decoller", nom: T("console.decoller_badge"), faire: () => a.decollerDossier?.(d.id) },
       // (le badge collé sur le dossier retourne dans la boîte)
-      d && { ic: "suppr", nom: "Supprimer le dossier", faire: () => supprimer(d.id) }
+      d && { ic: "suppr", nom: T("dossier.supprimer"), faire: () => supprimer(d.id) }
     ].filter(Boolean));
   };
   const choix = (i, choix2, o = {}) => {
@@ -178,9 +178,9 @@
     champ.maxLength = o?.max || acc().nomMax();
     champ.value = d.nom;
     reste();
-    $(".nom .t span").textContent = o?.titre || "Nom du dossier";
-    $(".nom .non").innerHTML = `${glyphe(2)}${o?.annuler || "Annuler"}`;
-    $(".nom .oui").innerHTML = `${glyphe(1)}${o?.oui || "OK"}`;
+    $(".nom .t span").textContent = o?.titre || T("dossier.nom");
+    $(".nom .non").innerHTML = `${glyphe(2)}${o?.annuler || T("dispo.annuler")}`;
+    $(".nom .oui").innerHTML = `${glyphe(1)}${o?.oui || T("dispo.ok")}`;
     montrer({ genre: "nom", id, ok: o?.ok, dessous: o?.dessous });
     racine.classList.add("boite-ouverte");
     $(".carte.nom").classList.add("on");
@@ -224,11 +224,11 @@
     const d = acc()?.dossiers?.().find((x) => x.id === id);
     if (!d) return false;
     return demander({
-      titre: `Supprimer \xAB ${d.nom} \xBB ?`,
-      non: "Annuler",
-      oui: "Supprimer",
+      titre: T("dispo.supprimer_titre", { nom: d.nom }),
+      non: T("dispo.annuler"),
+      oui: T("dispo.supprimer"),
       ok: () => acc()?.supprimerDossier(id),
-      texte: d.n ? `${d.n === 1 ? "Ce qu'il contient revient" : `Les ${d.n} \xE9l\xE9ments qu'il contient reviennent`} sur l'accueil, rien n'est perdu.` : "Il est vide."
+      texte: d.n ? d.n === 1 ? T("dossier.contenu_un") : T("dossier.contenu_n", { n: d.n }) : T("dossier.vide")
     });
   };
   const confirmer = () => {

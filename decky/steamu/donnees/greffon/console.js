@@ -453,7 +453,7 @@
   const dossierSur = (c, garder) => ({
     dossier: 1,
     id: typeof c.id === "string" && c.id ? c.id : nouvelId(),
-    nom: (typeof c.nom === "string" && c.nom.trim() ? c.nom.trim() : "Dossier").slice(0, DOSSIERS.nom),
+    nom: (typeof c.nom === "string" && c.nom.trim() ? c.nom.trim() : T("console.dossier_nom")).slice(0, DOSSIERS.nom),
     ...c.ec && c.ec.bd != null ? { ec: copie({ bd: c.ec.bd, bt: Array.isArray(c.ec.bt) ? c.ec.bt : void 0 }) } : {},
     l: (Array.isArray(c.l) ? c.l : []).filter((x) => x && (x.vide || x.app || x.appli)).map((x) => x.app || x.appli || x.cache && x.bd == null ? garder(x) : x)
   });
@@ -1574,7 +1574,7 @@
       faire: () => {
         accueilRetirer(a.appid, true);
         window.__pcvSon?.("retour");
-        annoncer(`${a.display_name} retir\xE9 de l'accueil`);
+        annoncer(T("console.retire", { nom: a.display_name }));
       }
     }
   ]) || voir(a);
@@ -1766,7 +1766,7 @@
   };
   const nomCase = (i) => {
     const c = cases[i], a = appDe(c), bd = c.bd ?? cases[reserve.ancreDe.get(i)]?.bd, ap = appliDe(c);
-    const nom = a ? a.display_name : ap ? ap.nom : c.dossier ? c.nom : bd != null ? window.__pcvCasinoBadges?.nom?.(bd) || "" : "Case libre";
+    const nom = a ? a.display_name : ap ? ap.nom : c.dossier ? c.nom : bd != null ? window.__pcvCasinoBadges?.nom?.(bd) || "" : T("console.case_libre");
     return ap?.verrouille?.() ? `${nom} (${window.__pcvT("verrou.bientot")})` : nom;
   };
   let pos = 0, elan = null;
@@ -3289,7 +3289,7 @@
     })();
     if (!a && !essai) return;
     const k = cases.findIndex((c) => c?.app === +appid), t = k >= 0 ? grille.children[k] : null;
-    lancMontrer({ nom: a?.display_name || `Jeu ${appid}`, fond: a ? imageJeu(a) : "var(--pcv-texte2)", depuis: depuis || (racine.hidden ? null : t), jeu: true });
+    lancMontrer({ nom: a?.display_name || T("console.jeu_n", { id: appid }), fond: a ? imageJeu(a) : "var(--pcv-texte2)", depuis: depuis || (racine.hidden ? null : t), jeu: true });
     lancEtat = { jeu: true, appid: +appid, action, depuis: Date.now(), page: O.location.pathname };
     lancSurveiller();
     if (essai) lancFin = setTimeout(() => lancEtat?.appid === +appid && lancRetirer(), LANCEMENT.essai);

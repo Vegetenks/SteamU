@@ -154,7 +154,7 @@
       if (!inf) continue;
       const n = v?.n || 1, doublon = n > 1;
       let base = inf.morceau ? PRIX.morceau : inf.morceaux ? Math.min(PRIX.grandMax, PRIX.parCase * inf.colonnes * inf.rangees) : PRIX.petit;
-      if (inf.nom === "Badge secret") base *= PRIX.secret;
+      if (inf.nom === Tr("casino.badge_secret")) base *= PRIX.secret;
       const pose = (inf.morceaux || [id]).some((x) => (ex[x] || 0) - 1 < (poses[x] || 0)), serie = avoir(inf.serie);
       l.push({
         id,
@@ -163,7 +163,7 @@
         pose,
         serie,
         prix: doublon ? Math.ceil(base / 2) : base,
-        nom: inf.nom + (inf.morceau ? `, morceau ${inf.morceau.numero}/${inf.morceau.sur}` : inf.morceaux ? ", grand badge" : ""),
+        nom: inf.nom + (inf.morceau ? ", " + Tr("deco.morceau_n", { k: inf.morceau.numero, n: inf.morceau.sur }) : inf.morceaux ? ", " + Tr("casino.grand_badge") : ""),
         collection: !doublon && serie && serie.k * 2 >= serie.n
       });
     }

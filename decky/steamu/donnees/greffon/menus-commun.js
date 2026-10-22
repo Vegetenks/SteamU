@@ -3,7 +3,7 @@ window.__pcvPE = (() => {
   const principale = () => O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance;
   const T = (k, vars) => {
     try {
-      return principale().m_BrowserWindow.__pcvT?.(k, vars);
+      return (window.__pcvT || principale().m_BrowserWindow.__pcvT)?.(k, vars);
     } catch (e) {
       return null;
     }
@@ -225,6 +225,7 @@ window.__pcvPE = (() => {
     else e.premier();
   };
   const ecran = (o) => {
+    let termine = false;
     const racine = d.createElement("div");
     racine.id = o.id;
     racine.className = "pcv-pe";
@@ -323,12 +324,12 @@ window.__pcvPE = (() => {
         e.textContent = (/* @__PURE__ */ new Date()).toTimeString().slice(0, 5).replace(/^0/, "");
       });
       try {
-        const pers = window.__pcvBridge.friends();
+        const pers = window.__pcvBridge.compteCourant();
         racine.querySelectorAll(".pseudo").forEach((e) => {
-          e.textContent = pers?.m_strPlayerName || "";
+          e.textContent = pers?.nom || "";
         });
         const tete = getComputedStyle(principale().m_BrowserWindow.document.documentElement).getPropertyValue("--pcv-tete-mii").trim();
-        racine.style.setProperty("--pcv-pe-tete", tete || `url(${JSON.stringify(pers?.avatar_url_full || pers?.avatar_url_medium || "")})`);
+        racine.style.setProperty("--pcv-pe-tete", tete || `url(${JSON.stringify(pers?.avatar || "")})`);
       } catch (e) {
       }
     };
@@ -486,6 +487,7 @@ window.__pcvPE = (() => {
       }
     };
     const tour = () => {
+      if (termine) return;
       const vu = d.visibilityState === "visible";
       sonMenu(vu);
       try {
@@ -558,7 +560,7 @@ window.__pcvPE = (() => {
     };
     let entre = false;
     const entrer = (dv = devant()) => {
-      if (entre || d.visibilityState !== "visible") return;
+      if (termine || entre || d.visibilityState !== "visible") return;
       entre = true;
       racine.classList.remove("attente");
       try {
@@ -592,6 +594,7 @@ window.__pcvPE = (() => {
     };
     let photos = 0, enCours = null, apres = 0;
     const fondJeu = (sansFlou, garder) => {
+      if (termine) return Promise.resolve(null);
       const a = devant() ? appid() : 0, vieille = O.__pcvPhotoJeu?.appid === a ? O.__pcvPhotoJeu : null;
       if (!a) {
         delete O.__pcvPhotoJeu;
@@ -605,11 +608,14 @@ window.__pcvPE = (() => {
       if (enCours) return enCours;
       const n = ++photos;
       return enCours = photo().then(async (p) => {
-        if (n !== photos) return null;
+        if (termine || n !== photos) return null;
         if (!(p.bande === 0 && vieille?.bande > 0)) try {
-          O.__pcvPhotoJeu = { appid: a, bande: p.bande, flou: await enData(p.flou), net: sansFlou ? await enData(p.net) : vieille?.net };
+          const flou2 = await enData(p.flou), net = sansFlou ? await enData(p.net) : vieille?.net;
+          if (termine || n !== photos) return null;
+          O.__pcvPhotoJeu = { appid: a, bande: p.bande, flou: flou2, net };
         } catch (e) {
         }
+        if (termine || n !== photos) return null;
         poserPhoto(p);
         return p;
       }, () => null).finally(() => {
@@ -622,10 +628,16 @@ window.__pcvPE = (() => {
       h.dataset.pcvPeSous = "";
     };
     const fin = () => {
+      if (termine) return;
+      termine = true;
+      photos++;
+      racine.hidden = true;
       d.removeEventListener("visibilitychange", tour);
       removeEventListener("resize", echelle);
       window.removeEventListener("vgp_onbuttondown", touche, true);
       clearInterval(minute);
+      clearInterval(vider);
+      clearTimeout(apres);
       clearTimeout(long);
       clearTimeout(tb);
       try {

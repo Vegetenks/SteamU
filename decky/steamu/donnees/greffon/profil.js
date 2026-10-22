@@ -15,11 +15,12 @@
   };
   const avatarDe = () => document.querySelector("#header_profile img")?.src || persona()?.avatar_url_full || persona()?.avatar_url_medium || "";
   const echap = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const T = (k, v) => window.__pcvT?.(k, v) ?? k, L = () => window.__pcvLocale?.() || "fr-FR";
   const jour = (rt) => {
     const j = Math.floor((Date.now() / 1e3 - rt) / 86400);
-    return j <= 0 ? "aujourd'hui" : j === 1 ? "hier" : new Date(rt * 1e3).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    return j <= 0 ? T("accueil.aujourdhui") : j === 1 ? T("accueil.hier") : new Date(rt * 1e3).toLocaleDateString(L(), { day: "numeric", month: "short" });
   };
-  const ETATS = { 0: ["Hors ligne", "#8b9098"], 1: ["En ligne", "#2fbf71"], 2: ["Occup\xE9", "#e5484d"], 3: ["Absent", "#e0a100"], 4: ["Absent", "#e0a100"], 7: ["Invisible", "#8b9098"] };
+  const ETATS = { 0: [T("etat.hors_ligne"), "#8b9098"], 1: [T("home.en_ligne"), "#2fbf71"], 2: [T("etat.occupe"), "#e5484d"], 3: [T("etat.absent"), "#e0a100"], 4: [T("etat.absent"), "#e0a100"], 7: [T("etat.invisible"), "#8b9098"] };
   const ICO = {
     amis: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.9.2 5 2.6 5 5.8"/>',
     reglages: window.__pcvIcones?.trace("parametres") || "",
@@ -71,15 +72,15 @@
     <canvas class="grand mii-vivant" hidden aria-hidden="true"></canvas>
     <span class="pseudo"></span>
     <span class="v-in etat"></span>
-    <div class="chiffres"><div class="v-in chiffre"><b class="nb" style="color:#1a9ae6"></b><span>jeux</span></div><div class="v-in chiffre"><b class="heures" style="color:#ff8a1f"></b><span>de jeu au total</span></div></div>
+    <div class="chiffres"><div class="v-in chiffre"><b class="nb" style="color:#1a9ae6"></b><span>${T("profil.jeux")}</span></div><div class="v-in chiffre"><b class="heures" style="color:#ff8a1f"></b><span>${T("profil.heures_total")}</span></div></div>
     <div class="actions">
-      <button class="v-in action" data-aller="profil"><span class="p">${svg("amis", u(20), "var(--pcv-vert)")}</span><span class="t"><b>Afficher mon profil Steam</b><small>Vitrine, badges, commentaires</small></span>${svg("chevron", u(18), "#66758a")}</button>
-      <button class="v-in action" data-aller="compte"><span class="p">${svg("reglages", u(20), "#8b9098")}</span><span class="t"><b>Compte et confidentialit\xE9</b><small>Fonds, s\xE9curit\xE9, d\xE9connexion\u2026</small></span>${svg("chevron", u(18), "#66758a")}</button>
-      <button class="v-in action" data-image><span class="p">${svg("visage", u(20), "var(--pcv-cyan-plein)")}</span><span class="t"><b>Image du profil</b><small class="image-profil"></small></span>${svg("chevron", u(18), "#66758a")}</button>
+      <button class="v-in action" data-aller="profil"><span class="p">${svg("amis", u(20), "var(--pcv-vert)")}</span><span class="t"><b>${T("profil.steam")}</b><small>${T("profil.steam_sous")}</small></span>${svg("chevron", u(18), "#66758a")}</button>
+      <button class="v-in action" data-aller="compte"><span class="p">${svg("reglages", u(20), "#8b9098")}</span><span class="t"><b>${T("profil.compte")}</b><small>${T("profil.compte_sous")}</small></span>${svg("chevron", u(18), "#66758a")}</button>
+      <button class="v-in action" data-image><span class="p">${svg("visage", u(20), "var(--pcv-cyan-plein)")}</span><span class="t"><b>${T("profil.image")}</b><small class="image-profil"></small></span>${svg("chevron", u(18), "#66758a")}</button>
     </div>
   </div>
-  <div class="v bloc" style="top:0;height:${u(300)}"><h3>Jou\xE9 r\xE9cemment</h3><div class="rangee recents"></div></div>
-  <div class="v bloc" style="top:${u(322)};bottom:${u(24)}"><h3>Tes plus longues parties</h3><div class="rangee longues"></div></div>`;
+  <div class="v bloc" style="top:0;height:${u(300)}"><h3>${T("profil.recents")}</h3><div class="rangee recents"></div></div>
+  <div class="v bloc" style="top:${u(322)};bottom:${u(24)}"><h3>${T("profil.longues")}</h3><div class="rangee longues"></div></div>`;
   document.body.appendChild(racine);
   window.__pcvFond?.(racine);
   const imageProfil = () => {
@@ -92,26 +93,26 @@
   };
   const ecrireImage = () => {
     const mii = imageProfil() === "mii", sans = mii && !window.__pcvMiiBase?.moi?.();
-    racine.querySelector(".image-profil").textContent = mii ? sans ? "Mon Mii (aucun Mii \xAB c'est moi \xBB : avatar Steam)" : "Mon Mii" : "Avatar Steam";
+    racine.querySelector(".image-profil").textContent = mii ? sans ? T("profil.mon_mii_sans") : T("profil.mon_mii") : T("profil.avatar");
   };
   const MV = (() => {
-    const T = window.THREE;
+    const T2 = window.THREE;
     let rendu = null, scene = null, cam = null, acteur = null, cle = "", raf = 0, dernier = 0, prochain = 0;
     const canevas = () => racine.querySelector(".mii-vivant");
-    const disponible = () => !!(T && window.__pcvMii3D?.vrais && window.__pcvNintendo?.mii);
+    const disponible = () => !!(T2 && window.__pcvMii3D?.vrais && window.__pcvNintendo?.mii);
     const preparer = () => {
       if (rendu) return true;
       const cv = canevas();
       if (!cv) return false;
       try {
-        rendu = new T.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+        rendu = new T2.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
       } catch (e) {
         return false;
       }
       rendu.setClearColor(0, 0);
-      scene = new T.Scene();
+      scene = new T2.Scene();
       window.__pcvMii3D.eclairer(scene);
-      cam = new T.PerspectiveCamera(22, 1, 0.05, 50);
+      cam = new T2.PerspectiveCamera(22, 1, 0.05, 50);
       const haut = 1.25, bas = -0.05, cible = (haut + bas) / 2;
       cam.position.set(0, cible, (haut - bas) / 2 / Math.tan(cam.fov * Math.PI / 360));
       cam.lookAt(0, cible, 0);
@@ -206,7 +207,7 @@
         return jeux.length;
       }
     })();
-    racine.querySelector(".heures").textContent = Math.round(jeux.reduce((s, a) => s + (a.minutes_playtime_forever || 0), 0) / 60).toLocaleString("fr-FR") + " h";
+    racine.querySelector(".heures").textContent = Math.round(jeux.reduce((s, a) => s + (a.minutes_playtime_forever || 0), 0) / 60).toLocaleString(L()) + " h";
     const tuile = (a, bas) => `<button class="jeu" data-app="${echap(a.appid)}"><i style="background-image:${echap([IMG(a.appid, "library_600x900.jpg"), (() => {
       try {
         return O.appStore.GetVerticalCapsuleURLForApp(a) || "";

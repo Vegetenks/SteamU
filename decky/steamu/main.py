@@ -23,6 +23,7 @@ class Plugin:
         except Exception as e: decky.logger.warning(f"reprise de l'ancien greffon manquée : {type(e).__name__}")
         moteur.secours = moteur.Secours(pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "secours.json")
         if moteur.secours.pause: decky.logger.warning(f"{moteur.NOM} : en pause ({moteur.secours.pause}), rien n'est posé")
+        moteur.secours.au_plantage = lambda: threading.Thread(target=self._rapport_plantage, name="pcv-plantage", daemon=True).start()
         try:
             films = pathlib.Path(decky.DECKY_USER_HOME) / ".steam/steam/config/uioverrides/movies"
             films.mkdir(parents=True, exist_ok=True)
@@ -450,6 +451,20 @@ class Plugin:
             decky.logger.warning(f"SteamU : rapport de diagnostic manqué ({type(e).__name__})")
             return {"erreur": type(e).__name__}
 
+    def _rapport_plantage(self):
+        import diagnostic, moteur
+        try:
+            nom, _ = diagnostic.rapport(decky.DECKY_USER_HOME, ICI, decky.DECKY_PLUGIN_LOG_DIR, moteur.secours, moteur.etat_scripts,
+                                        moteur.DEBOGUEUR, moteur.local, court=True)
+            (pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "plantage.json").write_text(json.dumps({"fichier": nom}))
+            decky.logger.warning(f"SteamU : rapport de plantage écrit ({nom})")
+        except Exception as e:
+            decky.logger.warning(f"SteamU : rapport de plantage manqué ({type(e).__name__})")
+
+    async def plantage(self):
+        try: return json.loads((pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "plantage.json").read_text())
+        except Exception: return {}
+
     async def conflits(self):
         import asyncio, conflits, diagnostic, moteur
         nouveau, self.conflit_nouveau = getattr(self, "conflit_nouveau", False), False
@@ -459,6 +474,20 @@ class Plugin:
         except Exception as e:
             decky.logger.warning(f"SteamU : détection des conflits manquée ({type(e).__name__})"); actifs = {}
         return {"actifs": actifs, "nouveau": nouveau and bool(actifs)}
+
+    async def maj_verifier(self, manifeste=""):
+        import asyncio, maj, urllib.error
+        garde = getattr(self, "_maj", None)
+        if garde and garde[0] == manifeste: return garde[1]
+        try:
+            v = json.loads((ICI / "package.json").read_text()).get("version", "")
+            r = await asyncio.get_running_loop().run_in_executor(None, maj.verifier, v, manifeste)
+        except urllib.error.HTTPError as e:   
+            decky.logger.info(f"mise à jour : pas de manifeste ({e.code})"); r = {}
+        except Exception as e:
+            decky.logger.info(f"mise à jour : manifeste illisible ({type(e).__name__} {getattr(e, 'reason', '')})"); return None   
+        self._maj = (manifeste, r)
+        return r
 
     async def _uninstall(self):
         f = pathlib.Path(decky.DECKY_USER_HOME) / ".steam/steam/config/uioverrides/movies" / FILM

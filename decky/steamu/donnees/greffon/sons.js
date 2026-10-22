@@ -237,7 +237,7 @@
   const choixSons = () => ["theme", "steamu", ...Object.keys(SONS_SYSTEME).filter(importee)];
   window.__pcvSonsReglage = {
     val: (v, famille) => v === "steamu" ? "SteamU" : SONS_SYSTEME[v] ? SONS_SYSTEME[v].nom : `${window.__pcvT?.("themes.app_auto") || "Auto"} (${importee(famille) ? SONS_SYSTEME[famille].nom : "SteamU"})`,
-    nom: (famille) => choixSons().length < 3 && SONS_SYSTEME[famille] && !importee(famille) ? `Sons : ${SONS_SYSTEME[famille].nom} \xE0 importer` : "Sons",
+    nom: (famille) => choixSons().length < 3 && SONS_SYSTEME[famille] && !importee(famille) ? window.__pcvT?.("sons.a_importer", { nom: SONS_SYSTEME[famille].nom }) ?? `Sons : ${SONS_SYSTEME[famille].nom} \xE0 importer` : window.__pcvT?.("themes.reg.sons") ?? "Sons",
     suivant: (v) => {
       const l = choixSons();
       if (l.length < 3) {

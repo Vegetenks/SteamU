@@ -4,7 +4,8 @@
   const O = window.opener;
   const Tr = window.__pcvT || ((c) => c);
   const h = (min) => (min = Math.round(min || 0)) < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}`;
-  const jour = (rt) => new Date(rt * 1e3).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  const L = () => window.__pcvLocale?.() || "fr-FR";
+  const jour = (rt) => new Date(rt * 1e3).toLocaleDateString(L(), { day: "numeric", month: "short" });
   const joli = (t) => t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : t;
   const avatar = () => document.querySelector("#header_profile img")?.src || "";
   const echappe = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -15,7 +16,7 @@
   };
   const ico = (n, c) => `<svg viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${ICO[n]}</svg>`;
   const icoReg = (n, c) => window.__pcvIcones?.svg(n, { attrs: `fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"` }) || "";
-  const ONGLETS = { YourStuff: "Succ\xE8s", GameInfo: "Infos" };
+  const ONGLETS = { YourStuff: Tr("biblio.r_succes"), GameInfo: Tr("home.fiche.infos") };
   let enCours = null, cache = {};
   const DELAI_SWITCH_MS = 8e3;
   const appelerSwitch = (appid, langue) => {
@@ -69,7 +70,7 @@
     puces.className = "pcv-puces pcv-puces-switch";
     const go2 = (o) => {
       const n = +o;
-      return n > 0 ? (n / 1024 ** 3).toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " Go" : "";
+      return n > 0 ? Tr("biblio.go", { n: (n / 1024 ** 3).toLocaleString(L(), { maximumFractionDigits: 2 }) }) : "";
     };
     if (fiche.taille_octets) puces.appendChild(puceTexte("disque", "#8b9098", go2(fiche.taille_octets)));
     if (fiche.joueurs) puces.appendChild(puceTexte("manette", "#2a8cff", joueursTexte(fiche.joueurs)));
@@ -120,7 +121,7 @@
   const tailles = window.__pcvFicheTailles ||= {};
   const go = (octets) => {
     const n = +octets;
-    return n > 0 ? (n / 1024 ** 3).toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " Go" : "";
+    return n > 0 ? Tr("biblio.go", { n: (n / 1024 ** 3).toLocaleString(L(), { maximumFractionDigits: 2 }) }) : "";
   };
   const succes = async (id) => {
     if (cache[id]) return cache[id];
@@ -149,8 +150,8 @@
       p.dataset.taille = taille || "";
       p.innerHTML = [
         taille && [ico("disque", "#8b9098"), taille],
-        [ico("manette", "#2a8cff"), h(app.minutes_playtime_forever) + " de jeu"],
-        app.review_percentage_with_bombs && [ico("etoile", "#f0a020"), app.review_percentage_with_bombs + " % d'avis positifs"]
+        [ico("manette", "#2a8cff"), Tr("console.temps_de_jeu", { temps: h(app.minutes_playtime_forever) })],
+        app.review_percentage_with_bombs && [ico("etoile", "#f0a020"), Tr("mii.accueil.avis_positifs", { pct: app.review_percentage_with_bombs })]
       ].filter(Boolean).map(([i, t]) => `<span class="puce">${i}${echappe(t)}</span>`).join("");
       stats.appendChild(p);
     }
@@ -191,13 +192,13 @@
       c.dataset.app = id;
       const tuile = (a) => `<div class="tuile"><img src="${echappe(a.strImage)}" alt=""><span><b>${echappe(joli(a.strName))}</b><small>${echappe(a.strDescription)} ${jour(a.rtUnlocked)}</small></span></div>`;
       const bulle = (t) => `<div class="bulle"><img class="mii" src="${echappe(avatar())}" alt=""><span>${t}</span></div>`;
-      const bulles = s.obtenus.slice(0, 3).map((a) => bulle(`J'ai eu \xAB ${echappe(joli(a.strName))} \xBB !`));
-      if (!bulles.length) bulles.push(bulle(`${h(app.minutes_playtime_forever)} de jeu sur ${echappe(app.display_name)}`));
+      const bulles = s.obtenus.slice(0, 3).map((a) => bulle(Tr("fiche.jai_eu", { nom: echappe(joli(a.strName)) })));
+      if (!bulles.length) bulles.push(bulle(Tr("fiche.temps_sur", { temps: h(app.minutes_playtime_forever), jeu: echappe(app.display_name) })));
       c.innerHTML = `
-        <section class="carte succes"><header><b>Succ\xE8s</b><span>${s.obtenus.length} sur ${s.total}</span></header>
+        <section class="carte succes"><header><b>${Tr("biblio.r_succes")}</b><span>${Tr("steamu.etat.compte", { n: s.obtenus.length, sur: s.total })}</span></header>
           <div class="piste"><i style="width:${s.total ? (100 * s.obtenus.length / s.total).toFixed(1) : 0}%"></i></div>
-          <div class="tuiles">${s.obtenus.slice(0, 2).map(tuile).join("") || "<small>Aucun succ\xE8s pour l'instant</small>"}</div></section>
-        <section class="carte place"><header><b>La place du jeu</b></header>${bulles.join("")}</section>`;
+          <div class="tuiles">${s.obtenus.slice(0, 2).map(tuile).join("") || `<small>${Tr("fiche.aucun_succes")}</small>`}</div></section>
+        <section class="carte place"><header><b>${Tr("fiche.place")}</b></header>${bulles.join("")}</section>`;
       contenus.prepend(c);
     }
     const estSwitch = !!app.BIsShortcut?.();
