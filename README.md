@@ -182,6 +182,12 @@ described in `ARCHITECTURE.md`.
 What's planned next (performance first) is in [`ROADMAP.md`](ROADMAP.md); what changed in each version is in
 [`CHANGELOG.md`](CHANGELOG.md).
 
+## Translations
+
+SteamU speaks English, French and Spanish, and follows Steam's language. All texts are in plain files, one per
+language, in [`translations/`](translations/): no coding needed to fix a text or add a language. The short guide
+is in [`translations/README.md`](translations/README.md).
+
 ## Contributors
 
 - [@lieserlV](https://github.com/lieserlV): first tester; found the large-library crash (#1) and contributed the scrolling category row for libraries with many categories (#6, in v0.1.6).
