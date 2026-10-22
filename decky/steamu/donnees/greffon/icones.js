@@ -336,7 +336,7 @@
     }
   };
   const touche = (code) => {
-    const [t, c, h] = toucheDe(code) || [DEF_TOUCHES[code] || "?", "#5b6676"];
+    const [t, c, h] = toucheDe(code) || [DEF_TOUCHES[code] || "?", "var(--pcv-touche-neutre)"];
     return `<u class="pcv-touche" style="background:${c}">${h || echapL(t)}</u>`;
   };
   const legende = (liste) => liste.map(([code, mot]) => `<span>${touche(code)}${echapL(mot)}</span>`).join("");

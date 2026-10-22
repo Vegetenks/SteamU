@@ -19,6 +19,13 @@ SCRIPTS_BULLES = ["secours.js", "apparence-suivre.js"]
 VENDOR_JS = "if (!(window.__pcvVendor || {})[%s]) {\n%s\n;(window.__pcvVendor ||= {})[%s] = 1; }"
 if os.environ.get("PCV_SANS_CONNEXION"): SCRIPTS_PRINCIPALE.remove("connexion.js")   
 
+AVANT_CONNEXION_JS = r"""(() => { try {
+  const s = window.SteamUIStore?.WindowStore?.GamepadUIMainWindowInstance;
+  if (typeof s?.BViewingPreLoginRoute !== 'function') return null;
+  const avant = s.BViewingPreLoginRoute();
+  return typeof avant === 'boolean' ? avant : null;
+} catch (e) { return null; } })()"""
+
 CARTE_JS = r"""(() => { const chunk = window.webpackChunksteamui; if (!chunk) return null;
   let req; chunk.push([[Symbol()], {}, r => { req = r; }]); const out = {};
   const classe = v => typeof v === 'string' && /^[_a-zA-Z0-9-]{15,}( [_a-zA-Z0-9-]+)*$/.test(v) && /[A-Z]/.test(v) && /[a-z]/.test(v);
@@ -285,6 +292,7 @@ etat_scripts = {}
 def boucle(DOSSIER, ecrire=None):
     journal = (lambda *a: ecrire(" ".join(map(str, a)))) if ecrire else _journal
     modules, cle_modules, dernier, garder, garde_ctx, ancien_annonce = None, None, None, True, None, None
+    connexion = None   
     while not arreter:
         try:
             cibles = json.load(urllib.request.urlopen(DEBOGUEUR, timeout=3))
@@ -309,6 +317,15 @@ def boucle(DOSSIER, ecrire=None):
                         journal("SteamU : Decky absent de l'interface, relance de Steam pour le retrouver")
                         evaluer(partage, "SteamClient.Browser.RestartJSContext()")
                     fermer(partage["id"])
+                time.sleep(1); continue
+            if not partage or not principale:
+                time.sleep(1); continue
+            avant_connexion = evaluer(partage, AVANT_CONNEXION_JS)
+            etat_connexion = "prête" if avant_connexion is False else "avant connexion" if avant_connexion is True else "signal indisponible"
+            if etat_connexion != connexion:
+                connexion = etat_connexion; journal("connexion Steam :", connexion)
+            if avant_connexion is not False:
+                nettoyer({c["id"] for c in cibles}); fermer(partage["id"])
                 time.sleep(1); continue
             if partage and principale and partage["id"] != cle_modules:
                 carte = evaluer(partage, CARTE_JS); fermer(partage["id"])   

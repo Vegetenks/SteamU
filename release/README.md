@@ -1,8 +1,28 @@
-# SteamU v0.1.5 (test build)
+# SteamU v0.1.7 (test build)
 
-**SteamU v0.1.5 (test build).** This is an early version for testers: expect bugs, and please report them.
+**SteamU v0.1.7 (test build).** This is an early version for testers: expect bugs, and please report them.
 
 SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspired by the Wii U and 3DS home menus (home grid, HOME menu, quick settings, notifications, friends, plaza…).
+
+### What's new in v0.1.7
+- No more double sign-in screen: when Steam has just shown its own "Who's playing?" (and PIN), SteamU skips its welcome screen (#2).
+- Settings → Storage: the selected game row is readable in light mode (#3), and the game list now fills the card (several games visible instead of one).
+- Game logos no longer flicker on zoom changes and scrolling.
+- While a game is in the foreground, SteamU pauses its home screen, Miis, animated background and animated tiles (about 100 frames per second of GPU time given back to the game).
+- Lower idle CPU on the home screen with large libraries; below 8 W of TDP the animated background and animated tiles hold still.
+- Changing the grid zoom quickly no longer stutters; at 5 to 8 rows, tiles no longer touch.
+- Plaza: Miis talk much less, speech bubbles vary and come with long silences; a short fade between the plaza and the home screen.
+- CSS Loader battery themes no longer mix with SteamU's battery icon; LEDs no longer cause a small hitch every 10 seconds.
+- Updating SteamU without restarting Steam no longer breaks the top bar; play time on the game page is rounded to the minute.
+
+### What's new in v0.1.6
+- Tested on Bazzite KDE in Desktop Mode with Big Picture at login.
+- SteamU now waits until Steam has finished signing in (account choice, PIN) before showing anything (#2).
+- Light mode: Steam texts that stayed white on light backgrounds now follow the theme's text colour (#3).
+- On a new home grid, system apps (Customize, casino…) come first; Settings → SteamU → Troubleshooting → *Move system apps back to the beginning* does it on an existing grid (#4).
+- No battery shown on machines without one (#5).
+- Library: the category row scrolls when there are many categories (Unifideck…), thanks to @lieserlV (#6).
+- Tiles no longer flicker or turn blank on zoom changes and scrolling (logos may still flicker briefly).
 
 ### What's new in v0.1.5
 - Main fix for issue #1: the home screen no longer decodes full-size game artwork. Each tile shows a copy shrunk to its on-screen size, made in a bounded queue (tiles on screen first) and kept between sessions. Custom and animated artwork (SteamGridDB, non-Steam shortcuts) is shrunk too; animated artwork shows its first frame. Large libraries (hundreds or thousands of games and shortcuts) no longer load everything at once.
@@ -27,7 +47,7 @@ SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspi
 Full list in [CHANGELOG.md](../CHANGELOG.md).
 
 ### Install
-1. Download [SteamU-v0.1.5-test.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.5-test.zip).
+1. Download [SteamU-v0.1.7-test.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.7-test.zip).
 2. In Decky Loader: Settings → Developer → *Install plugin from ZIP file*, pick the zip.
 3. Restart Steam (or the console). The SteamU welcome screen appears: press A.
 

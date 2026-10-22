@@ -722,11 +722,11 @@
       return false;
     }
   })();
-  const anime = () => !renduLogiciel && lire("pcv-fond-anime", true);
+  const anime = () => !renduLogiciel && !window.__pcvEconomie?.() && lire("pcv-fond-anime", true);
   const HOTES = Object.values(ESPACES).flatMap((d) => d.hotes || []);
   const SEL_HOTES = HOTES.map((h) => "#" + h).join(", ") + ", .pcv-panneau";
   const visible = (h) => {
-    if (document.hidden || h.hidden || !h.isConnected || h.classList.contains("pcvth-essai")) return false;
+    if (document.hidden || window.__pcvJeuDevant || h.hidden || !h.isConnected || h.classList.contains("pcvth-essai")) return false;
     const r = h.getBoundingClientRect();
     if (r.width < 4 || r.height < 4) return false;
     for (let e = h; e && e !== document.documentElement; e = e.parentElement) {
@@ -831,7 +831,7 @@
   const dessiner = (d, dt) => {
     const t = d.theme?.() || courant;
     if (!t) return;
-    const e = espaceDeDecor(d), W = d.cv.clientWidth, H = d.cv.clientHeight;
+    const e = espaceDeDecor(d), W = d.w, H = d.h;
     if (!W || !H) return;
     const K = d.apercu ? W / 1280 : innerHeight / 800, cle = `${t.id}|${e}|${W}x${H}|${typeof doux[t.id]}|${document.documentElement.dataset.pcvApparence}`;
     if (cle !== d.cle) {
@@ -841,7 +841,7 @@
       preparer(d, t, e, K);
       d.force = d.apercu ? 1 : +getComputedStyle(document.documentElement).getPropertyValue("--pcv-decor") || 1;
     }
-    if (!d.apercu) d.hote.classList.add("pcv-fond-vivant");
+    if (!d.apercu && !d.hote.classList.contains("pcv-fond-vivant")) d.hote.classList.add("pcv-fond-vivant");
     const x = d.x;
     x.setTransform(1, 0, 0, 1, 0, 0);
     x.clearRect(0, 0, W, H);
@@ -871,6 +871,7 @@
       x.restore();
     }
   };
+  const FOND = { pas: 33, avance: 12 };
   let boucleId = 0, attente = 0;
   const boucle = (t) => {
     boucleId = 0;
@@ -885,6 +886,8 @@
       if (t - d.verif > 500 || d.vu === void 0) {
         d.verif = t;
         d.vu = vivant && visible(d.hote);
+        d.w = d.cv.clientWidth;
+        d.h = d.cv.clientHeight;
         d.cv.style.display = vivant ? "" : "none";
         if (!vivant) d.hote.classList.remove("pcv-fond-vivant");
         const p = !d.apercu && pleine(d.hote);
@@ -896,20 +899,19 @@
       }
       if (!d.vu) continue;
       actif = true;
-      if (t - d.der >= 33) {
-        const dt = Math.min(100, t - (d.der || t - 33));
+      {
+        const dt = Math.min(100, t - (d.der || t - FOND.pas));
         d.der = t;
         dessiner(d, dt);
       }
-      prochaine = Math.min(prochaine, d.der + 33);
+      prochaine = Math.min(prochaine, d.der + FOND.pas);
     }
     if (decors.size) {
-      const att = actif ? prochaine - performance.now() - 12 : 500;
-      if (att < 4) boucleId = requestAnimationFrame(boucle);
-      else attente = setTimeout(() => {
+      const att = actif ? prochaine - performance.now() - FOND.avance : 500;
+      attente = setTimeout(() => {
         attente = 0;
         boucleId = requestAnimationFrame(boucle);
-      }, att);
+      }, Math.max(0, att));
     }
   };
   const relancer = () => {

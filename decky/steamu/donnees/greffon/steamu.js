@@ -467,6 +467,7 @@
       ${dessinerConflits()}
       <div class="danger-liste">
         <button class="bouton" data-a="diagnostic"><i class="pastille">${ico(ICO.guide)}</i><span>${T("steamu.diag")}<small>${T("steamu.diag.aide")}</small></span></button>
+        <button class="bouton" data-a="applis-devant"><i class="pastille">${ico(ICO.redemarrer)}</i><span>${T("steamu.applis.debut")}<small>${T("steamu.applis.debut.aide")}</small></span></button>
         <button class="bouton" data-a="signaler"><i class="pastille">${ico(ICO.internet)}</i><span>${T("steamu.signaler")}<small>${T("steamu.signaler.aide")}</small></span></button>
       </div></div>`;
   const confirmContenu = () => {
@@ -966,6 +967,10 @@
     if (a === "importer") return importer();
     if (a === "moteur-installer") return installerMoteur();
     if (a === "diagnostic") return diagnostiquer();
+    if (a === "applis-devant") {
+      const ok = window.__pcvGrille?.remettreApplisDevant?.();
+      return montrer(T("steamu.applis.debut"), [T(ok ? "steamu.applis.debut.fait" : "steamu.applis.debut.indisponible")], true);
+    }
     if (a === "signaler") return signaler();
     if (a === "fermer-signaler") {
       S.signaler = null;

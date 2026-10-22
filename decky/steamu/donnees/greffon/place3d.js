@@ -100,12 +100,14 @@
       ["reglages", "#8b9098", "parametres", Tr("spaces.parametres.nom")]
     ].map(([n, c, a, t]) => `<button class="dock-btn" data-action="${a}" data-pcv-nom="${t}">${svg(n, "56%", c, 2.3)}</button>`).join("");
     const [gl, glc] = toucheHaut();
+    const FONDU_MS = 250;
     const racine = document.createElement("div");
     racine.id = "pcv-place";
     racine.hidden = true;
     racine.innerHTML = `<style>
       #pcv-place { position: fixed; inset: 0; z-index: 9200; overflow: hidden; font-family: var(--pcv-police); color: var(--pcv-texte); background: var(--pcv-creux, #eef2f1); }
       #pcv-place[hidden] { display: none; }
+      #pcv-place { transition: opacity ${FONDU_MS}ms ease-out; } #pcv-place.fondu { opacity: 0; pointer-events: none; }
       #pcv-place button { all: unset; cursor: pointer; box-sizing: border-box; }
       #pcv-place canvas.monde3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
       #pcv-place .blanc { position: absolute; inset: 0; background: #fbfcfb; opacity: 0; pointer-events: none; z-index: 7; transition: opacity .6s ease-out; }
@@ -930,7 +932,7 @@
         aller(f, Math.random() < 0.25);
         jouerPlace("depart", f, 0.8);
       } else if (x < 0.3) aller(f);
-      else if (x < 0.48) {
+      else if (x < 0.36) {
         const b = foule.find((o) => o !== f && o.etat === "pause" && !o.pivot && o.m.objet.position.distanceTo(m.objet.position) < 1.8 && !o.parle);
         if (b) discuter(f, b);
         else {
@@ -1077,11 +1079,9 @@
     };
     const murmurer = (dt) => {
       if ((tMurmure -= dt) > 0 || temps < introFin) return;
-      tMurmure = alea(0.35, 0.9);
-      const l = foule.filter((f2) => f2.m.objet.visible && f2.etat !== "dehors");
-      if (!l.length) return;
-      const parleurs = l.filter((f2) => f2.etat === "parle" || f2.etat === "porteParole"), choix = parleurs.length && Math.random() < 0.6 ? parleurs : l, f = choix[Math.floor(Math.random() * choix.length)];
-      if (f && (!sonsPrives() || parleurs.includes(f))) babiller(f, f.etat === "parle" ? 0.5 : 0.28);
+      tMurmure = alea(4, 9);
+      const parleurs = foule.filter((f2) => f2.m.objet.visible && (f2.etat === "parle" || f2.etat === "porteParole")), f = parleurs[Math.floor(Math.random() * parleurs.length)];
+      if (f) babiller(f, f.etat === "parle" ? 0.5 : 0.28);
     };
     const SP = window.__pcvSonsPlace || {}, PLAFOND = { pas: [3, 0.15], voix: [3, 0.55], arrivee: [2, 0.25], depart: [2, 0.25] };
     const sonsPrives = () => !!(window.__pcvNintendo?.sons && window.__pcvTampon && SP.voix);
@@ -1168,12 +1168,17 @@
     const PATIENCE = 3500;
     const herosPrets = () => heros.every((h) => h.v || h.refuse);
     const INTRO = { gros: 2.5, recul: [2.4, 4.4], icones: 3, foule: 3.2, fin: 5.6 };
+    let introVue = false;
     const lancerIntro = (complete) => {
+      complete = complete && !introVue;
+      if (complete) introVue = true;
       debut = temps;
       introFin = complete ? temps + INTRO.fin : temps;
-      blanc.classList.add("on");
       blanc.classList.remove("attend");
-      requestAnimationFrame(() => requestAnimationFrame(() => blanc.classList.remove("on")));
+      if (complete) {
+        blanc.classList.add("on");
+        requestAnimationFrame(() => requestAnimationFrame(() => blanc.classList.remove("on")));
+      } else blanc.classList.remove("on");
       heros.forEach((h, i) => {
         const m = h.m, k = PLACES_HEROS[i];
         m.interrompre();
@@ -1296,10 +1301,11 @@
       cam.position.copy(camPos);
       cam.lookAt(camVise);
     };
-    let bulles = [], bulleK = 0, bulleT = 0, bulleMii = null;
+    const BULLE = { vue: 6, silence: [16, 32] };
+    let bulles = [], sac = [], derniere = null, bulleT = 0, bulleMii = null;
     const chargerBulles = async (jeux) => {
       const l = [];
-      for (const a of jeux.slice(0, 4)) {
+      for (const a of jeux.slice(0, 10)) {
         try {
           const r = await O.SteamClient.Apps.GetMyAchievementsForApp(String(a.appid));
           const d = (typeof r === "string" ? JSON.parse(r) : r).data.rgAchievements;
@@ -1312,18 +1318,20 @@
         } catch (e) {
         }
       }
-      const fort = jeux.filter((a) => a.minutes_playtime_last_two_weeks).sort((a, b) => b.minutes_playtime_last_two_weeks - a.minutes_playtime_last_two_weeks)[0];
-      if (fort) l.push({ jeu: fort, img: "", txt: Tr("place.bulle_temps", { h: Math.round(fort.minutes_playtime_last_two_weeks / 60), jeu: fort.display_name }), date: new Date(fort.rt_last_time_played * 1e3) });
-      bulles = l.sort((a, b) => b.date - a.date).slice(0, 3);
-      bulleT = 0;
+      for (const a of jeux.filter((a2) => a2.minutes_playtime_last_two_weeks >= 60))
+        l.push({ jeu: a, img: "", txt: Tr("place.bulle_temps", { h: Math.round(a.minutes_playtime_last_two_weeks / 60), jeu: a.display_name }), date: new Date(a.rt_last_time_played * 1e3) });
+      bulles = l.sort((a, b) => b.date - a.date).slice(0, 12);
+      sac = [];
+      bulleT = alea(3, 6);
     };
     const zoneBulles = $(".bulles");
     const majBulles = (dt) => {
       bulleT -= dt;
       if (!bulles.length || temps < introFin) return;
       if (bulleT <= 0) {
-        bulleT = 3.4;
-        const b = bulles[bulleK++ % bulles.length], g = icones.findIndex((i) => i.jeu?.appid === b.jeu.appid);
+        bulleT = BULLE.vue + alea(...BULLE.silence);
+        if (!sac.length) sac = bulles.filter((x) => x !== derniere || bulles.length === 1).sort(() => Math.random() - 0.5);
+        const b = derniere = sac.pop(), g = icones.findIndex((i) => i.jeu?.appid === b.jeu.appid);
         const groupe = foule.filter((f) => f.g === g && f.m.objet.visible && (f.etat === "pause" || f.etat === "geste")), choix = groupe[Math.floor(Math.random() * groupe.length)] || foule.find((f) => f.m.objet.visible && f.etat !== "intro");
         if (bulleMii && bulleMii.etat === "porteParole") {
           bulleMii.etat = "pause";
@@ -1359,7 +1367,14 @@
           }
           jouerPlace("felicitations", bulleMii, 0.8);
         }
-        setTimeout(() => el2.classList.remove("vu"), 2900);
+        setTimeout(() => {
+          el2.classList.remove("vu");
+          if (bulleMii?.etat === "porteParole") {
+            bulleMii.etat = "pause";
+            bulleMii.t = 1;
+            bulleMii.m.jouer("repos");
+          }
+        }, BULLE.vue * 1e3);
       }
       const el = zoneBulles.firstChild;
       if (!el || !bulleMii) return;
@@ -1715,9 +1730,16 @@
         if (i.src !== a) i.src = a;
       });
     }, 3e3);
+    let fermeture = 0;
     const montrer = (oui) => {
+      if (fermeture) {
+        clearTimeout(fermeture);
+        fermeture = 0;
+        racine.hidden = true;
+        racine.classList.remove("fondu");
+      }
       const etait = !racine.hidden;
-      racine.hidden = !oui;
+      if (oui) racine.hidden = false;
       bascule.hidden = oui;
       if (oui && !etait) {
         if (!preparer()) {
@@ -1725,10 +1747,14 @@
           return;
         }
         decorTheme();
+        racine.classList.add("fondu");
+        requestAnimationFrame(() => requestAnimationFrame(() => racine.classList.remove("fondu")));
+        setTimeout(() => {
+          if (!racine.hidden && !fermeture) masquerDessous(true);
+        }, FONDU_MS);
         Q ||= qualiteNeuve();
         Q.tp = Q.t0 = 0;
         Q.dts.length = Q.gpu.length = Q.cpu.length = 0;
-        masquerDessous(true);
         {
           const e = racine.querySelector(".gl"), [h, c] = toucheHaut();
           if (e) {
@@ -1785,6 +1811,12 @@
         zoneBulles.innerHTML = "";
         nomSel.classList.remove("vu");
         relireSiens();
+        racine.classList.add("fondu");
+        fermeture = setTimeout(() => {
+          fermeture = 0;
+          racine.hidden = true;
+          racine.classList.remove("fondu");
+        }, FONDU_MS);
       }
     };
     window.__pcvPlaceMontrer = montrer;

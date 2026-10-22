@@ -13,7 +13,7 @@
   const T = window.__pcvT || ((c) => c);
   const acc = () => window.__pcvGrille;
   const glyphe = (b) => {
-    const [t, c, h] = window.__pcvTouche?.(b) || ["?", "#5b6676"];
+    const [t, c, h] = window.__pcvTouche?.(b) || ["?", "var(--pcv-touche-neutre)"];
     return `<u style="background:${c}">${h ?? echap(t)}</u>`;
   };
   const svg = (d) => `<svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;

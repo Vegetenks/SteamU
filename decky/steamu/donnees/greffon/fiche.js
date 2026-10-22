@@ -3,7 +3,7 @@
   document.querySelectorAll(".pcv-puces, .pcv-cartes, .pcv-fiche-switch").forEach((e) => e.remove());
   const O = window.opener;
   const Tr = window.__pcvT || ((c) => c);
-  const h = (min) => min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}`;
+  const h = (min) => (min = Math.round(min || 0)) < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}`;
   const jour = (rt) => new Date(rt * 1e3).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
   const joli = (t) => t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : t;
   const avatar = () => document.querySelector("#header_profile img")?.src || "";

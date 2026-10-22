@@ -194,8 +194,8 @@
   const sousEcran = (cle, titre, p, c, corps, cl = "") => `<div class="voile sousecran ${cl}" data-sous="${cle}" hidden><div class="entete"><div class="pilule verre titre-s">${pastille(p, c)}<span>${titre}</span></div></div><div class="panneau verre">${corps}</div></div>`;
   const grandeBascule = (cle, p, nom, premier = true) => `<div class="grande-bascule verre${premier ? " premier" : ""}" data-a="bascule:${cle}" data-b="${cle}">${pastille(p)}${nom}<span class="inter"></span></div>`;
   const html = `<div class="pilule verre titre-r entre" style="--d:.1s">${pastille("reglages", "var(--c-accueil)")}${T("acces.titre", "R\xE9glages rapides")}</div>${etat()}
-    <div class="carte verre batt entre" data-a="sous:batt">${pile("grosse")}<div><div class="pct"></div><div class="etat-b"></div></div></div>
-    ${curseur("lum", "carte verre curseur gliss-card entre", `${pastille("soleil", "var(--c-soleil)")}${T("acces.luminosite", "Luminosit\xE9")}`, void 0, ' style="top:344px;--d:.04s"')}
+    <div class="carte verre batt entre" data-a="sous:batt" hidden>${pile("grosse")}<div><div class="pct"></div><div class="etat-b"></div></div></div>
+    ${curseur("lum", "carte verre curseur gliss-card entre", `${pastille("soleil", "var(--c-soleil)")}${T("acces.luminosite", "Luminosit\xE9")}`, void 0, ' style="--d:.04s"')}
     <div class="carte verre son-r entre" style="--d:.08s">${curseur("vol", "gliss-card", `${pastille("volume", "var(--c-accueil)")}${T("acces.volume", "Volume")}`)}
       <div class="sortie-bouton verre" data-a="liste:sortie"><span class="pastille"></span><b class="sortie-nom"></b><span class="coin-sortie">\u203A</span></div>
       ${curseur("mic", "gliss-card", `${pastille("micro", "var(--c-micro)")}${T("acces.micro", "Micro")}`)}</div>
@@ -344,9 +344,11 @@
     s: p.confidence === 1 && p.secondsRemaining > 0 && p.secondsRemaining < 20 * 3600 ? p.secondsRemaining : 0
   });
   const ouvrirBatt = async () => {
+    const p = B.battery();
+    if (p?.present !== true) return;
     ouvrirSous("batt");
     peindreBatterie();
-    const p = B.battery(), { branche, s } = etatPile(p);
+    const { branche, s } = etatPile(p);
     let b = {};
     try {
       b = await B.callPlugin(window.__pcvGreffon.nom, "batterie") || {};
@@ -358,7 +360,7 @@
       [T("acces.sante_batterie", "Sant\xE9 de la batterie"), b.sante != null && `${b.sante >= 90 ? T("acces.sante_tresbonne", "tr\xE8s bonne") : b.sante >= 80 ? T("acces.sante_bonne", "bonne") : T("acces.sante_fatiguee", "fatigu\xE9e")} (${b.sante} %)`, b.sante >= 80 ? "vert" : ""],
       [T("acces.cycles_charge", "Cycles de charge"), b.cycles != null && String(b.cycles)]
     ].filter(([, v]) => v);
-    if (sousOuvert() === "batt") e.$(".details-batt").innerHTML = lignes.map(([k, v, c]) => `<div class="ligne fixe">${k}<span class="${c || "noir"}">${esc(v)}</span></div>`).join("");
+    if (B.battery()?.present === true && sousOuvert() === "batt") e.$(".details-batt").innerHTML = lignes.map(([k, v, c]) => `<div class="ligne fixe">${k}<span class="${c || "noir"}">${esc(v)}</span></div>`).join("");
   };
   const greffons = () => {
     try {
@@ -716,7 +718,16 @@
   };
   const peindreBatterie = () => {
     try {
-      const p = B.battery(), n = Math.round(Math.max(0, Math.min(1, p.percent)) * 100), { branche, s } = etatPile(p);
+      const p = B.battery(), presente = p?.present === true, carte = e.$(".batt");
+      carte.hidden = !presente;
+      e.racine.classList.toggle("sans-batterie", !presente);
+      if (!presente) {
+        const sous = e.$('[data-sous="batt"]'), selection = carte.contains(e.focus()) || !sous.hidden;
+        sous.hidden = true;
+        if (selection) e.premier();
+        return;
+      }
+      const n = Math.round(Math.max(0, Math.min(1, p.percent)) * 100), { branche, s } = etatPile(p);
       const t = branche ? n >= 99 ? T("acces.branchee_terminee", "Branch\xE9e, charge termin\xE9e") : T("acces.branchee_en_charge", "Branch\xE9e, en charge") : s > 0 ? T("acces.sur_batterie_encore", "Sur batterie, encore {temps}", { temps: duree(s) }) : T("acces.sur_batterie", "Sur batterie");
       e.$(".batt .pct").textContent = e.$(".pct-g").textContent = n + " %";
       e.$(".batt .etat-b").textContent = e.$(".etat-g").textContent = t;
@@ -1024,6 +1035,7 @@
       peindre();
     },
     minute: peindre,
+    batterie: peindreBatterie,
     fermer: () => {
       fermerCadre();
       regler(null);
