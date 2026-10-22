@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.9 (2026-10-22)
+
+- Launching a game from the home screen no longer goes through Steam's game page and its loading spinner: SteamU's launch screen stays until the game's first picture, and when the game closes you are back on the home screen (B no longer leads into Steam).
+- Plaza: icons no longer disappear when the plaza is opened again quickly.
+- Home screen: the Miis get the same fix (their clock no longer runs backwards when the screen opens).
+- SteamU's own apps open with a 1 to 1.5 s launch screen.
+- Home screen: games from Unifideck (Epic, GOG, Amazon...) that are not installed are recognised as such. Thanks @lieserlV (#7).
+
 ## v0.1.8 (2026-10-22)
 
 - SteamU can now update itself from GitHub. When a new version is out, a pinned notification appears; "See more" shows what's new, and "Install" installs it through Decky.

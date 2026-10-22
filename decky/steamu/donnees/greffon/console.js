@@ -311,7 +311,8 @@
     appsT = t;
     return appsMemo = m;
   };
-  const installe = (a) => raccourci(a) || !!a.local_per_client_data?.installed;
+  const installe = (a) => raccourci(a) ? window.__pcvBridge?.unifideck?.etat(a) ?? true : !!a.local_per_client_data?.installed;
+  const versionUnifideck = () => window.__pcvBridge?.unifideck?.version() ?? 0;
   const distant = (a) => !installe(a) && (a.per_client_data || []).some((p) => p.clientid !== "0" && p.installed);
   const reglageJeux = () => {
     try {
@@ -334,7 +335,7 @@
     dessiner();
   };
   const montres = () => {
-    const m = apps();
+    const m = new Map(apps());
     for (const id of m.keys()) if (accueilRetire(id)) m.delete(id);
     if (reglageJeux() === "tous") return m;
     for (const [id, a] of m) if (!installe(a) && !distant(a)) m.delete(id);
@@ -498,7 +499,7 @@
   const signatureGrille = () => {
     try {
       const l = O.appStore?.allApps || [];
-      return [localStorage.getItem("pcv-grille"), localStorage.getItem("pcv-accueil-retires"), reglageJeux(), familleTheme(), zi, l.length, l.reduce((n, a) => n + (a.installed ? 1 : 0) + (a.rt_last_time_played || 0) % 997, 0)].join("|");
+      return [localStorage.getItem("pcv-grille"), localStorage.getItem("pcv-accueil-retires"), reglageJeux(), familleTheme(), zi, versionUnifideck(), l.length, l.reduce((n, a) => n + (a.installed ? 1 : 0) + (a.rt_last_time_played || 0) % 997, 0)].join("|");
     } catch (e) {
       return String(Math.random());
     }
@@ -519,7 +520,7 @@
   };
   const construireCases = () => {
     const connus = apps(), tous = montres(), mode2 = reglageJeux();
-    vueJeux = mode2;
+    vueJeux = mode2 + "|" + versionUnifideck();
     const recent = (a) => a.rt_last_time_played || a.rt_last_time_played_or_installed || 0;
     const recents2 = [...tous.values()].filter((a) => mode2 === "installes" || a.rt_last_time_played).sort((a, b) => recent(b) - recent(a)).slice(0, mode2 === "installes" ? Infinity : 36);
     const range = lire("pcv-grille", null);
@@ -1676,6 +1677,7 @@
     });
     return col + 1;
   };
+  const barreZoom = (n) => racine.querySelectorAll(".zoom i").forEach((e, k) => e.classList.toggle("on", k === n));
   const dessiner = (poser2 = false, zoomSeul = false) => {
     const z = ZOOMS[zi], f = forme(z);
     vueFamille = familleTheme();
@@ -1691,7 +1693,7 @@
             e.classList.toggle("loin", Math.floor(i / z.r) > limite2);
           }
         });
-        racine.querySelectorAll(".zoom i").forEach((e, k) => e.classList.toggle("on", k === zi));
+        barreZoom(zi);
         marquer(false);
         return;
       }
@@ -1753,7 +1755,7 @@
       grille.appendChild(d);
     });
     prochesPlus();
-    racine.querySelectorAll(".zoom i").forEach((e, k) => e.classList.toggle("on", k === zi));
+    barreZoom(zi);
     if (fusionAnimer >= 0) {
       grille.children[fusionAnimer]?.querySelector(".bdg")?.animate([
         { transform: "scale(.6)", filter: "brightness(2.2) drop-shadow(0 0 12px #fff)" },
@@ -1873,15 +1875,33 @@
     if (deux) l.push(bulle("semaines", T("console.ces_2_semaines", { temps: h(deux) }), "", 0.24));
     inf.replaceChildren(...l);
   };
-  const zoomer = (d) => {
-    const n = Math.max(0, Math.min(ZOOMS.length - 1, zi + d));
-    if (n === zi) return window.__pcvSon?.("bord");
+  const RAFALE = 160, GLISSE = 320;
+  const crans = (o) => {
+    let vise2 = -1, fin = 0, id = 0;
+    return (d) => {
+      const de = vise2 < 0 ? o.cran() : vise2, n = Math.max(0, Math.min(o.max(), de + d));
+      if (n === de) return void window.__pcvSon?.("bord");
+      window.__pcvSon?.(d > 0 ? "zoom+" : "zoom-");
+      const t = performance.now(), calme = vise2 < 0 && t >= fin;
+      fin = t + GLISSE;
+      if (calme) return void o.aller(n);
+      vise2 = n;
+      o.barre(n);
+      clearTimeout(id);
+      id = setTimeout(() => {
+        const v = vise2;
+        vise2 = -1;
+        fin = performance.now() + GLISSE;
+        if (v !== o.cran()) o.aller(v);
+      }, RAFALE);
+    };
+  };
+  const zoomer = crans({ cran: () => zi, max: () => ZOOMS.length - 1, barre: barreZoom, aller: (n) => {
     const avant2 = [...grille.children].map((e) => e.getBoundingClientRect());
     zi = n;
     ecrire("pcv-zoom", zi);
     infosDe = -1;
     decal = -1;
-    window.__pcvSon?.(d > 0 ? "zoom+" : "zoom-");
     completer(cases, minVue());
     grille.style.transition = "none";
     dessiner(false, true);
@@ -1898,13 +1918,13 @@
       e.style.transformOrigin = "0 0";
       const an = e.animate(
         [{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width})` }, { transform: "none" }],
-        { duration: 320, easing: "cubic-bezier(.3,1.15,.5,1)" }
+        { duration: GLISSE, easing: "cubic-bezier(.3,1.15,.5,1)" }
       );
       an.onfinish = an.oncancel = () => {
         e.style.transformOrigin = "";
       };
     });
-  };
+  } });
   racine.querySelectorAll(".zoom b").forEach((b) => b.onclick = () => zoomer(+b.dataset.z));
   const echanger = (n) => {
     if (n === porte || cases[n]?.dossier && rangeable(cases[porte])) {
@@ -3141,19 +3161,20 @@
       signaler();
       window.__pcvMusique?.("home-menu");
     } else if (visible && vueFamille !== familleTheme() && !appui) dessiner();
-    else if (visible && vueJeux && vueJeux !== reglageJeux() && porte < 0 && !appui && !deco) {
+    else if (visible && vueJeux && vueJeux !== reglageJeux() + "|" + versionUnifideck() && porte < 0 && !appui && !deco) {
       construireCases();
       infosDe = -1;
       decal = -1;
       debut();
       dessiner();
     }
+    if (visible) window.__pcvBridge?.unifideck?.charger();
     etaitVisible = visible;
   };
   window.__pcvConsole = setInterval(tourConsole, 150);
   O.navigation?.removeEventListener("currententrychange", O.__pcvConsoleNav);
   O.navigation?.addEventListener("currententrychange", O.__pcvConsoleNav = () => setTimeout(tourConsole, 0));
-  const LANCEMENT = { min: 480, max: 760, sortie: 200, jeuMax: 6e4, essai: 3e3 };
+  const LANCEMENT = { min: 1e3, max: 1500, sortie: 200, jeuMax: 6e4, essai: 3e3 };
   document.getElementById("pcv-lancement")?.remove();
   try {
     (window.__pcvLancementAbos || []).forEach((a) => a?.unregister?.());
@@ -3194,8 +3215,9 @@
   window.__pcvFond?.(lanc);
   const lancIc = lanc.querySelector(".ic"), lancFond = lanc.querySelector(".fond"), lancNom = lanc.querySelector(".nom");
   let lancTic = 0, lancFin = 0, lancEtat = null;
-  const lancRetirer = (vite) => {
+  const lancRetirer = (vite, pourquoi) => {
     if (!lancEtat) return;
+    if (lancEtat.jeu) noter({ retire: pourquoi || "?" });
     lancEtat = null;
     clearInterval(lancTic);
     clearTimeout(lancFin);
@@ -3213,10 +3235,10 @@
     }, LANCEMENT.sortie + 20);
   };
   const lancTouche = () => {
-    if (lancEtat && Date.now() - lancEtat.depuis > 120) lancRetirer();
+    if (lancEtat && Date.now() - lancEtat.depuis > 120) lancRetirer(false, "touche");
   };
   const lancModale = () => [...document.querySelectorAll(".FullModalOverlay, .ModalPosition, .contextMenu")].some((e) => e.getClientRects().length > 0) || !!window.__pcvMenuOuvert?.();
-  const lancMontrer = ({ nom, fond, html = "", depuis, jeu = false }) => {
+  const lancMontrer = ({ nom, fond, html = "", depuis, jeu = false, muet = false }) => {
     lancRetirer(true);
     lancFond.style.setProperty("--fond", fond || "#dfe4ea");
     lancFond.innerHTML = html;
@@ -3238,17 +3260,17 @@
     void lanc.offsetWidth;
     addEventListener("vgp_onbuttondown", lancTouche, true);
     addEventListener("keydown", lancTouche, true);
-    window.__pcvSon?.("lance");
+    if (!muet) window.__pcvSon?.("lance");
   };
   const lancSurveiller = () => {
     clearInterval(lancTic);
     lancTic = setInterval(() => {
       const e = lancEtat;
       if (!e) return clearInterval(lancTic);
-      if (lancModale()) return lancRetirer();
+      if (lancModale()) return lancRetirer(false, "fenetre");
       const age = Date.now() - e.depuis;
       if (e.jeu) {
-        if (O.location.pathname !== e.page || age > LANCEMENT.jeuMax) lancRetirer();
+        if (pageAct() !== e.page && !pageSteam(e.appid) && !EN_COURS.test(pageAct()) || age > LANCEMENT.jeuMax) lancRetirer(false, "page " + pageAct());
         return;
       }
       let pret = false;
@@ -3275,7 +3297,7 @@
     });
     lancSurveiller();
   };
-  const lancJeu = (appid, action, essai, depuis) => {
+  const lancJeu = (appid, action, essai, depuis, muet) => {
     if (lancEtat?.jeu && lancEtat.appid === +appid) {
       if (action != null) lancEtat.action = action;
       return;
@@ -3289,10 +3311,44 @@
     })();
     if (!a && !essai) return;
     const k = cases.findIndex((c) => c?.app === +appid), t = k >= 0 ? grille.children[k] : null;
-    lancMontrer({ nom: a?.display_name || T("console.jeu_n", { id: appid }), fond: a ? imageJeu(a) : "var(--pcv-texte2)", depuis: depuis || (racine.hidden ? null : t), jeu: true });
-    lancEtat = { jeu: true, appid: +appid, action, depuis: Date.now(), page: O.location.pathname };
+    lancMontrer({ nom: a?.display_name || T("console.jeu_n", { id: appid }), fond: a ? imageJeu(a) : "var(--pcv-texte2)", depuis: depuis || (racine.hidden ? null : t), jeu: true, muet });
+    lancEtat = { jeu: true, appid: +appid, action, depuis: Date.now(), page: pageAct() };
     lancSurveiller();
     if (essai) lancFin = setTimeout(() => lancEtat?.appid === +appid && lancRetirer(), LANCEMENT.essai);
+  };
+  const EN_COURS = /^(\/routes)?\/apprunning/;
+  const pageAct = () => window.__pcvBridge?.page?.() || O.location.pathname;
+  const pageSteam = (appid) => new RegExp(`^(/routes)?/library/app/${+appid}/?$`).test(pageAct());
+  const journal = [], noter = (x) => {
+    journal.push({ t: Date.now(), ...x });
+    if (journal.length > 40) journal.shift();
+  };
+  let lancRetour = null, lancRetourTic = 0;
+  const lancGarder = (ms) => {
+    const r = lancRetour;
+    if (!r) return;
+    r.fin = Date.now() + ms;
+    clearInterval(lancRetourTic);
+    const tic = lancRetourTic = setInterval(() => {
+      if (lancRetour !== r || Date.now() > r.fin) {
+        if (lancRetour === r && r.fini) lancRetour = null;
+        return clearInterval(tic);
+      }
+      const m = lancModale() && [...document.querySelectorAll(".FullModalOverlay, .ModalPosition")].find((e) => e.getClientRects().length > 0);
+      const mt = m ? `${m.className} ${m.innerText}`.replace(/\s+/g, " ").slice(0, 160) : "";
+      if (mt !== r.modale) {
+        r.modale = mt;
+        if (mt) noter({ modale: mt });
+      }
+      revenir(m);
+    }, 100);
+  };
+  const revenir = (m = lancModale()) => {
+    const r = lancRetour;
+    if (!r || Date.now() > r.fin || m || !pageSteam(r.appid) || Date.now() < r.essai) return;
+    r.essai = Date.now() + 600;
+    noter({ retour: r.page });
+    window.__pcvBridge?.revenirA?.(r.page);
   };
   const abo = (f) => {
     try {
@@ -3308,16 +3364,46 @@
         lancJeu(appid, id);
       }
     })),
+    // (22/10) la fin de l'action de Steam ne retire l'écran que si le jeu n'a pas démarré (lancement annulé) : elle arrive
+    // dès que le jeu est parti, bien avant sa première image (retiré 0,8 s après : le rond de Steam se voyait ensuite)
     abo(() => SC.Apps.RegisterForGameActionEnd((id) => {
-      if (lancEtat?.jeu && lancEtat.action === id) setTimeout(() => lancEtat?.action === id && lancRetirer(), 800);
+      if (lancEtat?.jeu && lancEtat.action === id) setTimeout(() => lancEtat?.action === id && window.__pcvBridge?.runningApp?.()?.appid !== lancEtat.appid && lancRetirer(false, "fin sans jeu"), 3e3);
     })),
     abo(() => SC.Apps.RegisterForGameActionShowError((id) => {
       if (lancEtat?.jeu && lancEtat.action === id) lancRetirer();
     })),
     abo(() => SC.GameSessions.RegisterForAppLifetimeNotifications((n) => {
-      if (lancEtat?.jeu && n?.bRunning && +n.unAppID === lancEtat.appid) lancRetirer();
+      if (lancRetour?.appid === +n?.unAppID) {
+        noter({ tourne: !!n.bRunning });
+        lancRetour.fini = !n.bRunning;
+        lancGarder(n.bRunning ? 3e3 : 5e3);
+      }
     }))
   ];
+  removeEventListener("pcv-jeu-devant", window.__pcvLancDevant);
+  addEventListener("pcv-jeu-devant", window.__pcvLancDevant = (ev) => {
+    noter({ devant: ev.detail });
+    if (ev.detail) {
+      if (lancEtat?.jeu) lancRetirer(false, "jeu devant");
+      return;
+    }
+    couvrir();
+  });
+  const couvrir = () => {
+    const id = window.__pcvBridge?.runningApp?.()?.appid || lancRetour?.appid;
+    if (id && !lancEtat && !window.__pcvJeuDevant && EN_COURS.test(pageAct())) lancJeu(id, null, false, null, true);
+  };
+  try {
+    window.__pcvLancPages?.();
+  } catch (e) {
+  }
+  window.__pcvLancPages = window.__pcvBridge?.ecouterPages?.((p) => {
+    if (lancRetour) noter({ page: p });
+    setTimeout(() => {
+      revenir();
+      couvrir();
+    }, 0);
+  });
   const recents = /* @__PURE__ */ new Map();
   const jouerJeu = (a, depuis) => {
     const id = a.appid, t0 = recents.get(id);
@@ -3329,6 +3415,10 @@
     } catch (e) {
       gid = String(id);
     }
+    journal.length = 0;
+    lancRetour = { appid: id, page: window.__pcvBridge?.page?.() || "", essai: 0 };
+    noter({ lance: id, depuis: lancRetour.page });
+    lancGarder(LANCEMENT.jeuMax);
     try {
       window.__pcvLancement.run(gid, a);
     } catch (e) {
@@ -3345,7 +3435,8 @@
     jeu: (appid) => lancJeu(appid, null),
     essai: (appid) => lancJeu(appid, null, true),
     fermer: () => lancRetirer(),
-    etat: () => lancEtat && { ...lancEtat, pret: void 0 }
+    etat: () => lancEtat && { ...lancEtat, pret: void 0 },
+    journal
   };
   return "nouvel accueil pr\xEAt";
 })();

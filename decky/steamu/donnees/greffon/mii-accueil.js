@@ -4828,7 +4828,7 @@
     raf = requestAnimationFrame(tour);
     window.__pcvGrilleAvantImage?.(t);
     if (REG.plafond && t - dernier < 1e3 / REG.plafond - 2) return;
-    const dt = Math.min(0.1, (t - dernier) / 1e3);
+    const dt = Math.max(0, Math.min(0.1, (t - dernier) / 1e3));
     dernier = t;
     dtImage = dt;
     if (!actif()) {

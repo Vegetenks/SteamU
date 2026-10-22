@@ -1427,7 +1427,7 @@
       const brut = t - (tourPrec || t);
       tourPrec = t;
       if (REG.plafond && t - dernier + Math.min(brut, BUDGET.riMin) / 2 < 1e3 / REG.plafond) return;
-      const dt = fige ? 0 : Math.min(0.1, (t - dernier) / 1e3);
+      const dt = fige ? 0 : Math.max(0, Math.min(0.1, (t - dernier) / 1e3));
       dernier = t;
       temps += dt;
       const t0 = performance.now();

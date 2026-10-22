@@ -595,7 +595,7 @@ window.__pcvPE = (() => {
     let photos = 0, enCours = null, apres = 0;
     const fondJeu = (sansFlou, garder) => {
       if (termine) return Promise.resolve(null);
-      const a = devant() ? appid() : 0, vieille = O.__pcvPhotoJeu?.appid === a ? O.__pcvPhotoJeu : null;
+      const a = appid(), vieille = O.__pcvPhotoJeu?.appid === a ? O.__pcvPhotoJeu : null;
       if (!a) {
         delete O.__pcvPhotoJeu;
         racine.classList.remove("photo", "bandes");
@@ -604,7 +604,7 @@ window.__pcvPE = (() => {
       if (!a && O.__pcvPhotoJeu?.appid) delete O.__pcvPhotoJeu;
       if (vieille) poserPhoto(vieille);
       else racine.classList.remove("photo");
-      if (garder) return Promise.resolve(vieille);
+      if (garder || !devant()) return Promise.resolve(vieille);
       if (enCours) return enCours;
       const n = ++photos;
       return enCours = photo().then(async (p) => {
