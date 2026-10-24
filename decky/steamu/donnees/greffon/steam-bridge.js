@@ -197,17 +197,26 @@ window.__pcvBridge = (() => {
     // « installé », comme avant). version() change avec un état (l'accueil se refait). charger(force) : relu au plus
     // toutes les 30 s ; 3 échecs de suite (Unifideck absent), plus aucun appel jusqu'à un événement d'Unifideck.
     // L'état vit sur la fenêtre principale (O.__pcvUnifideck, lisible pour un diagnostic sur la console)
+    // Les jeux Xbox d'Unifideck (tag « xcloud ») se jouent en streaming : jamais « installés » pour lui, mais toujours
+    // jouables. etat(a) les rend donc vrais, et nuage(a) dit lesquels sont du cloud (l'accueil y met un nuage).
     unifideck: (() => {
       const u = O.__pcvUnifideck ||= { jeux: /* @__PURE__ */ new Map(), ok: false, version: 0, enCours: false, rejouer: false, dernier: 0, echecs: 0, erreur: "" };
+      u.nuage ||= /* @__PURE__ */ new Set();
       const formes = (id) => {
         const n = Number(id);
         return !Number.isFinite(n) ? [] : n < 0 ? [n, n + 4294967296] : n > 2147483647 ? [n, n - 4294967296] : [n];
       };
       const appliquer = (l) => {
-        const m = /* @__PURE__ */ new Map();
-        for (const g of l) if (g && g.app_id != null && g.store && g.store !== "steam") for (const id of formes(g.app_id)) m.set(id, !!g.installed);
-        if (m.size !== u.jeux.size || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
-        Object.assign(u, { jeux: m, ok: true, echecs: 0, erreur: "" });
+        const m = /* @__PURE__ */ new Map(), nuage = /* @__PURE__ */ new Set();
+        for (const g of l) if (g && g.app_id != null && g.store && g.store !== "steam") {
+          const cloud = Array.isArray(g.tags) && g.tags.some((t) => String(t).toLowerCase() === "xcloud");
+          for (const id of formes(g.app_id)) {
+            m.set(id, !!g.installed || cloud);
+            if (cloud) nuage.add(id);
+          }
+        }
+        if (m.size !== u.jeux.size || nuage.size !== u.nuage.size || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
+        Object.assign(u, { jeux: m, nuage, ok: true, echecs: 0, erreur: "" });
       };
       const rate = (e) => {
         u.erreur = e;
@@ -234,8 +243,8 @@ window.__pcvBridge = (() => {
       const surEvenement = (e) => {
         const d = e?.detail;
         if (d && d.appId != null && typeof d.isInstalled === "boolean") {
-          for (const id of formes(d.appId)) if (u.jeux.get(id) !== d.isInstalled) {
-            u.jeux.set(id, d.isInstalled);
+          for (const id of formes(d.appId)) if (u.jeux.get(id) !== (d.isInstalled || u.nuage.has(id))) {
+            u.jeux.set(id, d.isInstalled || u.nuage.has(id));
             u.version++;
           }
         }
@@ -269,6 +278,7 @@ window.__pcvBridge = (() => {
       return {
         charger,
         version: () => u.version,
+        nuage: (a) => u.nuage.has(Number(a.appid)),
         etat: (a) => {
           charger();
           const v = u.jeux.get(Number(a.appid));
