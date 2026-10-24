@@ -217,7 +217,7 @@
       famille: f,
       style: FAMILLES[f].style,
       nom: j.nom || joli(id),
-      sous: j.sous || "th\xE8me import\xE9",
+      sous: j.sous || Tr("themes.importe_sous"),
       accent: /^hsl\(\d{1,3} 72% 50%\)$/.test(accents["importe:" + id]) ? accents["importe:" + id] : couleurSure(j.accent, "#ff5f95"),
       // (la teinte tirée de l'image, une fois calculée, prime : curseur terne ou étranger) accentAuto: auto, accent2: couleurSure(j.accent2),
       // Themezer : fond « télé » (motif répété s'il l'est sur la Wii U) et fond « manette » (GamePad) gardés séparés, plaque
@@ -1389,7 +1389,7 @@
     racine.className = "pcvth";
     racine.innerHTML = `<div class="tete"><i style="--m:${echap(MASQUE_PINCEAU)}"></i>${echap(Tr("themes.titre"))}</div><div class="onglets"></div>
       <div class="etagere"><div class="chapeau"></div><div class="rail"></div></div>
-      <div class="vitrine"><div class="ecran"><div class="mini"></div></div><div class="note"><i><b></b><b></b><b></b></i>Musique du th\xE8me</div><div class="nom"></div><div class="fam"></div></div>
+      <div class="vitrine"><div class="ecran"><div class="mini"></div></div><div class="note"><i><b></b><b></b><b></b></i>${echap(Tr("themes.musique_du_theme"))}</div><div class="nom"></div><div class="fam"></div></div>
       <div class="espaces"></div>
       <div class="actions"><div class="act pf" data-a="ecouter"><u>${T(3)}</u><span>${echap(Tr("themes.ecouter"))}</span></div><div class="act pf" data-a="essayer"><u>${T(4)}</u>${echap(Tr("themes.essayer"))}</div><div class="act pf plein" data-a="appliquer"><u>${T(1)}</u>${echap(Tr("themes.appliquer"))}</div><div class="act pf rouge" data-a="supprimer" hidden aria-label="${echap(Tr("themes.supprimer"))}" data-pcv-nom="${echap(Tr("themes.supprimer"))}"><u>${icoSuppr()}</u></div></div>
       <div class="reglages"></div><div class="retour pf"><u>${T(2)}</u>${Tr("themes.revenir")}</div>
@@ -1645,6 +1645,10 @@
     $(".sup p").textContent = Tr("themes.supprimer_texte");
     $(".sup .non").classList.toggle("sel", supSel === 0);
     $(".sup .oui").classList.toggle("sel", supSel === 1);
+    $(".sup .non u").innerHTML = T(supSel === 0 ? 1 : 2);
+    const u = $(".sup .oui u");
+    u.innerHTML = supSel === 1 ? T(1) : "";
+    u.hidden = supSel !== 1;
   };
   const supprimerDemander = (t) => {
     suppr = { id: t.id.replace(/^importe:/, ""), nom: t.nom };
@@ -1769,6 +1773,7 @@
     sortirEssai();
     ouvert = false;
     ecoute = null;
+    suppr = null;
     clearInterval(tourId);
     demonterSites();
     racine?.remove();
@@ -1996,7 +2001,7 @@
     if (window.__pcvFond !== monFond) window.__pcvFond = monFond;
     (window.__pcvManette ||= {}).themes = (b) => {
       if (!ouvert || !autonome) return false;
-      if (b === 2 && !essai) {
+      if (b === 2 && !essai && !suppr) {
         fermer();
         son("retour");
         return true;

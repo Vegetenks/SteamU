@@ -160,6 +160,122 @@ window.__pcvBridge = (() => {
       }
     },
     // (appelée sur son objet : détachée, elle ne répondait pas)
+    // (22/10) l'historique des pages de Steam (m_history de sa fenêtre principale) : page() la page actuelle, dans ses
+    // propres termes ; revenirA(p) y revient SANS empiler une page de plus : comme B si la page d'avant est p, sinon en
+    // remplaçant l'actuelle (lancement d'un jeu, console.js : Steam y empile la page du jeu)
+    page: () => {
+      try {
+        return O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.m_history?.location?.pathname ?? O.location.pathname;
+      } catch (e) {
+        return "";
+      }
+    },
+    revenirA: (p) => {
+      try {
+        const w = O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance, h = w.m_history;
+        if (!h) return void w.NavigateBack?.();
+        if (h.location?.pathname === p) return;
+        if (h.entries?.[h.index - 1]?.pathname === p) h.goBack();
+        else h.replace(p);
+      } catch (e) {
+      }
+    },
+    // (22/10) suivre les changements de page de Steam (f(page) dans ses propres termes) → fonction qui arrête le suivi
+    ecouterPages: (f) => {
+      try {
+        return O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.m_history.listen((l) => f(l.pathname));
+      } catch (e) {
+        return () => {
+        };
+      }
+    },
+    // (22/10, idée de lieserlV, PR #7 du dépôt public) Unifideck range les jeux de ses boutiques (Epic, GOG, Amazon…) dans
+    // Steam en raccourcis non Steam, installés ou non : pour Steam ils sont tous là. Unifideck sait lesquels le sont (RPC
+    // get_all_unifideck_games, la source de ses propres onglets) : on le lui demande. LA source de l'accueil (console.js,
+    // installe()).
+    // etat(a) : true / false selon Unifideck ; null : pas un de ses jeux, ou Unifideck absent (le raccourci reste
+    // « installé », comme avant). version() change avec un état (l'accueil se refait). charger(force) : relu au plus
+    // toutes les 30 s ; 3 échecs de suite (Unifideck absent), plus aucun appel jusqu'à un événement d'Unifideck.
+    // L'état vit sur la fenêtre principale (O.__pcvUnifideck, lisible pour un diagnostic sur la console)
+    unifideck: (() => {
+      const u = O.__pcvUnifideck ||= { jeux: /* @__PURE__ */ new Map(), ok: false, version: 0, enCours: false, rejouer: false, dernier: 0, echecs: 0, erreur: "" };
+      const formes = (id) => {
+        const n = Number(id);
+        return !Number.isFinite(n) ? [] : n < 0 ? [n, n + 4294967296] : n > 2147483647 ? [n, n - 4294967296] : [n];
+      };
+      const appliquer = (l) => {
+        const m = /* @__PURE__ */ new Map();
+        for (const g of l) if (g && g.app_id != null && g.store && g.store !== "steam") for (const id of formes(g.app_id)) m.set(id, !!g.installed);
+        if (m.size !== u.jeux.size || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
+        Object.assign(u, { jeux: m, ok: true, echecs: 0, erreur: "" });
+      };
+      const rate = (e) => {
+        u.erreur = e;
+        if (++u.echecs === 3) u.version++;
+      };
+      const lire = async () => {
+        u.enCours = true;
+        u.dernier = Date.now();
+        try {
+          const r = await Promise.race([window.__pcvBridge.callPlugin("Unifideck", "get_all_unifideck_games"), new Promise((_, non) => setTimeout(() => non(new Error("pas de r\xE9ponse en 15 s")), 15e3))]);
+          const l = Array.isArray(r) ? r : r?.success === false ? null : r?.data;
+          if (Array.isArray(l)) appliquer(l);
+          else rate("r\xE9ponse inattendue : " + String(JSON.stringify(r)).slice(0, 200));
+        } catch (e) {
+          rate(String(e?.message || e));
+        } finally {
+          u.enCours = false;
+          if (u.rejouer) {
+            u.rejouer = false;
+            charger(true);
+          }
+        }
+      };
+      const surEvenement = (e) => {
+        const d = e?.detail;
+        if (d && d.appId != null && typeof d.isInstalled === "boolean") {
+          for (const id of formes(d.appId)) if (u.jeux.get(id) !== d.isInstalled) {
+            u.jeux.set(id, d.isInstalled);
+            u.version++;
+          }
+        }
+        charger(true);
+      };
+      const charger = (force = false) => {
+        if (O.__pcvUnifideckEv !== surEvenement) {
+          for (const n of ["unifideck-sync-completed", "unifideck-game-state-changed"]) {
+            O.removeEventListener(n, O.__pcvUnifideckEv);
+            O.addEventListener(n, surEvenement);
+          }
+          O.__pcvUnifideckEv = surEvenement;
+        }
+        if (!O.DeckyBackend?.call) {
+          if (u.echecs < 3) rate("Decky absent");
+          return;
+        }
+        if (u.enCours) {
+          if (force) u.rejouer = true;
+          return;
+        }
+        if (force || u.echecs < 3 && Date.now() - u.dernier >= (u.ok ? 3e4 : 5e3)) lire();
+      };
+      const lanceur = (a) => {
+        try {
+          return String(O.appDetailsStore?.GetAppDetails?.(a.appid)?.strShortcutExe || "").includes("unifideck-launcher");
+        } catch (e) {
+          return false;
+        }
+      };
+      return {
+        charger,
+        version: () => u.version,
+        etat: (a) => {
+          charger();
+          const v = u.jeux.get(Number(a.appid));
+          return v !== void 0 ? v : !u.ok && u.echecs < 3 && lanceur(a) ? false : null;
+        }
+      };
+    })(),
     ouvrirAccueil: () => {
       try {
         if (!/^\/routes\/library\/home/.test(O.location?.pathname || "")) O.__pcvAller?.(1);
@@ -211,8 +327,9 @@ window.__pcvBridge = (() => {
     // brings a running app's window to the front (used for "open the app" from a notification/media player card)
     resumeApp: (appid) => {
       try {
-        const id = String(appid);
-        return O.SteamClient.Apps.RaiseWindowForGame?.(id) ?? O.SteamClient.Apps.NavigateToRunningApp?.(id);
+        const id = String(appid), a = O.SteamClient.Apps;
+        if (typeof a.RaiseWindowForGame === "function") return a.RaiseWindowForGame(id);
+        return a.NavigateToRunningApp?.(id);
       } catch (e) {
       }
     },

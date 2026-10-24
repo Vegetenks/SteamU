@@ -15994,7 +15994,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     const fronton = new T.Group();
     fronton.position.set(0, H2 + 4.6, ZC - 2.6);
     g.add(fronton);
-    const sig = panneau(17, 3.4, ecriteau("GUICHET DE LUIGI", { l: 1280, h: 256, fond: "#1f8a3a", bordC: "#f2c14e", taille: 112 }), 0.55);
+    const sig = panneau(17, 3.4, ecriteau(Tr("casino.jeu_guichet_titre").toUpperCase(), { l: 1280, h: 256, fond: "#1f8a3a", bordC: "#f2c14e", taille: 112 }), 0.55);
     sig.position.z = 0.3;
     fronton.add(sig);
     fronton.add(boite3(17.8, 4.2, 0.5, MATS.or));
@@ -19365,7 +19365,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       <path d="M${l - 5} 2 l2 2 -2 2 -2 -2z M4 ${h - 6} l2 2 -2 2 -2 -2z" fill="#f8f800"/>
       <g shape-rendering="geometricPrecision">${texteCerne(l / 2, 20.5, texte, 15, "#a8e048", "middle")}</g></svg>`;
   };
-  const nomMachine = (m) => !m ? "Machine" : machines.some((x) => x !== m && x.nom === m.nom) && m.sous ? `${m.nom} : ${m.sous}` : m.nom;
+  const nomMachine = (m) => !m ? Tr("casino.machine") : machines.some((x) => x !== m && x.nom === m.nom) && m.sous ? `${m.nom} : ${m.sous}` : m.nom;
   let hud = null, gain = null, tenuHud = false;
   const BOUTON_A = { centre: [85, 54], r: 17, jaune: "#f2ec12", socle: "#2c3140", police: "900 25px Nunito, sans-serif" };
   let boutonADessine = null;
@@ -19674,7 +19674,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     const h = (/* @__PURE__ */ new Date()).getHours();
     return h >= SOIR.debut || h < SOIR.fin;
   };
-  const salut = () => soir() ? "Bonsoir" : "Bonjour";
+  const salut = () => Tr(soir() ? "luigi.bonsoir" : "luigi.bonjour");
   const versEntrainement = () => {
     if (!bornes[0]) return;
     guide = { etape: "borne" };
@@ -21557,7 +21557,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         <div class="pupitre-boite"><div class="fiche"><b></b><hr><span></span></div><div class="carrousel"></div>
           <div class="bas-boite"><span class="retour" data-acte="b"><span class="bt" data-touche="2"></span>${Tr("casino.retour")}</span><span class="poser"><span class="bt" data-touche="1"></span>${Tr("casino.poser_sur_accueil")}</span><span class="total"><span>${Tr("casino.serie_complete")} :</span><b></b></span></div></div></div>
       <div class="bulle"><div class="texte"></div><div class="choix"></div><span class="suite"></span></div>
-      <div class="voile noir"><div class="chargement"><i>\u2605</i>Luigi ouvre le casino\u2026</div></div>`;
+      <div class="voile noir"><div class="chargement"><i>\u2605</i>${Tr("casino.chargement")}</div></div>`;
     conteneur.appendChild(racine);
     toileGL = racine.querySelector("canvas");
     masquerDessous(true);

@@ -1,4 +1,4 @@
-import datetime, json, os, pathlib, platform, pwd, re, socket, time, urllib.request, zipfile
+import datetime, json, os, pathlib, platform, pwd, re, socket, subprocess, time, urllib.request, zipfile
 
 import websocket
 
@@ -236,10 +236,18 @@ def journaux_steam(maison):
             r[n] = "\n".join([l for l in _lire(f).splitlines() if MOTIFS_PLANTAGE.search(l) and "Fontconfig" not in l][-150:])
     return r
 
-def rapport(maison, dossier_greffon, journaux, secours, etat_scripts, debogueur, local, maintenant=None, imports=None):
+def journal_decky(maison):
+    f = sorted(pathlib.Path(maison, "homebrew/logs").glob("*.log"), key=lambda f: f.stat().st_mtime)
+    if f: return "\n".join(_lire(f[-1]).splitlines()[-300:])
+    try: return subprocess.run(["journalctl", "-u", "plugin_loader", "-n", "300", "--no-pager"], capture_output=True, text=True, timeout=5).stdout
+    except Exception: return ""
+
+GARDES_PLANTAGE = 3   
+
+def rapport(maison, dossier_greffon, journaux, secours, etat_scripts, debogueur, local, maintenant=None, imports=None, court=False):
     maintenant = maintenant or datetime.datetime.now()
-    perf = performance(debogueur, local, telechargements(maison) / maintenant.strftime("steamu-performance-%Y%m%d-%H%M.json"))
-    infos, fenetres = steam(debogueur, local)
+    perf = None if court else performance(debogueur, local, telechargements(maison) / maintenant.strftime("steamu-performance-%Y%m%d-%H%M.json"))
+    infos, fenetres = ({}, {}) if court else steam(debogueur, local)
     secrets = secrets_locaux(maison) + list(infos.pop("secrets", None) or [])
     try: version = json.loads(_lire(pathlib.Path(dossier_greffon, "package.json"))).get("version")
     except Exception: version = None
@@ -247,9 +255,9 @@ def rapport(maison, dossier_greffon, journaux, secours, etat_scripts, debogueur,
                "steamu": version, "decky": _lire(pathlib.Path(maison, "homebrew/services/.loader.version")) or None,
                **systeme(), "steam": infos, "secours": {"pause": secours.pause, "historique": secours.historique},
                "scripts_poses": {k: dict(v) for k, v in list(etat_scripts.items())}, "fenetres": fenetres, "greffons_decky": greffons(maison),
-               "conflits": conflits.conflits(maison, debogueur, local, _evaluer), "performance": perf, "imports": imports,
+               "conflits": {} if court else conflits.conflits(maison, debogueur, local, _evaluer), "performance": perf, "imports": imports,
                "session": session()}
-    nom = maintenant.strftime("steamu-diagnostic-%Y%m%d-%H%M.zip")
+    nom = maintenant.strftime("steamu-plantage-%Y%m%d-%H%M.zip" if court else "steamu-diagnostic-%Y%m%d-%H%M.zip")
     cible = telechargements(maison) / nom
     tmp = cible.with_name("." + nom + ".tmp")
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
@@ -257,7 +265,10 @@ def rapport(maison, dossier_greffon, journaux, secours, etat_scripts, debogueur,
         for j in sorted(pathlib.Path(journaux).glob("*.log"), key=lambda f: f.stat().st_mtime)[-3:]:
             z.writestr("journaux/" + caviarder(j.name, secrets), caviarder(_lire(j), secrets))
         for n, t in journaux_steam(maison).items(): z.writestr("journaux-steam/" + n, caviarder(t, secrets))
+        z.writestr("journaux/decky.log", caviarder(journal_decky(maison), secrets))
     os.replace(tmp, cible)
+    if court:   
+        for vieux in sorted(cible.parent.glob("steamu-plantage-*.zip"), key=lambda f: f.stat().st_mtime)[:-GARDES_PLANTAGE]: vieux.unlink(missing_ok=True)
     if os.geteuid() == 0:   
         st = os.stat(cible.parent); os.chown(cible, st.st_uid, st.st_gid)
     return nom, resume_github(donnees, secrets)

@@ -4,7 +4,7 @@
   const B = window.__pcvBridge;
   const T = (k, f, vars) => {
     try {
-      return principale().m_BrowserWindow.__pcvT?.(k, vars) ?? f;
+      return (window.__pcvT || principale().m_BrowserWindow.__pcvT)?.(k, vars) ?? f;
     } catch (x) {
       return f;
     }
@@ -91,15 +91,25 @@
     poserImage("--pcv-home-logo", [...perso("GetCustomLogoImageURLs", a), IMG(a.appid, "logo.png"), CDN(a.appid, "logo.png")]);
   };
   const SEUIL_IPS = 55, PALIERS_IPS = [30, 15], ATTENTE_DIRECT_MS = 2e3;
-  let direct = null, directs = 0;
+  let direct = null, directs = 0, termine = false, imageGardee = "", gardes = 0;
+  const libererImageGardee = () => {
+    if (imageGardee) URL.revokeObjectURL(imageGardee);
+    imageGardee = "";
+  };
   const apercu = (m, ...a) => B.callPlugin(window.__pcvGreffon.nom, m, ...a).catch(() => null);
   const garder = (im) => {
-    if (!im?.naturalWidth || !menuOuvert()) return;
-    const c = d.createElement("canvas");
+    if (termine || !im?.naturalWidth || !menuOuvert()) return;
+    const n = ++gardes, c = d.createElement("canvas");
     c.width = im.naturalWidth;
     c.height = im.naturalHeight;
     c.getContext("2d").drawImage(im, 0, 0);
-    c.toBlob((b) => b && d.documentElement.style.setProperty("--pcv-home-image", `url(${JSON.stringify(URL.createObjectURL(b))})`), "image/jpeg", 0.9);
+    c.toBlob((b) => {
+      if (!b || termine || n !== gardes) return;
+      const u = URL.createObjectURL(b);
+      d.documentElement.style.setProperty("--pcv-home-image", `url(${JSON.stringify(u)})`);
+      libererImageGardee();
+      imageGardee = u;
+    }, "image/jpeg", 0.9);
   };
   const couper = () => {
     directs++;
@@ -123,6 +133,7 @@
     return x.getImageData(0, 0, 16, 9).data.every((v, i) => i % 4 === 3 || v < 4);
   };
   const enDirect = async (a, palier = 0) => {
+    if (termine) return;
     if (!palier) couper();
     const n = ++directs, u = await apercu("apercu", a.appid, PALIERS_IPS[palier]);
     if (n !== directs || !u || !menuOuvert() || e.racine.classList.contains("fige")) {
@@ -429,8 +440,10 @@
   });
   e.demarrer();
   window.__pcvHomeFin = () => {
+    termine = true;
     clearTimeout(sortie);
     couper();
+    libererImageGardee();
     scene.remove();
     e.fin();
     clearInterval(attente);

@@ -544,11 +544,11 @@
         <div class="bt pf" data-b="tri"></div><div class="bt pf" data-b="musique">\u266A ${T("themeplaza.avec_musique")}</div></div>
       <div class="source">${T("themeplaza.source")}</div><div class="grille"><div class="rang"></div></div>
       <div class="fiche"><div class="ecrans"></div><div class="infos"><h3></h3><div class="de"></div><p></p><div class="ch"></div>
-        <div class="credit">Th\xE8me cr\xE9\xE9 par la communaut\xE9, h\xE9berg\xE9 sur ThemePlaza (themeplaza.art)</div>
-        <div class="installer pf"><em></em><u>${o.T(1)}</u><span>Installer</span></div></div></div>
-      <div class="tpz-verif"><div class="tpz-tete"><div class="tpz-msg"><b>ThemePlaza demande une v\xE9rification</b>Le site veut s'assurer qu'une personne est l\xE0 : fais sa v\xE9rification ci-dessous, au doigt, comme dans un navigateur. L'onglet reprend tout seul.</div>
-        <div class="bt pf" data-v="reessayer"><u>${o.T(1)}</u>R\xE9essayer</div><div class="bt pf" data-v="fermer"><u>${o.T(2)}</u>Fermer</div></div>
-        <div class="tpz-site">Chargement de themeplaza.art\u2026</div></div>`;
+        <div class="credit">${T("themeplaza.credit", { site: "ThemePlaza (themeplaza.art)" })}</div>
+        <div class="installer pf"><em></em><u>${o.T(1)}</u><span>${T("themeplaza.installer")}</span></div></div></div>
+      <div class="tpz-verif"><div class="tpz-tete"><div class="tpz-msg"><b>${T("themeplaza.verif_titre", { site: "ThemePlaza" })}</b>${T("themeplaza.verif_texte")}</div>
+        <div class="bt pf" data-v="reessayer"><u>${o.T(1)}</u>${T("themeplaza.reessayer")}</div><div class="bt pf" data-v="fermer"><u>${o.T(2)}</u>${T("dispo.fermer")}</div></div>
+        <div class="tpz-site">${T("themeplaza.chargement", { site: "themeplaza.art" })}</div></div>`;
     racine.appendChild(boite);
     const champ = $(".champ input");
     champ.value = M.texte;

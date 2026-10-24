@@ -4828,7 +4828,7 @@
     raf = requestAnimationFrame(tour);
     window.__pcvGrilleAvantImage?.(t);
     if (REG.plafond && t - dernier < 1e3 / REG.plafond - 2) return;
-    const dt = Math.min(0.1, (t - dernier) / 1e3);
+    const dt = Math.max(0, Math.min(0.1, (t - dernier) / 1e3));
     dernier = t;
     dtImage = dt;
     if (!actif()) {
@@ -4900,6 +4900,7 @@
     }
     if (document.querySelector(".gpfocus")?.closest(".contextMenuItem, .FullModalOverlay")) return non("fen\xEAtre de Steam");
     if (document.querySelector("#pcv-amis .carte-zone > *")) return non("carte d'ami");
+    if (document.querySelector("#pcv-notifs .quoi:not([hidden])")) return non("Quoi de neuf");
     const el = document.elementFromPoint(innerWidth / 2, innerHeight * 0.62);
     if (!el) return non("rien au milieu");
     for (const [nom, id] of Object.entries(RACINES)) {

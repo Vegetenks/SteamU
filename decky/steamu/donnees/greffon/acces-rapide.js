@@ -8,14 +8,14 @@
   const d = document, h = d.documentElement;
   const T = (k, f, vars) => {
     try {
-      return principale().m_BrowserWindow.__pcvT?.(k, vars) ?? f;
+      return (window.__pcvT || principale().m_BrowserWindow.__pcvT)?.(k, vars) ?? f;
     } catch (x) {
       return f;
     }
   };
   const LOCALE = () => {
     try {
-      return principale().m_BrowserWindow.__pcvLocale?.() || "fr-FR";
+      return (window.__pcvLocale || principale().m_BrowserWindow.__pcvLocale)?.() || "fr-FR";
     } catch (x) {
       return "fr-FR";
     }
@@ -648,11 +648,13 @@
       pts[0]?.parentElement.style.setProperty("--fin", Math.max(0, Math.min(1, (fin - pos) / 0.5)).toFixed(3));
     }
   };
-  let cadre = null, gardeCadre = 0;
+  let cadre = null, gardeCadre = 0, rafCadre = 0;
   const contenu = () => [...d.querySelectorAll('[id^="quickaccess_content_"]')].find((c) => c.offsetWidth);
-  const placerCadre = () => {
+  const placerCadre = (moi) => {
+    if (cadre !== moi) return;
+    rafCadre = 0;
     const c = contenu(), b = e.$(".cadre-boite");
-    if (!c || !cadre) return requestAnimationFrame(placerCadre);
+    if (!c) return void (rafCadre = requestAnimationFrame(() => placerCadre(moi)));
     const r = b.getBoundingClientRect();
     h.style.setProperty("--pcv-cadre-l", "0px");
     h.style.setProperty("--pcv-cadre-w", "1000px");
@@ -664,7 +666,8 @@
     }
   };
   const ouvrirCadre = (onglet, titre, p) => {
-    cadre = { onglet };
+    cancelAnimationFrame(rafCadre);
+    const moi = cadre = { onglet };
     const s = e.$('[data-sous="cadre"]');
     s.querySelector(".titre-s > span:last-child").textContent = titre;
     s.querySelector(".titre-s .pastille").innerHTML = ico(p || "prise");
@@ -672,7 +675,7 @@
     ouvrirSous("cadre");
     h.dataset.pcvPeCadre = "";
     e.racine.classList.add("en-cadre");
-    requestAnimationFrame(placerCadre);
+    rafCadre = requestAnimationFrame(() => placerCadre(moi));
     clearInterval(gardeCadre);
     gardeCadre = setInterval(() => {
       if (!cadre) return clearInterval(gardeCadre);
@@ -684,6 +687,8 @@
     }, 200);
   };
   const fermerCadre = () => {
+    cancelAnimationFrame(rafCadre);
+    rafCadre = 0;
     if (!cadre) return false;
     cadre = null;
     clearInterval(gardeCadre);

@@ -1381,14 +1381,14 @@
       const p = bulleMii.m.objet.position.clone().setY(bulleMii.taille + 0.15).project(cam), un = innerHeight / 800;
       el.style.transform = `translate(${(p.x + 1) / 2 * innerWidth - 46 * un}px, calc(${(1 - p.y) / 2 * innerHeight}px - 100%))`;
     };
-    const jour = (d) => d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    const jour = (d) => d.toLocaleDateString(window.__pcvLocale?.() || "fr-FR", { day: "numeric", month: "short" });
     const carte = (b) => {
       const z = $(".carte-zone"), av = avatarDe();
       z.innerHTML = `<div class="voile"></div><div class="v carte">
         <div style="display:flex;align-items:center;gap:${u(16)}"><img src="${urlSure(av)}" alt="" style="width:${u(58)};height:${u(58)};border-radius:50%;box-shadow:0 0 0 ${u(3)} var(--pcv-lisere)">
           <span><b style="display:block;font-size:${u(22)}" class="qui"></b><span style="font-size:${u(14)};font-weight:800;color:var(--pcv-texte2)" class="ou"></span></span></div>
         <div class="v msg" style="position:relative">${b.img ? `<img src="${urlSure(b.img)}" alt="">` : ""}<span class="txt"></span></div>
-        <div class="actions"><button class="cyan" data-fiche="${echap(b.jeu.appid)}">Voir la fiche du jeu</button><button class="fermer">Fermer</button></div></div>`;
+        <div class="actions"><button class="cyan" data-fiche="${echap(b.jeu.appid)}">${Tr("place.voir_fiche")}</button><button class="fermer">${Tr("dispo.fermer")}</button></div></div>`;
       z.querySelector(".qui").textContent = pseudo();
       z.querySelector(".ou").textContent = `${b.jeu.display_name}, ${jour(b.date)}`;
       z.querySelector(".txt").textContent = b.txt;
@@ -1427,7 +1427,7 @@
       const brut = t - (tourPrec || t);
       tourPrec = t;
       if (REG.plafond && t - dernier + Math.min(brut, BUDGET.riMin) / 2 < 1e3 / REG.plafond) return;
-      const dt = fige ? 0 : Math.min(0.1, (t - dernier) / 1e3);
+      const dt = fige ? 0 : Math.max(0, Math.min(0.1, (t - dernier) / 1e3));
       dernier = t;
       temps += dt;
       const t0 = performance.now();
@@ -1719,7 +1719,7 @@
       if (b) ouvrir(b.dataset.action);
     });
     const heure = () => {
-      racine.querySelector(".heure").textContent = (/* @__PURE__ */ new Date()).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+      racine.querySelector(".heure").textContent = (/* @__PURE__ */ new Date()).toLocaleTimeString(window.__pcvLocale?.() || "fr-FR", { hour: "2-digit", minute: "2-digit" });
     };
     heure();
     window.__pcvPlaceHeure = setInterval(() => {

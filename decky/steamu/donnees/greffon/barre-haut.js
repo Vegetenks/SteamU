@@ -241,6 +241,13 @@
     const O = window.opener, delai = (ms) => new Promise((_, non) => setTimeout(() => non(new Error("d\xE9lai")), ms));
     const appel = (m, ...a) => O.DeckyBackend?.call("loader/call_plugin_method", "Pause Games", m, ...a) ?? Promise.reject(new Error("Decky absent"));
     const pg = O.__pcvPg = (m, ...a) => Promise.race([appel(m, ...a), delai(4e3)]);
+    const pgLa = O.__pcvPgLa = () => {
+      try {
+        return (O.DeckyPluginLoader?.plugins || []).some((x) => x.name === "Pause Games");
+      } catch (e) {
+        return false;
+      }
+    };
     const appidJeu = () => window.__pcvBridge.runningApp()?.appid || 0;
     O.__pcvJeuDevant = () => {
       try {
@@ -251,6 +258,7 @@
       }
     };
     O.__pcvPauser = (pid) => {
+      if (!pgLa()) return Promise.resolve();
       O.__pcvHomePid = pid;
       const p = O.__pcvPauseEnVol = appel("pause", pid).catch(() => {
       });
@@ -264,6 +272,7 @@
       if (!parLaGarde) veille = Date.now() + 1e4;
       if (O.__pcvReprise) return O.__pcvReprise;
       const p = O.__pcvReprise = (async () => {
+        if (!pgLa()) return true;
         for (let i = 0; i < 10; i++) {
           if (O.__pcvPauseEnVol) {
             await Promise.race([O.__pcvPauseEnVol, new Promise((r) => setTimeout(r, 2e3))]);
@@ -1844,7 +1853,7 @@
     };
     const montrer = (s, v) => {
       try {
-        if (O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.MenuStore.m_eOpenSideMenu) return;
+        if (window.__pcvBridge.menuState()) return;
       } catch (e) {
       }
       if (v == null || isNaN(v)) return;

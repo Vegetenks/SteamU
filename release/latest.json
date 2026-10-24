@@ -1,0 +1,28 @@
+{
+ "version": "0.1.9",
+ "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.9.zip",
+ "sha256": "44cf7d0106f7b845511b7eba415bd7558785a9f3f2d9371d6526a1947c2be92f",
+ "notes": {
+  "en": [
+   "Launching a game from the home screen no longer goes through Steam's game page and its loading spinner: SteamU's launch screen stays until the game's first picture, and when the game closes you are back on the home screen (B no longer leads into Steam).",
+   "Plaza: icons no longer disappear when the plaza is opened again quickly.",
+   "Home screen: the Miis get the same fix (their clock no longer runs backwards when the screen opens).",
+   "SteamU's own apps open with a 1 to 1.5 s launch screen.",
+   "Home screen: games from Unifideck (Epic, GOG, Amazon...) that are not installed are recognised as such. Thanks @lieserlV (#7)."
+  ],
+  "fr": [
+   "Lancer un jeu depuis l'accueil ne passe plus par la page du jeu de Steam et son rond de chargement : l'écran de lancement de SteamU reste jusqu'à la première image du jeu, et à sa fermeture tu reviens sur l'accueil (B ne mène plus dans Steam).",
+   "Place : les icônes ne disparaissent plus quand on rouvre la place rapidement.",
+   "Accueil : les Mii ont la même correction (leur horloge ne recule plus à l'ouverture de l'écran).",
+   "Les applis de SteamU s'ouvrent avec un écran de lancement de 1 à 1,5 s.",
+   "Accueil : les jeux d'Unifideck (Epic, GOG, Amazon...) qui ne sont pas installés sont reconnus comme tels. Merci à @lieserlV (#7)."
+  ],
+  "es": [
+   "Iniciar un juego desde el inicio ya no pasa por la página del juego de Steam ni por su círculo de carga: la pantalla de inicio de SteamU se queda hasta la primera imagen del juego, y al cerrarlo vuelves al inicio (B ya no lleva a Steam).",
+   "Plaza: los iconos ya no desaparecen al volver a abrir la plaza rápidamente.",
+   "Inicio: los Mii reciben la misma corrección (su reloj ya no retrocede al abrir la pantalla).",
+   "Las aplicaciones de SteamU se abren con una pantalla de inicio de 1 a 1,5 s.",
+   "Inicio: los juegos de Unifideck (Epic, GOG, Amazon...) que no están instalados se reconocen como tales. Gracias a @lieserlV (#7)."
+  ]
+ }
+}

@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.1.9 (2026-10-22)
+
+- Launching a game from the home screen no longer goes through Steam's game page and its loading spinner: SteamU's launch screen stays until the game's first picture, and when the game closes you are back on the home screen (B no longer leads into Steam).
+- Plaza: icons no longer disappear when the plaza is opened again quickly.
+- Home screen: the Miis get the same fix (their clock no longer runs backwards when the screen opens).
+- SteamU's own apps open with a 1 to 1.5 s launch screen.
+- Home screen: games from Unifideck (Epic, GOG, Amazon...) that are not installed are recognised as such. Thanks @lieserlV (#7).
+
+## v0.1.8 (2026-10-22)
+
+- SteamU can now update itself from GitHub. When a new version is out, a pinned notification appears; "See more" shows what's new, and "Install" installs it through Decky.
+- You can turn off the update check in Settings, SteamU, Privacy.
+- If SteamU's safety net has to stop it, a short crash report is saved in your Downloads folder by itself, and a notification tells you about it the next time it starts.
+- Crash reports now include Decky's log.
+- HOME Menu: "Close Software" works again without the Pause Games plugin (reported on a ROG Ally).
+- Resetting SteamU and "Erase everything" now ask you to pick between two real buttons, with "Cancel" chosen first: pressing A twice no longer erases everything.
+- Themes, "Delete theme": B cancels the request instead of closing the panel, and the A key is drawn on the chosen button.
+- HOME Menu and quick settings: they no longer leave work running in the background once closed, and the paused game's picture no longer takes memory afterwards.
+- Resuming a game no longer resumes it twice in a row.
+- Texts that stayed in French are now translated: HOME Menu, quick settings, friends, your page, notifications, folders, game page, themes, arcade, casino, Mii Maker, plaza and credits.
+- Dates and times follow Steam's language.
+
 ## v0.1.7-test (2026-10-21)
 
 - Settings → Storage: the game list now fills the card (drives and usage bar are more compact), so several games are visible instead of one.

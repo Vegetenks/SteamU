@@ -1,8 +1,32 @@
-# SteamU v0.1.7 (test build)
+# SteamU v0.1.9
 
-**SteamU v0.1.7 (test build).** This is an early version for testers: expect bugs, and please report them.
+**SteamU v0.1.9.** This is an early version for testers: expect bugs, and please report them.
 
 SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspired by the Wii U and 3DS home menus (home grid, HOME menu, quick settings, notifications, friends, plaza…).
+
+### What's new in v0.1.9
+- Launching a game from the home screen no longer goes through Steam's game page and its loading spinner: SteamU's launch screen stays until the game's first picture, and when the game closes you are back on the home screen (B no longer leads into Steam).
+- Plaza: icons no longer disappear when the plaza is opened again quickly.
+- Home screen: the Miis get the same fix (their clock no longer runs backwards when the screen opens).
+- SteamU's own apps open with a 1 to 1.5 s launch screen.
+- Home screen: games from Unifideck (Epic, GOG, Amazon...) that are not installed are recognised as such. Thanks @lieserlV (#7).
+
+Already on v0.1.8? SteamU offers this update by itself: a pinned notification appears, press Install.
+
+### What's new in v0.1.8
+- SteamU can now update itself from GitHub. When a new version is out, a pinned notification appears; "See more" shows what's new, and "Install" installs it through Decky.
+- You can turn off the update check in Settings, SteamU, Privacy.
+- If SteamU's safety net has to stop it, a short crash report is saved in your Downloads folder by itself, and a notification tells you about it the next time it starts.
+- Crash reports now include Decky's log.
+- HOME Menu: "Close Software" works again without the Pause Games plugin (reported on a ROG Ally).
+- Resetting SteamU and "Erase everything" now ask you to pick between two real buttons, with "Cancel" chosen first: pressing A twice no longer erases everything.
+- Themes, "Delete theme": B cancels the request instead of closing the panel, and the A key is drawn on the chosen button.
+- HOME Menu and quick settings: they no longer leave work running in the background once closed, and the paused game's picture no longer takes memory afterwards.
+- Resuming a game no longer resumes it twice in a row.
+- Texts that stayed in French are now translated: HOME Menu, quick settings, friends, your page, notifications, folders, game page, themes, arcade, casino, Mii Maker, plaza and credits.
+- Dates and times follow Steam's language.
+
+**v0.1.8 is the first version that can update itself.** Install it once from the zip below (or any later version); after that, SteamU tells you when a new version is out and installs it in one press.
 
 ### What's new in v0.1.7
 - No more double sign-in screen: when Steam has just shown its own "Who's playing?" (and PIN), SteamU skips its welcome screen (#2).
@@ -47,7 +71,7 @@ SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspi
 Full list in [CHANGELOG.md](../CHANGELOG.md).
 
 ### Install
-1. Download [SteamU-v0.1.7-test.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.7-test.zip).
+1. Download [SteamU-v0.1.9.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.9.zip).
 2. In Decky Loader: Settings → Developer → *Install plugin from ZIP file*, pick the zip.
 3. Restart Steam (or the console). The SteamU welcome screen appears: press A.
 

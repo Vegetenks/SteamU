@@ -283,7 +283,7 @@
     return d;
   };
   const ajouterImporte = (d, origine, source) => {
-    if (moteur && !depuisStore(d)) throw new Error("refus\xE9 par le moteur des Mii");
+    if (moteur && !depuisStore(d)) throw new Error(Tr("miimaker.refuse_moteur"));
     if (MB()) return MB().ajouter(d, origine, source);
     const b = base(), id = hex(d.subarray(12, 22)), e = b.mii.find((m) => m.id === id), t = Date.now();
     if (e) Object.assign(e, { donnees: b64(d), modifie: t });
@@ -1188,7 +1188,7 @@
   };
   const plaque = (texte, moi) => {
     const p = $(".plaque");
-    p.innerHTML = texte ? `${echapper(texte)}${moi ? "<em>C'est toi</em>" : ""}` : "";
+    p.innerHTML = texte ? `${echapper(texte)}${moi ? `<em>${Tr("miimaker.cest_toi_court")}</em>` : ""}` : "";
     p.classList.toggle("verre", !!texte);
   };
   const bulleScene = (texte) => {
@@ -1463,11 +1463,11 @@ ${t}
   const fileMini = [];
   let miniEnCours = false, demandeCat = 0;
   const parId = (id) => cat.mii.find((m) => m.id === id) || null;
-  const credit = (m) => m.auteur ? m.source ? `source : ${m.auteur}` : `par ${m.auteur}` : "auteur inconnu";
+  const credit = (m) => m.auteur ? m.source ? Tr("miimaker.credit_source", { auteur: m.auteur }) : Tr("miimaker.credit_par", { auteur: m.auteur }) : Tr("themeplaza.auteur_inconnu");
   const miiDuCatalogue = async (id) => {
     if (cat.decodes.has(id)) return cat.decodes.get(id);
     const r = await appelerGreffon("infinimii_qr", id);
-    if (typeof r !== "string") throw new Error(r?.erreur || "QR introuvable");
+    if (typeof r !== "string") throw new Error(r?.erreur || Tr("miimaker.qr_introuvable"));
     await chargerJsQR();
     if (!window.__pcvMiiQR) throw new Error("mii-qr.js absent");
     const d = await window.__pcvMiiQR.depuisImage(await createImageBitmap(new Blob([deB64(r)], { type: "image/png" })));
@@ -1476,10 +1476,10 @@ ${t}
   };
   const ouvrirCatalogue = () => {
     changerEcran("catalogue");
-    $(".titre").innerHTML = "Catalogue<small>Mii de la communaut\xE9 InfiniMii</small>";
-    $(".panneau").innerHTML = `<div class="tete-panneau"><div class="pilule"><button data-nav data-retour>Tes Mii</button><button class="actif">Catalogue</button></div>
+    $(".titre").innerHTML = `${Tr("miimaker.catalogue")}<small>${Tr("miimaker.catalogue_sous")}</small>`;
+    $(".panneau").innerHTML = `<div class="tete-panneau"><div class="pilule"><button data-nav data-retour>${Tr("miimaker.tes_mii")}</button><button class="actif">${Tr("miimaker.catalogue")}</button></div>
         <span class="source-cat">infinimii.com</span></div>
-      <div class="cherche"><input class="cherche-cat" data-nav maxlength="60" placeholder="Chercher un Mii : Mario, Zelda, Ironman\u2026" value="${echapper(cat.texte)}"><button class="ok" data-nav data-chercher>Chercher</button></div>
+      <div class="cherche"><input class="cherche-cat" data-nav maxlength="60" placeholder="${Tr("miimaker.chercher_placeholder")}" value="${echapper(cat.texte)}"><button class="ok" data-nav data-chercher>${Tr("miimaker.chercher")}</button></div>
       <div class="fiche-cat" hidden></div>
       <div class="contenu"><div class="defile"><div class="grille etagere catalogue" style="--col:5"></div></div></div>`;
     const champ = $(".cherche-cat");
@@ -1504,13 +1504,13 @@ ${t}
     $(".catalogue").parentElement.onscroll = vignettesCat;
     remplirCatalogue();
     majFiche();
-    indices([[2, "Retour"], ["|"], [3, "Chercher"], [4, "Ajouter"], [1, "Choisir", true]]);
+    indices([[2, Tr("menus.retour")], ["|"], [3, Tr("miimaker.chercher")], [4, Tr("acces.ajouter")], [1, Tr("miimaker.choisir"), true]]);
     if (!cat.page && !cat.attente) chercherCatalogue("");
     else if (cat.choisi) montrerCatalogue(cat.choisi);
     else {
       montrer(hasard());
       plaque("");
-      bulleScene("Choisis un Mii du catalogue : il viendra ici");
+      bulleScene(Tr("miimaker.choisis_catalogue"));
     }
     poserFocus(racine.querySelector(`.catalogue .mii[data-id="${cat.choisi || ""}"]`) || racine.querySelector(".catalogue .mii") || champ);
   };
@@ -1531,11 +1531,11 @@ ${t}
     try {
       r = await appelerGreffon("infinimii_recherche", texte, page);
     } catch (e) {
-      r = { erreur: "greffon pas encore red\xE9marr\xE9" };
+      r = { erreur: Tr("commun.greffon_pas_redemarre") };
     }
     if (n !== demandeCat) return;
     cat.attente = false;
-    if (!r || r.erreur || !Array.isArray(r.mii)) cat.erreur = r?.erreur || "r\xE9ponse illisible";
+    if (!r || r.erreur || !Array.isArray(r.mii)) cat.erreur = r?.erreur || Tr("miimaker.reponse_illisible");
     else {
       const vus = new Set(cat.mii.map((m) => m.id));
       cat.mii.push(...r.mii.filter((m) => m && typeof m.id === "string" && !vus.has(m.id)));
@@ -1555,7 +1555,7 @@ ${t}
     const G = racine?.querySelector(".catalogue");
     if (!G) return;
     fileMini.length = 0;
-    G.innerHTML = cat.mii.map((m, i) => `<button class="mii${m.id === cat.choisi ? " choisi" : ""}" data-nav data-i="${i}" data-id="${echapper(m.id)}"><span class="ic"><img alt=""></span><b>${echapper(m.nom)}</b><small>${echapper(m.auteur || "")}</small></button>`).join("") + (cat.attente ? '<div class="vide">Recherche sur InfiniMii\u2026</div>' : cat.erreur && !cat.mii.length ? `<div class="vide">${echapper(cat.erreur)}</div>` : !cat.mii.length ? `<div class="vide">Aucun Mii trouv\xE9${cat.texte ? ` pour \xAB ${echapper(cat.texte)} \xBB` : ""}.</div>` : cat.suite ? '<button class="plus" data-nav data-plus>Plus de Mii</button>' : "");
+    G.innerHTML = cat.mii.map((m, i) => `<button class="mii${m.id === cat.choisi ? " choisi" : ""}" data-nav data-i="${i}" data-id="${echapper(m.id)}"><span class="ic"><img alt=""></span><b>${echapper(m.nom)}</b><small>${echapper(m.auteur || "")}</small></button>`).join("") + (cat.attente ? `<div class="vide">${Tr("miimaker.recherche_infinimii")}</div>` : cat.erreur && !cat.mii.length ? `<div class="vide">${echapper(cat.erreur)}</div>` : !cat.mii.length ? `<div class="vide">${cat.texte ? Tr("miimaker.aucun_mii_trouve_pour", { texte: echapper(cat.texte) }) : Tr("miimaker.aucun_mii_trouve")}</div>` : cat.suite ? `<button class="plus" data-nav data-plus>${Tr("miimaker.plus_de_mii")}</button>` : "");
     G.querySelectorAll(".mii").forEach((b) => {
       b.onclick = () => {
         poserFocus(b);
@@ -1633,7 +1633,7 @@ ${t}
       const d = await miiDuCatalogue(id);
       if (!ouvert || ecran !== "catalogue" || cat.choisi !== id) return;
       const ci = depuisStore(d);
-      if (!ci) throw new Error("refus\xE9 par le moteur des Mii");
+      if (!ci) throw new Error(Tr("miimaker.refuse_moteur"));
       montrer(ci);
       plaque(nomStore(d) || m.nom);
       bulleScene("");
@@ -1676,11 +1676,11 @@ ${t}
   };
   const ouvrirSosies = (garder2) => {
     changerEcran("sosies");
-    $(".titre").innerHTML = "Choisis un sosie<small>Le plus ressemblant, puis retouche-le</small>";
+    $(".titre").innerHTML = `${Tr("miimaker.sosie_titre")}<small>${Tr("miimaker.sosie_aide")}</small>`;
     if (!garder2 || !sosies.ci.length) sosies.ci = Array.from({ length: 18 }, () => hasard(sosies.sexe, sosies.age ?? void 0));
     const S = $(".sosies");
-    S.innerHTML = `<div class="filtres"><div class="duo">${["Gar\xE7ons", "Filles"].map((n, i) => `<button data-nav data-sexe="${i}" class="${sosies.sexe === i ? "actif" : ""}">${n}</button>`).join("")}</div>
-      <div class="duo">${["Enfants", "Adultes", "A\xEEn\xE9s"].map((n, i) => `<button data-nav data-age="${i}" class="${sosies.age === i ? "actif" : ""}">${n}</button>`).join("")}</div></div>
+    S.innerHTML = `<div class="filtres"><div class="duo">${[Tr("miimaker.garcons"), Tr("miimaker.filles")].map((n, i) => `<button data-nav data-sexe="${i}" class="${sosies.sexe === i ? "actif" : ""}">${n}</button>`).join("")}</div>
+      <div class="duo">${[Tr("miimaker.enfants"), Tr("miimaker.adultes"), Tr("miimaker.aines")].map((n, i) => `<button data-nav data-age="${i}" class="${sosies.age === i ? "actif" : ""}">${n}</button>`).join("")}</div></div>
       <div class="grille grille-sosies">${sosies.ci.map((_, i) => `<button class="mii" data-nav data-i="${i}"><span class="ic"><canvas></canvas></span></button>`).join("")}</div>`;
     S.querySelectorAll("[data-sexe]").forEach((b) => {
       b.onclick = () => {
@@ -1707,7 +1707,7 @@ ${t}
         ouvrirEditeur(sosies.ci[i].slice(), { reaction: "joie" });
       };
     });
-    indices([[2, "Retour"], ["|"], [4, "Autres visages"], [1, "Choisir", true]]);
+    indices([[2, Tr("menus.retour")], ["|"], [4, Tr("miimaker.autres_visages")], [1, Tr("miimaker.choisir"), true]]);
     if (!focus) poserFocus(S.querySelector(".grille-sosies .mii"));
   };
   const ouvrirEditeur = (ci, o = {}) => {
@@ -1719,7 +1719,7 @@ ${t}
     montrer(ed.ci, { moi: ed.moi });
     reagir(o.reaction || "sourire");
     choisirCat(o.cat ?? 0, o.page ?? 0);
-    indices([["5,6", "Cat\xE9gorie"], [3, "Zoom"], ["|"], [2, "Retour"], [4, "Terminer", true]]);
+    indices([["5,6", Tr("miimaker.categorie")], [3, Tr("miimaker.zoom")], ["|"], [2, Tr("menus.retour")], [4, Tr("miimaker.terminer"), true]]);
   };
   const poserOnglets = () => {
     $(".onglets").innerHTML = CATS.map((c, i) => `<button class="onglet verre${ed && i === ed.cat ? " actif" : ""}" data-nav data-cat="${i}" data-nom="${c.nom}"><i>${ICONES[c.id]}</i></button>`).join("");
@@ -1745,7 +1745,7 @@ ${t}
   const premierDuPanneau = () => $(".panneau .actuel") || $(".panneau .contenu [data-nav]") || $(".panneau [data-nav]");
   const titreEditeur = () => {
     const n = nomDe(ed.ci);
-    $(".titre").innerHTML = `${echapper(n || "Nouveau Mii")}${ed.modifie ? "<small>non enregistr\xE9</small>" : ""}`;
+    $(".titre").innerHTML = `${echapper(n || Tr("miimaker.nouveau_mii"))}${ed.modifie ? `<small>${Tr("miimaker.non_enregistre")}</small>` : ""}`;
   };
   const construirePage = () => {
     const cat2 = CATS[ed.cat], page = cat2.pages[ed.page];
@@ -1777,7 +1777,7 @@ ${t}
   };
   const pageTenue = (C, page) => {
     const l = garde.filter((a) => a.categorie === page.sorte), seul = page.sorte !== "accessoire";
-    C.innerHTML = `<div class="defile"><div class="grille" style="--col:4">${[null, ...l].map((a, i) => `<button class="choix article" data-nav data-i="${i}" data-article="${a ? echapper(a.id) : ""}"><canvas></canvas><span class="etiquette">${a ? echapper(a.nom) : "Aucun"}</span></button>`).join("")}</div></div>`;
+    C.innerHTML = `<div class="defile"><div class="grille" style="--col:4">${[null, ...l].map((a, i) => `<button class="choix article" data-nav data-i="${i}" data-article="${a ? echapper(a.id) : ""}"><canvas></canvas><span class="etiquette">${a ? echapper(a.nom) : Tr("miimaker.aucun")}</span></button>`).join("")}</div></div>`;
     const maj = () => C.querySelectorAll(".choix").forEach((el) => {
       const id = el.dataset.article;
       el.classList.toggle("actuel", id ? ed.tenue.includes(id) : !ed.tenue.some((x) => l.some((a) => a.id === x)));
@@ -1876,11 +1876,11 @@ ${t}
   const pageProfil = (C) => {
     const m = lireC(ed.ci, "birthMonth"), j = lireC(ed.ci, "birthDay"), s = lireC(ed.ci, "gender");
     C.innerHTML = `<div class="fiche">
-      <label class="ligne"><span>Surnom</span><input data-nav class="surnom" maxlength="${NOM_MAX}" placeholder="Son surnom (10 lettres)" value="${echapper(nomDe(ed.ci))}"></label>
-      <div class="ligne"><span>Sexe</span><div class="duo">${["Gar\xE7on", "Fille"].map((n, i) => `<button data-nav data-sexe="${i}" class="${s === i ? "actif" : ""}">${n}</button>`).join("")}</div></div>
+      <label class="ligne"><span>${Tr("miimaker.surnom")}</span><input data-nav class="surnom" maxlength="${NOM_MAX}" placeholder="${Tr("miimaker.surnom_placeholder")}" value="${echapper(nomDe(ed.ci))}"></label>
+      <div class="ligne"><span>${Tr("miimaker.sexe")}</span><div class="duo">${[Tr("miimaker.garcon"), Tr("miimaker.fille")].map((n, i) => `<button data-nav data-sexe="${i}" class="${s === i ? "actif" : ""}">${n}</button>`).join("")}</div></div>
       <div class="ligne"><span>${Tr("miimaker.anniversaire")}</span><div class="date"><button class="pas" data-nav data-mois="-1"><i>${ICONES.gauche}</i></button><b class="mois">${MOIS[m]}</b><button class="pas" data-nav data-mois="1"><i>${ICONES.droite}</i></button>
         <button class="pas" data-nav data-jour="-1"><i>${ICONES.gauche}</i></button><b class="jour">${m ? j : "-"}</b><button class="pas" data-nav data-jour="1"><i>${ICONES.droite}</i></button></div></div>
-      <div class="ligne"><span>Ce Mii, c'est\u2026</span><button class="interrupteur${ed.moi ? " on" : ""}" data-nav data-moi><i>${ICONES.moi}</i>${ed.moi ? "Moi !" : "Quelqu'un d'autre"}</button></div></div>`;
+      <div class="ligne"><span>${Tr("miimaker.ce_mii_cest")}</span><button class="interrupteur${ed.moi ? " on" : ""}" data-nav data-moi><i>${ICONES.moi}</i>${ed.moi ? Tr("miimaker.moi") : Tr("miimaker.quelquun")}</button></div></div>`;
     const champ = C.querySelector(".surnom");
     champ.oninput = () => {
       nommer(ed.ci, champ.value);
@@ -1940,7 +1940,7 @@ ${t}
     CATS[0].pages[0].majour = () => C.querySelectorAll("[data-sexe]").forEach((b) => b.classList.toggle("actif", +b.dataset.sexe === lireC(ed.ci, "gender")));
   };
   const pageSilhouette = (C) => {
-    const L = [["height", "Taille", "petit", "grand"], ["build", "Corpulence", "mince", "fort"]];
+    const L = [["height", Tr("miimaker.taille"), "petit", "grand"], ["build", Tr("miimaker.corpulence"), "mince", "fort"]];
     C.innerHTML = `<div class="reglages">${L.map(([c, nom, a, b]) => `<div class="glissiere" data-champ="${c}" data-nav data-glissiere><span class="nom">${nom}</span><i>${ICONES[a]}</i><div class="jauge"><u></u><b></b></div><i>${ICONES[b]}</i></div>`).join("")}</div>`;
     const maj = () => C.querySelectorAll(".glissiere").forEach((l) => {
       const c = l.dataset.champ;
@@ -2038,7 +2038,7 @@ ${t}
   };
   const quitterEditeur = async () => {
     if (ed.modifie) {
-      const r = await demanderChoix("Enregistrer ce Mii avant de partir ?", ["Enregistrer", "Ne pas enregistrer", "Continuer"]);
+      const r = await demanderChoix(Tr("miimaker.enregistrer_avant"), [Tr("miimaker.enregistrer"), Tr("miimaker.ne_pas_enregistrer"), Tr("steamu.continuer")]);
       if (r === 0) return terminer();
       if (r !== 1) return;
     }
@@ -2278,7 +2278,7 @@ ${t}
     racine.dataset.ecran = "accueil";
     racine.innerHTML = `<style>${CSS}</style>
       <div class="scene"><canvas></canvas><div class="bulle-scene verre" hidden></div><div class="plaque"></div>
-        <button class="rond zoom verre" data-pour="editeur" hidden title="Zoom"><i>${ICONES.zoom}</i></button></div>
+        <button class="rond zoom verre" data-pour="editeur" hidden title="${Tr("miimaker.zoom")}"><i>${ICONES.zoom}</i></button></div>
       <div class="titre"></div>
       <div class="onglets" data-pour="editeur" hidden></div>
       <div class="panneau verre" data-pour="accueil editeur catalogue"></div>

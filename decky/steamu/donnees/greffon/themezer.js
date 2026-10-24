@@ -327,8 +327,8 @@
         <div class="source">${T("themezer.source")}</div><div class="grille"><div class="rang"></div></div>
         <div class="fiche"><div class="ecrans"></div><div class="infos"><h3></h3><div class="de"></div><p></p><div class="ch"></div>
           <div class="apporte">${o.echap(C.apporte)}</div>
-          <div class="credit">Th\xE8me cr\xE9\xE9 par la communaut\xE9, h\xE9berg\xE9 sur Themezer (themezer.net)</div>
-          <div class="installer pf"><em></em><u>${o.T(1)}</u><span>Installer</span></div></div></div>`;
+          <div class="credit">${T("themeplaza.credit", { site: "Themezer (themezer.net)" })}</div>
+          <div class="installer pf"><em></em><u>${o.T(1)}</u><span>${T("themeplaza.installer")}</span></div></div></div>`;
       racine.appendChild(boite);
       const champ = $(".champ input");
       champ.value = M.texte;

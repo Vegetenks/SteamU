@@ -26,8 +26,8 @@
   const O = window.opener;
   const entete = () => {
     try {
-      const p = O.g_FriendsUIApp.FriendStore.self.persona, r = document.documentElement.style;
-      const av = p.avatar_url_full || p.avatar_url_medium || "", v = av && `url(${JSON.stringify(av)})`, n = p.m_strPlayerName && JSON.stringify(p.m_strPlayerName);
+      const p = window.__pcvBridge.compteCourant(), r = document.documentElement.style;
+      const av = p?.avatar || "", v = av && `url(${JSON.stringify(av)})`, n = p?.nom && JSON.stringify(p.nom);
       if (v && r.getPropertyValue("--pcv-avatar") !== v) r.setProperty("--pcv-avatar", v);
       if (n && r.getPropertyValue("--pcv-pseudo") !== n) r.setProperty("--pcv-pseudo", n);
     } catch (e) {
@@ -49,7 +49,8 @@
   };
   window.__pcvJeuFin?.();
   const JEU = { col: "{{NavigationColumn@ItemOuter}}", boite: "{{NavigationBox@ItemOuter}}", entree: "{{NavigationMenuItem@ItemOuter}}", racine: "{{AppRunningControls@ItemOuter}}" };
-  const ROLES = { resume: ["reprendre", "Reprendre"], exit: ["fermer", "Fermer"] };
+  const T = (k, f, vars) => window.__pcvT?.(k, vars) ?? f;
+  const ROLES = { resume: ["reprendre", T("home.reprendre", "Reprendre")], exit: ["fermer", T("dispo.fermer", "Fermer")] };
   const IMG = (id, f) => `https://steamloopback.host/assets/${id}/${f}`;
   const CDN = (id, f) => `https://shared.steamstatic.com/store_item_assets/steam/apps/${id}/${f}`;
   const fibre = (el) => {
@@ -142,7 +143,7 @@
   window.__pcvJeuOutils = { IMG, CDN, perso, debut };
   const ecrireDuree = (el, a) => {
     const t = Date.now() / 1e3, t0 = debut(a);
-    const m = Math.floor((t - t0) / 60), h = Math.floor(m / 60), s = "\u25CF En cours, " + (h ? `${h} h ${m % 60} min` : `${m} min`);
+    const m = Math.floor((t - t0) / 60), h = Math.floor(m / 60), s = "\u25CF " + T("dispo.en_cours", "En cours") + ", " + (h ? `${h} h ${m % 60} min` : `${m} min`);
     if (el.textContent !== s) el.textContent = s;
   };
   const habiller = (col) => {

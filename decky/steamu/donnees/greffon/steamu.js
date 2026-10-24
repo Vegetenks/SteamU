@@ -171,6 +171,8 @@
   };
   const parolesActif = () => lireBool(CLE_PAROLES, false);
   const artAutoActif = () => lireBool(CLE_ART_AUTO, true);
+  const CLE_MAJ = "pcv-maj-auto";
+  const majActif = () => lireBool(CLE_MAJ, true);
   document.getElementById("pcv-steamu")?.remove();
   document.getElementById("pcv-onglet-steamu")?.remove();
   const page = document.createElement("div");
@@ -388,10 +390,10 @@
     } catch (e) {
     }
   };
-  const ligneCredit = (e) => `<div class="credit" data-a="lien:${esc(e.lien || "")}"><div class="c-tete"><i class="ico-mini">${ico(ICO[e.ico] || ICO.etoile)}</i><b>${esc(e.nom)}</b></div>
-      <div class="c-lignes">${e.auteurs ? `<span>${T("steamu.credits.lbl.auteurs")} : ${esc(e.auteurs)}</span>` : ""}
-      ${e.cheznous ? `<span>${T("steamu.credits.lbl.cheznous")} : ${esc(e.cheznous)}</span>` : ""}
-      ${e.licence ? `<span>${T("steamu.credits.lbl.licence")} : ${esc(e.licence)}</span>` : ""}
+  const ligneCredit = (e) => `<div class="credit" data-a="lien:${esc(e.lien || "")}"><div class="c-tete"><i class="ico-mini">${ico(ICO[e.ico] || ICO.etoile)}</i><b>${esc(T(e.nom))}</b></div>
+      <div class="c-lignes">${e.auteurs ? `<span>${T("steamu.credits.lbl.auteurs")}${T("commun.deux_points")}${esc(T(e.auteurs))}</span>` : ""}
+      ${e.cheznous ? `<span>${T("steamu.credits.lbl.cheznous")}${T("commun.deux_points")}${esc(T(e.cheznous))}</span>` : ""}
+      ${e.licence ? `<span>${T("steamu.credits.lbl.licence")}${T("commun.deux_points")}${esc(T(e.licence))}</span>` : ""}
       ${e.lien ? `<span class="lien">${esc(e.lien)}</span>` : ""}</div></div>`;
   const dessinerContrib = () => {
     const c = CREDITS();
@@ -451,6 +453,8 @@
         <span>${T("steamu.confid.art_auto")}<small>${T("steamu.confid.art_auto.aide")}</small></span><i class="inter"></i></button>
       <button class="bouton confid-ligne${parolesActif() ? " oui" : ""}${S.highlightConfid ? " vise" : ""}" data-a="paroles-bascule"><i class="pastille">${ico(ICO.paroles)}</i>
         <span>${T("steamu.confid.paroles")}<small>${T("steamu.confid.paroles.aide")}</small></span><i class="inter"></i></button>
+      <button class="bouton confid-ligne${majActif() ? " oui" : ""}" data-a="maj-bascule"><i class="pastille">${ico(ICO.internet)}</i>
+        <span>${T("steamu.confid.maj")}<small>${T("steamu.confid.maj.aide")}</small></span><i class="inter"></i></button>
       <p class="note">${T("steamu.confid.note")}</p></div>`;
   const dessinerConflits = () => {
     const cles = Object.keys(conflitsActifs);
@@ -474,8 +478,11 @@
     const d = DANGER[S.confirm.type], grave = S.confirm.etape === 2;
     return `<i class="pastille" style="width:calc(var(--u) * 70);height:calc(var(--u) * 70);padding:calc(var(--u) * 16);background:${grave ? "color-mix(in srgb, var(--pcv-rouge) 16%, transparent)" : "var(--pcv-ambre-fond)"};color:${grave ? "var(--pcv-rouge-texte)" : "var(--pcv-ambre-texte)"}">${ico(grave ? ICO.danger : d.ic)}</i>
       <h2>${T(grave ? "steamu.danger.titre2" : d.cle + ".titre1")}</h2><p>${T(grave ? "steamu.danger.texte2" : d.cle + ".texte1")}</p>
-      <div class="choix"><button class="bouton" data-a="confirm-annuler"><i class="pastille">${ico(ICO.fermer)}</i>${T("steamu.annuler")}</button>
-      <button class="bouton rouge" data-a="confirm-suite"><i class="pastille">${ico(grave ? d.ic : ICO.fermer)}</i>${grave ? T(d.cle + ".action") : T("steamu.continuer")}</button></div>`;
+      <div class="choix">${bouton(0, "", "confirm-annuler", ICO.fermer, T("steamu.annuler"))}${bouton(1, " rouge", "confirm-suite", grave ? d.ic : ICO.fermer, grave ? T(d.cle + ".action") : T("steamu.continuer"))}</div>`;
+  };
+  const bouton = (k, cl, a, ic, mot) => {
+    const f = S.confirm.k === k;
+    return `<button class="bouton${cl}${f ? " f" : ""}" data-a="${a}">${f ? touche(1) : `<i class="pastille">${ico(ic)}</i>`}${mot}</button>`;
   };
   const dessinerSignaler = () => {
     const s = S.signaler;
@@ -1013,15 +1020,18 @@
     } else if (a === "art-auto-bascule") {
       ecrireBool(CLE_ART_AUTO, !artAutoActif());
       son("choisir");
+    } else if (a === "maj-bascule") {
+      ecrireBool(CLE_MAJ, !majActif());
+      son("choisir");
     } else if (a.startsWith("confirm:")) {
-      S.confirm = { type: a.slice(8), etape: 1 };
+      S.confirm = { type: a.slice(8), etape: 1, k: 0 };
       son("choisir");
     } else if (a === "confirm-annuler") {
       S.confirm = null;
       son("retour");
     } else if (a === "confirm-suite") {
       if (S.confirm.etape === 1) {
-        S.confirm.etape = 2;
+        Object.assign(S.confirm, { etape: 2, k: 0 });
         son("choisir");
       } else if (S.confirm.type === "reset") reinitialiser();
       else effacerFichiers();
@@ -1075,11 +1085,13 @@
       return true;
     }
     if (S.confirm) {
-      if (b === 2) {
-        S.confirm = null;
-        son("retour");
+      if (b === 2) agir("confirm-annuler");
+      else if (b === 11 || b === 12) {
+        const k = b === 12 ? 1 : 0;
+        son(k === S.confirm.k ? "bord" : "bouge");
+        S.confirm.k = k;
         dessiner();
-      } else if (b === 1) agir("confirm-suite");
+      } else if (b === 1) agir(S.confirm.k ? "confirm-suite" : "confirm-annuler");
       return true;
     }
     if (S.signaler) {
