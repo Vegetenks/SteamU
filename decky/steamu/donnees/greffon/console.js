@@ -295,6 +295,88 @@
   let cible = -1;
   const RACCOURCI = 1073741824;
   const raccourci = (a) => a.app_type === RACCOURCI || !!a.BIsShortcut?.();
+  const apps = () => new Map((O.appStore.allApps || []).filter((a) => a.app_type === 1 || raccourci(a)).map((a) => [a.appid, a]));
+  // --- Unifideck ---------------------------------------------------------------------------------------------
+  // Unifideck range ses jeux Epic / GOG / Amazon / Ubisoft / Battle.net / GameVault dans Steam sous forme de raccourcis
+  // non-Steam, installés ou non. Pour Steam ce sont tous des raccourcis, donc tous « installés » : les jeux pas encore
+  // installés remplissaient l'accueil. Unifideck sait, lui, lesquels le sont (RPC get_all_unifideck_games, la même source
+  // que ses propres onglets) : on le lui demande. Sans Unifideck, ou s'il ne répond pas, rien ne change : tout raccourci
+  // reste « installé », comme avant.
+  const UNIFIDECK = "Unifideck", MARQUE_UNIFIDECK = "unifideck-launcher";
+  const unifi = { jeux: /* @__PURE__ */ new Map(), ok: false, version: 0, vue: -1, enCours: false, rejouer: false, dernier: 0, echecs: 0, erreur: "", total: 0, installes: 0 };
+  O.__pcvUnifideck = unifi;
+  // Steam donne l'appid tantôt signé, tantôt non signé : on retient les deux formes (comme Unifideck)
+  const variantes = (id) => {
+    const n = Number(id);
+    return !Number.isFinite(n) ? [] : n < 0 ? [n, n + 4294967296] : n > 2147483647 ? [n, n - 4294967296] : [n];
+  };
+  const appliquerUnifideck = (lignes) => {
+    const m = /* @__PURE__ */ new Map();
+    for (const g of lignes) {
+      if (!g || g.app_id == null || !g.store || g.store === "steam") continue;
+      for (const id of variantes(g.app_id)) m.set(id, !!g.installed);
+    }
+    let change = m.size !== unifi.jeux.size;
+    if (!change) for (const [k, v] of m) if (unifi.jeux.get(k) !== v) { change = true; break; }
+    unifi.jeux = m;
+    unifi.total = m.size;
+    unifi.installes = [...m.values()].filter(Boolean).length;
+    unifi.erreur = "";
+    unifi.ok = true;
+    unifi.echecs = 0;
+    if (change) unifi.version++;
+  };
+  const chargerUnifideck = async (force = false) => {
+    if (!O.DeckyBackend?.call) return;
+    if (unifi.enCours) { if (force) unifi.rejouer = true; return; }
+    if (!force && Date.now() - unifi.dernier < (unifi.ok ? 3e4 : unifi.echecs < 10 ? 5e3 : 6e4)) return;
+    unifi.enCours = true;
+    unifi.dernier = Date.now();
+    try {
+      const r = await Promise.race([O.DeckyBackend.call("loader/call_plugin_method", UNIFIDECK, "get_all_unifideck_games"), new Promise((_, non) => setTimeout(non, 15e3))]);
+      const l = Array.isArray(r) ? r : r?.success === false ? null : r?.data;
+      if (Array.isArray(l)) appliquerUnifideck(l);
+      else {
+        if (++unifi.echecs === 3) unifi.version++;
+        unifi.erreur = "réponse inattendue : " + JSON.stringify(r)?.slice(0, 200);
+      }
+    } catch (e) {
+      if (++unifi.echecs === 3) unifi.version++;
+      unifi.erreur = String(e?.message || e);
+    } finally {
+      unifi.enCours = false;
+      if (unifi.rejouer) { unifi.rejouer = false; chargerUnifideck(true); }
+    }
+  };
+  // Unifideck prévient quand une synchro se termine ou qu'un jeu est installé / désinstallé (sur la fenêtre principale)
+  const surUnifideck = (e) => {
+    const d = e?.detail;
+    if (d && d.appId != null && typeof d.isInstalled === "boolean") {
+      let change = false;
+      for (const id of variantes(d.appId)) if (unifi.jeux.get(id) !== d.isInstalled) { unifi.jeux.set(id, d.isInstalled); change = true; }
+      if (change) unifi.version++;
+    }
+    chargerUnifideck(true);
+  };
+  for (const nom of ["unifideck-sync-completed", "unifideck-game-state-changed"]) {
+    if (O.__pcvUnifideckEv) O.removeEventListener(nom, O.__pcvUnifideckEv);
+  }
+  O.__pcvUnifideckEv = surUnifideck;
+  for (const nom of ["unifideck-sync-completed", "unifideck-game-state-changed"]) O.addEventListener(nom, surUnifideck);
+  // tant qu'Unifideck n'a pas répondu, ses raccourcis (reconnus à leur lanceur) ne sont pas comptés comme installés
+  const exeUnifideck = (a) => {
+    try {
+      const e = O.appDetailsStore?.GetAppDetails?.(a.appid)?.strShortcutExe;
+      return typeof e === "string" && e.includes(MARQUE_UNIFIDECK);
+    } catch (e) {
+      return false;
+    }
+  };
+  // true / false : état donné par Unifideck ; null : ce n'est pas un jeu Unifideck (ou pas encore connu)
+  const etatUnifideck = (a) => {
+    const v = unifi.jeux.get(Number(a.appid));
+    return v !== void 0 ? v : !unifi.ok && unifi.echecs < 3 && exeUnifideck(a) ? false : null;
+  };
   let appsMemo = null, appsT = -1e9;
   const apps = () => {
     const t = performance.now();
@@ -3148,7 +3230,9 @@
       cible = -1;
       avant = null;
       chargerIndex();
+      chargerUnifideck();
       const sg = signatureGrille();
+      unifi.vue = unifi.version;
       if (sg !== sigGrille || grille.children.length !== cases.length) {
         sigGrille = sg;
         construireCases();
@@ -3162,6 +3246,13 @@
       window.__pcvMusique?.("home-menu");
     } else if (visible && vueFamille !== familleTheme() && !appui) dessiner();
     else if (visible && vueJeux && vueJeux !== reglageJeux() + "|" + versionUnifideck() && porte < 0 && !appui && !deco) {
+      construireCases();
+      infosDe = -1;
+      decal = -1;
+      debut();
+      dessiner();
+    } else if (visible && unifi.vue !== unifi.version && porte < 0 && !appui && !deco) {
+      unifi.vue = unifi.version;
       construireCases();
       infosDe = -1;
       decal = -1;
