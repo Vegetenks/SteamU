@@ -197,6 +197,7 @@ window.__pcvBridge = (() => {
     // « installé », comme avant). version() change avec un état (l'accueil se refait). charger(force) : relu au plus
     // toutes les 30 s ; 3 échecs de suite (Unifideck absent), plus aucun appel jusqu'à un événement d'Unifideck.
     // L'état vit sur la fenêtre principale (O.__pcvUnifideck, lisible pour un diagnostic sur la console)
+    // Un raccourci reconnu à son lanceur mais absent de la liste d'Unifideck compte comme non installé.
     // Les jeux Xbox d'Unifideck (tag « xcloud ») se jouent en streaming : jamais « installés » pour lui, mais toujours
     // jouables. etat(a) les rend donc vrais, et nuage(a) dit lesquels sont du cloud (l'accueil y met un nuage).
     unifideck: (() => {
@@ -268,12 +269,19 @@ window.__pcvBridge = (() => {
         }
         if (force || u.echecs < 3 && Date.now() - u.dernier >= (u.ok ? 3e4 : 5e3)) lire();
       };
+      // Un raccourci d'Unifideck se reconnaît à son lanceur. Oui : retenu pour de bon ; non : revérifié au bout de 10 s
+      // (les détails d'un raccourci peuvent n'être chargés que plus tard)
+      const memoLanceur = /* @__PURE__ */ new Map();
       const lanceur = (a) => {
+        const m = memoLanceur.get(a.appid), t = Date.now();
+        if (m && (m.v || t - m.t < 1e4)) return m.v;
+        let v = false;
         try {
-          return String(O.appDetailsStore?.GetAppDetails?.(a.appid)?.strShortcutExe || "").includes("unifideck-launcher");
+          v = String(O.appDetailsStore?.GetAppDetails?.(a.appid)?.strShortcutExe || "").includes("unifideck-launcher");
         } catch (e) {
-          return false;
         }
+        memoLanceur.set(a.appid, { v, t });
+        return v;
       };
       return {
         charger,
@@ -282,7 +290,10 @@ window.__pcvBridge = (() => {
         etat: (a) => {
           charger();
           const v = u.jeux.get(Number(a.appid));
-          return v !== void 0 ? v : !u.ok && u.echecs < 3 && lanceur(a) ? false : null;
+          if (v !== void 0) return v;
+          // un jeu d'Unifideck qu'il ne connaît pas (GameVault dont le serveur est éteint, synchro en retard...) n'est pas
+          // installé pour SteamU ; avant sa première réponse (ou s'il n'en donne plus), seulement pendant les premiers essais
+          return (u.ok || u.echecs < 3) && lanceur(a) ? false : null;
         }
       };
     })(),
