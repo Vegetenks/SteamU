@@ -1709,7 +1709,7 @@
         d.className = "cel jeu";
         d.innerHTML = '<div class="im"></div>';
         d.firstChild.__pcvJeu = a;
-        if (distant(a)) {
+        if (distant(a) || window.__pcvBridge?.unifideck?.nuage(a)) {
           const n = document.createElement("i");
           n.className = "nuage";
           n.innerHTML = NUAGE;
