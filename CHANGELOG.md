@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.10 (2026-10-29)
+
+- Home screen: Xbox Cloud Gaming games from Unifideck now appear as playable, with a small cloud showing they are streamed. Thanks @lieserlV (#10).
+- Home screen: Unifideck games whose status is unknown (for example a GameVault server that is offline) are no longer shown as installed. Thanks @lieserlV (#10).
+
 ## v0.1.9 (2026-10-22)
 
 - Launching a game from the home screen no longer goes through Steam's game page and its loading spinner: SteamU's launch screen stays until the game's first picture, and when the game closes you are back on the home screen (B no longer leads into Steam).

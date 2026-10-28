@@ -1,8 +1,14 @@
-# SteamU v0.1.9
+# SteamU v0.1.10
 
-**SteamU v0.1.9.** This is an early version for testers: expect bugs, and please report them.
+**SteamU v0.1.10.** This is an early version for testers: expect bugs, and please report them.
 
 SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspired by the Wii U and 3DS home menus (home grid, HOME menu, quick settings, notifications, friends, plaza…).
+
+### What's new in v0.1.10
+- Home screen: Xbox Cloud Gaming games from Unifideck now appear as playable, with a small cloud showing they are streamed. Thanks @lieserlV (#10).
+- Home screen: Unifideck games whose status is unknown (for example a GameVault server that is offline) are no longer shown as installed. Thanks @lieserlV (#10).
+
+Already on v0.1.8 or later? SteamU offers this update by itself: a pinned notification appears, press Install.
 
 ### What's new in v0.1.9
 - Launching a game from the home screen no longer goes through Steam's game page and its loading spinner: SteamU's launch screen stays until the game's first picture, and when the game closes you are back on the home screen (B no longer leads into Steam).
@@ -10,8 +16,6 @@ SteamU turns Steam's Big Picture mode / Game Mode into a console interface inspi
 - Home screen: the Miis get the same fix (their clock no longer runs backwards when the screen opens).
 - SteamU's own apps open with a 1 to 1.5 s launch screen.
 - Home screen: games from Unifideck (Epic, GOG, Amazon...) that are not installed are recognised as such. Thanks @lieserlV (#7).
-
-Already on v0.1.8? SteamU offers this update by itself: a pinned notification appears, press Install.
 
 ### What's new in v0.1.8
 - SteamU can now update itself from GitHub. When a new version is out, a pinned notification appears; "See more" shows what's new, and "Install" installs it through Decky.
@@ -71,7 +75,7 @@ Already on v0.1.8? SteamU offers this update by itself: a pinned notification ap
 Full list in [CHANGELOG.md](../CHANGELOG.md).
 
 ### Install
-1. Download [SteamU-v0.1.9.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.9.zip).
+1. Download [SteamU-v0.1.10.zip](https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.10.zip).
 2. In Decky Loader: Settings → Developer → *Install plugin from ZIP file*, pick the zip.
 3. Restart Steam (or the console). The SteamU welcome screen appears: press A.
 
