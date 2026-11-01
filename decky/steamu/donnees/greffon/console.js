@@ -390,10 +390,7 @@
       verrouille: () => !steamcordPresent(),
       ouvrir: () => {
         if (!steamcordPresent()) return window.__pcvSon?.("bord");
-        try {
-          O.DFL.Navigation.Navigate("/discord");
-        } catch (x) {
-        }
+        window.__pcvBridge?.ouvrirSteamcord?.();
       }
     },
     parametres: { nom: T("spaces.parametres.nom"), fond: "#9aa6b8, #5b6676", ic: "parametres", ouvrir: () => O.__pcvAller?.(7), pret: SUR_PAGE },

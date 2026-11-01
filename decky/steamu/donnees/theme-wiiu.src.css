@@ -465,9 +465,11 @@ html:is([data-pcv-apparence="gris"], [data-pcv-apparence="noir"]) .pcv-marque-re
 
 :where(html:not([data-pcv-apparence="gris"]):not([data-pcv-apparence="noir"]))
 :where({{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList}} *,
-  .ModalOverlayContent {{GamepadDialogContent@ModalPosition}} *) {
+  .ModalOverlayContent {{GamepadDialogContent@ModalPosition}} *:not(:has(> .sc-xv-side), :has(> .sc-xv-side) *)) {
   color: inherit !important;
 }
+/* (Steamcord) sa vue étendue (fond sombre à elle, racine = le parent de .sc-xv-side) garde les couleurs de Steamcord : texte clair, et ses couleurs écrites sur ses éléments */
+:has(> .sc-xv-side) { color: #fff; }
 
 {{PagedSettingsDialog@PagedSettingsDialog_PageList}} {
   background: var(--pcv-fond-page) !important;

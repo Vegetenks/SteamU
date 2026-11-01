@@ -488,12 +488,7 @@
       if (k === "aller") return O.__pcvAller?.(v);
       if (k === "steamcord") {
         fermerMenu();
-        return setTimeout(() => {
-          try {
-            O.DFL.Navigation.Navigate("/discord");
-          } catch (x) {
-          }
-        }, 300);
+        return setTimeout(() => B.ouvrirSteamcord?.(), 300);
       }
       if (k === "mode-emploi") {
         fermerMenu();

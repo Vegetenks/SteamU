@@ -652,6 +652,47 @@ window.__pcvBridge = (() => {
       } catch (e) {
       }
     },
+    // (Steamcord) ouvre la vue Discord de Steamcord par sa route /discord : elle revient en arrière puis ouvre la vue 100 ms
+    // plus tard. Deux échecs vus au second lancement : la route restée affichée (naviguer vers la même adresse ne fait
+    // rien), et la vue jamais ouverte (le retour démonte la route avant les 100 ms). On revient donc d'abord de /discord
+    // si elle est restée, et on retente une fois si la vue (.sc-xv-side) n'est pas apparue ; Steamcord ignore un second
+    // appel tant que sa vue est ouverte, la tentative de trop ne fait rien.
+    ouvrirSteamcord: () => {
+      const dfl = () => O.DFL.Navigation, route = () => O.location.pathname;
+      const aller = () => {
+        try {
+          dfl().Navigate("/discord");
+        } catch (e) {
+        }
+      };
+      const retour = () => {
+        try {
+          dfl().NavigateBack();
+        } catch (e) {
+        }
+      };
+      const vue = () => {
+        const docs = [O.document];
+        try {
+          docs.push(O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BrowserWindow.document);
+        } catch (e) {
+        }
+        return docs.some((d) => !!d?.querySelector(".sc-xv-side"));
+      };
+      const lancer = (essai) => {
+        aller();
+        setTimeout(() => {
+          if (vue() || essai) return;
+          if (route() === "/discord") retour();
+          setTimeout(() => lancer(1), 400);
+        }, 1200);
+      };
+      if (route() === "/discord") {
+        retour();
+        return void setTimeout(() => lancer(0), 400);
+      }
+      lancer(0);
+    },
     // a page of Steam's own Settings ("Internet", "Display", "Controller"...)
     navigate: (page) => {
       try {
