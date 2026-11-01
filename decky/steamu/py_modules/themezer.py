@@ -21,7 +21,7 @@ REQUETES = {
       pageInfo{page pageCount itemCount} nodes{hexId name description downloadCount saveCount creator{username} bgmPreviewUrl bgmInfo anyAnimation
       launcherBgUrl waraWaraPlazaBgUrl launcherScreenshot{thumbUrl} waraWaraPlazaScreenshot{thumbUrl}}}}}""",
     "switch": """query($p:PositiveInt!,$n:PositiveInt!,$s:ItemSort,$q:String){switch{themes(paginationArgs:{page:$p,limit:$n},sort:$s,order:Desc,isNSFW:false,query:$q,target:ResidentMenu,hasBackgroundImage:true){
-      pageInfo{page pageCount itemCount} nodes{hexId name description downloadCount saveCount creator{username} screenshotPreview{thumbUrl}}}}}""",
+      pageInfo{page pageCount itemCount} nodes{hexId name description downloadCount saveCount creator{username} screenshotPreview{thumbUrl} assets{backgroundImageUrl}}}}}""",
     "wiiu_theme": """query($h:String!){wiiu{theme(hexId:$h){hexId name creator{username} pageUrl launcherBgUrl waraWaraPlazaBgUrl waraWaraPlazaBgMode
       bgmPreviewUrl bgmPreviewLooppoints bgmInfo}}}""",
     "switch_theme": """query($h:Hexadecimal!){switch{theme(hexId:$h){hexId name creator{username} pageUrl
@@ -125,10 +125,106 @@ def _dico(d, *cles):
         d = d.get(c) if isinstance(d, dict) else None
     return d if isinstance(d, dict) else {}
 
+def contenu(console, n):
+    if console == "wiiu":
+        tele, manette, musique = n.get("waraWaraPlazaBgUrl"), n.get("launcherBgUrl"), n.get("bgmPreviewUrl")
+    else:
+        tele, manette, musique = _dico(n, "assets").get("backgroundImageUrl"), None, None
+    tele = bool(_sure(tele))
+    return {"accueil": tele or bool(_sure(manette)), "place": tele, "musique": bool(_sure(musique))}
+
+def _theme(console, n):
+    if not isinstance(n, dict):
+        return None
+    try:
+        ident = _ident(n.get("hexId"))
+    except Refus:
+        return None
+    c = contenu(console, n)
+    if not any(c.values()):
+        return None                  
+    apercus = ([_sure(_dico(n, "waraWaraPlazaScreenshot").get("thumbUrl")), _sure(_dico(n, "launcherScreenshot").get("thumbUrl"))]
+               if console == "wiiu" else [_sure(_dico(n, "screenshotPreview").get("thumbUrl"))])
+    if not c["accueil"]:
+        apercus = []
+    musique = c["musique"]
+    t = {"id": ident, "titre": _texte(n.get("name")) or "Thème " + ident, "auteur": _texte(_dico(n, "creator").get("username"), 40),
+         "description": _texte(n.get("description"), 240), "telechargements": _entier(n.get("downloadCount")),
+         "aimes": _entier(n.get("saveCount")), "musique": musique, "piste": _texte(n.get("bgmInfo"), 80) if musique else "",
+         "anime": bool(n.get("anyAnimation")), "ecrans": len(apercus), "contenu": c}
+    return t, apercus
+
+def _voir(console, t, apercus):
+    VUS[(console, t["id"])] = {"titre": t["titre"], "auteur": t["auteur"], "apercus": apercus}
+
+CAT_PAGE = 100
+CAT_FRAIS = 24 * 3600
+CAT_REFAIRE = 7 * 24 * 3600
+_catalogues, _construction = {}, set()
+
+def _fichier_catalogue(console):
+    base = os.environ.get("DECKY_PLUGIN_RUNTIME_DIR")
+    return pathlib.Path(base) / "cache" / "themezer" / f"{console}.json" if base else None
+
+def catalogue(console):
+    f = _fichier_catalogue(console)
+    if not f:
+        return None
+    if console not in _catalogues:
+        try:
+            _catalogues[console] = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            _catalogues[console] = None
+    c = _catalogues[console]
+    if (not c or time.time() - c.get("maj", 0) > CAT_FRAIS) and console not in _construction:
+        _construction.add(console)
+        threading.Thread(target=_mettre_a_jour, args=(console,), daemon=True).start()
+    return c
+
+def _mettre_a_jour(console):
+    try:
+        f, c = _fichier_catalogue(console), _catalogues.get(console)
+        complet = not c or time.time() - c.get("complet", 0) > CAT_REFAIRE
+        connus = {t["id"] for t in (c or {}).get("themes", [])}
+        nouveaux, page = [], 1
+        while True:
+            res = _dico(_graphql(console, {"p": page, "n": CAT_PAGE, "s": "Created", "q": None}), console, "themes")
+            noeuds = [x for x in map(lambda n: _theme(console, n), res.get("nodes") or []) if x]
+            nouveaux += [[t, a] for t, a in noeuds if complet or t["id"] not in connus]
+            if not res.get("nodes") or page >= _entier(_dico(res, "pageInfo").get("pageCount")) or (not complet and any(t["id"] in connus for t, _ in noeuds)):
+                break
+            page += 1
+        if complet:
+            themes = nouveaux
+        else:
+            ids = {t["id"] for t, _ in nouveaux}
+            themes = nouveaux + [x for x in zip(c["themes"], c["apercus"]) if x[0]["id"] not in ids]
+        maintenant = time.time()
+        c = {"maj": maintenant, "complet": maintenant if complet else c["complet"], "themes": [t for t, _ in themes], "apercus": [a for _, a in themes]}
+        f.parent.mkdir(parents=True, exist_ok=True)
+        tmp = f.with_suffix(".tmp")
+        tmp.write_text(json.dumps(c, ensure_ascii=False), encoding="utf-8")
+        tmp.replace(f)
+        _catalogues[console] = c
+    except Exception:
+        pass   
+    finally:
+        _construction.discard(console)
+
 def recherche(console, texte="", page=1, tri="telecharges"):
     console = _console(console)
     texte = _texte(texte, 60)
     page = max(1, min(int(page) if isinstance(page, (int, float)) else 1, 999))
+    c = catalogue(console) if tri in ("telecharges", "recents", "aimes") else None
+    if c:
+        mot = texte.casefold()
+        l = [(t, a) for t, a in zip(c["themes"], c["apercus"]) if not mot or mot in (t["titre"] + " " + t["auteur"]).casefold()]
+        if tri != "recents":
+            l.sort(key=lambda x: -x[0]["telechargements" if tri == "telecharges" else "aimes"])
+        for t, a in l[(page - 1) * PAR_PAGE:page * PAR_PAGE]:
+            _voir(console, t, a)
+        return {"console": console, "page": page, "pages": max(1, -(-len(l) // PAR_PAGE)), "total": len(l),
+                "themes": [t for t, _ in l[(page - 1) * PAR_PAGE:page * PAR_PAGE]]}
     v = {"p": page, "n": PAR_PAGE, "s": TRIS.get(tri, "Downloads"), "q": texte or None}
     cle = json.dumps([console, v], sort_keys=True)
     if cle in _cache_pages and time.monotonic() - _cache_pages[cle][0] < 600:
@@ -137,26 +233,10 @@ def recherche(console, texte="", page=1, tri="telecharges"):
     noeuds = res.get("nodes") if isinstance(res.get("nodes"), list) else []
     themes = []
     for n in noeuds[:PAR_PAGE]:
-        if not isinstance(n, dict):
-            continue
-        try:
-            ident = _ident(n.get("hexId"))
-        except Refus:
-            continue
-        if console == "wiiu":
-            apercus = [_sure(_dico(n, "waraWaraPlazaScreenshot").get("thumbUrl")), _sure(_dico(n, "launcherScreenshot").get("thumbUrl"))]
-            musique, images = bool(_sure(n.get("bgmPreviewUrl"))), bool(_sure(n.get("launcherBgUrl")) or _sure(n.get("waraWaraPlazaBgUrl")))
-        else:
-            apercus, musique, images = [_sure(_dico(n, "screenshotPreview").get("thumbUrl"))], False, True
-        apercus = [a for a in apercus if a]
-        if not (images or musique):
-            continue                 
-        t = {"id": ident, "titre": _texte(n.get("name")) or "Thème " + ident, "auteur": _texte(_dico(n, "creator").get("username"), 40),
-             "description": _texte(n.get("description"), 240), "telechargements": _entier(n.get("downloadCount")),
-             "aimes": _entier(n.get("saveCount")), "musique": musique, "piste": _texte(n.get("bgmInfo"), 80) if musique else "",
-             "anime": bool(n.get("anyAnimation")), "ecrans": len(apercus)}
-        VUS[(console, ident)] = {"titre": t["titre"], "auteur": t["auteur"], "apercus": apercus}
-        themes.append(t)
+        x = _theme(console, n)
+        if x:
+            _voir(console, *x)
+            themes.append(x[0])
     info = _dico(res, "pageInfo")
     sortie = {"console": console, "page": page, "pages": _entier(info.get("pageCount")), "total": _entier(info.get("itemCount")), "themes": themes}
     if len(_cache_pages) > 60:
@@ -170,7 +250,7 @@ def apercu(console, ident, ecran=0):
     if not vu:
         raise Refus("thème inconnu : cherche-le d'abord")
     ecran = ecran if isinstance(ecran, int) and not isinstance(ecran, bool) and 0 <= ecran < len(vu["apercus"]) else 0
-    if not vu["apercus"]:
+    if not vu["apercus"] or not vu["apercus"][ecran]:
         return None
     k = cle + (ecran,)
     if k not in _cache_apercus:

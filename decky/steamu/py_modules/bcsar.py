@@ -19,47 +19,10 @@ def blocs(d):
     nb = u32(d, 0x10)
     return {u16(d, 0x14 + 12 * i): (u32(d, 0x14 + 12 * i + 4), u32(d, 0x14 + 12 * i + 8)) for i in range(nb)}
 
-def dsp_adpcm(d, o, nech, coefs, ps0=0, h1=0, h2=0):
-    out = []
-    while len(out) < nech:
-        ps = d[o]; o += 1
-        pred, ech = ps >> 4, 1 << (ps & 15)
-        c1, c2 = coefs[2 * pred], coefs[2 * pred + 1]
-        for k in range(14):
-            if len(out) >= nech: break
-            b = d[o + k // 2]
-            n = (b >> 4) if k % 2 == 0 else (b & 15)
-            if n >= 8: n -= 16
-            s = ((n * ech) << 11) + 1024 + c1 * h1 + c2 * h2
-            s >>= 11
-            s = max(-32768, min(32767, s))
-            h2, h1 = h1, s
-            out.append(s)
-        o += 7
-    return out
-
 def lire_cwav(d):
-    assert d[:4] == b'CWAV', d[:4]
-    B = blocs(d)
-    info, _ = B[0x7000]; donnees, _ = B[0x7001]
-    i = info + 8
-    enc, boucle = d[i], d[i + 1]; freq = u32(d, i + 4); debut_boucle = u32(d, i + 8); fin = u32(d, i + 12)
-    canaux = table_refs(d, i + 20)
-    pistes = []
-    for _, c in canaux:
-        t, pech = ref(d, c, donnees + 8)
-        t2, padpcm = ref(d, c + 8, c)
-        if enc == 2:
-            coefs = [s16(d, padpcm + 2 * k) for k in range(16)]
-            ps, h1, h2 = u16(d, padpcm + 32), s16(d, padpcm + 34), s16(d, padpcm + 36)
-            pistes.append(dsp_adpcm(d, pech, fin, coefs, ps, h1, h2))
-        elif enc == 1:
-            pistes.append(list(struct.unpack_from('<%dh' % fin, d, pech)))
-        elif enc == 0:
-            pistes.append([(struct.unpack_from('b', d, pech + k)[0]) * 256 for k in range(fin)])
-        else:
-            raise ValueError('encodage %d (IMA) non géré' % enc)
-    return dict(encodage=enc, boucle=bool(boucle), frequence=freq, debut_boucle=debut_boucle, fin=fin, pistes=pistes)
+    from themeplaza import lire_bcwav
+    pistes, freq, debut, fin = lire_bcwav(d)
+    return dict(boucle=debut is not None, frequence=freq, debut_boucle=debut or 0, fin=fin, pistes=pistes)
 
 def ecrire_wav(chemin, onde):
     n = len(onde['pistes']); m = min(len(p) for p in onde['pistes'])
@@ -169,6 +132,36 @@ def onde_archive(C, cache, arch, idx):
         cache[arch] = lire_cwar(f) if f else []
     lst = cache[arch]
     return lire_cwav(lst[idx]) if idx < len(lst) and lst[idx] else None
+
+def ondes_banque(d, n_max):
+    o = '<' if d[4:6] == b'\xff\xfe' else '>'
+    def u(b, p, f='I'): return struct.unpack_from(o + f, b, p)[0]
+    def blocs_(b): return {u(b, 0x14 + 12 * k, 'H'): u(b, 0x18 + 12 * k) + 8 for k in range(u(b, 0x10, 'H'))}
+    def table(b, p): return [p + u(b, p + 8 + 8 * k, 'i') for k in range(min(u(b, p), len(b) // 8))]
+    morceaux = [d]
+    if d[:4] in (b'CSAR', b'FSAR'):
+        B = blocs_(d); info, fich = B[0x2001], B[0x2002]
+        morceaux = []
+        for fo in table(d, info + u(d, info + 6 * 8 + 4, 'i')):          
+            loc = fo + u(d, fo + 4, 'i')
+            if u(d, fo, 'H') == 0x220C and u(d, loc + 4, 'i') != -1:     
+                p = fich + u(d, loc + 4, 'i'); morceaux.append(d[p:p + u(d, loc + 8)])
+        for g in list(morceaux):
+            if g[:4] not in (b'CGRP', b'FGRP'): continue
+            GB = blocs_(g); gi, gf = GB[0x7800], GB[0x7801]
+            for e in table(g, gi):
+                if u(g, e + 8, 'i') != -1: morceaux.append(g[gf + u(g, e + 8, 'i'): gf + u(g, e + 8, 'i') + u(g, e + 12)])
+    ondes, vues = [], set()
+    for a in morceaux:
+        if a[:4] not in (b'CWAR', b'FWAR') or a in vues: continue
+        vues.add(a)
+        B = blocs_(a); info, fich = B[0x6800], B[0x6801]
+        for k in range(min(u(a, info), len(a) // 12)):
+            off, taille = u(a, info + 8 + 12 * k, 'i'), u(a, info + 12 + 12 * k)
+            w = a[fich + off:fich + off + taille] if off != -1 else b''
+            if w[:4] in (b'CWAV', b'FWAV'): ondes.append(w)
+            if len(ondes) >= n_max: return ondes
+    return ondes
 
 def _table_regions(d, o):
     t, p = ref(d, o, o)

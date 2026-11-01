@@ -4,14 +4,16 @@ from ambideck.follower import Follower
 OR = (255, 196, 58)          
 LUEUR_RATE = (96, 110, 210)  
 BLANC = (255, 255, 255)
+VERT_SPOTPASS = (0, 255, 60)  
 COULEUR_SANS_HUESYNC = (0, 255, 255)   
 REPOS = .45                  
+RESPIRE_VITESSE = .75        
 PINCE = (.6, .25)            
 PINCE_MAX = 30.              
 ECART_MIN = .2               
 THEME_REDIT = 2.             
 
-INTENTIONS = frozenset({"theme", "notif", "casino-entree", "casino-sortie", "casino-pince", "casino-pince-fin",
+INTENTIONS = frozenset({"theme", "notif", "spotpass", "spotpass-fin", "casino-entree", "casino-sortie", "casino-pince", "casino-pince-fin",
                         "casino-gain", "casino-gain-double", "casino-gain-triple", "casino-perte", "ecran-jeu", "ecran-fin"})
 MODES = ("non", "theme", "ecran")   
 ECRAN = {"layout": "sides"}         
@@ -172,7 +174,7 @@ class Lumiere:
         self.secteur, self.horloge, self.journal = secteur, horloge, journal
         self.v = threading.Condition()
         self.mode, self.couleur, self.couleur_casino, self.casino = "non", None, None, False
-        self.pince, self.effet = None, None
+        self.pince, self.effet, self.respire = None, None, None
         self.jetons, self.t_jetons, self.attente = float(FREQ_MAX), horloge(), None
         self.manette, self.en_main, self.posees, self.t_ecrit, self.t_theme = None, False, [None, None], -1e9, -1e9
         self.fini, self.fil, self.gen = False, None, 0
@@ -191,7 +193,7 @@ class Lumiere:
 
     def reglage(self, mode):
         if not isinstance(mode, str) or mode not in MODES: return False
-        with self.v: self.mode, self.casino, self.pince, self.effet, self.ecran_ko = mode, False, None, None, False; self.gen += 1; self.v.notify()
+        with self.v: self.mode, self.casino, self.pince, self.effet, self.ecran_ko, self.respire = mode, False, None, None, False, None; self.gen += 1; self.v.notify()
         self._retenir()
         return True
 
@@ -206,6 +208,8 @@ class Lumiere:
         return True
 
     def _appliquer(self, nom, couleur, t):
+        if nom == "spotpass": self.respire = True; return
+        if nom == "spotpass-fin": self.respire = None; return
         if couleur:
             c = tuple(int(couleur[i:i + 2], 16) for i in (1, 3, 5))
             if nom == "theme": self.couleur = c; self._retenir()
@@ -244,6 +248,7 @@ class Lumiere:
                 else: prochain = t0 + duree
                 return (g, d), prochain
         if fond is None: return tuple(_fixe(c, 1.) for c in self.ecran), prochain
+        if self.respire and not self.casino: fond = (PULSE, VERT_SPOTPASS, 1., RESPIRE_VITESSE)   
         return (fond, fond), prochain
 
     def _zones(self, leds):

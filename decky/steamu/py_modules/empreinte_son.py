@@ -1,32 +1,12 @@
-import base64, json, os, subprocess, sys, zlib
-import numpy as np
+import base64, json, os, subprocess, sys, zlib, struct
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
-FREQUENCE = 32000            
-FENETRE, PAS = 4096, 1024    
-BINS = 512                   
-VOISINS_F, VOISINS_T = 12, 8 
-PICS_PAR_SECONDE = 8         
-ELAN, ZONE = 3, 63           
-DUREE_LUE = 400              
-DELAI = 60                   
-COMMUNS_MIN = 25             
-PART_MIN = 0.03              
-BANDE_MIN = 0.62             
-BANAL = 64                   
-DECALAGE_MAX = 20000         
-LISSAGE = 2                  
-ECHELLES = np.round(np.arange(0.94, 1.0605, 0.001), 3)
-PART_SURE = 0.15
-FORMATS = {"mp3", "ogg", "wav", "flac", "mov", "matroska", "aiff", "aac", "bfstm", "brstm"}
-DUREE_COURTE = 8             
-TRAME_COURTE = 1024          
-BANDES_COURTES = 16          
-PLAGE_COURTE = 60            
-DECALAGE_COURT = 6           
-DUREE_RAPPORT = 1.35         
-COURT_MIN = 0.90             
-MARGE_COURTE = 0.004         
-COURT_SUR = 0.985            
+from array import array
+from empreinte_regles import *
 
 def decoder(chemin, format):
     if format not in FORMATS: return None
@@ -38,7 +18,8 @@ def decoder(chemin, format):
     except (OSError, subprocess.TimeoutExpired): return None
     n = min(len(p.stdout), (DUREE_LUE + 1) * FREQUENCE * 2) // 2
     if p.returncode != 0: return None                       
-    return np.frombuffer(p.stdout[:n * 2], dtype="<i2").astype(np.float32) / 32768
+    return (np.frombuffer(p.stdout[:n * 2], dtype="<i2").astype(np.float32) / 32768 if np is not None
+            else array("f", (v[0] / 32768 for v in struct.iter_unpack("<h", p.stdout[:n * 2]))))
 
 def _spectre(x):
     n = 1 + (len(x) - FENETRE) // PAS
@@ -161,6 +142,10 @@ def comparer_court(sig, references):
     if not scores: return None
     return scores[0][1], scores[0][0], scores[1][0] if len(scores) > 1 else -1.0
 
+if np is None:
+    from empreinte_pure import (reperes, deballer, signature, deballer_signature,
+                                comparer, comparer_court, emballer, emballer_signature)
+
 class References:
     def __init__(self, fichier_empreintes):
         self.pistes = json.loads(open(fichier_empreintes, encoding="utf-8").read())["pistes"]
@@ -171,7 +156,7 @@ class References:
     def reconnaitre(self, chemin, format):
         x = decoder(chemin, format)
         if x is None: return {"illisible": True}
-        codes, instants, bande = reperes(x)
+        codes, instants, bande = reperes(x) if len(x) >= DUREE_COURTE * FREQUENCE or not self.courtes else ([], [], 0)
         m = comparer(codes, instants, [r for _, r in self.longues]) if len(codes) and self.longues and len(x) >= DUREE_COURTE * FREQUENCE else None
         if m and m[1] >= COMMUNS_MIN and m[1] >= PART_MIN * len(codes):
             p = self.pistes[self.longues[m[0]][0]]

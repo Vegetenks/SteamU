@@ -25,8 +25,6 @@
     } catch (e) {
     }
   };
-  const TOUCHES = { 1: ["A", "#2fbf71"], 2: ["B", "#e5484d"], 3: ["X", "#2a8cff"], 4: ["Y", "#e0a100"], 5: ["LB", "#5b6676"], 6: ["RB", "#5b6676"] };
-  const touche = (c) => window.__pcvTouche?.(c) || TOUCHES[c] || ["?", "#5b6676"];
   const borne = (x, a, b) => Math.max(a, Math.min(b, x));
   const u = (n) => `calc(var(--u, 1px) * ${n})`;
   const echapper = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -153,7 +151,7 @@
     for (let i = 0; i <= NOM_MAX; i++) vue(ci).setUint16(NOM + 2 * i, i < t.length ? t.charCodeAt(i) : 0, true);
   };
   const JOURS = [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  const MOIS = ["?", ...Array.from({ length: 12 }, (_, i) => new Date(2e3, i, 1).toLocaleDateString(window.__pcvLocale?.() || "fr-FR", { month: "long" }))];
+  const MOIS = [Tr("miimaker.aucun"), ...Array.from({ length: 12 }, (_, i) => new Date(2e3, i, 1).toLocaleDateString(window.__pcvLocale?.() || "fr-FR", { month: "long" }).replace(/^./, (c) => c.toUpperCase()))];
   const DEPART = {
     faceType: 0,
     faceColor: 0,
@@ -483,43 +481,41 @@
   const R = (champ, nom, moins, plus) => ({ champ, nom, moins, plus });
   const hauteur = (c) => R(c, Tr("miimaker.hauteur"), "haut", "bas"), taille = (c) => R(c, Tr("miimaker.taille"), "moins", "plus"), etirement = (c) => R(c, Tr("miimaker.etirement"), "aplatir", "etirer"), rotation = (c) => R(c, Tr("miimaker.rotation"), "tournerG", "tournerD");
   const CATS = [
-    { id: "profil", nom: Tr("miimaker.profil"), vue: "corps", pages: [{ nom: Tr("miimaker.profil"), type: "profil" }, { nom: Tr("miimaker.couleur_preferee"), type: "nuancier", champ: "favoriteColor", palette: "couleurs_preferees" }, { nom: Tr("miimaker.silhouette"), type: "silhouette" }] },
-    { id: "visage", nom: Tr("miimaker.visage"), pages: [
+    { id: "visage", nom: Tr("miimaker.visage"), couleur: { nom: Tr("miimaker.teint"), champ: "faceColor", palette: "teints", cadre: "tete" }, pages: [
       { nom: Tr("miimaker.forme"), type: "grille", champ: "faceType", cadre: "tete" },
-      { nom: Tr("miimaker.teint"), type: "nuancier", champ: "faceColor", palette: "teints", cadre: "tete" },
       { nom: Tr("miimaker.rides"), type: "grille", champ: "faceTex", cadre: "visage" },
       { nom: Tr("miimaker.maquillage"), type: "grille", champ: "faceMake", cadre: "visage" }
     ] },
-    { id: "coiffure", nom: Tr("miimaker.coiffure"), pages: [{ nom: Tr("miimaker.coupe"), type: "grille", champ: "hairType", cadre: "tete", bascule: { champ: "hairFlip", nom: Tr("miimaker.raie_inversee") } }, { nom: Tr("miimaker.couleur"), type: "nuancier", champ: "hairColor", palette: "cheveux", cadre: "tete" }] },
-    { id: "sourcils", nom: Tr("miimaker.sourcils"), pages: [
+    { id: "coiffure", nom: Tr("miimaker.coiffure"), couleur: { nom: Tr("miimaker.couleur"), champ: "hairColor", palette: "cheveux", cadre: "tete" }, pages: [{ nom: Tr("miimaker.coupe"), type: "grille", champ: "hairType", cadre: "tete", bascule: { champ: "hairFlip", nom: Tr("miimaker.raie_inversee") } }] },
+    { id: "sourcils", nom: Tr("miimaker.sourcils"), couleur: { nom: Tr("miimaker.couleur"), champ: "eyebrowColor", palette: "cheveux", cadre: "sourcils" }, pages: [
       { nom: Tr("miimaker.forme"), type: "grille", champ: "eyebrowType", cadre: "sourcils", normaliser: NORM.eyebrow },
-      { nom: Tr("miimaker.couleur"), type: "nuancier", champ: "eyebrowColor", palette: "cheveux", cadre: "sourcils" },
       { nom: Tr("miimaker.position"), type: "reglages", reglages: [hauteur("eyebrowY"), R("eyebrowX", Tr("miimaker.ecart"), "rapprocher", "ecarter"), taille("eyebrowScale"), etirement("eyebrowAspect"), rotation("eyebrowRotate")] }
     ] },
-    { id: "yeux", nom: Tr("miimaker.yeux"), pages: [
+    { id: "yeux", nom: Tr("miimaker.yeux"), couleur: { nom: Tr("miimaker.couleur"), champ: "eyeColor", palette: "yeux", cadre: "yeux" }, pages: [
       { nom: Tr("miimaker.forme"), type: "grille", champ: "eyeType", cadre: "yeux", normaliser: NORM.eye },
-      { nom: Tr("miimaker.couleur"), type: "nuancier", champ: "eyeColor", palette: "yeux", cadre: "yeux" },
       { nom: Tr("miimaker.position"), type: "reglages", reglages: [hauteur("eyeY"), R("eyeX", Tr("miimaker.ecart"), "rapprocher", "ecarter"), taille("eyeScale"), etirement("eyeAspect"), rotation("eyeRotate")] }
     ] },
     { id: "nez", nom: Tr("miimaker.nez"), pages: [{ nom: Tr("miimaker.forme"), type: "grille", champ: "noseType", cadre: "nez", normaliser: NORM.nose }, { nom: Tr("miimaker.position"), type: "reglages", reglages: [hauteur("noseY"), taille("noseScale")] }] },
-    { id: "bouche", nom: Tr("miimaker.bouche"), pages: [
+    { id: "bouche", nom: Tr("miimaker.bouche"), couleur: { nom: Tr("miimaker.couleur"), champ: "mouthColor", palette: "levres", cadre: "bouche" }, pages: [
       { nom: Tr("miimaker.forme"), type: "grille", champ: "mouthType", cadre: "bouche", normaliser: NORM.mouth },
-      { nom: Tr("miimaker.couleur"), type: "nuancier", champ: "mouthColor", palette: "levres", cadre: "bouche" },
       { nom: Tr("miimaker.position"), type: "reglages", reglages: [hauteur("mouthY"), taille("mouthScale"), etirement("mouthAspect")] }
     ] },
-    { id: "pilosite", nom: Tr("miimaker.pilosite"), pages: [
+    { id: "pilosite", nom: Tr("miimaker.pilosite"), couleur: { nom: Tr("miimaker.couleur"), champ: "beardColor", palette: "cheveux", cadre: "barbe" }, pages: [
       { nom: Tr("miimaker.moustache"), type: "grille", champ: "mustacheType", cadre: "moustache", normaliser: NORM.mustache },
       { nom: Tr("miimaker.barbe"), type: "grille", champ: "beardType", cadre: "barbe" },
-      { nom: Tr("miimaker.couleur"), type: "nuancier", champ: "beardColor", palette: "cheveux", cadre: "barbe" },
       { nom: Tr("miimaker.position"), type: "reglages", reglages: [hauteur("mustacheY"), taille("mustacheScale")] }
     ] },
-    { id: "lunettes", nom: Tr("miimaker.lunettes"), pages: [
+    { id: "lunettes", nom: Tr("miimaker.lunettes"), couleur: { nom: Tr("miimaker.couleur"), champ: "glassColor", palette: "lunettes", cadre: "lunettes" }, pages: [
       { nom: Tr("miimaker.monture"), type: "grille", champ: "glassType", cadre: "lunettes", normaliser: NORM.glass },
-      { nom: Tr("miimaker.couleur"), type: "nuancier", champ: "glassColor", palette: "lunettes", cadre: "lunettes" },
       { nom: Tr("miimaker.position"), type: "reglages", reglages: [hauteur("glassY"), taille("glassScale")] }
     ] },
-    { id: "grain", nom: Tr("miimaker.grain_beaute"), pages: [{ nom: Tr("miimaker.grain"), type: "grille", champ: "moleType", cadre: "visage" }, { nom: Tr("miimaker.position"), type: "reglages", reglages: [hauteur("moleY"), R("moleX", Tr("miimaker.gauche_droite"), "gauche", "droite"), taille("moleScale")] }] }
+    { id: "grain", nom: Tr("miimaker.grain_beaute"), pages: [{ nom: Tr("miimaker.grain"), type: "grille", champ: "moleType", cadre: "visage" }, { nom: Tr("miimaker.position"), type: "reglages", reglages: [hauteur("moleY"), R("moleX", Tr("miimaker.gauche_droite"), "gauche", "droite"), taille("moleScale")] }] },
+    { id: "corps", nom: Tr("miimaker.corps"), vue: "corps", pages: [{ nom: Tr("miimaker.silhouette"), type: "silhouette" }, { nom: Tr("miimaker.couleur_preferee"), type: "nuancier", champ: "favoriteColor", palette: "couleurs_preferees" }] },
+    { id: "profil", nom: Tr("miimaker.profil"), vue: "corps", pages: [{ nom: Tr("miimaker.profil"), type: "profil" }] }
   ];
+  CATS.forEach((c) => {
+    if (c.couleur) c.pages.push({ ...c.couleur, type: "nuancier" });
+  });
   const SORTES = [["chapeau", Tr("miimaker.chapeaux"), "visage"], ["visage", Tr("miimaker.visage"), "visage"], ["haut", Tr("miimaker.hauts"), "corps"], ["accessoire", Tr("miimaker.accessoires"), "corps"], ["bas", Tr("miimaker.bas"), "corps"]];
   let garde = [];
   const installerTenue = (l) => {
@@ -550,6 +546,10 @@
   const svg = (d, plein) => `<svg viewBox="0 0 24 24" ${plein ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'}>${d}</svg>`;
   const TETE = '<path d="M12 3c-4.4 0-7 3.4-7 8 0 5 3.2 10 7 10s7-5 7-10c0-4.6-2.6-8-7-8z"/>';
   const ICONES = {
+    get corps() {
+      return svg(window.__pcvIcones?.trace?.("silhouette") || "", true);
+    },
+    // (31/10, l'auteur) l'onglet Corps avait l'icône de Profil : la silhouette commune (icones.js)
     profil: svg('<rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="11" r="2.4"/><path d="M5.6 17c.8-1.9 2-2.8 3.4-2.8s2.6.9 3.4 2.8M14.5 10h4M14.5 14h3"/>'),
     visage: svg(TETE + '<circle cx="9.3" cy="11.5" r=".9" fill="currentColor"/><circle cx="14.7" cy="11.5" r=".9" fill="currentColor"/><path d="M10 16c1.2.8 2.8.8 4 0"/>'),
     coiffure: svg('<path d="M5.5 14c-.6-6 2.4-10 6.5-10s7.1 4 6.5 10"/><path d="M5.5 14c2.4-1.2 3.7-3.4 4.2-5.6 1.6 2.4 4.6 4.4 8.8 5.6"/><path d="M6.4 14.5c.7 3.8 3 6.5 5.6 6.5s4.9-2.7 5.6-6.5"/>'),
@@ -561,9 +561,6 @@
     lunettes: svg('<circle cx="7" cy="13" r="3.6"/><circle cx="17" cy="13" r="3.6"/><path d="M10.6 12.6c.9-.7 1.9-.7 2.8 0M3.4 12.4 2 9M20.6 12.4 22 9"/>'),
     grain: svg(TETE + '<circle cx="15" cy="15" r="1.5" fill="currentColor"/>'),
     tenue: svg('<path d="M5 15.2c0-4.6 3.1-8.4 7-8.4s7 3.8 7 8.4"/><path d="M2.6 15.4h18.8c-.5 1.7-2 2.6-3.8 2.6H6.4c-1.8 0-3.3-.9-3.8-2.6z"/><path d="M12 6.8V5"/><path d="M8.5 12.5h7"/>'),
-    zero: svg(TETE + '<path d="M12 8.6v6.8M8.6 12h6.8"/>'),
-    sosies: svg('<circle cx="7" cy="7.5" r="3.3"/><circle cx="17" cy="7.5" r="3.3"/><circle cx="7" cy="17.5" r="3.3"/><circle cx="17" cy="17.5" r="3.3"/>'),
-    hasard: svg('<rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><circle cx="8.6" cy="8.6" r="1.4" fill="currentColor"/><circle cx="15.4" cy="8.6" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="8.6" cy="15.4" r="1.4" fill="currentColor"/><circle cx="15.4" cy="15.4" r="1.4" fill="currentColor"/>'),
     zoom: svg('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5M10.5 8v5"/>'),
     dezoom: svg('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5"/>'),
     moi: svg('<path d="M12 3.5l2.5 5.2 5.6.7-4.1 3.9 1 5.6L12 16.2l-5 2.7 1-5.6-4.1-3.9 5.6-.7z"/>', true),
@@ -585,9 +582,15 @@
     mince: svg('<circle cx="12" cy="6" r="2.4"/><path d="M10.5 21v-9.5c0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5V21"/>'),
     fort: svg('<circle cx="12" cy="6" r="2.4"/><path d="M7 21v-8c0-1.8 2.2-3 5-3s5 1.2 5 3v8"/>')
   };
+  const CREER = {
+    zero: TETE + '<path d="M12 8.6v6.8M8.6 12h6.8"/>',
+    sosies: '<circle cx="7" cy="7.5" r="3.3"/><circle cx="17" cy="7.5" r="3.3"/><circle cx="7" cy="17.5" r="3.3"/><circle cx="17" cy="17.5" r="3.3"/>',
+    hasard: '<rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><circle cx="8.6" cy="8.6" r="1.4"/><circle cx="15.4" cy="8.6" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="8.6" cy="15.4" r="1.4"/><circle cx="15.4" cy="15.4" r="1.4"/>'
+  };
   const CSS = `
     #pcv-miimaker { position: fixed; inset: ${u(98)} 0 0 0; z-index: 8700; overflow: hidden; user-select: none; -webkit-user-select: none;
-      background: var(--pcv-fond-profil, var(--pcv-fond-page, #f3f5f3)); color: var(--pcv-texte, #2f3a4a); font-family: var(--pcv-police, Nunito, sans-serif); font-weight: 700; }
+      
+      --pcv-fond-page: var(--pcv-fond-profil); background: var(--pcv-fond-page, #f3f5f3); color: var(--pcv-texte, #2f3a4a); font-family: var(--pcv-police, Nunito, sans-serif); font-weight: 700; }
     #pcv-miimaker *, #pcv-miimaker *::before { box-sizing: border-box; }
     #pcv-miimaker button { all: unset; box-sizing: border-box; cursor: pointer; -webkit-tap-highlight-color: transparent; }
     #pcv-miimaker [hidden] { display: none !important; }
@@ -600,51 +603,60 @@
     #pcv-miimaker .scene::before { content: ""; position: absolute; left: 12%; right: 12%; top: 6%; bottom: 4%; border-radius: 50%;
       background: radial-gradient(closest-side, color-mix(in srgb, var(--pcv-carte) 95%, transparent), color-mix(in srgb, var(--pcv-carte) 55%, transparent) 55%, transparent); }
     #pcv-miimaker .scene canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-    #pcv-miimaker[data-ecran="sosies"] .scene, #pcv-miimaker[data-ecran="absent"] .scene { visibility: hidden; }
+    #pcv-miimaker[data-ecran="absent"] .scene { visibility: hidden; }
     #pcv-miimaker .plaque { position: absolute; left: 50%; bottom: ${u(4)}; transform: translateX(-50%); display: flex; align-items: center; gap: ${u(10)};
       padding: ${u(7)} ${u(20)}; border-radius: ${u(22)}; font-size: ${u(19)}; font-weight: 900; white-space: nowrap; }
     #pcv-miimaker .plaque em { font-style: normal; font-size: ${u(13)}; color: var(--pcv-sur-accent); background: #d23a2a; padding: ${u(3)} ${u(10)}; border-radius: ${u(12)}; }
     #pcv-miimaker .plaque:empty { display: none; }
     #pcv-miimaker .bulle-scene { position: absolute; left: 50%; top: ${u(10)}; transform: translateX(-50%); max-width: ${u(420)}; padding: ${u(12)} ${u(20)};
       border-radius: ${u(22)}; font-size: ${u(17)}; text-align: center; animation: mmBulle .4s cubic-bezier(.3,1.6,.5,1) both; }
+    #pcv-miimaker .bulle-scene { font-size: ${u(24)}; padding: ${u(14)} ${u(28)}; font-weight: 900; }
     #pcv-miimaker .bulle-scene::after { content: ""; position: absolute; left: 50%; bottom: ${u(-9)}; width: ${u(18)}; height: ${u(18)}; transform: translateX(-50%) rotate(45deg); background: var(--pcv-creux); }
     #pcv-miimaker .rond { position: absolute; width: ${u(58)}; height: ${u(58)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-    #pcv-miimaker .rond > i, #pcv-miimaker .onglet > i, #pcv-miimaker .carte > i { display: flex; align-items: center; justify-content: center; border-radius: 50%;
+    #pcv-miimaker .rond > i, #pcv-miimaker .onglet > i { display: flex; align-items: center; justify-content: center; border-radius: 50%;
       background: var(--pcv-pastille, #fff); box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.12); color: var(--pcv-texte2); }
     #pcv-miimaker .rond > i { width: ${u(42)}; height: ${u(42)}; padding: ${u(9)}; }
     #pcv-miimaker .rond.zoom { left: ${u(30)}; bottom: ${u(78)}; }
-    #pcv-miimaker .titre { position: absolute; left: ${u(32)}; top: ${u(16)}; font-size: ${u(28)}; font-weight: 900; color: var(--pcv-cyan-plein, #2fb8ff);
-      text-shadow: 0 1px 0 rgb(var(--pcv-halo-rgb) / .7); white-space: nowrap; max-width: ${u(540)}; overflow: hidden; text-overflow: ellipsis; }
+    #pcv-miimaker .titre { position: absolute; left: ${u(32)}; top: ${u(85)}; font-size: ${u(28)}; font-weight: 900; color: var(--pcv-cyan-plein, #2fb8ff);
+      text-shadow: 0 1px 0 rgb(var(--pcv-halo-rgb) / .7); white-space: nowrap; max-width: ${u(520)}; overflow: hidden; text-overflow: ellipsis; }
     #pcv-miimaker .titre small { color: var(--pcv-texte2, #6b7788); font-size: ${u(16)}; margin-left: ${u(10)}; text-shadow: none; }
+    body.pcv-dossiers-ouvert #pcv-miimaker .bas { visibility: hidden; }
     
-    #pcv-miimaker .onglets { position: absolute; left: ${u(604)}; right: ${u(28)}; top: ${u(12)}; height: ${u(64)}; display: flex; justify-content: space-between; align-items: center; }
-    #pcv-miimaker .onglet { position: relative; width: ${u(56)}; height: ${u(56)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform .15s; }
-    #pcv-miimaker .onglet > i { width: ${u(42)}; height: ${u(42)}; padding: ${u(9)}; }
-    #pcv-miimaker .onglet.actif { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); transform: scale(1.1);
+    #pcv-miimaker .colonne-mm { position: absolute; left: ${u(556)}; width: ${u(250)}; top: ${u(140)}; bottom: ${u(85)}; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--pcv-ecart-choix); overflow-y: auto; }
+    
+    #pcv-miimaker .colonne-mm .pastille { background: var(--c); color: var(--pcv-sur-accent); }
+    
+    #pcv-miimaker { --pcv-c-spotpass: var(--pcv-cyan-plein); }
+    
+    #pcv-miimaker :is(.colonne-mm, .panneau) .bouton { display: flex; align-items: center; text-align: left; }
+    
+    
+    #pcv-miimaker .onglets { position: absolute; left: calc(${u(30)} - var(--pcv-marge-ombre)); right: calc(${u(30)} - var(--pcv-marge-ombre)); top: calc(${u(18)} - var(--pcv-marge-ombre)); display: flex; flex-direction: row;
+      gap: var(--pcv-ecart-choix); overflow-x: auto; padding: var(--pcv-marge-ombre); scroll-padding-inline: var(--pcv-marge-ombre); pointer-events: none; } #pcv-miimaker .onglets > * { pointer-events: auto; }
+    #pcv-miimaker .onglet { flex: none; height: ${u(48)}; border-radius: ${u(24)}; display: flex; align-items: center; gap: ${u(10)}; padding-left: ${u(6)}; font-size: ${u(15)}; font-weight: 900; white-space: nowrap;
+      transition: transform .15s; box-shadow: var(--pcv-reflet), 0 ${u(3)} ${u(8)} rgb(from var(--pcv-ombre-c) r g b / .12); }
+    #pcv-miimaker .onglet > i { flex: none; width: ${u(36)}; height: ${u(36)}; padding: ${u(7)}; }
+    #pcv-miimaker .onglet.actif { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); color: var(--pcv-sur-accent);
       box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(18)} color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent); }
     #pcv-miimaker .onglet.actif > i { color: var(--pcv-cyan-plein, #2fb8ff); }
-    #pcv-miimaker .onglet:active, #pcv-miimaker .rond:active, #pcv-miimaker .pas:active { transform: scale(.92); }
     
-    #pcv-miimaker .onglet::after { content: attr(data-nom); position: absolute; top: calc(100% + ${u(8)}); left: 50%; transform: translateX(-50%); z-index: 6; pointer-events: none;
-      padding: ${u(4)} ${u(12)}; border-radius: ${u(14)}; background: var(--pcv-bulle); color: var(--pcv-sur-accent); font-size: ${u(14)}; font-weight: 900; white-space: nowrap; opacity: 0; transition: opacity .15s; }
-    #pcv-miimaker.clavier .onglet.mm-focus::after, #pcv-miimaker .onglet:hover::after { opacity: 1; }
-    
-    #pcv-miimaker .panneau { position: absolute; left: ${u(604)}; right: ${u(28)}; top: ${u(86)}; bottom: ${u(78)}; border-radius: ${u(30)}; padding: ${u(16)} ${u(20)} ${u(18)};
+    #pcv-miimaker .panneau { position: absolute; left: ${u(604)}; right: ${u(28)}; top: ${u(14)}; bottom: ${u(78)}; border-radius: ${u(30)}; padding: ${u(16)} ${u(20)} ${u(18)};
       display: flex; flex-direction: column; gap: ${u(14)}; }
     #pcv-miimaker .tete-panneau { display: flex; align-items: center; gap: ${u(12)}; min-height: ${u(44)}; }
     #pcv-miimaker .tete-panneau h2 { margin: 0; font-size: ${u(22)}; font-weight: 900; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #pcv-miimaker .pilule { display: flex; gap: ${u(4)}; padding: ${u(4)}; border-radius: ${u(24)}; background: color-mix(in srgb, var(--pcv-creux) 12%, transparent); box-shadow: inset 0 1px 3px rgba(0,0,0,.08); }
-    #pcv-miimaker .pilule button { padding: ${u(8)} ${u(16)}; border-radius: ${u(20)}; font-size: ${u(15)}; font-weight: 800; white-space: nowrap; }
-    #pcv-miimaker .pilule button.actif { background: var(--pcv-bulle); color: var(--pcv-sur-accent); }
     #pcv-miimaker .contenu { position: relative; flex: 1; min-height: 0; }
-    #pcv-miimaker .defile { position: absolute; inset: 0; overflow-y: auto; scrollbar-width: none; padding: ${u(8)}; margin: ${u(-8)}; }
+    
+    #pcv-miimaker .defile { position: absolute; inset: 0; overflow-y: auto; scrollbar-width: none; padding: var(--pcv-marge-ombre); margin: calc(var(--pcv-marge-ombre) * -1);
+      scroll-padding: calc(var(--pcv-marge-ombre) - ${u(8)}) 0; -webkit-mask-image: var(--pcv-masque-marge); mask-image: var(--pcv-masque-marge); pointer-events: none; } #pcv-miimaker .defile > * { pointer-events: auto; }
     #pcv-miimaker .defile::-webkit-scrollbar { display: none; }
-    #pcv-miimaker .grille { display: grid; grid-template-columns: repeat(var(--col, 6), 1fr); gap: ${u(12)}; }
+    
+    #pcv-miimaker .defile { scroll-snap-type: y mandatory; }
+    #pcv-miimaker .grille > *, #pcv-miimaker .defile > .options { scroll-snap-align: start; scroll-margin-top: ${u(8)}; }
+    #pcv-miimaker .grille { display: grid; grid-template-columns: repeat(var(--col, 6), minmax(0, 1fr)); gap: ${u(12)}; }   
     #pcv-miimaker .choix { position: relative; aspect-ratio: 1; border-radius: ${u(18)}; background: var(--pcv-pastille, #fff);
       box-shadow: inset 0 ${u(-4)} 0 color-mix(in srgb, var(--pcv-creux) 14%, transparent), 0 0 0 1px var(--pcv-bord), 0 ${u(4)} ${u(10)} rgb(from var(--pcv-ombre-c) r g b / .1); transition: transform .12s; }
-    #pcv-miimaker .choix canvas { position: absolute; inset: 4%; width: 92%; height: 92%; opacity: 0; transition: opacity .2s; }
-    #pcv-miimaker .choix.pret canvas { opacity: 1; }
-    #pcv-miimaker .choix:not(.pret)::after { content: ""; position: absolute; inset: 34%; border-radius: 50%; border: ${u(4)} solid color-mix(in srgb, var(--pcv-creux) 25%, transparent); border-top-color: var(--pcv-cyan-plein, #2fb8ff); animation: mmTourne .8s linear infinite; }
+    
+    #pcv-miimaker .choix canvas { position: absolute; inset: 4%; width: 92%; height: 92%; }
     #pcv-miimaker .choix.actuel { background: color-mix(in srgb, var(--pcv-cyan-plein) 13%, var(--pcv-carte)); box-shadow: inset 0 0 0 ${u(4)} var(--pcv-cyan-plein, #2fb8ff), 0 ${u(4)} ${u(10)} color-mix(in srgb, var(--pcv-cyan-plein) 25%, transparent); }
     #pcv-miimaker .choix.actuel::before { content: "\u2713"; position: absolute; right: ${u(5)}; top: ${u(4)}; width: ${u(22)}; height: ${u(22)}; border-radius: 50%; z-index: 1;
       display: flex; align-items: center; justify-content: center; background: var(--pcv-cyan-plein, #2fb8ff); color: var(--pcv-sur-accent); font-size: ${u(13)}; font-weight: 900; }
@@ -657,7 +669,6 @@
     #pcv-miimaker .option { display: flex; align-items: center; gap: ${u(8)}; padding: ${u(7)} ${u(16)} ${u(7)} ${u(8)}; border-radius: ${u(22)}; font-size: ${u(15)}; }
     #pcv-miimaker .option i { width: ${u(30)}; height: ${u(30)}; padding: ${u(5)}; border-radius: 50%; background: var(--pcv-creux); color: var(--pcv-texte2); }
     #pcv-miimaker .option.on i { background: var(--pcv-cyan-plein, #2fb8ff); color: var(--pcv-sur-accent); }
-    #pcv-miimaker .compte { position: absolute; right: 0; bottom: ${u(-14)}; font-size: ${u(13)}; color: var(--pcv-texte2, #6b7788); }
     
     #pcv-miimaker .nuancier { display: flex; flex-wrap: wrap; gap: ${u(18)}; padding: ${u(10)} ${u(4)}; }
     #pcv-miimaker .teinte { position: relative; width: ${u(78)}; height: ${u(78)}; border-radius: 50%; padding: ${u(8)}; transition: transform .12s; }
@@ -666,23 +677,34 @@
     #pcv-miimaker .teinte.actuel { transform: scale(1.08); box-shadow: inset 0 3px 1px #fff, 0 0 0 ${u(4)} var(--pcv-cyan-plein, #2fb8ff), 0 ${u(6)} ${u(14)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-miimaker .teinte.actuel::after { content: "\u2713"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--pcv-sur-accent); font-size: ${u(26)}; font-weight: 900; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
     
+    #pcv-miimaker .avec-couleurs > .defile { right: ${u(84)}; }
+    #pcv-miimaker .couleurs { position: absolute; right: 0; top: 0; bottom: 0; width: ${u(72)}; display: flex; flex-direction: column; align-items: center; gap: ${u(8)}; padding: ${u(10)} 0;
+      border-radius: ${u(22)}; background: color-mix(in srgb, var(--pcv-carte) 50%, transparent); box-shadow: inset 0 0 0 1px var(--pcv-bord); }
+    #pcv-miimaker .couleurs > span { font-size: ${u(13)}; font-weight: 900; color: var(--pcv-texte2); }
+    #pcv-miimaker .couleurs .teinte { flex: none; width: ${u(52)}; height: ${u(52)}; padding: ${u(5)}; background: none; box-shadow: none; }
+    #pcv-miimaker .couleurs .teinte.actuel { transform: none; box-shadow: 0 0 0 ${u(4)} var(--pcv-cyan-plein, #2fb8ff); }
+    #pcv-miimaker .couleurs .teinte.actuel::after { font-size: ${u(20)}; }
+    #pcv-miimaker .teinte canvas { display: block; width: 100%; height: 100%; }   
+    
     #pcv-miimaker .reglages { display: flex; flex-direction: column; gap: ${u(12)}; padding-top: ${u(4)}; }
-    #pcv-miimaker .reglage { display: grid; grid-template-columns: ${u(170)} ${u(60)} 1fr ${u(60)}; align-items: center; gap: ${u(14)}; height: ${u(70)};
+    #pcv-miimaker .reglage { display: grid; grid-template-columns: ${u(150)} ${u(58)} ${u(58)} 1fr; align-items: center; gap: ${u(10)}; height: ${u(70)};
       padding: 0 ${u(14)}; border-radius: ${u(22)}; background: color-mix(in srgb, var(--pcv-carte) 50%, transparent); box-shadow: inset 0 0 0 1px var(--pcv-bord); }
     #pcv-miimaker .reglage .nom, #pcv-miimaker .glissiere .nom, #pcv-miimaker .ligne > span { font-size: ${u(18)}; font-weight: 900; }
     #pcv-miimaker .pas { width: ${u(58)}; height: ${u(58)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform .1s; }
     #pcv-miimaker .pas > i { width: ${u(42)}; height: ${u(42)}; padding: ${u(10)}; border-radius: 50%; background: var(--pcv-pastille, #fff); color: var(--pcv-texte2);
       box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.12); display: flex; }
     #pcv-miimaker .jauge { position: relative; height: ${u(14)}; border-radius: ${u(7)}; background: color-mix(in srgb, var(--pcv-creux) 18%, transparent); box-shadow: inset 0 1px 2px rgba(0,0,0,.12); touch-action: none; cursor: pointer; }
+    #pcv-miimaker .jauge::after { content: ""; position: absolute; inset: ${u(-24)} 0; }   
     #pcv-miimaker .jauge::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--p) * 100%); border-radius: inherit; background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); }
     #pcv-miimaker .jauge u { position: absolute; top: ${u(-6)}; bottom: ${u(-6)}; left: calc(var(--p0) * 100%); width: ${u(3)}; margin-left: ${u(-1.5)}; background: rgba(60,80,110,.35); border-radius: 2px; }
     #pcv-miimaker .jauge b { position: absolute; top: 50%; left: calc(var(--p) * 100%); width: ${u(30)}; height: ${u(30)}; margin: ${u(-15)} 0 0 ${u(-15)}; border-radius: 50%;
       background: var(--pcv-pastille, #fff); box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 0 0 ${u(4)} var(--pcv-cyan-plein, #2fb8ff), 0 ${u(3)} ${u(8)} rgba(0,0,0,.2); transition: left .12s; }
     
     #pcv-miimaker .fiche { display: flex; flex-direction: column; gap: ${u(14)}; padding-top: ${u(4)}; }
-    #pcv-miimaker .ligne { display: grid; grid-template-columns: ${u(170)} 1fr; align-items: center; gap: ${u(14)}; min-height: ${u(70)}; padding: 0 ${u(14)};
+    #pcv-miimaker .fiche.defile { scroll-snap-type: none; padding-top: var(--pcv-marge-ombre); } #pcv-miimaker .fiche > * { flex: none; }   
+    #pcv-miimaker .ligne { display: grid; grid-template-columns: ${u(150)} minmax(0, 1fr); align-items: center; gap: ${u(14)}; min-height: ${u(70)}; padding: 0 ${u(14)};
       border-radius: ${u(22)}; background: color-mix(in srgb, var(--pcv-carte) 50%, transparent); box-shadow: inset 0 0 0 1px var(--pcv-bord); }
-    #pcv-miimaker .ligne input { all: unset; box-sizing: border-box; height: ${u(50)}; padding: 0 ${u(20)}; border-radius: ${u(25)}; font: inherit; font-size: ${u(22)}; font-weight: 900;
+    #pcv-miimaker .ligne input { all: unset; box-sizing: border-box; width: 100%; min-width: 0; height: ${u(50)}; padding: 0 ${u(20)}; border-radius: ${u(25)}; font: inherit; font-size: ${u(22)}; font-weight: 900;
       background: var(--pcv-carte); box-shadow: inset 0 2px 4px rgba(0,0,0,.1), 0 0 0 1px var(--pcv-bord); color: inherit; cursor: text; user-select: text; -webkit-user-select: text; }
     #pcv-miimaker .ligne input::placeholder { color: var(--pcv-texte3); }
     #pcv-miimaker .duo { display: flex; gap: ${u(10)}; flex-wrap: wrap; }
@@ -690,35 +712,40 @@
       box-shadow: inset 0 ${u(-3)} 0 rgba(0,0,0,.07), 0 0 0 1px var(--pcv-bord), 0 ${u(3)} ${u(6)} rgb(from var(--pcv-ombre-c) r g b / .1); }
     #pcv-miimaker .duo button.actif { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); color: var(--pcv-sur-accent);
       box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${u(4)} ${u(10)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
-    #pcv-miimaker .date { display: flex; align-items: center; gap: ${u(6)}; }
-    #pcv-miimaker .date b { min-width: ${u(120)}; text-align: center; font-size: ${u(19)}; }
-    #pcv-miimaker .date b.jour { min-width: ${u(48)}; }
-    #pcv-miimaker .date .pas { width: ${u(48)}; height: ${u(48)}; }
-    #pcv-miimaker .date .pas > i { width: ${u(38)}; height: ${u(38)}; padding: ${u(11)}; }
+    
+    #pcv-miimaker .listes { display: flex; gap: ${u(12)}; }
+    #pcv-miimaker .liste { display: flex; align-items: center; gap: ${u(18)}; height: ${u(50)}; padding: 0 ${u(18)} 0 ${u(22)}; border-radius: ${u(25)}; font-size: ${u(19)}; font-weight: 900;
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(3)} ${u(8)} rgb(from var(--pcv-ombre-c) r g b / .12); }
+    #pcv-miimaker .liste i { font-style: normal; color: var(--pcv-texte2); }
+    
+    #pcv-miimaker .liste i svg { display: block; width: ${u(24)}; height: ${u(24)}; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    #pcv-miimaker .pseudo-sp { display: flex; flex-direction: column; align-items: flex-start; gap: ${u(6)}; padding: ${u(8)} 0; }
+    #pcv-miimaker .pseudo-sp small { font-size: ${u(14)}; font-weight: 800; color: var(--pcv-texte2); line-height: 1.3; }
     #pcv-miimaker .interrupteur { display: flex; align-items: center; gap: ${u(10)}; padding: ${u(6)} ${u(18)} ${u(6)} ${u(6)}; border-radius: ${u(26)}; font-size: ${u(16)};
       background: var(--pcv-pastille, #fff); box-shadow: 0 0 0 1px var(--pcv-bord), 0 ${u(3)} ${u(6)} rgb(from var(--pcv-ombre-c) r g b / .1); justify-self: start; }
     #pcv-miimaker .interrupteur i { width: ${u(38)}; height: ${u(38)}; padding: ${u(8)}; border-radius: 50%; background: var(--pcv-creux); color: var(--pcv-texte3); }
-    #pcv-miimaker .interrupteur.on i { background: #d23a2a; color: var(--pcv-sur-accent); }
+    #pcv-miimaker .interrupteur.on i { background: var(--pcv-cyan-plein); color: var(--pcv-sur-accent); }
     #pcv-miimaker .glissiere { display: grid; grid-template-columns: ${u(170)} ${u(40)} 1fr ${u(40)}; align-items: center; gap: ${u(16)}; height: ${u(96)}; padding: 0 ${u(18)};
       border-radius: ${u(22)}; background: color-mix(in srgb, var(--pcv-carte) 50%, transparent); box-shadow: inset 0 0 0 1px var(--pcv-bord); }
     #pcv-miimaker .glissiere > i { color: var(--pcv-texte2); }
     
-    #pcv-miimaker .creer { display: grid; grid-template-columns: repeat(3, 1fr); gap: ${u(14)}; }
-    #pcv-miimaker .carte { position: relative; display: flex; flex-direction: column; align-items: center; gap: ${u(6)}; padding: ${u(16)} ${u(10)} ${u(14)}; border-radius: ${u(24)}; text-align: center;
-      background: var(--pcv-pastille, #fff); box-shadow: inset 0 ${u(-5)} 0 color-mix(in srgb, var(--pcv-creux) 12%, transparent), 0 0 0 1px var(--pcv-bord), 0 ${u(6)} ${u(16)} rgb(from var(--pcv-ombre-c) r g b / .12); transition: transform .12s; }
-    #pcv-miimaker .carte:hover { transform: translateY(${u(-3)}); }
-    #pcv-miimaker .carte > i { width: ${u(64)}; height: ${u(64)}; padding: ${u(14)}; color: var(--pcv-sur-accent); background: var(--k); box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.5), inset 0 -6px 10px -6px rgba(0,0,0,.25), 0 ${u(5)} ${u(12)} rgba(0,0,0,.18); }
-    #pcv-miimaker .carte b { font-size: ${u(18)}; font-weight: 900; }
-    #pcv-miimaker .carte small { font-size: ${u(13)}; color: var(--pcv-texte2, #6b7788); font-weight: 700; }
+    #pcv-miimaker .haut { display: flex; align-items: center; gap: ${u(12)}; }
+    #pcv-miimaker .creer { flex: none; white-space: nowrap; display: flex; align-items: center; gap: ${u(14)}; height: ${u(66)}; padding: 0 ${u(26)} 0 ${u(10)}; border-radius: ${u(33)}; font-size: ${u(23)}; font-weight: 900;
+      background: var(--pcv-cyan); color: var(--pcv-sur-accent); box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${u(6)} ${u(14)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
+    #pcv-miimaker .creer i { width: ${u(48)}; height: ${u(48)}; padding: ${u(12)}; border-radius: 50%; background: var(--pcv-carte); color: var(--pcv-cyan-plein); }
+    #pcv-miimaker .creer svg { stroke-width: 3; }
+    #pcv-miimaker .haut .outils { margin-left: auto; display: flex; gap: ${u(6)}; }   
+    #pcv-miimaker .haut .outils button { white-space: nowrap; padding: ${u(10)} ${u(14)}; border-radius: ${u(22)}; font-size: ${u(16)}; font-weight: 900; color: var(--pcv-texte);
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(3)} ${u(8)} rgb(from var(--pcv-ombre-c) r g b / .14); }
     #pcv-miimaker .tes-mii { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: ${u(10)}; }
-    #pcv-miimaker .tes-mii h3 { margin: ${u(4)} 0 0; font-size: ${u(19)}; font-weight: 900; }
-    #pcv-miimaker .tes-mii h3 { display: flex; align-items: baseline; }
+    
+    #pcv-miimaker .frise { display: flex; gap: ${u(6)}; padding: ${u(6)}; border-radius: ${u(22)}; background: color-mix(in srgb, var(--pcv-creux) 60%, transparent); box-shadow: inset 0 1px 3px rgba(0,0,0,.08); }
+    #pcv-miimaker .frise button { position: relative; flex: 1; height: ${u(38)}; border-radius: ${u(19)}; background: radial-gradient(circle at 40% 25%, rgba(255,255,255,.45), rgba(255,255,255,0) 50%), var(--k); box-shadow: inset 0 ${u(-3)} 0 rgba(0,0,0,.15); }
+    #pcv-miimaker .frise button.tous { flex: 2.2; display: flex; align-items: center; justify-content: center; font-size: ${u(15)}; font-weight: 900; background: var(--pcv-verre); color: var(--pcv-texte); }
+    #pcv-miimaker .frise button.tous.actif { background: var(--pcv-bulle); color: var(--pcv-sur-accent); }
+    #pcv-miimaker .frise button.actif:not(.tous)::after { content: "\u2713"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: ${u(18)}; font-weight: 900; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
     #pcv-miimaker .etagere h4 { grid-column: 1 / -1; margin: ${u(10)} 0 0; font-size: ${u(17)}; font-weight: 900; }
     #pcv-miimaker .etagere h4 small { display: block; color: var(--pcv-texte2, #6b7788); font-size: ${u(13)}; font-weight: 700; }
-    #pcv-miimaker .tes-mii h3 .outils { margin-left: auto; display: flex; gap: ${u(8)}; }
-    #pcv-miimaker .tes-mii h3 .outils button { padding: ${u(6)} ${u(14)}; border-radius: ${u(18)}; font-size: ${u(14)}; font-weight: 900; color: var(--pcv-texte, #2f3a4a);
-      background: var(--pcv-verre, #fff); box-shadow: var(--pcv-reflet, none), 0 ${u(3)} ${u(8)} rgb(from var(--pcv-ombre-c) r g b / .14); }
-    #pcv-miimaker .tes-mii h3 small { color: var(--pcv-texte2, #6b7788); font-size: ${u(15)}; margin-left: ${u(6)}; }
     #pcv-miimaker .mii { position: relative; display: flex; flex-direction: column; align-items: center; gap: ${u(4)}; padding: ${u(6)} ${u(4)} ${u(8)}; border-radius: ${u(20)}; transition: transform .12s; }
     #pcv-miimaker .mii .ic { position: relative; width: 100%; aspect-ratio: 1; border-radius: ${u(18)}; background: var(--pcv-pastille, #fff);
       box-shadow: inset 0 ${u(-4)} 0 color-mix(in srgb, var(--pcv-creux) 14%, transparent), 0 0 0 1px var(--pcv-bord), 0 ${u(4)} ${u(10)} rgb(from var(--pcv-ombre-c) r g b / .1); }
@@ -726,19 +753,11 @@
     #pcv-miimaker .mii.pret canvas { opacity: 1; }
     #pcv-miimaker .mii:not(.pret) .ic::after { content: ""; position: absolute; inset: 34%; border-radius: 50%; border: ${u(4)} solid color-mix(in srgb, var(--pcv-creux) 25%, transparent); border-top-color: var(--pcv-cyan-plein, #2fb8ff); animation: mmTourne .8s linear infinite; }
     #pcv-miimaker .mii > b { font-size: ${u(14)}; font-weight: 900; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #pcv-miimaker .mii em { position: absolute; top: 0; right: 0; width: ${u(28)}; height: ${u(28)}; padding: ${u(5)}; border-radius: 50%; background: #d23a2a; color: var(--pcv-sur-accent); box-shadow: 0 0 0 ${u(3)} var(--pcv-lisere); }
     
     #pcv-miimaker .mii.choisi .ic { background: color-mix(in srgb, var(--pcv-cyan-plein) 22%, var(--pcv-carte)); box-shadow: 0 ${u(4)} ${u(10)} color-mix(in srgb, var(--pcv-cyan-plein) 25%, transparent); }
-    #pcv-miimaker .mii.choisi .ic::before { content: "\u2713"; position: absolute; left: ${u(6)}; bottom: ${u(6)}; width: ${u(26)}; height: ${u(26)}; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center; font-size: ${u(15)}; font-weight: 900; color: var(--pcv-sur-accent);
-      background: var(--pcv-cyan-plein, #2fb8ff); box-shadow: 0 0 0 ${u(3)} var(--pcv-carte, #fff); }
     #pcv-miimaker .vide { grid-column: 1 / -1; padding: ${u(26)}; text-align: center; color: var(--pcv-texte2, #6b7788); font-size: ${u(16)}; border-radius: ${u(20)}; border: ${u(3)} dashed var(--pcv-filet); }
-    #pcv-miimaker .actions-mii { position: absolute; z-index: 5; display: flex; gap: ${u(8)}; padding: ${u(8)}; border-radius: ${u(26)}; animation: mmBulle .25s cubic-bezier(.3,1.6,.5,1) both; }
-    #pcv-miimaker .actions-mii button, #pcv-miimaker .dialogue .choix-d button { padding: ${u(10)} ${u(18)}; border-radius: ${u(22)}; font-size: ${u(16)}; font-weight: 900; white-space: nowrap;
-      background: var(--pcv-pastille, #fff); box-shadow: inset 0 ${u(-3)} 0 rgba(0,0,0,.07), 0 0 0 1px var(--pcv-bord); }
-    #pcv-miimaker .actions-mii button.rouge { color: var(--pcv-rouge-texte); }
     
-    #pcv-miimaker .tes-mii h3 .outils button.cyan, #pcv-miimaker .cherche .ok, #pcv-miimaker .fiche-cat .ok { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); color: var(--pcv-sur-accent);
+    #pcv-miimaker .cherche .ok, #pcv-miimaker .fiche-cat .ok { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); color: var(--pcv-sur-accent);
       box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${u(4)} ${u(10)} color-mix(in srgb, var(--pcv-cyan-plein) 30%, transparent); }
     #pcv-miimaker .source-cat { margin-left: auto; font-size: ${u(14)}; color: var(--pcv-texte2, #6b7788); }
     #pcv-miimaker .cherche { display: flex; gap: ${u(10)}; }
@@ -757,34 +776,46 @@
     #pcv-miimaker .catalogue .plus { grid-column: 1 / -1; justify-self: center; padding: ${u(10)} ${u(28)}; border-radius: ${u(22)}; font-size: ${u(16)}; font-weight: 900;
       background: var(--pcv-pastille, #fff); box-shadow: inset 0 ${u(-3)} 0 rgba(0,0,0,.07), 0 0 0 1px var(--pcv-bord); }
     
-    #pcv-miimaker .sosies { position: absolute; left: 0; right: 0; top: 0; bottom: ${u(70)}; display: flex; flex-direction: column; align-items: center; }
-    #pcv-miimaker .sosies .filtres { position: absolute; right: ${u(32)}; top: ${u(14)}; display: flex; gap: ${u(14)}; }
-    #pcv-miimaker .grille-sosies { margin-top: ${u(84)}; display: grid; grid-template-columns: repeat(6, ${u(156)}); gap: ${u(14)} ${u(18)}; }
-    #pcv-miimaker .grille-sosies .mii { padding: 0; }
-    #pcv-miimaker .grille-sosies .mii:hover, #pcv-miimaker .etagere .mii:hover { transform: translateY(${u(-3)}); }
+    #pcv-miimaker .filtres { display: flex; align-items: center; gap: ${u(28)}; }
+    #pcv-miimaker .etagere .mii:hover { transform: translateY(${u(-3)}); }
     
-    #pcv-miimaker .bas { position: absolute; left: ${u(28)}; right: ${u(28)}; bottom: ${u(14)}; height: ${u(48)}; display: flex; align-items: center; gap: ${u(12)}; }
-    #pcv-miimaker .bas .espace { flex: 1; }
-    #pcv-miimaker .indice { display: flex; align-items: center; gap: ${u(8)}; padding: ${u(6)} ${u(16)} ${u(6)} ${u(6)}; border-radius: ${u(22)}; font-size: ${u(16)}; font-weight: 800; white-space: nowrap; }
-    #pcv-miimaker .indice u { text-decoration: none; display: flex; align-items: center; justify-content: center; min-width: ${u(30)}; height: ${u(30)}; padding: 0 ${u(6)}; border-radius: ${u(15)};
-      background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--k) 70%, #fff), var(--k)); color: var(--pcv-sur-accent); font-size: ${u(13)}; font-weight: 900; }
-    #pcv-miimaker .indice.fort { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)); color: var(--pcv-sur-accent); box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${u(5)} ${u(14)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
+    #pcv-miimaker .bas { position: absolute; left: ${u(28)}; right: ${u(28)}; bottom: ${u(14)}; height: ${u(48)}; display: flex; align-items: center; justify-content: flex-end; gap: ${u(12)}; }   
     
-    #pcv-miimaker .voile { position: absolute; inset: 0; z-index: 20; background: color-mix(in srgb, var(--pcv-carte) 55%, transparent); display: flex; align-items: center; justify-content: center; }
-    #pcv-miimaker .dialogue { min-width: ${u(420)}; max-width: ${u(640)}; padding: ${u(26)} ${u(30)} ${u(22)}; border-radius: ${u(30)}; text-align: center; animation: mmBulle .3s cubic-bezier(.3,1.6,.5,1) both; }
-    #pcv-miimaker .dialogue p { margin: 0 0 ${u(20)}; font-size: ${u(21)}; font-weight: 900; line-height: 1.35; }
-    #pcv-miimaker .dialogue .choix-d { display: flex; gap: ${u(12)}; justify-content: center; flex-wrap: wrap; }
+    #pcv-miimaker[data-ecran="fin"] .scene { left: 50%; transform: translateX(-50%); }
+    #pcv-miimaker[data-ecran="fin"] .bulle-scene { font-size: ${u(26)}; }
+    
     #pcv-miimaker .annonce { position: absolute; left: ${u(295)}; top: ${u(70)}; z-index: 25; transform: translateX(-50%); padding: ${u(10)} ${u(24)}; border-radius: ${u(22)};
-      background: #ff8a1f; color: var(--pcv-sur-accent); font-size: ${u(17)}; font-weight: 900; box-shadow: 0 ${u(6)} ${u(16)} rgba(0,0,0,.18); animation: mmBulleC .3s cubic-bezier(.3,1.6,.5,1) both; }
+      background: var(--pcv-cyan-plein); color: var(--pcv-sur-accent); font-size: ${u(17)}; font-weight: 900; box-shadow: 0 ${u(6)} ${u(16)} rgba(0,0,0,.18); animation: mmBulleC .3s cubic-bezier(.3,1.6,.5,1) both; }
     #pcv-miimaker .absent { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); width: ${u(640)}; padding: ${u(30)} ${u(36)}; border-radius: ${u(30)}; text-align: center; }
     #pcv-miimaker .absent b { display: block; font-size: ${u(24)}; font-weight: 900; margin-bottom: ${u(12)}; }
     #pcv-miimaker .absent p { margin: 0; font-size: ${u(17)}; color: var(--pcv-texte2, #6b7788); line-height: 1.45; }
     @keyframes mmBulle { from { opacity: 0; transform: translateY(${u(8)}) scale(.9); } }
     @keyframes mmTourne { to { transform: rotate(1turn); } }
     #pcv-miimaker .bulle-scene { animation-name: mmBulleC; }
-    @keyframes mmBulleC { from { opacity: 0; transform: translateX(-50%) translateY(${u(8)}) scale(.9); } }`;
+    @keyframes mmBulleC { from { opacity: 0; transform: translateX(-50%) translateY(${u(8)}) scale(.9); } }
+    #pcv-miimaker .onglets .onglet { font-size: ${u(13)}; padding: ${u(6)} ${u(10)}; height: ${u(48)}; }
+    #pcv-miimaker .onglets .onglet i { width: ${u(24)}; padding: ${u(3)}; }
+    
+    #pcv-miimaker[data-ecran="editeur"] .onglets { --cible-partie: ${u(56)}; scroll-snap-type: x mandatory; }
+    #pcv-miimaker[data-ecran="editeur"] .onglets .onglet { box-sizing: border-box; min-width: var(--cible-partie); height: var(--cible-partie);
+      border-radius: calc(var(--cible-partie) / 2); padding: ${u(6)}; gap: 0; scroll-snap-align: start; scroll-snap-stop: always; transition: none; }
+    #pcv-miimaker[data-ecran="editeur"] .onglets .onglet > i { box-sizing: border-box; width: calc(var(--cible-partie) - ${u(12)}); height: calc(var(--cible-partie) - ${u(12)}); padding: ${u(8)}; }
+    #pcv-miimaker[data-ecran="editeur"] .onglet .nom-partie { display: none; margin: 0 ${u(12)}; font-size: ${u(17)}; }
+    #pcv-miimaker[data-ecran="editeur"] .onglet.actif .nom-partie { display: block; }
+    
+    #pcv-miimaker:is([data-ecran="accueil"], [data-ecran="catalogue"]) .titre { top: ${u(20)}; }
+    #pcv-miimaker:is([data-ecran="accueil"], [data-ecran="catalogue"]) .onglets { left: auto; gap: ${u(12)}; }
+    #pcv-miimaker:is([data-ecran="accueil"], [data-ecran="catalogue"]) .onglets .onglet { font-size: ${u(17)}; height: ${u(52)}; padding: 0 ${u(22)}; }
+    #pcv-miimaker[data-ecran="catalogue"] .panneau, #pcv-miimaker[data-ecran="accueil"] .panneau, #pcv-miimaker[data-ecran="editeur"] .panneau { left: ${u(766)}; top: ${u(85)}; }
+    #pcv-miimaker .ligne-surnom { grid-template-columns: 1fr; padding: ${u(12)}; gap: ${u(8)}; }
+    #pcv-miimaker .ligne-surnom input::placeholder { font-size: ${u(16)}; }
+    #pcv-miimaker[data-ecran="fin"] .bulle-scene { top: auto; bottom: ${u(-50)}; }
+    #pcv-miimaker .panneau > .liste, #pcv-miimaker .fiche > .liste { display: block; padding: ${u(18)}; border-radius: ${u(18)}; background: var(--pcv-creux); margin-bottom: ${u(12)}; height: auto; min-height: ${u(70)}; }
+    #pcv-miimaker .rencontre canvas { width: ${u(64)}; height: ${u(64)}; float: left; margin-right: ${u(12)}; }
+    #pcv-miimaker .liste small { display: block; font-size: ${u(16)}; color: var(--pcv-texte2); white-space: normal; }
+`;
   let racine = null, ouvert = false, fini = null, dernier = null;
-  let ecran = "accueil", focus = null, dialogue = null, actionsDe = null, choisiAccueil = null;
+  let ecran = "accueil", focus = null, choisiAccueil = null;
   let ed = null;
   let sosies = { sexe: 0, age: null, ci: [] };
   const $ = (s) => racine.querySelector(s);
@@ -837,6 +868,10 @@
   const EXPRESSIONS = () => [X().NORMAL, X().BLINK, X().SMILE, X().SMILE_OPEN_MOUTH, X().SURPRISE_OPEN_MOUTH];
   const montrer = (ci, o = {}) => {
     const A = moteur.aides, F = moteur.F, ancien = vivant;
+    if (ancien && ancien.moi === !!o.moi && ancien.ci.length === ci.length && ancien.ci.every((x, i) => x === ci[i])) {
+      vetirVivant();
+      return false;
+    }
     const cm = tete(ci, { resolution: 512, allExpressionFlag: F.makeExpressionFlag(EXPRESSIONS()), modelFlag: F.FFLModelFlag.NORMAL });
     cm.meshes.traverse((x) => {
       x.frustumCulled = false;
@@ -849,11 +884,11 @@
       ancien.cm.meshes.removeFromParent();
       ancien.cm.dispose();
       A.attachHeadToBody(ancien.corps, cm.meshes);
-      for (const k of ["corps", "modele", "mixer", "os", "attente", "fin", "action", "camCorps", "camVisage", "enFinale"]) v[k] = ancien[k];
+      for (const k of ["corps", "modele", "mixer", "os", "attente", "fin", "action", "camCorps", "camVisage", "enFinale", "clips"]) v[k] = ancien[k];
       v.t = ancien.t;
       vivant = v;
       vetirVivant();
-      return;
+      return true;
     }
     if (moteur.corps) {
       const g = moteur.corps[v.sexe] || moteur.corps[0], modele = A.clone(g.scene), mixer = new T.AnimationMixer(modele);
@@ -864,7 +899,7 @@
         x.frustumCulled = false;
       });
       const clip = (n) => g.animations.find((a) => a.name === n);
-      Object.assign(v, { corps, modele, mixer, os: modele.getObjectByName(corps.scaleDesc.head), attente: clip("Wait"), fin: clip("Finish") });
+      Object.assign(v, { corps, modele, mixer, os: modele.getObjectByName(corps.scaleDesc.head), attente: clip("Wait"), fin: clip("Finish"), clips: g.animations });
       if (v.attente) {
         v.action = mixer.clipAction(v.attente).play();
         mixer.setTime(0);
@@ -895,8 +930,10 @@
     } else camera.position.copy(vueCorps ? v.camCorps : v.camVisage);
     vivant = v;
     vetirVivant();
+    return true;
   };
   let tenueAccueil = [];
+  let sansMii = null;
   const devetir = (v) => {
     try {
       window.__pcvGardeRobe?.deshabiller?.({ tete: v.cm, modele: v.modele || null });
@@ -936,6 +973,7 @@
   const vivre = (dt) => {
     const v = vivant;
     if (!v) return;
+    if (v.teteAnim) v.os.quaternion.copy(v.teteAnim);
     if (v.mixer) {
       v.mixer.update(dt);
       v.t += dt;
@@ -990,12 +1028,13 @@
     qA.setFromEuler(eul);
     if (v.os) {
       v.os.parent.getWorldQuaternion(qB);
+      (v.teteAnim ||= new T.Quaternion()).copy(v.os.quaternion);
       qC.copy(socle.quaternion).multiply(qA).multiply(qD.copy(socle.quaternion).invert());
       v.os.quaternion.premultiply(qD.copy(qB).invert().multiply(qC).multiply(qB));
     } else v.cm.meshes.quaternion.copy(qA);
   };
   const dessiner = (dt) => {
-    if (!vivant || ecran === "sosies" || ecran === "absent") return;
+    if (!vivant || ecran === "absent") return;
     const corps = vueForcee ?? vueCorps, cible = corps ? vivant.camCorps : vivant.camVisage;
     camVise.copy(cible);
     if (camera.aspect < 1) camVise.z /= Math.max(0.6, camera.aspect);
@@ -1174,18 +1213,7 @@
       if (e.bottom > r.top - m && e.top < r.bottom + m) faire(el, +el.dataset.i);
     });
   };
-  const indices = (l) => {
-    $(".bas").innerHTML = l.map(([k, nom, fort]) => k === "|" ? '<span class="espace"></span>' : `<button class="indice verre${fort ? " fort" : ""}" data-k="${k}"><u></u>${nom}</button>`).join("");
-    $(".bas").querySelectorAll("[data-k]").forEach((b) => {
-      const ks = b.dataset.k.split(",");
-      b.querySelector("u").innerHTML = ks.map((k) => touche(+k)[2] ?? echapper(touche(+k)[0])).join(" ");
-      b.querySelector("u").style.setProperty("--k", touche(+ks[0])[1]);
-      b.onclick = () => {
-        racine.classList.remove("clavier");
-        appuyer(+ks[ks.length - 1]);
-      };
-    });
-  };
+  const indices = (l) => window.__pcvIcones.poser($(".bas"), l.map(([k, nom]) => [String(k).split(",").map(Number), nom]));
   const plaque = (texte, moi) => {
     const p = $(".plaque");
     p.innerHTML = texte ? `${echapper(texte)}${moi ? `<em>${Tr("miimaker.cest_toi_court")}</em>` : ""}` : "";
@@ -1210,8 +1238,22 @@
     setTimeout(() => a.remove(), 2600);
   };
   const poserFocus = (el) => {
+    if (el?.closest(".colonne-mm")) zone = "colonne";
+    else if (el?.closest(".panneau")) zone = "contenu";
     focus?.classList.remove("mm-focus");
     focus = el || null;
+    if (ecran === "accueil") {
+      if (focus?.matches(".etagere .mii") && focus.dataset.id !== choisiAccueil) choisirAccueil(focus.dataset.id);
+      legendeAccueil();
+    }
+    if (ecran === "editeur") legendeEditeur();
+    else if (ecran === "catalogue") legendeCatalogue();
+    if (ecran === "sosies" && focus?.matches(".etagere .mii")) {
+      montrer(sosies.ci[+focus.dataset.i].slice());
+      plaque("");
+      vueCorps = true;
+      reagir("sourire");
+    }
     if (!focus) return;
     focus.classList.add("mm-focus");
     const d = focus.closest(".defile");
@@ -1222,34 +1264,172 @@
     }
   };
   const changerEcran = (e) => {
+    const autre = e !== ecran && ![e, ecran].every((x) => x === "accueil" || x === "catalogue");
     ecran = e;
     racine.dataset.ecran = e;
-    actionsDe = null;
-    $(".actions-mii")?.remove();
     racine.querySelectorAll("[data-pour]").forEach((el) => {
+      if (autre && !el.hidden && !el.dataset.pour.split(" ").includes(e)) window.__pcvApparition(el, true);
       el.hidden = !el.dataset.pour.split(" ").includes(e);
+      if (autre && !el.hidden) window.__pcvApparition(el);
     });
     poserFocus(null);
   };
+  let ongletAccueil = 0, rubriqueAccueil = 0, zone = "colonne";
+  const ONGLETS_ACCUEIL = ["miimaker.mes_mii", "spotpass.nom", "miimaker.catalogue"];
+  const recherchesMii = ["", ""];
+  const normaliserRecherche = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const correspondMii = (nom, couleur, texte) => {
+    const q = normaliserRecherche(texte);
+    return !q || normaliserRecherche(nom).includes(q) || normaliserRecherche(Tr("miimaker.couleur_recherche." + couleur)).split("|").some((n) => n.includes(q));
+  };
+  const rendreMii = () => {
+    poserFocus(focus?.isConnected ? focus : $(".onglets .actif"));
+    if (ecran === "catalogue") legendeCatalogue();
+    else legendeAccueil();
+  };
+  const loupeMii = () => !ouvert || !["accueil", "catalogue"].includes(ecran) ? null : {
+    texte: ongletAccueil === 2 ? cat.texte : recherchesMii[ongletAccueil],
+    invite: Tr("miimaker.chercher_" + ["mes_mii", "rencontre", "catalogue"][ongletAccueil]),
+    rendre: rendreMii,
+    chercher: (t) => {
+      if (ongletAccueil === 2) {
+        chercherCatalogue(t);
+        return;
+      }
+      recherchesMii[ongletAccueil] = t;
+      rubriqueAccueil = ongletAccueil === 1 ? 1 : 0;
+      ouvrirAccueil();
+    }
+  };
+  const RUBRIQUES_MII = [Tr("miimaker.tous_mes_mii"), Tr("miimaker.creer"), Tr("miimaker.importer"), Tr("miimaker.sauvegarder")];
+  const ICONES_MII = ["miimaker", "creer", "telechargements", "disque"];
+  const poser = (el, h, sel) => {
+    const cle = h.split(` ${sel}"`).join('"'), avant2 = el.firstElementChild;
+    if (avant2?.__cle !== cle) {
+      el.innerHTML = h;
+      if (el.firstElementChild) el.firstElementChild.__cle = cle;
+      return;
+    }
+    const t = document.createElement("template");
+    t.innerHTML = h;
+    [...el.children].forEach((b, i) => b.classList.toggle(sel, !!t.content.children[i]?.classList.contains(sel)));
+  };
+  const colonne = (noms, selection, choisir, ic) => {
+    poser($(".colonne-mm"), noms.map((nom, i) => window.__pcvOnglet("mm:" + i, i === selection, "var(--pcv-cyan-plein)", [].concat(ic)[i] ?? ic, echapper(nom))).join(""), "choisi");
+    $(".colonne-mm").querySelectorAll("button").forEach((b, i) => {
+      b.dataset.nav = "";
+      b.onclick = () => {
+        zone = "colonne";
+        choisir(i);
+      };
+    });
+  };
+  const focusColonne = () => {
+    zone = "colonne";
+    poserFocus($(".colonne-mm .choisi") || $(".colonne-mm button"));
+  };
+  const ongletsAccueil = () => {
+    observationOnglets?.disconnect();
+    observationOnglets = null;
+    poser($(".onglets"), ONGLETS_ACCUEIL.map((k) => Tr(k)).map((n, i) => `<button class="onglet verre${i === ongletAccueil ? " actif" : ""}" data-haut="${i}">${echapper(n)}</button>`).join(""), "actif");
+    $(".onglets").querySelectorAll("button").forEach((b, i) => {
+      b.onclick = () => {
+        ongletAccueil = i;
+        rubriqueAccueil = 0;
+        ouvrirAccueil();
+      };
+    });
+  };
+  const choisirRubrique = (i) => {
+    if (ongletAccueil === 1 && i === 2 && window.__pcvSpotPassPage) {
+      window.__pcvSpotPassPage.ouvrir();
+      return;
+    }
+    rubriqueAccueil = i;
+    ouvrirAccueil();
+    window.__pcvPresentation?.entrer(racine, ".panneau > *");
+  };
+  const dessinerSpotPass = () => {
+    const sp = window.__pcvSpotPass, V = window.__pcvSpotPassVue, C = $(".panneau");
+    poser($(".colonne-mm"), V ? V.colonne(rubriqueAccueil, "mm:") : "", "choisi");
+    $(".colonne-mm").querySelectorAll("button").forEach((b, i) => {
+      b.dataset.nav = "";
+      b.onclick = () => {
+        zone = "colonne";
+        choisirRubrique(i);
+      };
+    });
+    C.innerHTML = `<div class="contenu"><div class="defile danger-liste">${V?.contenu(rubriqueAccueil) || ""}</div></div>`;
+    C.querySelectorAll("[data-sp]").forEach((b) => {
+      b.dataset.nav = "";
+    });
+    if (rubriqueAccueil === 1 && recherchesMii[1]) {
+      const q = normaliserRecherche(recherchesMii[1]);
+      C.querySelectorAll('[data-sp^="rencontre:"]').forEach((b) => {
+        const m = sp.mii()[+b.dataset.sp.split(":")[1]];
+        b.hidden = !normaliserRecherche(m.pseudo + " " + sp.nomRegion(m.region)).includes(q);
+      });
+    }
+    V?.lier(C, () => {
+      const id = focus?.dataset.sp;
+      if (ouvert && ecran === "accueil" && ongletAccueil === 1) {
+        dessinerSpotPass();
+        if (id) {
+          zone = "contenu";
+          poserFocus(C.querySelector(`[data-sp="${id}"]`));
+        }
+      }
+    });
+    $(".titre").textContent = Tr("spotpass.nom");
+    const moi = liste().find((m) => m.moi);
+    if (moi) choisiAccueil = moi.id;
+    montrerAccueil();
+    if (sp) {
+      bulleScene(sp.phrase());
+      plaque(sp.pseudo() + " " + sp.drapeau(sp.codeRegion()));
+    }
+    focusColonne();
+    legendeAccueil();
+  };
+  let filtre = null;
   const ouvrirAccueil = (choix) => {
+    if (ongletAccueil === 2) {
+      ouvrirCatalogue();
+      return;
+    }
     changerEcran("accueil");
+    ongletsAccueil();
+    if (ongletAccueil === 1) {
+      dessinerSpotPass();
+      return;
+    }
     $(".titre").innerHTML = "Mii Maker";
     bulleScene("");
-    const l = liste(), aut = autres || [], tout = [...l, ...aut];
+    const garde2 = (m) => {
+      const ci = m.ci || depuisStore(m.donnees), couleur = lireC(ci, "favoriteColor");
+      return (filtre == null || couleur === filtre) && correspondMii(m.nom || nomDe(ci), couleur, recherchesMii[0]);
+    };
+    const l = liste(), aut = autres || [], tout = [...l, ...aut], lv = l.filter(garde2), av = aut.filter(garde2);
     choisiAccueil = choix ?? (tout.some((m) => m.id === choisiAccueil) ? choisiAccueil : l.find((m) => m.moi)?.id ?? l[0]?.id ?? null);
-    const tuile = (m, i) => `<button class="mii${m.id === choisiAccueil ? " choisi" : ""}${m.autre ? " autre" : ""}" data-nav data-i="${i}" data-id="${echapper(m.id)}"><span class="ic"><canvas></canvas>${m.moi ? `<em>${ICONES.moi}</em>` : ""}</span><b>${echapper(m.nom || Tr("miimaker.sans_nom"))}</b></button>`;
-    $(".panneau").innerHTML = `<div class="creer">
-        <button class="carte" data-nav data-act="zero" style="--k:#2fb8ff"><i>${ICONES.zero}</i><b>${Tr("miimaker.partir_zero")}</b><small>${Tr("miimaker.partir_zero_aide")}</small></button>
-        <button class="carte" data-nav data-act="sosies" style="--k:#3cc47c"><i>${ICONES.sosies}</i><b>${Tr("miimaker.choisir_sosie")}</b><small>${Tr("miimaker.choisir_sosie_aide")}</small></button>
-        <button class="carte" data-nav data-act="hasard" style="--k:#ff9a2e"><i>${ICONES.hasard}</i><b>${Tr("miimaker.mii_hasard")}</b><small>${Tr("miimaker.mii_hasard_aide")}</small></button></div>
-      <div class="tes-mii"><h3>${Tr("miimaker.tes_mii")}<small>${l.length ? Tr("miimaker.n_sur_place", { n: l.length }) : ""}</small><span class="outils"><button data-nav data-catalogue class="cyan">${Tr("miimaker.catalogue")}</button><button data-nav data-fichier="importer">${Tr("steamu.importer")}</button>${l.length ? `<button data-nav data-fichier="sauver">${Tr("miimaker.sauvegarder")}</button>` : ""}</span></h3><div class="contenu"><div class="defile"><div class="grille etagere">
-        ${l.length ? l.map(tuile).join("") : `<div class="vide">${Tr("miimaker.aucun_mii")}</div>`}
-        ${aut.length ? `<h4>${Tr("miimaker.autres_mii")}<small>${Tr("miimaker.autres_mii_aide")}</small></h4>${aut.map((m, i) => tuile(m, l.length + i)).join("")}` : ""}
+    const tuile = (m, i) => `<button class="mii${m.id === choisiAccueil ? " choisi" : ""}${m.autre ? " autre" : ""}" data-nav data-i="${i}" data-id="${echapper(m.id)}"><span class="ic"><canvas></canvas></span><b>${echapper(m.nom || Tr("miimaker.sans_nom"))}</b></button>`;
+    $(".panneau").innerHTML = `<div class="haut"><button class="creer" data-nav><i>${ICONES.plus}</i>${Tr("miimaker.creer")}</button>
+        <span class="outils"><button data-nav data-fichier="importer">${Tr("miimaker.importer")}</button><button data-nav data-fichier="sauver">${Tr("miimaker.sauvegarder")}</button></span></div>
+      <div class="tes-mii">${l.length ? `<h3>${Tr("miimaker.trier_couleur")}</h3><div class="frise"><button data-nav data-filtre="" class="tous${filtre == null ? " actif" : ""}">${Tr("miimaker.tous")}</button>${Array.from({ length: 12 }, (_, i) => `<button data-nav data-filtre="${i}"${filtre === i ? ' class="actif"' : ""} style="--k:${favorite(i)}"></button>`).join("")}</div>` : ""}
+        <div class="contenu"><div class="defile"><div class="grille etagere">
+        ${lv.length ? lv.map(tuile).join("") : `<div class="vide">${Tr(l.length ? "miimaker.aucun_couleur" : "miimaker.aucun_mii")}</div>`}
+        ${av.length ? `<h4>${Tr("miimaker.autres_mii")}<small>${Tr("miimaker.autres_mii_aide")}</small></h4>${av.map((m, i) => tuile(m, lv.length + i)).join("")}` : ""}
       </div></div></div></div>`;
-    racine.querySelectorAll(".carte").forEach((b) => {
+    const creation = [
+      { svg: CREER.zero, nom: Tr("miimaker.partir_zero"), faire: demanderZero },
+      { svg: CREER.sosies, nom: Tr("miimaker.choisir_sosie"), faire: () => ouvrirSosies() },
+      { svg: CREER.hasard, nom: Tr("miimaker.mii_hasard"), faire: () => ouvrirEditeur(hasard(), { reaction: "surprise" }) }
+    ];
+    racine.querySelectorAll("[data-filtre]").forEach((b) => {
       b.onclick = () => {
+        filtre = b.dataset.filtre === "" ? null : +b.dataset.filtre;
         son("choisir");
-        ({ zero: demanderZero, sosies: () => ouvrirSosies(), hasard: () => ouvrirEditeur(hasard(), { reaction: "surprise" }) })[b.dataset.act]();
+        ouvrirAccueil();
+        poserFocus($(`[data-filtre="${b.dataset.filtre}"]`));
       };
     });
     const defile = $(".tes-mii .defile"), parId2 = new Map(tout.map((m) => [m.id, m]));
@@ -1268,121 +1448,119 @@
     });
     racine.querySelectorAll(".etagere .mii").forEach((b) => {
       b.onclick = () => {
-        if (choisiAccueil === b.dataset.id && actionsDe !== b) montrerActions(b);
-        else choisirAccueil(b.dataset.id, b);
+        if (choisiAccueil === b.dataset.id) agirMii("modifier");
+        else {
+          son("bouge");
+          poserFocus(b);
+        }
       };
     });
     montrerAccueil(tout);
     if (!autres) chargerAutres().then((x) => {
-      if (x.length && ouvert && ecran === "accueil" && !actionsDe && !dialogue) {
+      if (x.length && ouvert && ecran === "accueil" && !fenetreOuverte()) {
         const f = focus?.dataset.id;
         ouvrirAccueil(choisiAccueil);
         if (f) poserFocus([...racine.querySelectorAll(".etagere .mii")].find((x2) => x2.dataset.id === f) || focus);
       }
     });
-    racine.querySelector("[data-catalogue]").onclick = () => {
-      son("choisir");
-      ouvrirCatalogue();
-    };
-    indices([[2, Tr("miimaker.fermer")], ["|"], [6, Tr("miimaker.catalogue")], [1, Tr("miimaker.choisir")]]);
-    poserFocus(racine.querySelector(".etagere .mii.choisi") || racine.querySelector(".carte"));
+    const actions = [null, $(".creer"), $('[data-fichier="importer"]'), $('[data-fichier="sauver"]')];
+    const action = actions[rubriqueAccueil];
+    $(".haut").hidden = true;
+    if (rubriqueAccueil) {
+      $(".tes-mii").hidden = true;
+      if (action) {
+        action.parentElement.removeChild(action);
+        $(".panneau").appendChild(action);
+      }
+    }
+    if (rubriqueAccueil === 1) {
+      $(".panneau").innerHTML = '<div class="fiche">' + creation.map((c, i) => `<button class="liste" data-nav data-creation="${i}"><i>${svg(c.svg)}</i>${echapper(c.nom)}</button>`).join("") + "</div>";
+      $(".panneau").querySelectorAll("[data-creation]").forEach((b, i) => {
+        b.onclick = creation[i].faire;
+      });
+    } else if (action) action.classList.add("liste");
+    colonne(RUBRIQUES_MII, rubriqueAccueil, choisirRubrique, ICONES_MII);
+    focusColonne();
+  };
+  const legendeAccueil = () => {
+    const m = focus?.matches(".etagere .mii") && [...liste(), ...autres || []].find((x) => x.id === focus.dataset.id);
+    const action = focus?.dataset.sp;
+    const nom = zone === "colonne" || focus?.closest(".onglets") ? Tr("console.ouvrir") : action ? window.__pcvSpotPassVue?.action(action) : Tr("miimaker.choisir");
+    indices([["5,6", Tr("touche.onglets")], ...!m ? [[2, Tr("touche.retour")], [1, nom]] : m.autre ? [[2, Tr("touche.retour")], [1, Tr("miimaker.ajouter_tes_mii"), true]] : [[3, Tr("miimaker.supprimer")], [4, Tr("miimaker.dupliquer")], [2, Tr("touche.retour")], [1, Tr("miimaker.modifier"), true]]]);
   };
   const montrerAccueil = (l = [...liste(), ...autres || []]) => {
     const m = l.find((x) => x.id === choisiAccueil);
     const ci = m && (m.ci?.slice() || depuisStore(m.donnees));
     tenueAccueil = ci ? window.__pcvGardeRobe?.tenue?.(m.id) || [] : [];
+    let neuf;
     if (ci) {
-      montrer(ci, { moi: m.moi });
+      neuf = montrer(ci, { moi: m.moi });
       plaque(m.nom || Tr("miimaker.sans_nom"), m.moi);
       bulleScene("");
     } else {
-      montrer(hasard());
+      neuf = montrer(sansMii ||= hasard());
       plaque("");
       bulleScene(l.length ? "" : Tr("miimaker.bonjour_cree"));
     }
     vueCorps = true;
     vueForcee = null;
-    reagir("sourire");
+    if (neuf) reagir("sourire");
   };
-  const choisirAccueil = (id, b) => {
+  const choisirAccueil = (id) => {
     choisiAccueil = id;
     racine.querySelectorAll(".etagere .mii").forEach((x) => x.classList.toggle("choisi", x.dataset.id === id));
-    son("bouge");
     montrerAccueil();
-    if (b) montrerActions(b);
   };
-  const montrerActions = (b) => {
-    $(".actions-mii")?.remove();
-    actionsDe = b;
-    const m = [...liste(), ...autres || []].find((x) => x.id === b.dataset.id);
-    if (!m) return;
-    const a = document.createElement("div");
-    a.className = "actions-mii verre";
-    a.innerHTML = m.autre ? `<button data-nav data-a="adopter">${Tr("miimaker.ajouter_tes_mii")}</button>` : `<button data-nav data-a="modifier">${Tr("miimaker.modifier")}</button><button data-nav data-a="moi">${m.moi ? Tr("miimaker.nest_plus_moi") : Tr("miimaker.cest_moi")}</button><button data-nav data-a="copie">${Tr("miimaker.dupliquer")}</button><button data-nav data-a="suppr" class="rouge">${Tr("miimaker.supprimer")}</button>`;
-    racine.appendChild(a);
-    const r = b.getBoundingClientRect(), rr = racine.getBoundingClientRect();
-    a.style.left = borne(r.left - rr.left + r.width / 2 - a.offsetWidth / 2, 8, rr.width - a.offsetWidth - 8) + "px";
-    a.style.top = (r.top - rr.top - a.offsetHeight - 6 < 70 ? r.bottom - rr.top + 6 : r.top - rr.top - a.offsetHeight - 6) + "px";
-    a.querySelectorAll("button").forEach((x) => {
-      x.onclick = async () => {
-        const quoi = x.dataset.a;
-        fermerActions();
-        if (quoi === "adopter" && m.ci) {
-          son("choisir");
-          const ci = m.ci.slice();
-          nommer(ci, m.nom);
-          ouvrirEditeur(ci, { reaction: "joie" });
-          annoncer(Tr("miimaker.retouche_ajouter"));
-        } else if (quoi === "adopter") {
-          try {
-            const n = ajouterImporte(m.donnees.slice(), "fichier");
-            son("gagne");
-            ouvrirAccueil(n);
-            reagir("joie");
-            annoncer(Tr("miimaker.rejoint_tes_mii", { nom: m.nom }));
-          } catch (e) {
-            son("rate");
-            annoncer(Tr("miimaker.ajout_impossible_mii"));
-            console.warn("Mii Maker :", e);
-          }
-        } else if (quoi === "modifier") {
-          const ci = depuisStore(m.donnees);
-          if (ci) {
-            son("choisir");
-            ouvrirEditeur(ci, { id: m.id, moi: m.moi, nouveau: false });
-          }
-        } else if (quoi === "moi") {
-          choisirMoi(m.moi ? null : m.id);
-          son(m.moi ? "retour" : "gagne");
-          ouvrirAccueil(m.id);
-          if (!m.moi) {
-            reagir("joie");
-            annoncer(Tr("miimaker.cest_toi", { nom: m.nom || Tr("miimaker.ce_mii") }));
-          }
-        } else if (quoi === "copie") {
-          const n = dupliquer(m.id);
-          if (n) {
-            son("gagne");
-            ouvrirAccueil(n);
-            annoncer(Tr("miimaker.copie_ajoutee", { nom: m.nom || Tr("miimaker.ce_mii_minuscule") }));
-          } else son("rate");
-        } else if (quoi === "suppr") {
-          const r2 = await demanderChoix(Tr("miimaker.supprimer_confirme", { nom: m.nom || Tr("miimaker.ce_mii_minuscule") }), [Tr("miimaker.supprimer"), Tr("miimaker.garder")]);
-          if (r2 === 0) {
-            supprimer(m.id);
-            son("retour");
-            ouvrirAccueil(null);
-          }
+  const agirMii = (quoi) => {
+    const m = [...liste(), ...autres || []].find((x) => x.id === choisiAccueil);
+    if (!m || m.autre && quoi !== "modifier") {
+      son("bord");
+      return;
+    }
+    if (m.autre && m.ci) {
+      son("choisir");
+      const ci = m.ci.slice();
+      nommer(ci, m.nom);
+      ouvrirEditeur(ci, { reaction: "joie" });
+      annoncer(Tr("miimaker.retouche_ajouter"));
+    } else if (m.autre) {
+      try {
+        const n = ajouterImporte(m.donnees.slice(), "fichier");
+        son("gagne");
+        ouvrirAccueil(n);
+        reagir("joie");
+        annoncer(Tr("miimaker.rejoint_tes_mii", { nom: m.nom }));
+      } catch (e) {
+        son("rate");
+        annoncer(Tr("miimaker.ajout_impossible_mii"));
+        console.warn("Mii Maker :", e);
+      }
+    } else if (quoi === "modifier") {
+      const ci = depuisStore(m.donnees);
+      if (ci) {
+        son("choisir");
+        ouvrirEditeur(ci, { id: m.id, moi: m.moi, nouveau: false });
+      }
+    } else if (quoi === "copie") {
+      const n = dupliquer(m.id);
+      if (n) {
+        son("gagne");
+        ouvrirAccueil(n);
+        annoncer(Tr("miimaker.copie_ajoutee", { nom: m.nom || Tr("miimaker.ce_mii_minuscule") }));
+      } else son("rate");
+    } else if (quoi === "suppr") {
+      const nom = m.nom || Tr("miimaker.ce_mii");
+      question({
+        titre: Tr("miimaker.supprimer_titre", { nom }),
+        texte: Tr("miimaker.supprimer_texte", { nom }),
+        oui: Tr("miimaker.supprimer"),
+        ok: () => {
+          supprimer(m.id);
+          son("retour");
+          ouvrirAccueil(null);
         }
-      };
-    });
-    poserFocus(a.querySelector("button"));
-  };
-  const fermerActions = () => {
-    const b = actionsDe;
-    $(".actions-mii")?.remove();
-    actionsDe = null;
-    if (b?.isConnected) poserFocus(b);
+      });
+    }
   };
   const sauver = () => {
     try {
@@ -1418,10 +1596,7 @@
     };
     f.click();
   };
-  const demanderZero = async () => {
-    const r = await demanderChoix(Tr("miimaker.ton_mii_sera"), [Tr("miimaker.un_garcon"), Tr("miimaker.une_fille")]);
-    if (r >= 0) ouvrirEditeur(depart(r), { reaction: "joie" });
-  };
+  const demanderZero = () => deroulante({ titre: Tr("miimaker.ton_mii_sera"), choix: [Tr("miimaker.un_garcon"), Tr("miimaker.une_fille")], ok: (r) => ouvrirEditeur(depart(r), { reaction: "joie" }) });
   const appelerGreffon = (m, ...a) => {
     try {
       const B = (window.opener || window).DeckyBackend || window.DeckyBackend;
@@ -1476,44 +1651,25 @@ ${t}
   };
   const ouvrirCatalogue = () => {
     changerEcran("catalogue");
+    ongletAccueil = 2;
+    rubriqueAccueil = 0;
+    ongletsAccueil();
+    colonne([Tr("miimaker.catalogue")], 0, () => ouvrirCatalogue(), "livre");
     $(".titre").innerHTML = `${Tr("miimaker.catalogue")}<small>${Tr("miimaker.catalogue_sous")}</small>`;
-    $(".panneau").innerHTML = `<div class="tete-panneau"><div class="pilule"><button data-nav data-retour>${Tr("miimaker.tes_mii")}</button><button class="actif">${Tr("miimaker.catalogue")}</button></div>
-        <span class="source-cat">infinimii.com</span></div>
-      <div class="cherche"><input class="cherche-cat" data-nav maxlength="60" placeholder="${Tr("miimaker.chercher_placeholder")}" value="${echapper(cat.texte)}"><button class="ok" data-nav data-chercher>${Tr("miimaker.chercher")}</button></div>
+    $(".panneau").innerHTML = `<div class="tete-panneau"><span class="source-cat">infinimii.com</span></div>
       <div class="fiche-cat" hidden></div>
       <div class="contenu"><div class="defile"><div class="grille etagere catalogue" style="--col:5"></div></div></div>`;
-    const champ = $(".cherche-cat");
-    champ.onkeydown = (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        e.stopPropagation();
-        champ.blur();
-        chercherCatalogue(champ.value);
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        champ.blur();
-      }
-    };
-    champ.onclick = () => clavierSteam(champ);
-    $("[data-chercher]").onclick = () => chercherCatalogue(champ.value);
-    $("[data-retour]").onclick = () => {
-      son("retour");
-      ouvrirAccueil();
-    };
     $(".catalogue").parentElement.onscroll = vignettesCat;
     remplirCatalogue();
     majFiche();
-    indices([[2, Tr("menus.retour")], ["|"], [3, Tr("miimaker.chercher")], [4, Tr("acces.ajouter")], [1, Tr("miimaker.choisir"), true]]);
+    legendeCatalogue();
     if (!cat.page && !cat.attente) chercherCatalogue("");
     else if (cat.choisi) montrerCatalogue(cat.choisi);
-    else {
-      montrer(hasard());
-      plaque("");
-      bulleScene(Tr("miimaker.choisis_catalogue"));
-    }
-    poserFocus(racine.querySelector(`.catalogue .mii[data-id="${cat.choisi || ""}"]`) || racine.querySelector(".catalogue .mii") || champ);
+    else bulleScene(Tr("miimaker.choisis_catalogue"));
+    if (zone === "colonne") focusColonne();
+    else poserFocus(racine.querySelector(`.catalogue .mii[data-id="${cat.choisi || ""}"]`) || racine.querySelector(".catalogue .mii") || $(".onglets .actif"));
   };
+  const legendeCatalogue = () => indices(zone === "colonne" || focus?.closest(".onglets") ? [["5,6", Tr("touche.onglets")], [2, Tr("touche.retour")], [1, Tr("console.ouvrir")]] : [["5,6", Tr("touche.onglets")], [2, Tr("touche.retour")], [4, Tr("touche.rechercher")], [3, Tr("acces.ajouter")], [1, Tr("miimaker.choisir"), true]]);
   const chercherCatalogue = async (texte, suite) => {
     texte = String(texte ?? "").trim().slice(0, 60);
     const n = ++demandeCat, page = suite ? cat.page + 1 : 1;
@@ -1549,7 +1705,7 @@ ${t}
       son("rate");
       annoncer(cat.erreur);
     }
-    poserFocus(suite && racine.querySelectorAll(".catalogue .mii")[(page - 1) * 32] || racine.querySelector(`.catalogue .mii[data-id="${avant2 || ""}"]`) || racine.querySelector(".catalogue .mii") || $(".cherche-cat"));
+    if (zone !== "colonne") poserFocus(suite && racine.querySelectorAll(".catalogue .mii")[(page - 1) * 32] || racine.querySelector(`.catalogue .mii[data-id="${avant2 || ""}"]`) || racine.querySelector(".catalogue .mii") || $(".onglets .actif"));
   };
   const remplirCatalogue = () => {
     const G = racine?.querySelector(".catalogue");
@@ -1678,10 +1834,10 @@ ${t}
     changerEcran("sosies");
     $(".titre").innerHTML = `${Tr("miimaker.sosie_titre")}<small>${Tr("miimaker.sosie_aide")}</small>`;
     if (!garder2 || !sosies.ci.length) sosies.ci = Array.from({ length: 18 }, () => hasard(sosies.sexe, sosies.age ?? void 0));
-    const S = $(".sosies");
+    const S = $(".panneau");
     S.innerHTML = `<div class="filtres"><div class="duo">${[Tr("miimaker.garcons"), Tr("miimaker.filles")].map((n, i) => `<button data-nav data-sexe="${i}" class="${sosies.sexe === i ? "actif" : ""}">${n}</button>`).join("")}</div>
       <div class="duo">${[Tr("miimaker.enfants"), Tr("miimaker.adultes"), Tr("miimaker.aines")].map((n, i) => `<button data-nav data-age="${i}" class="${sosies.age === i ? "actif" : ""}">${n}</button>`).join("")}</div></div>
-      <div class="grille grille-sosies">${sosies.ci.map((_, i) => `<button class="mii" data-nav data-i="${i}"><span class="ic"><canvas></canvas></span></button>`).join("")}</div>`;
+      <div class="contenu"><div class="defile"><div class="grille etagere">${sosies.ci.map((_, i) => `<button class="mii" data-nav data-i="${i}"><span class="ic"><canvas></canvas></span></button>`).join("")}</div></div></div>`;
     S.querySelectorAll("[data-sexe]").forEach((b) => {
       b.onclick = () => {
         sosies.sexe = +b.dataset.sexe;
@@ -1699,7 +1855,7 @@ ${t}
         poserFocus(S.querySelector(`[data-age="${b.dataset.age}"]`));
       };
     });
-    S.querySelectorAll(".grille-sosies .mii").forEach((b) => {
+    S.querySelectorAll(".etagere .mii").forEach((b) => {
       const i = +b.dataset.i;
       demander(b, sosies.ci[i], "icone");
       b.onclick = () => {
@@ -1707,8 +1863,8 @@ ${t}
         ouvrirEditeur(sosies.ci[i].slice(), { reaction: "joie" });
       };
     });
-    indices([[2, Tr("menus.retour")], ["|"], [4, Tr("miimaker.autres_visages")], [1, Tr("miimaker.choisir"), true]]);
-    if (!focus) poserFocus(S.querySelector(".grille-sosies .mii"));
+    indices([["5,6", Tr("touche.onglets")], [2, Tr("touche.retour")], [4, Tr("miimaker.autres_visages")], [1, Tr("miimaker.choisir"), true]]);
+    if (!focus) poserFocus(S.querySelector(".etagere .mii"));
   };
   const ouvrirEditeur = (ci, o = {}) => {
     ed = { ci, id: o.id ?? null, cat: 0, page: 0, modifie: o.id == null, moi: !!o.moi, tenue: o.id != null ? window.__pcvGardeRobe?.tenue?.(o.id) || [] : [] };
@@ -1719,11 +1875,24 @@ ${t}
     montrer(ed.ci, { moi: ed.moi });
     reagir(o.reaction || "sourire");
     choisirCat(o.cat ?? 0, o.page ?? 0);
-    indices([["5,6", Tr("miimaker.categorie")], [3, Tr("miimaker.zoom")], ["|"], [2, Tr("menus.retour")], [4, Tr("miimaker.terminer"), true]]);
+    legendeEditeur();
   };
+  const legendeEditeur = () => indices([
+    ["5,6", Tr("touche.onglets")],
+    [3, Tr("miimaker.zoom")],
+    [2, Tr("touche.retour")],
+    ...focus && focus.dataset.glissiere == null ? [[1, Tr("touche.choisir")]] : [],
+    [4, Tr("miimaker.terminer")]
+  ]);
+  let observationOnglets = null;
   const poserOnglets = () => {
-    $(".onglets").innerHTML = CATS.map((c, i) => `<button class="onglet verre${ed && i === ed.cat ? " actif" : ""}" data-nav data-cat="${i}" data-nom="${c.nom}"><i>${ICONES[c.id]}</i></button>`).join("");
+    observationOnglets?.disconnect();
+    observationOnglets = new IntersectionObserver((entrees) => entrees.forEach(({ target, intersectionRatio }) => {
+      target.style.visibility = intersectionRatio >= 0.999 ? "" : "hidden";
+    }), { root: $(".onglets"), threshold: [0, 1] });
+    $(".onglets").innerHTML = CATS.map((c, i) => `<button class="onglet verre${ed && i === ed.cat ? " actif" : ""}" data-cat="${i}" aria-label="${echapper(c.nom)}" aria-pressed="${!!ed && i === ed.cat}"><i aria-hidden="true">${ICONES[c.id] || ICONES.profil}</i><span class="nom-partie" aria-hidden="true">${echapper(c.nom)}</span></button>`).join("");
     racine.querySelectorAll(".onglet").forEach((b) => {
+      observationOnglets.observe(b);
       b.onclick = () => {
         if (+b.dataset.cat !== ed.cat) {
           son("choisir");
@@ -1738,11 +1907,25 @@ ${t}
     vueForcee = null;
     vueCorps = CATS[ed.cat].vue === "corps";
     racine.dataset.cat = CATS[ed.cat].id;
-    racine.querySelectorAll(".onglet").forEach((b) => b.classList.toggle("actif", +b.dataset.cat === ed.cat));
+    const boutons = [...$(".onglets").querySelectorAll(".onglet")], positions = boutons.map((b) => b.offsetLeft);
+    const reduit = window.__pcvReduit?.(), animation = window.__pcvPanneau?.();
+    boutons.forEach((b) => {
+      b.getAnimations?.({ subtree: true }).forEach((a) => a.cancel());
+      const choisi = +b.dataset.cat === ed.cat;
+      b.classList.toggle("actif", choisi);
+      b.setAttribute("aria-pressed", String(choisi));
+    });
+    boutons.forEach((b, k) => {
+      const dx = positions[k] - b.offsetLeft;
+      if (!reduit && animation && dx) b.animate?.({ transform: [`translateX(${dx}px)`, "translateX(0)"] }, animation);
+    });
+    const actif = $(".onglets .actif");
+    if (!reduit && animation) actif?.querySelector(".nom-partie")?.animate?.({ opacity: [0, 1], transform: ["translateX(-8%)", "translateX(0)"] }, animation);
+    actif?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduit ? "instant" : "smooth" });
     construirePage();
-    poserFocus(premierDuPanneau());
+    focusColonne();
   };
-  const premierDuPanneau = () => $(".panneau .actuel") || $(".panneau .contenu [data-nav]") || $(".panneau [data-nav]");
+  const premierDuPanneau = () => navigables().find((e) => e.closest(".panneau") && e.classList.contains("actuel")) || navigables().find((e) => e.closest(".panneau"));
   const titreEditeur = () => {
     const n = nomDe(ed.ci);
     $(".titre").innerHTML = `${echapper(n || Tr("miimaker.nouveau_mii"))}${ed.modifie ? `<small>${Tr("miimaker.non_enregistre")}</small>` : ""}`;
@@ -1756,17 +1939,12 @@ ${t}
       vueForcee = null;
       majZoom();
     }
-    $(".panneau").innerHTML = `<div class="tete-panneau"><h2>${cat2.nom}</h2>${cat2.pages.length > 1 ? `<div class="pilule">${cat2.pages.map((p, i) => `<button data-nav data-page="${i}" class="${i === ed.page ? "actif" : ""}">${p.nom}</button>`).join("")}</div>` : ""}</div><div class="contenu"></div>`;
-    racine.querySelectorAll("[data-page]").forEach((b) => {
-      b.onclick = () => {
-        if (+b.dataset.page !== ed.page) {
-          son("choisir");
-          ed.page = +b.dataset.page;
-          construirePage();
-          poserFocus($(`[data-page="${ed.page}"]`));
-        }
-      };
-    });
+    colonne(cat2.pages.map((p) => p.nom), ed.page, (i) => {
+      ed.page = i;
+      construirePage();
+      focusColonne();
+    }, ICONES[cat2.id] || ICONES.profil);
+    $(".panneau").innerHTML = `<div class="tete-panneau"><h2>${echapper(page.nom)}</h2></div><div class="contenu"></div>`;
     const C = $(".panneau .contenu");
     if (page.type === "grille") pageGrille(C, page);
     else if (page.type === "nuancier") pageNuancier(C, page);
@@ -1817,7 +1995,7 @@ ${t}
   const pageGrille = (C, page) => {
     const [a, b] = plage(page.champ), n = b - a + 1, actuel = lireC(ed.ci, page.champ);
     const opt = page.bascule ? `<div class="options"><button class="option verre${lireC(ed.ci, page.bascule.champ) ? " on" : ""}" data-nav data-bascule><i>${ICONES.inverser}</i>${page.bascule.nom}</button></div>` : "";
-    C.innerHTML = `<div class="defile">${opt}<div class="grille">${Array.from({ length: n }, (_, i) => `<button class="choix${a + i === actuel ? " actuel" : ""}" data-nav data-i="${a + i}"><canvas></canvas></button>`).join("")}</div></div>${n > 24 ? `<div class="compte">${n} choix</div>` : ""}`;
+    C.innerHTML = `<div class="defile">${opt}<div class="grille" style="--col:4">${Array.from({ length: n }, (_, i) => `<button class="choix${a + i === actuel ? " actuel" : ""}" data-nav data-i="${a + i}"><canvas></canvas></button>`).join("")}</div></div>`;
     const D = C.querySelector(".defile");
     const remplir = () => visibles(D, (el, x) => demander(el, variante(page, x), page.cadre));
     D.onscroll = remplir;
@@ -1834,19 +2012,27 @@ ${t}
       remplir();
     };
   };
-  const pageNuancier = (C, page) => {
-    const [a, b] = plage(page.champ), n = b - a + 1;
-    const couleurs = page.champ === "favoriteColor" ? Array.from({ length: n }, (_, i) => moteur.palettes?.[page.palette]?.[i] || couleurFavorite(i)) : moteur.palettes?.[page.palette];
-    if (!couleurs) return pageGrille(C, page);
-    const actuel = lireC(ed.ci, page.champ);
-    C.innerHTML = `<div class="defile"><div class="nuancier">${couleurs.slice(0, n).map((k, i) => `<button class="teinte verre${i === actuel ? " actuel" : ""}" data-nav data-i="${a + i}" style="--k:${k}"><i></i></button>`).join("")}</div></div>`;
-    C.querySelectorAll(".teinte").forEach((el) => {
+  const favorite = (i) => moteur.palettes?.couleurs_preferees?.[i] || couleurFavorite(i);
+  const pastilles = (page) => {
+    const [a, b] = plage(page.champ), v = lireC(ed.ci, page.champ);
+    const k = page.champ === "favoriteColor" ? favorite : moteur.palettes?.[page.palette] && ((i) => moteur.palettes[page.palette][i]);
+    return Array.from({ length: b - a + 1 }, (_, i) => `<button class="teinte verre${a + i === v ? " actuel" : ""}" data-nav data-i="${a + i}" data-champ="${page.champ}"${k ? ` style="--k:${k(i)}"><i></i>` : "><canvas></canvas>"}</button>`).join("");
+  };
+  const brancherTeintes = (C, page) => {
+    const l = C.querySelectorAll(`.teinte[data-champ="${page.champ}"]`);
+    const maj = () => l.forEach((el) => {
+      el.classList.toggle("actuel", +el.dataset.i === lireC(ed.ci, page.champ));
+      if (el.firstElementChild.tagName === "CANVAS") demander(el, variante(page, +el.dataset.i), page.cadre);
+    });
+    l.forEach((el) => {
       el.onclick = () => changer(page.champ, +el.dataset.i);
     });
-    page.majour = () => {
-      const v = lireC(ed.ci, page.champ);
-      C.querySelectorAll(".teinte").forEach((el) => el.classList.toggle("actuel", +el.dataset.i === v));
-    };
+    maj();
+    return maj;
+  };
+  const pageNuancier = (C, page) => {
+    C.innerHTML = `<div class="defile"><div class="nuancier">${pastilles(page)}</div></div>`;
+    page.majour = brancherTeintes(C, page);
   };
   const proportion = (c, x) => {
     const [a, b] = plage(c);
@@ -1854,7 +2040,7 @@ ${t}
   };
   const pageReglages = (C, page) => {
     C.innerHTML = `<div class="reglages">${page.reglages.map((r) => `<div class="reglage" data-champ="${r.champ}"><span class="nom">${r.nom}</span>
-      <button class="pas" data-nav data-d="-1" title="${r.nom}"><i>${ICONES[r.moins]}</i></button><div class="jauge"><u></u><b></b></div><button class="pas" data-nav data-d="1" title="${r.nom}"><i>${ICONES[r.plus]}</i></button></div>`).join("")}</div>`;
+      <button class="pas" data-nav data-d="-1" title="${r.nom}"><i>${ICONES[r.moins]}</i></button><button class="pas" data-nav data-d="1" title="${r.nom}"><i>${ICONES[r.plus]}</i></button><div class="jauge"><u></u><b></b></div></div>`).join("")}</div>`;
     const maj = () => C.querySelectorAll(".reglage").forEach((l) => {
       const c = l.dataset.champ;
       l.style.setProperty("--p", proportion(c, lireC(ed.ci, c)));
@@ -1875,12 +2061,12 @@ ${t}
   };
   const pageProfil = (C) => {
     const m = lireC(ed.ci, "birthMonth"), j = lireC(ed.ci, "birthDay"), s = lireC(ed.ci, "gender");
-    C.innerHTML = `<div class="fiche">
-      <label class="ligne"><span>${Tr("miimaker.surnom")}</span><input data-nav class="surnom" maxlength="${NOM_MAX}" placeholder="${Tr("miimaker.surnom_placeholder")}" value="${echapper(nomDe(ed.ci))}"></label>
+    C.innerHTML = `<div class="fiche defile">
+      <label class="ligne ligne-surnom"><span>${Tr("miimaker.surnom")}</span><input data-nav class="surnom" maxlength="${NOM_MAX}" placeholder="${Tr("miimaker.surnom_placeholder")}" value="${echapper(nomDe(ed.ci))}"></label>
       <div class="ligne"><span>${Tr("miimaker.sexe")}</span><div class="duo">${[Tr("miimaker.garcon"), Tr("miimaker.fille")].map((n, i) => `<button data-nav data-sexe="${i}" class="${s === i ? "actif" : ""}">${n}</button>`).join("")}</div></div>
-      <div class="ligne"><span>${Tr("miimaker.anniversaire")}</span><div class="date"><button class="pas" data-nav data-mois="-1"><i>${ICONES.gauche}</i></button><b class="mois">${MOIS[m]}</b><button class="pas" data-nav data-mois="1"><i>${ICONES.droite}</i></button>
-        <button class="pas" data-nav data-jour="-1"><i>${ICONES.gauche}</i></button><b class="jour">${m ? j : "-"}</b><button class="pas" data-nav data-jour="1"><i>${ICONES.droite}</i></button></div></div>
-      <div class="ligne"><span>${Tr("miimaker.ce_mii_cest")}</span><button class="interrupteur${ed.moi ? " on" : ""}" data-nav data-moi><i>${ICONES.moi}</i>${ed.moi ? Tr("miimaker.moi") : Tr("miimaker.quelquun")}</button></div></div>`;
+      <div class="ligne"><span>${Tr("miimaker.anniversaire")}</span><div class="listes"><button class="liste" data-nav data-liste="mois"><span>${m ? MOIS[m] : Tr("miimaker.mois")}</span><i>\u25BE</i></button><button class="liste" data-nav data-liste="jour"><span>${m ? j : Tr("miimaker.jour")}</span><i>\u25BE</i></button></div></div>
+      <div class="ligne"><span>${Tr("miimaker.ce_mii_cest")}</span><button class="interrupteur${ed.moi ? " on" : ""}" data-nav data-moi><i>${ICONES.moi}</i>${ed.moi ? Tr("miimaker.moi") : Tr("miimaker.quelquun")}</button></div>
+      </div>`;
     const champ = C.querySelector(".surnom");
     champ.oninput = () => {
       nommer(ed.ci, champ.value);
@@ -1900,25 +2086,27 @@ ${t}
     C.querySelectorAll("[data-sexe]").forEach((b) => {
       b.onclick = () => changer("gender", +b.dataset.sexe, { reaction: "surprise" });
     });
-    C.querySelectorAll("[data-mois]").forEach((b) => {
-      repeter(b, () => {
-        const mm = (lireC(ed.ci, "birthMonth") + +b.dataset.mois + 13) % 13;
+    C.querySelector('[data-liste="mois"]').onclick = () => deroulante({
+      titre: Tr("miimaker.mois_anniversaire"),
+      choix: MOIS,
+      v: lireC(ed.ci, "birthMonth"),
+      ok: (mm) => {
         ecrireC(ed.ci, "birthMonth", mm);
         ecrireC(ed.ci, "birthDay", mm ? borne(lireC(ed.ci, "birthDay") || 1, 1, JOURS[mm]) : 0);
         dateChangee();
-      });
+      }
     });
-    C.querySelectorAll("[data-jour]").forEach((b) => {
-      repeter(b, () => {
-        const mm = lireC(ed.ci, "birthMonth");
-        if (!mm) {
-          son("bord");
-          return;
-        }
-        ecrireC(ed.ci, "birthDay", (lireC(ed.ci, "birthDay") - 1 + +b.dataset.jour + JOURS[mm]) % JOURS[mm] + 1);
+    C.querySelector('[data-liste="jour"]').onclick = () => {
+      const mm = lireC(ed.ci, "birthMonth");
+      if (!mm) {
+        son("bord");
+        return;
+      }
+      deroulante({ titre: Tr("miimaker.jour_anniversaire"), choix: Array.from({ length: JOURS[mm] }, (_, i) => String(i + 1)), v: lireC(ed.ci, "birthDay") - 1, ok: (k) => {
+        ecrireC(ed.ci, "birthDay", k + 1);
         dateChangee();
-      });
-    });
+      } });
+    };
     C.querySelector("[data-moi]").onclick = () => {
       ed.moi = !ed.moi;
       ed.modifie = true;
@@ -1930,14 +2118,13 @@ ${t}
     };
     const dateChangee = () => {
       ed.modifie = true;
-      son("bouge");
       reagir("sourire", false);
       const mm = lireC(ed.ci, "birthMonth");
-      C.querySelector(".mois").textContent = MOIS[mm];
-      C.querySelector(".jour").textContent = mm ? lireC(ed.ci, "birthDay") : "?";
+      C.querySelector('[data-liste="mois"] span').textContent = mm ? MOIS[mm] : Tr("miimaker.mois");
+      C.querySelector('[data-liste="jour"] span').textContent = mm ? lireC(ed.ci, "birthDay") : Tr("miimaker.jour");
       titreEditeur();
     };
-    CATS[0].pages[0].majour = () => C.querySelectorAll("[data-sexe]").forEach((b) => b.classList.toggle("actif", +b.dataset.sexe === lireC(ed.ci, "gender")));
+    CATS.find((c) => c.id === "profil").pages[0].majour = () => C.querySelectorAll("[data-sexe]").forEach((b) => b.classList.toggle("actif", +b.dataset.sexe === lireC(ed.ci, "gender")));
   };
   const pageSilhouette = (C) => {
     const L = [["height", Tr("miimaker.taille"), "petit", "grand"], ["build", Tr("miimaker.corpulence"), "mince", "fort"]];
@@ -1951,7 +2138,7 @@ ${t}
       const c = l.dataset.champ;
       glisser(l.querySelector(".jauge"), (f) => changer(c, f * 127, { reaction: "sourire", bond: false, silencieux: true }));
     });
-    CATS[0].pages[2].majour = maj;
+    CATS.find((c) => c.id === "corps").pages[0].majour = maj;
     maj();
   };
   const changer = (c, x, o = {}) => {
@@ -1973,11 +2160,12 @@ ${t}
     const c = el.dataset.champ;
     changer(c, lireC(ed.ci, c) + d * 4, { reaction: "sourire", bond: false, son: "bouge" });
   };
-  const terminer = async () => {
+  const terminer = () => {
     if (!nomDe(ed.ci).trim()) {
       annoncer(Tr("miimaker.donne_surnom"));
       son("rate");
-      choisirCat(0, 0);
+      choisirCat(CATS.findIndex((c) => c.id === "profil"), 0);
+      zone = "contenu";
       const s = $(".surnom");
       poserFocus(s);
       s?.focus();
@@ -1989,27 +2177,30 @@ ${t}
       son("rate");
       return;
     }
+    vueCorps = true;
+    vueForcee = true;
     son("gagne");
     finale();
     ed.modifie = false;
     titreEditeur();
     dernier = id;
-    if (!liste().some((m) => m.moi)) {
-      const r = await demanderChoix(Tr("miimaker.cest_toi_question", { nom: nomDe(ed.ci) }), [Tr("miimaker.oui_cest_moi"), Tr("miimaker.non")]);
-      if (r === 0) {
+    changerEcran("fin");
+    bulleScene(Tr("miimaker.mii_enregistre"));
+    indices([[1, Tr("miimaker.continuer"), true]]);
+    if (!liste().some((m) => m.moi)) question({
+      ic: "decorer",
+      titre: Tr("miimaker.cest_toi_question", { nom: nomDe(ed.ci) }),
+      texte: "",
+      non: Tr("miimaker.non"),
+      oui: Tr("miimaker.oui_cest_moi"),
+      danger: false,
+      ok: () => {
         choisirMoi(id);
         ed.moi = true;
         aRefaire = { moi: true };
         annoncer(Tr("miimaker.cest_toi", { nom: nomDe(ed.ci) }));
       }
-    }
-    const retour = setTimeout(() => {
-      if (ouvert && ecran === "editeur") {
-        ed = null;
-        ouvrirAccueil(id);
-      }
-    }, 1700);
-    fins.push(() => clearTimeout(retour));
+    });
   };
   const enregistrer = () => {
     const b = base(), maintenant = Date.now();
@@ -2036,19 +2227,31 @@ ${t}
     G?.definirTenue?.(id, ed.tenue);
     return id;
   };
-  const quitterEditeur = async () => {
-    if (ed.modifie) {
-      const r = await demanderChoix(Tr("miimaker.enregistrer_avant"), [Tr("miimaker.enregistrer"), Tr("miimaker.ne_pas_enregistrer"), Tr("steamu.continuer")]);
-      if (r === 0) return terminer();
-      if (r !== 1) return;
-    }
+  const quitter = () => {
     son("retour");
     ed = null;
     ouvrirAccueil();
   };
-  const navigables = () => [...(dialogue ? dialogue.el : racine).querySelectorAll("[data-nav]")].filter((e) => e.offsetParent !== null && (!actionsDe || dialogue || e.closest(".actions-mii")));
+  const quitterEditeur = () => ed.modifie ? question({
+    ic: "dossier",
+    svg: window.__pcvIcones?.trace?.("enregistrer"),
+    titre: Tr("miimaker.quitter_titre"),
+    texte: Tr("miimaker.quitter_texte", { nom: nomDe(ed.ci) || Tr("miimaker.ce_mii") }),
+    non: Tr("miimaker.continuer_modifier"),
+    autre: { texte: Tr("miimaker.ne_pas_enregistrer"), ok: quitter },
+    oui: Tr("miimaker.enregistrer"),
+    ok: terminer
+  }) : quitter();
+  const question = (o) => {
+    if (!window.__pcvDossiers?.demander?.({ ailleurs: true, non: Tr("steamu.annuler"), ...o })) son("bord");
+  };
+  const deroulante = (o) => {
+    if (!window.__pcvDossiers?.liste?.({ ailleurs: true, ...o })) son("bord");
+  };
+  const fenetreOuverte = () => !!window.__pcvDossiers?.modal?.();
+  const navigables = () => [...racine.querySelectorAll("[data-nav]")].filter((e) => e.offsetParent !== null);
   const deplacer = (dir) => {
-    const l = navigables();
+    const l = navigables().filter((e) => !e.closest(".colonne-mm, .onglets"));
     if (!l.length) return;
     if (!focus || !l.includes(focus)) {
       poserFocus(l[0]);
@@ -2059,12 +2262,30 @@ ${t}
       const i = g.indexOf(focus), cols = g.filter((e) => e.offsetTop === g[0].offsetTop).length;
       const j = dir === 11 ? i - 1 : dir === 12 ? i + 1 : dir === 9 ? i - cols : i + cols;
       const k = dir === 10 && j >= g.length && Math.floor(i / cols) < Math.floor((g.length - 1) / cols) ? g.length - 1 : j;
+      const bord = dir === 11 && i % cols === 0 || dir === 12 && (i % cols === cols - 1 || i === g.length - 1), voisin = bord && plusProche(l, dir);
+      if (dir === 11 && i % cols === 0) {
+        focusColonne();
+        return;
+      }
+      if (voisin) {
+        poserFocus(voisin);
+        son("bouge");
+        return;
+      }
       if (k >= 0 && k < g.length) {
         poserFocus(g[k]);
         son("bouge");
         return;
       }
     }
+    const meilleur = plusProche(l, dir);
+    if (meilleur) {
+      poserFocus(meilleur);
+      son("bouge");
+    } else if (dir === 11) focusColonne();
+    else son("bord");
+  };
+  const plusProche = (l, dir) => {
     const r0 = focus.getBoundingClientRect(), h = dir === 11 || dir === 12, s = dir === 12 || dir === 10 ? 1 : -1;
     const ecart = (a1, a2, b1, b2) => Math.max(0, Math.max(a1, b1) - Math.min(a2, b2));
     let meilleur = null, score = Infinity;
@@ -2080,22 +2301,61 @@ ${t}
         meilleur = e;
       }
     }
-    if (meilleur) {
-      poserFocus(meilleur);
-      son("bouge");
-    } else son("bord");
+    return meilleur;
   };
   const appuyer = (b) => {
-    if (!ouvert) return false;
-    if (dialogue) {
-      if (b === 2) dialogue.fin(-1);
-      else if (b === 1 && focus) focus.click();
-      else if (b >= 9) deplacer(b);
+    if (!ouvert || document.body?.classList.contains("pcv-barre-main")) return false;
+    if (fenetreOuverte()) return false;
+    if (focus?.closest?.(".onglets")) {
+      if (b === 1) {
+        focus.click();
+        return true;
+      }
+      if (b === 9) {
+        window.__pcvBarreEntrer?.(rendreMii);
+        return true;
+      }
+      if (b === 10 || b === 2) {
+        focusColonne();
+        return true;
+      }
+      if (b === 11 || b === 12) {
+        const boutons = [...$(".onglets").querySelectorAll("button")], i = boutons.indexOf(focus);
+        poserFocus(boutons[borne(i + (b === 11 ? -1 : 1), 0, boutons.length - 1)]);
+        return true;
+      }
+    }
+    if (ecran === "fin") {
+      if (b === 1 || b === 2) {
+        son("choisir");
+        ed = null;
+        ouvrirAccueil(dernier);
+      }
       return true;
+    }
+    if ((ecran === "accueil" || ecran === "editeur" || ecran === "catalogue") && zone === "colonne") {
+      if (b === 9 || b === 10) {
+        const boutons = [...$(".colonne-mm").querySelectorAll("button")], i = boutons.indexOf(focus);
+        if (b === 9 && i <= 0) {
+          poserFocus($(".onglets .actif"));
+          return true;
+        }
+        const j = borne(i + (b === 9 ? -1 : 1), 0, boutons.length - 1);
+        boutons[j]?.click();
+        return true;
+      }
+      if (b === 12 || b === 1) {
+        zone = "contenu";
+        poserFocus(premierDuPanneau());
+        return true;
+      }
+      if (b === 11) return true;
     }
     if (b >= 9 && b <= 12) {
       if (focus?.dataset.glissiere != null && (b === 11 || b === 12)) {
-        glissiereAuPas(focus, b === 12 ? 1 : -1);
+        const c = focus.dataset.champ;
+        if (b === 11 && lireC(ed.ci, c) <= plage(c)[0]) focusColonne();
+        else glissiereAuPas(focus, b === 12 ? 1 : -1);
         return true;
       }
       deplacer(b);
@@ -2103,57 +2363,62 @@ ${t}
     }
     if (document.activeElement?.tagName === "INPUT" && racine.contains(document.activeElement)) {
       const champ = document.activeElement;
-      if (b === 1 || b === 2) {
-        champ.blur();
-        if (b === 1 && champ.classList.contains("cherche-cat")) chercherCatalogue(champ.value);
-      }
+      if (b === 1 || b === 2) champ.blur();
       return true;
     }
     if (b === 1) {
       if (!focus) return true;
-      if (focus.tagName === "INPUT") clavierSteam(focus);
-      else focus.click();
+      if (focus.tagName === "INPUT") {
+        window.__pcvAppui(focus);
+        clavierSteam(focus);
+      } else focus.click();
       return true;
     }
     if (b === 2) {
-      if (actionsDe) {
-        fermerActions();
-        son("retour");
-      } else if (ecran === "editeur") quitterEditeur();
-      else if (ecran === "sosies" || ecran === "catalogue") {
+      if ((ecran === "editeur" || ecran === "accueil" || ecran === "catalogue") && zone === "contenu") {
+        focusColonne();
+        return true;
+      }
+      if (ecran === "editeur") quitterEditeur();
+      else if (ecran === "sosies") {
         son("retour");
         ouvrirAccueil();
       } else fermer();
       return true;
     }
-    if (ecran === "accueil" && b === 6) {
-      son("choisir");
-      ouvrirCatalogue();
+    if ((ecran === "accueil" || ecran === "catalogue") && (b === 5 || b === 6)) {
+      son("onglet");
+      ongletAccueil = (ongletAccueil + (b === 5 ? -1 : 1) + ONGLETS_ACCUEIL.length) % ONGLETS_ACCUEIL.length;
+      rubriqueAccueil = 0;
+      ouvrirAccueil();
+      return true;
+    }
+    if (ecran === "accueil" && (b === 3 || b === 4)) {
+      if (focus?.matches(".etagere .mii")) agirMii(b === 3 ? "suppr" : "copie");
+      else son("bord");
       return true;
     }
     if (ecran === "catalogue") {
-      if (b === 5) {
-        son("retour");
-        ouvrirAccueil();
+      if (b === 4) {
+        window.__pcvBarreEntrer?.(rendreMii);
+        window.__pcvBarreChercher?.();
         return true;
       }
       if (b === 3) {
-        const c = $(".cherche-cat");
-        if (c) {
-          poserFocus(c);
-          clavierSteam(c);
-        }
-        return true;
-      }
-      if (b === 4) {
         ajouterDuCatalogue();
         return true;
       }
     }
     if (ecran === "editeur") {
-      if (b === 3) {
-        vueForcee = !(vueForcee ?? vueCorps);
-        son(vueForcee ? "zoom-" : "zoom+");
+      if (b === 3) b = vueForcee ?? vueCorps ? 8 : 7;
+      if (b === 7 || b === 8) {
+        const corps = b === 7;
+        if (corps === (vueForcee ?? vueCorps)) {
+          son("bord");
+          return true;
+        }
+        vueForcee = corps;
+        son(corps ? "zoom-" : "zoom+");
         majZoom();
         return true;
       }
@@ -2171,7 +2436,7 @@ ${t}
       if (b === 4) {
         son("theme");
         ouvrirSosies();
-        poserFocus($(".grille-sosies .mii"));
+        poserFocus($(".etagere .mii"));
         return true;
       }
       if (b === 5 || b === 6) {
@@ -2191,15 +2456,29 @@ ${t}
     if (z) z.innerHTML = vueForcee ?? vueCorps ? ICONES.zoom : ICONES.dezoom;
   };
   const CLAVIER = { ArrowUp: 9, ArrowDown: 10, ArrowLeft: 11, ArrowRight: 12, Enter: 1, Escape: 2, Backspace: 2, x: 3, X: 3, y: 4, Y: 4, q: 5, Q: 5, e: 6, E: 6, PageUp: 5, PageDown: 6 };
+  let entreeEnAttente = false;
+  const relacherClavier = (e) => {
+    if (e.key === "Enter" && entreeEnAttente) {
+      entreeEnAttente = false;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (ouvert && !fenetreOuverte()) appuyer(1);
+    }
+  };
+  const toucheManette = (b) => ouvert && appuyer(b);
   const auClavier = (e) => {
-    if (!ouvert) return;
+    if (!ouvert || document.body?.classList.contains("pcv-barre-main")) return;
+    if (fenetreOuverte()) return;
     if (e.target?.tagName === "INPUT" && racine.contains(e.target)) return;
     const k = CLAVIER[e.key];
     if (!k) return;
     e.preventDefault();
     e.stopImmediatePropagation();
     racine.classList.add("clavier");
-    if (k !== 2 || !e.repeat) appuyer(k);
+    if (k !== 1) entreeEnAttente = false;
+    if (k === 1) {
+      if (!e.repeat) entreeEnAttente = true;
+    } else if (k !== 2 || !e.repeat) appuyer(k);
   };
   const repeter = (el, faire) => {
     let t1 = 0, t2 = 0;
@@ -2247,32 +2526,20 @@ ${t}
     pointeur.y = e.clientY;
     pointeur.t = performance.now();
   };
-  const demanderChoix = (texte, choix) => new Promise((ok) => {
-    const voile = document.createElement("div");
-    voile.className = "voile";
-    voile.innerHTML = `<div class="dialogue verre"><p>${echapper(texte)}</p><div class="choix-d">${choix.map((c, i) => `<button data-nav data-r="${i}">${echapper(c)}</button>`).join("")}</div></div>`;
-    racine.appendChild(voile);
-    const avant2 = focus;
-    const fin = (r) => {
-      voile.remove();
-      dialogue = null;
-      poserFocus(avant2?.isConnected ? avant2 : null);
-      if (r < 0) son("retour");
-      ok(r);
-    };
-    dialogue = { el: voile, fin };
-    voile.querySelectorAll("button").forEach((b) => {
-      b.onclick = () => {
-        son("choisir");
-        fin(+b.dataset.r);
-      };
-    });
-    voile.onclick = (e) => {
-      if (e.target === voile) fin(-1);
-    };
-    poserFocus(voile.querySelector("button"));
-  });
   const construire = (parent) => {
+    (window.__pcvLoupes ||= {}).miimaker = loupeMii;
+    fins.push(() => {
+      delete window.__pcvLoupes.miimaker;
+    });
+    (window.__pcvLegendes ||= {}).miimaker = () => {
+      if (!ouvert) return;
+      if (ecran === "editeur") legendeEditeur();
+      else if (ecran === "accueil") legendeAccueil();
+      else if (ecran === "catalogue") legendeCatalogue();
+    };
+    fins.push(() => {
+      delete window.__pcvLegendes.miimaker;
+    });
     racine = document.createElement("div");
     racine.id = "pcv-miimaker";
     racine.dataset.ecran = "accueil";
@@ -2280,13 +2547,13 @@ ${t}
       <div class="scene"><canvas></canvas><div class="bulle-scene verre" hidden></div><div class="plaque"></div>
         <button class="rond zoom verre" data-pour="editeur" hidden title="${Tr("miimaker.zoom")}"><i>${ICONES.zoom}</i></button></div>
       <div class="titre"></div>
-      <div class="onglets" data-pour="editeur" hidden></div>
-      <div class="panneau verre" data-pour="accueil editeur catalogue"></div>
-      <div class="sosies" data-pour="sosies" hidden></div>
-      <div class="bas"></div>`;
+      <div class="onglets" data-pour="accueil editeur catalogue" hidden></div><div class="colonne-mm" data-pour="accueil editeur catalogue"></div>
+      <div class="panneau verre" data-pour="accueil editeur catalogue sosies"></div>
+      <div class="bas pcv-legende"></div>`;
     (parent || document.body).appendChild(racine);
-    window.__pcvFond?.(racine);
-    $(".rond.zoom").onclick = () => appuyer(3);
+    window.__pcvAccentAppli?.(racine);
+    window.__pcvFond?.(racine, { espace: "profil" });
+    $(".rond.zoom").onclick = () => appuyer(vueForcee ?? vueCorps ? 8 : 7);
     const sc = $(".scene");
     sc.addEventListener("pointerdown", (e) => {
       if (e.target.closest("button")) return;
@@ -2312,6 +2579,8 @@ ${t}
       surPointeur(e);
       racine.classList.remove("clavier");
     });
+    window.addEventListener("keyup", relacherClavier, true);
+    fins.push(() => window.removeEventListener("keyup", relacherClavier, true));
     window.addEventListener("keydown", auClavier, true);
     fins.push(() => window.removeEventListener("keydown", auClavier, true));
   };
@@ -2353,7 +2622,7 @@ ${t}
     a.className = "absent verre";
     a.innerHTML = `<b>${Tr("miimaker.mii_pas_installes")}</b><p>${Tr("miimaker.mii_pas_installes_texte")}</p>`;
     racine.appendChild(a);
-    indices([[2, Tr("miimaker.fermer"), true]]);
+    indices([[2, Tr("touche.retour"), true]]);
     console.warn("Mii Maker :", e?.message || e);
   };
   const ouvrir = (o = {}) => ouvert ? fini.promesse : (window.__pcvNintendo?.exiger?.("mii") ?? Promise.resolve(false)).then((ok) => ok ? lancer(o) : null);
@@ -2366,9 +2635,17 @@ ${t}
       tenir = ok;
     }) };
     fini.tenir = tenir;
+    ongletAccueil = o.onglet === "spotpass" ? 1 : 0;
+    rubriqueAccueil = 0;
+    zone = "colonne";
+    choisiAccueil = null;
+    filtre = null;
+    recherchesMii.fill("");
+    if (cat.texte) Object.assign(cat, { texte: "", mii: [], page: 0, suite: false });
+    cat.choisi = null;
     construire(o.parent);
     racine.classList.add("clavier");
-    (window.__pcvManette ||= {}).miiMaker = (b) => ouvert && appuyer(b);
+    (window.__pcvManette ||= {}).miiMaker = (b) => toucheManette(b);
     if (Array.isArray(window.__pcvOrdre) && !window.__pcvOrdre.includes("miiMaker")) window.__pcvOrdre.unshift("miiMaker");
     window.__pcvMusique?.("mii-maker-main");
     $(".titre").textContent = "Mii Maker";
@@ -2405,8 +2682,11 @@ ${t}
     return fini.promesse;
   };
   const fermer = () => {
+    observationOnglets?.disconnect();
+    observationOnglets = null;
     if (!ouvert) return;
     ouvert = false;
+    entreeEnAttente = false;
     cancelAnimationFrame(boucle);
     boucle = 0;
     try {
@@ -2438,9 +2718,7 @@ ${t}
     racine?.remove();
     racine = null;
     focus = null;
-    dialogue = null;
     ed = null;
-    actionsDe = null;
     if (window.__pcvManette?.miiMaker) delete window.__pcvManette.miiMaker;
     if (Array.isArray(window.__pcvOrdre)) {
       const i = window.__pcvOrdre.indexOf("miiMaker");
@@ -2451,13 +2729,31 @@ ${t}
     fini?.tenir(dernier);
     window.dispatchEvent(new Event("pcv-mii-maker-ferme"));
   };
+  (window.__pcvPreparer ||= {}).miimaker = () => preparerMoteur(window.__pcvMiiMakerMoteur ?? moteurSteam);
   window.__pcvMiiMaker = {
     ouvrir,
+    ouvrirSpotPass: () => {
+      if (ouvert) {
+        if (ed?.modifie) return false;
+        ed = null;
+        ongletAccueil = 1;
+        rubriqueAccueil = 0;
+        ouvrirAccueil();
+      } else ouvrir({ onglet: "spotpass" });
+      return true;
+    },
+    rafraichirSpotPass: () => {
+      if (ouvert && ecran === "accueil" && ongletAccueil === 1 && !fenetreOuverte()) {
+        const id = focus?.dataset.sp, contenu = zone === "contenu";
+        dessinerSpotPass();
+        if (contenu && id) poserFocus($(`[data-sp="${id}"]`));
+      }
+    },
     fermer,
     get ouvert() {
       return ouvert;
     },
-    manette: (b) => ouvert && appuyer(b),
+    manette: (b) => toucheManette(b),
     liste,
     moi: () => liste().find((m) => m.moi) || null,
     choisirMoi,
@@ -2468,6 +2764,7 @@ ${t}
     CLE,
     retirer: () => {
       fermer();
+      delete window.__pcvPreparer.miimaker;
     },
     // pour les bancs : raison de refus du moteur pour le Mii en cours (0 = accepté)
     diagnostic: () => {
@@ -2489,6 +2786,9 @@ ${t}
         file: file.length,
         cache: cache.size,
         focus: focus?.className || null,
+        zone,
+        onglet: ongletAccueil ? "spotpass" : "mii",
+        rubrique: rubriqueAccueil,
         nom: ed ? nomDe(ed.ci) : null,
         tenue: ed ? ed.tenue.slice() : null,
         porte: vivant ? window.__pcvGardeRobe?.porte?.({ tete: vivant.cm, modele: vivant.modele || null }) || [] : [],

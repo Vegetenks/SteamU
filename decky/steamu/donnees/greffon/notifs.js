@@ -1,4 +1,5 @@
 (() => {
+  window.__pcvMajArreter?.();
   document.getElementById("pcv-notifs")?.remove();
   clearInterval(window.__pcvNotifsSuivi);
   const T = window.__pcvT || ((c) => c);
@@ -86,46 +87,46 @@
       if (l && !racine.hidden) remplir();
     }, () => lus.set(n, {}));
   };
+  const LISTE_SOUHAITS = "pcv:liste-souhaits";
   const SENS = (t, d) => ({
     2: [T("notifs.cadeau"), "#e5484d", T("notifs.cadeau_recu"), "steam://url/SteamIDMyProfile"],
     3: [T("notifs.commentaire"), "#2a8cff", T("notifs.nouveau_commentaire"), "steam://url/SteamIDMyProfile"],
     4: [T("notifs.objet_recu"), "#8a63ff", d.source_appid ? T("notifs.objet_recu_jeu", { jeu: nomJeu(d.source_appid) }) : T("notifs.objet_recu_texte"), "steam://url/SteamIDMyProfile"],
     5: [T("notifs.invitation"), "#2fbf71", T("notifs.nouvelle_demande_ami"), null],
     6: [T("notifs.grande_promo"), "#ff8a1f", T("notifs.soldes_commence"), "steam://store"],
-    // (comme la cloche de Steam : un seul jeu → sa page du magasin ; plusieurs → la liste de souhaits)
+    // (comme la cloche de Steam : un seul jeu → sa page du magasin ; plusieurs → la liste de souhaits, la nôtre dans l'eShop (29/10))
     8: [
       T("notifs.promo_liste_souhaits"),
       "#1a9ae6",
       T("notifs.jeu_liste_souhaits_promo"),
-      d.count > 1 || !Math.trunc(+d.appid) ? "steam://openurl/https://store.steampowered.com/wishlist/" : `steam://openurl/https://store.steampowered.com/app/${Math.trunc(+d.appid)}/`
+      d.count > 1 || !Math.trunc(+d.appid) ? LISTE_SOUHAITS : `steam://openurl/https://store.steampowered.com/app/${Math.trunc(+d.appid)}/`
     ],
     9: [T("notifs.echange"), "#e0a100", T("notifs.nouvelle_proposition_echange"), null]
   })[t] || [T("notifs.steam"), "#8b9098", T("notifs.nouvelle_notif_steam"), null];
   const racine = document.createElement("div");
   racine.id = "pcv-notifs";
   racine.hidden = true;
+  const P = window.__pcvPresentation;
   racine.innerHTML = `<style>
     #pcv-notifs { position: fixed; inset: 0; padding-top: ${u(96)}; box-sizing: border-box;   
       z-index: 8600; font-family: var(--pcv-police); color: var(--pcv-texte); display: flex; flex-direction: column;
-      background: var(--pcv-fond-page); animation: pcvNotifsEntree .3s cubic-bezier(.2,.8,.2,1); padding: ${u(96)} ${u(44)} ${u(30)}; }
+      background: var(--pcv-fond-page); padding: ${u(96)} ${u(44)} ${u(P.LEGENDE)}; }
     #pcv-notifs[hidden] { display: none; }
     
-    #pcv-notifs .liste { flex: 1; min-height: 0; overflow-y: auto; padding: 0 ${u(18)} ${u(18)}; margin: 0 ${u(-18)}; }
-    @keyframes pcvNotifsEntree { from { opacity: 0; transform: translateY(${u(10)}) } to { opacity: 1; transform: none } }
+    #pcv-notifs .liste { flex: 1; min-height: 0; overflow-y: auto; padding: ${u(10)} ${u(18)} ${u(18)}; margin: ${u(-10)} ${u(-18)} 0;    ${P.fondus} }
     #pcv-notifs * { box-sizing: border-box; }
     #pcv-notifs button { all: unset; cursor: pointer; box-sizing: border-box; }
     #pcv-notifs .tete { display: flex; justify-content: space-between; align-items: center; padding: ${u(4)} 0 ${u(10)}; }
     #pcv-notifs h2 { margin: 0; font-size: ${u(26)}; font-weight: 900; }
-    #pcv-notifs .apercu { padding: ${u(9)} ${u(18)}; border-radius: ${u(20)}; font-size: ${u(15)}; font-weight: 900; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); }
     #pcv-notifs h3 { margin: ${u(18)} 0 ${u(10)}; font-size: ${u(15)}; font-weight: 900; color: var(--pcv-texte2); letter-spacing: .04em; text-transform: uppercase; }
     
     #pcv-notifs .vide { padding: ${u(18)} ${u(22)}; border-radius: ${u(22)}; border: 2px dashed rgba(150,170,195,.45); font-size: ${u(15)}; font-weight: 800; color: var(--pcv-texte2); }
     
-    #pcv-notifs:not(:has(.n)) .vide { box-shadow: 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} color-mix(in srgb, var(--pcv-cyan-plein) 20%, transparent); }
+    #pcv-notifs.sans-n .vide { box-shadow: 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} color-mix(in srgb, var(--pcv-cyan-plein) 20%, transparent); }
     #pcv-notifs .n { display: flex; align-items: center; gap: ${u(18)}; width: 100%; border-radius: ${u(26)}; padding: ${u(16)}; margin-bottom: ${u(14)};
       background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); transition: box-shadow .12s; }
     
-    body:not(.pcv-barre-nav) #pcv-notifs .n.sel { box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} color-mix(in srgb, var(--pcv-cyan-plein) 20%, transparent), 0 ${u(14)} ${u(28)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
+    body:not(.pcv-barre-main) #pcv-notifs .n.sel { box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} color-mix(in srgb, var(--pcv-cyan-plein) 20%, transparent), 0 ${u(14)} ${u(28)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-notifs .n i { width: ${u(76)}; height: ${u(114)}; flex: none; border-radius: ${u(14)}; background: var(--pcv-creux) center / cover; box-shadow: 0 0 0 ${u(3)} var(--pcv-lisere); }
     #pcv-notifs .n .t { flex: 1; min-width: 0; }
     #pcv-notifs .n .type { font-size: ${u(14)}; font-weight: 900; }
@@ -145,26 +146,31 @@
       background: var(--pcv-cyan); box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-notifs .tout { display: block; margin: ${u(6)} auto ${u(10)}; padding: ${u(12)} ${u(28)}; border-radius: ${u(24)}; font-size: ${u(16)}; font-weight: 900;
       background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); }
-    body:not(.pcv-barre-nav) #pcv-notifs .tout.sel { box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein); }
+    body:not(.pcv-barre-main) #pcv-notifs .tout.sel { box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein); }
     #pcv-notifs .n.avis { padding: ${u(20)}; border: ${u(3)} solid color-mix(in srgb, var(--pcv-cyan-plein) 45%, transparent); }
     #pcv-notifs .n.avis .ic { width: ${u(64)}; height: ${u(64)}; background: var(--pcv-cyan); color: var(--pcv-sur-accent); }
     #pcv-notifs .n.avis .masquer { padding: ${u(12)} ${u(20)}; border-radius: ${u(22)}; font-size: ${u(15)}; font-weight: 900; flex: none; background: var(--pcv-creux); color: var(--pcv-texte2); }
-    #pcv-notifs .quoi { position: fixed; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; background: rgb(from var(--pcv-ombre-c) r g b / .35); }
-    #pcv-notifs .quoi[hidden] { display: none; }
-    #pcv-notifs .quoi .carte { width: ${u(860)}; max-height: 74%; display: flex; flex-direction: column; gap: ${u(18)}; padding: ${u(30)} ${u(34)}; border-radius: ${u(34)};
-      background: var(--pcv-fond-page); box-shadow: var(--pcv-reflet), 0 ${u(20)} ${u(50)} rgb(from var(--pcv-ombre-c) r g b / .3); }
-    #pcv-notifs .quoi ul { flex: 1; min-height: 0; overflow-y: auto; margin: 0; padding: 0 ${u(8)} 0 ${u(28)}; font-size: ${u(18)}; font-weight: 800; line-height: 1.4; }
-    #pcv-notifs .quoi li + li { margin-top: ${u(10)}; }
-    #pcv-notifs .quoi .boutons { display: flex; gap: ${u(16)}; justify-content: center; }
-    #pcv-notifs .quoi .boutons button { padding: ${u(14)} ${u(34)}; border-radius: ${u(26)}; font-size: ${u(17)}; font-weight: 900; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); }
-    #pcv-notifs .quoi .boutons .oui { color: var(--pcv-sur-accent); background: var(--pcv-cyan); }
-    body:not(.pcv-barre-nav) #pcv-notifs .quoi .foc { box-shadow: 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein); }
-    body:not(.pcv-barre-nav) #pcv-notifs .n .foc { box-shadow: 0 0 0 ${u(3)} var(--pcv-anneau-c), 0 0 0 ${u(6)} var(--pcv-cyan-plein) !important; }
+    
+    :is(#pcv-notifs, #pcv-spotpass) .quoi { position: fixed; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; background: var(--pcv-voile-fenetre); }
+    :is(#pcv-notifs, #pcv-spotpass) .quoi[hidden] { display: none; }
+    :is(#pcv-notifs, #pcv-spotpass) .quoi .carte { width: ${u(860)}; max-height: 74%; display: flex; flex-direction: column; gap: ${u(18)}; padding: ${u(30)} ${u(34)}; border-radius: ${u(34)};
+      background: var(--pcv-fenetre-fond); box-shadow: var(--pcv-reflet), 0 ${u(20)} ${u(50)} rgb(from var(--pcv-ombre-c) r g b / .3); }
+    :is(#pcv-notifs, #pcv-spotpass) .quoi ul { flex: 1; min-height: 0; overflow-y: auto; margin: 0; padding: 0 ${u(8)} 0 ${u(28)}; font-size: ${u(18)}; font-weight: 800; line-height: 1.4; }
+    :is(#pcv-notifs, #pcv-spotpass) .quoi .attente { width: ${u(64)}; height: ${u(64)}; align-self: center; color: var(--pcv-cyan-plein); animation: pcvLancSouffle 1s ease-in-out infinite; }
+    :is(#pcv-notifs, #pcv-spotpass) .quoi .attente svg { width: 100%; height: 100%; fill: currentColor; }
+    :is(#pcv-notifs, #pcv-spotpass) .quoi button:disabled { opacity: .5; }
+    :is(#pcv-notifs, #pcv-spotpass) .quoi li + li { margin-top: ${u(10)}; }
+    :is(#pcv-notifs, #pcv-spotpass) .quoi .boutons { display: flex; gap: ${u(16)}; justify-content: center; }
+    :is(#pcv-notifs, #pcv-spotpass) .quoi .boutons button { padding: ${u(14)} ${u(34)}; border-radius: ${u(26)}; font-size: ${u(17)}; font-weight: 900; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); }
+    :is(#pcv-notifs, #pcv-spotpass) .quoi .boutons .oui { color: var(--pcv-sur-accent); background: var(--pcv-cyan); }
+    body:not(.pcv-barre-main) :is(#pcv-notifs, #pcv-spotpass) .quoi .foc { box-shadow: 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein); }
+    body:not(.pcv-barre-main) #pcv-notifs .n .foc { box-shadow: 0 0 0 ${u(3)} var(--pcv-anneau-c), 0 0 0 ${u(6)} var(--pcv-cyan-plein) !important; }
     #pcv-notifs .n .suppr { flex: none; width: ${u(40)}; height: ${u(40)}; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    #pcv-notifs .n .suppr { position: relative; } #pcv-notifs .n .suppr::after { content: ""; position: absolute; inset: ${u(-10)}; }   
       background: var(--pcv-creux); color: var(--pcv-texte2); }
     #pcv-notifs .n .suppr svg { width: 55%; height: 55%; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
   </style>
-  <div class="tete"><h2>${T("spaces.notifs.nom")}</h2><button class="apercu" data-apercu>${T("notifs.apercu")}</button></div><div class="liste"></div><div class="quoi" hidden></div>`;
+  <div class="tete"><h2>${T("spaces.notifs.nom")}</h2></div><div class="liste"></div><div class="quoi" hidden></div>`;
   document.body.appendChild(racine);
   window.__pcvFond?.(racine);
   let items = [], sel = 0;
@@ -186,31 +192,110 @@
     }
   };
   const majActive = () => !!window.__pcvMaj?.version && !window.__pcvMajPlusTard;
-  const demander = (m, args, fini, n = 0) => {
+  const demander = (m, args, fini2, n = 0) => {
     const encore = () => {
-      if (n < 20) setTimeout(() => demander(m, args, fini, n + 1), 3e4);
+      if (n < 20) setTimeout(() => demander(m, args, fini2, n + 1), 3e4);
     };
-    Promise.race([(O?.DeckyBackend || window.DeckyBackend)?.call("loader/call_plugin_method", window.__pcvGreffon?.nom, m, ...args), new Promise((r) => setTimeout(r, 15e3))]).then((r) => r ? fini(r) : encore(), encore);
+    Promise.race([(O?.DeckyBackend || window.DeckyBackend)?.call("loader/call_plugin_method", window.__pcvGreffon?.nom, m, ...args), new Promise((r) => setTimeout(r, 15e3))]).then((r) => r ? fini2(r) : encore(), encore);
   };
-  if (lireCle("pcv-maj-auto") !== "false") demander("maj_verifier", [lireCle("pcv-maj-manifeste") || ""], (r) => {
-    window.__pcvMaj = r.version ? r : null;
-  });
-  const majInstaller = () => {
-    const m = window.__pcvMaj;
-    if (!m) return;
-    (O?.DeckyBackend || window.DeckyBackend)?.call("utilities/install_plugin", m.url, window.__pcvGreffon?.nom, m.version, m.sha256, 2).catch(() => {
+  const CLE_MAJ_AUTO = "pcv-maj-auto";
+  const verifierMaj = () => {
+    if (lireCle(CLE_MAJ_AUTO) !== "false") demander("maj_verifier", [lireCle("pcv-maj-manifeste") || ""], (r) => {
+      const neuve = r.version && r.version !== window.__pcvMaj?.version;
+      window.__pcvMaj = r.version ? r : null;
+      if (neuve && window.__pcvMajVu) {
+        window.__pcvMajVu = window.__pcvMajPlusTard = false;
+        bulleUneFois("__pcvMajBulle", "__pcvMajVu", majActive, { avis: "maj" });
+      }
     });
   };
-  const majNotes = () => {
-    const n = window.__pcvMaj?.notes || {};
-    return n[window.__pcvLangue?.()]?.length ? n[window.__pcvLangue()] : n.en || [];
+  verifierMaj();
+  clearInterval(window.__pcvMajSuivi);
+  window.__pcvMajSuivi = setInterval(verifierMaj, 30 * 60 * 1e3);
+  let qInstallation = null;
+  const MAJ_DELAI = 10 * 60 * 1e3;
+  const majInstaller = async () => {
+    const m = window.__pcvMaj;
+    if (!m || window.__pcvMajInstallation) return;
+    window.__pcvMajInstallation = true;
+    const installation = qInstallation = { version: m.version, etape: "telechargement" };
+    dessinerQuoi();
+    const backend = O?.DeckyBackend || window.DeckyBackend, nom = window.__pcvGreffon?.nom;
+    let remise = false, actif = false, detruit = false, minuteur, terminer, echouer;
+    const fin = new Promise((ok, non) => {
+      terminer = ok;
+      echouer = non;
+    });
+    const attendre = () => {
+      clearTimeout(minuteur);
+      minuteur = setTimeout(() => echouer(new Error()), MAJ_DELAI);
+    };
+    const etape = (e, pct) => {
+      installation.etape = e;
+      installation.pct = pct;
+      dessinerQuoi();
+      attendre();
+    };
+    const evenements = [
+      ["loader/plugin_download_start", (n) => {
+        actif = n === nom;
+        if (actif) etape("telechargement");
+      }],
+      ["loader/plugin_download_info", (pct) => {
+        if (actif && Number.isFinite(pct))
+          etape(pct >= 100 ? "verification_installation" : "telechargement", Math.max(0, Math.min(100, pct)));
+      }],
+      ["loader/plugin_download_finish", (n) => {
+        if (actif && n === nom) {
+          etape("redemarrage");
+          terminer();
+        }
+      }]
+    ];
+    const arreter = () => {
+      clearTimeout(minuteur);
+      evenements.forEach(([n, f]) => backend?.removeEventListener?.(n, f));
+    };
+    const annuler = () => {
+      detruit = true;
+      arreter();
+      window.__pcvMajInstallation = false;
+      echouer(new Error());
+    };
+    window.__pcvMajArreter = annuler;
+    const installer = async () => {
+      let archive = m;
+      remise = await backend.call("utilities/install_plugin", archive.url, nom, archive.version, archive.sha256, 2) !== false;
+      if (!remise) throw new Error();
+      await fin;
+    };
+    try {
+      evenements.forEach(([n, f]) => backend?.addEventListener?.(n, f));
+      attendre();
+      await Promise.all([installer(), fin]);
+    } catch (e) {
+      if (!detruit) {
+        installation.erreur = true;
+        installation.pct = void 0;
+        dessinerQuoi();
+      }
+    } finally {
+      arreter();
+      if (window.__pcvMajArreter === annuler) {
+        window.__pcvMajInstallation = false;
+        window.__pcvMajArreter = null;
+      }
+      if (!detruit) dessinerQuoi();
+    }
   };
+  const notesDe = (n = {}) => n[window.__pcvLangue?.()]?.length ? n[window.__pcvLangue()] : n.en || [];
+  const majNotes = () => notesDe(window.__pcvMaj?.notes);
   const PLANTAGE_IC = '<svg viewBox="0 0 24 24"><path d="M12 2.5 1.5 21h21zM10.8 9h2.4v6h-2.4zm0 7.6h2.4V19h-2.4z"/></svg>';
   const plantageActif = () => !!window.__pcvPlantage && lireCle("pcv-plantage-vu") !== window.__pcvPlantage;
   demander("plantage", [], (r) => {
     window.__pcvPlantage = r.fichier || null;
   });
-  const avisTextes = (n) => n.avis === "plantage" ? { ic: PLANTAGE_IC, titre: T("notifs.plantage_titre"), ligne: T("notifs.plantage_texte", { fichier: echappe(window.__pcvPlantage || "") }), voir: "", masquer: T("notifs.masquer") } : n.avis === "maj" ? { ic: MAJ_IC, titre: T("notifs.maj_titre", { version: echappe(window.__pcvMaj?.version || "") }), ligne: echappe(majNotes()[0] || ""), voir: T("notifs.voir_plus", "Voir plus"), masquer: T("notifs.plus_tard") } : { ic: AVIS_IC, titre: T("notifs.avis_titre", "Importer vos Mii"), ligne: T("notifs.avis_texte", "Pour retrouver vos Mii sur la place, appuyez sur Voir plus."), voir: T("notifs.voir_plus", "Voir plus"), masquer: T("notifs.ne_plus_afficher", "Ne plus afficher") };
+  const avisTextes = (n) => n.avis === "nouveautes" ? { ic: MAJ_IC, titre: T("bienvenue.notification"), ligne: T("bienvenue.revoir_aide"), voir: T("bienvenue.revoir"), masquer: T("bienvenue.plus") } : n.avis === "plantage" ? { ic: PLANTAGE_IC, titre: T("notifs.plantage_titre"), ligne: T("notifs.plantage_texte", { fichier: echappe(window.__pcvPlantage || "") }), voir: "", masquer: T("notifs.masquer") } : n.avis === "plugins" ? { ic: MAJ_IC, titre: T("notifs.plugins_titre", { n: window.__pcvMajPlugins.length }), ligne: echappe(window.__pcvMajPlugins.map((p) => p.nom).join(", ")), voir: T("notifs.voir_plus", "Voir plus"), masquer: T("notifs.plus_tard") } : n.avis === "maj" ? { ic: MAJ_IC, titre: T("notifs.maj_titre", { version: echappe(window.__pcvMaj?.version || "") }), ligne: echappe(majNotes()[0] || ""), voir: T("notifs.voir_plus", "Voir plus"), masquer: T("notifs.plus_tard") } : { ic: AVIS_IC, titre: T("notifs.avis_titre", "Importer vos Mii"), ligne: T("notifs.avis_texte", "Pour retrouver vos Mii sur la place, appuyez sur Voir plus."), voir: T("notifs.voir_plus", "Voir plus"), masquer: T("notifs.ne_plus_afficher", "Ne plus afficher") };
   const bulleUneFois = (suivi, vu, actif, n) => {
     clearInterval(window[suivi]);
     window[suivi] = setInterval(async () => {
@@ -220,21 +305,56 @@
       if (await window.__pcvBulleGrande({ svg: a.ic, titre: a.titre, ligne: a.ligne, agir: () => {
         window.__pcvNotifsMontrer?.(true);
         if (n.avis === "maj") ouvrirQuoi();
+        else if (n.avis === "nouveautes") window.__pcvBienvenue?.ouvrir();
       } }, 5e3)) clearInterval(window[suivi]);
       else window[vu] = false;
     }, 5e3);
   };
+  bulleUneFois("__pcvBienvenueBulle", "__pcvBienvenueBulleVue", () => !!window.__pcvBienvenue?.avis() && !window.__pcvBienvenue.ouvert() && !window.__pcvBienvenue.attendu?.() && !window.__pcvBienvenue.vueSeance?.() && document.body.dataset.pcvPage === "accueil", { avis: "nouveautes" });
   bulleUneFois("__pcvAvisSuivi", "__pcvAvisVu", avisActif, { avis: "import" });
   bulleUneFois("__pcvMajBulle", "__pcvMajVu", majActive, { avis: "maj" });
+  const majPluginsActive = () => !!window.__pcvMajPlugins?.length && !window.__pcvMajPluginsPlusTard;
+  const verifierPlugins = async () => {
+    if (lireCle(CLE_MAJ_AUTO) === "false" || !window.__pcvSteamU?.horsStore?.()) return;
+    const l = await window.__pcvEshop?.majs?.().catch(() => null);
+    if (!l) return;
+    const neuve = l.some((p) => !window.__pcvMajPlugins?.some((q) => q.nom === p.nom && q.versions?.[0]?.version === p.versions?.[0]?.version));
+    window.__pcvMajPlugins = l;
+    if (neuve) {
+      window.__pcvMajPluginsVu = window.__pcvMajPluginsPlusTard = false;
+      bulleUneFois("__pcvMajPluginsBulle", "__pcvMajPluginsVu", majPluginsActive, { avis: "plugins" });
+    }
+  };
+  window.__pcvMajPluginsVerifier = verifierPlugins;
+  clearTimeout(window.__pcvMajPluginsPremier);
+  window.__pcvMajPluginsPremier = setTimeout(verifierPlugins, 6e4);
+  clearInterval(window.__pcvMajPluginsSuivi);
+  window.__pcvMajPluginsSuivi = setInterval(verifierPlugins, 30 * 60 * 1e3);
+  const ouvrirPluginMaj = () => {
+    const p = window.__pcvMajPlugins?.[0];
+    if (!p) return;
+    montrer(false);
+    O.__pcvAller?.("accueil");
+    setTimeout(() => window.__pcvBoutique?.ouvrirPlugin(p.nom), 400);
+  };
   bulleUneFois("__pcvPlantageBulle", "__pcvPlantageVu", plantageActif, { avis: "plantage" });
   let quoi = false, qAct = 0;
   const dessinerQuoi = () => {
     const q = racine.querySelector(".quoi");
     q.hidden = !quoi;
+    window.__pcvVoile?.("quoi", quoi);
     if (!quoi) return ecrireLegende();
-    q.innerHTML = `<div class="carte"><h2>SteamU v${echappe(window.__pcvMaj?.version || "")}</h2><ul>${majNotes().map((l) => `<li>${echappe(l)}</li>`).join("")}</ul>
-      <div class="boutons">${[T("notifs.installer"), T("notifs.plus_tard")].map((t, i) => `<button class="${i ? "" : "oui"}${i === qAct ? " foc" : ""}" data-q="${i}">${t}</button>`).join("")}</div></div>`;
-    legende.innerHTML = window.__pcvIcones.legende([[1, [T("notifs.installer"), T("notifs.plus_tard")][qAct]], [2, T("notifs.retour", "Retour")]]);
+    const installation = qInstallation, erreur = installation?.erreur, occupe = !!installation && !erreur;
+    const statut = erreur ? T("notifs.maj.erreur") + ": " + T("notifs.maj.erreur.aide") : installation ? T("notifs.maj." + installation.etape) + (installation.pct === void 0 ? "" : ` ${Math.round(installation.pct)}%`) : "";
+    if (occupe && q.dataset.installation === "oui") {
+      q.querySelector('[role="status"]').textContent = statut;
+      return;
+    }
+    q.dataset.installation = occupe ? "oui" : "non";
+    const boutons = erreur ? [T("touche.fermer")] : [T("notifs.installer"), T("notifs.plus_tard")];
+    q.innerHTML = `<div class="carte pcv-fenetre" aria-busy="${occupe}"><h2>SteamU v${echappe(installation?.version || window.__pcvMaj?.version || "")}</h2>${installation ? `${occupe ? `<div class="attente" aria-hidden="true">${MAJ_IC}</div>` : ""}<p role="${erreur ? "alert" : "status"}">${statut}</p>` : `<ul>${majNotes().map((l) => `<li>${echappe(l)}</li>`).join("")}</ul>`}
+      <div class="boutons">${boutons.map((t, i) => `<button class="${i ? "" : "oui"}${!occupe && i === qAct ? " foc" : ""}" data-q="${i}"${occupe ? " disabled" : ""}>${t}</button>`).join("")}</div></div>`;
+    legende.innerHTML = occupe ? "" : window.__pcvIcones.legende([[1, boutons[qAct] || boutons[0]], [2, T("touche.retour")]]);
   };
   const ouvrirQuoi = () => {
     quoi = true;
@@ -242,19 +362,23 @@
     dessinerQuoi();
   };
   const choisirQuoi = (i) => {
+    if (qInstallation && !qInstallation.erreur || window.__pcvMajInstallation) return;
+    if (qInstallation?.erreur) {
+      qInstallation = null;
+      quoi = false;
+      dessinerQuoi();
+      remplir();
+      return;
+    }
+    if (i === 0) return majInstaller();
     quoi = false;
     dessinerQuoi();
-    if (i === 0) {
-      montrer(false);
-      majInstaller();
-    } else {
-      window.__pcvMajPlusTard = true;
-      window.__pcvSon?.("retour");
-      remplir();
-    }
+    window.__pcvMajPlusTard = true;
+    window.__pcvSon?.("retour");
+    remplir();
   };
   let act = 0;
-  const actions = (n) => !n ? [] : n.avis === "plantage" ? ["masquer"] : n.avis ? ["voir", "masquer"] : n.service || n.lien ? ["voir", "suppr"] : ["suppr"];
+  const actions = (n) => !n ? [] : n.avis === "nouveautes" ? ["voir", "masquer"] : n.avis === "plantage" ? ["masquer"] : n.avis ? ["voir", "masquer"] : n.service || n.lien ? ["voir", "suppr"] : ["suppr"];
   const suppr = (i, k) => `<span class="suppr${i === sel && act === k ? " foc" : ""}" data-suppr title="${T("notifs.supprimer", "Supprimer")}"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></span>`;
   const jourDe = (t) => {
     const j = Math.floor((Date.now() / 1e3 - t) / 86400);
@@ -286,8 +410,10 @@
         ic: l.img ? `<img src="${echappe(l.img)}">` : l.svg || PRISE
       };
     }));
+    if (window.__pcvBienvenue?.avis()) items.unshift({ avis: "nouveautes" });
     if (avisActif()) items.unshift({ avis: "import" });
     if (majActive()) items.unshift({ avis: "maj" });
+    if (majPluginsActive()) items.unshift({ avis: "plugins" });
     if (plantageActif()) items.unshift({ avis: "plantage" });
     sel = Math.min(sel, items.length > 1 ? items.length : Math.max(0, items.length - 1));
     let html = "", groupe = "";
@@ -320,6 +446,7 @@
     });
     if (items.length > 1) html += `<button class="tout${sel === items.length ? " sel" : ""}" data-tout>${T("notifs.tout_effacer", "Tout effacer")}</button>`;
     racine.querySelector(".liste").innerHTML = html;
+    racine.classList.toggle("sans-n", !items.length);
     ecrireLegende();
   };
   const legende = document.createElement("div");
@@ -327,12 +454,13 @@
   legende.className = "pcv-legende";
   racine.appendChild(legende);
   const ecrireLegende = () => {
+    if (quoi) return;
     const n = items[sel], tout = sel === items.length && items.length > 1;
-    const l = tout ? [[1, T("notifs.tout_effacer", "Tout effacer")]] : n ? [
-      [1, { voir: n.avis ? avisTextes(n).voir : T("notifs.voir"), masquer: n.avis && avisTextes(n).masquer, suppr: T("notifs.supprimer", "Supprimer") }[actions(n)[act]]],
-      ...actions(n)[act] === "voir" ? [[4, n.avis ? avisTextes(n).masquer : T("notifs.supprimer", "Supprimer")]] : []
-    ] : [];
-    legende.innerHTML = window.__pcvIcones.legende([...l, [2, T("notifs.retour", "Retour")]]);
+    const l = tout ? [[1, T("notifs.tout_effacer", "Tout effacer")]] : n ? [[1, { voir: n.avis ? avisTextes(n).voir : T("notifs.voir"), masquer: n.avis && avisTextes(n).masquer, suppr: T("notifs.supprimer", "Supprimer") }[actions(n)[act]]]] : [];
+    legende.innerHTML = window.__pcvIcones.legende(window.__pcvLegendeDe([...l, [2, T("touche.retour")]]));
+  };
+  (window.__pcvLegendes ||= {}).notifs = () => {
+    if (!racine.hidden) ecrireLegende();
   };
   const apercu = (onglet = 0) => {
     montrer(false);
@@ -348,10 +476,12 @@
     } catch (e) {
     }
   };
-  const agir = (i) => {
+  const agir = (i, action = act) => {
     const n = items[i];
     if (!n) return;
+    if (n.avis === "nouveautes") return action === 1 ? (montrer(false), window.__pcvSteamU?.ouvrir?.("nouveautes")) : window.__pcvBienvenue.ouvrir();
     if (n.avis === "maj") return ouvrirQuoi();
+    if (n.avis === "plugins") return ouvrirPluginMaj();
     if (n.avis === "plantage") return;
     if (n.avis) {
       montrer(false);
@@ -368,15 +498,25 @@
       }
       return;
     }
-    if (n.lien) {
+    if (n.lien === LISTE_SOUHAITS) {
+      montrer(false);
+      O.__pcvAller?.("accueil");
+      setTimeout(() => window.__pcvBoutique?.ouvrirSouhaits(), 400);
+    } else if (n.lien) {
       montrer(false);
       O.SteamClient.URL.ExecuteSteamURL(n.lien);
     } else apercu();
   };
   const effacer = (n) => {
+    if (n.avis === "nouveautes") {
+      montrer(false);
+      window.__pcvSteamU?.ouvrir?.("nouveautes");
+      return;
+    }
     if (n.avis) {
       try {
         if (n.avis === "maj") window.__pcvMajPlusTard = true;
+        else if (n.avis === "plugins") window.__pcvMajPluginsPlusTard = true;
         else if (n.avis === "plantage") localStorage.setItem("pcv-plantage-vu", window.__pcvPlantage);
         else localStorage.setItem(AVIS_CLE, "masque");
       } catch (e) {
@@ -401,22 +541,44 @@
     } catch (e) {
     }
   };
-  const supprimer = (i) => {
-    if (!items[i]) return;
-    effacer(items[i]);
+  const confirmer = (titre, texte, oui, ok) => {
+    if (!window.__pcvDossiers?.demander?.({ titre, texte, non: T("telech.garder"), oui, ok, ailleurs: true })) window.__pcvSon?.("bord");
+  };
+  const fini = () => {
     act = 0;
     window.__pcvSon?.("retour");
     remplir();
     racine.querySelector(".n.sel")?.scrollIntoView({ block: "nearest" });
   };
+  const supprimer = (i) => {
+    const n = items[i];
+    if (!n) return;
+    if (n.avis === "nouveautes") {
+      montrer(false);
+      window.__pcvSteamU?.ouvrir?.("nouveautes");
+      return;
+    }
+    if (n.avis) {
+      effacer(n);
+      return fini();
+    }
+    confirmer(T("notifs.suppr_titre"), T("notifs.suppr_texte"), T("notifs.supprimer", "Supprimer"), () => {
+      effacer(n);
+      fini();
+    });
+  };
   const toutEffacer = () => {
-    items.slice().forEach(effacer);
-    sel = 0;
-    window.__pcvSon?.("retour");
-    remplir();
+    const l = items.slice();
+    confirmer(T("notifs.tout_titre"), T("notifs.tout_texte"), T("notifs.tout_effacer", "Tout effacer"), () => {
+      l.forEach(effacer);
+      sel = 0;
+      fini();
+    });
   };
   const montrer = (oui) => {
+    if (!oui && qInstallation && !qInstallation.erreur) return;
     if (oui) {
+      window.__pcvBarreQuitter?.();
       sel = 0;
       act = 0;
       remplir();
@@ -426,40 +588,53 @@
     }
     if (!oui) quoi = false;
     racine.querySelector(".quoi").hidden = !quoi;
+    window.__pcvVoile?.("quoi", quoi);
+    const entre = oui && racine.hidden;
+    if (!oui && !racine.hidden) window.__pcvApparition(racine, true);
     racine.hidden = !oui;
+    if (entre) window.__pcvApparition(racine);
   };
   racine.addEventListener("click", (e) => {
     if (quoi) {
+      if (qInstallation && !qInstallation.erreur || window.__pcvMajInstallation) return;
       const q = e.target.closest("[data-q]");
       if (q) return choisirQuoi(+q.dataset.q);
       if (!e.target.closest(".carte")) {
+        qInstallation = null;
         quoi = false;
         dessinerQuoi();
       }
       return;
     }
-    if (e.target.closest("[data-apercu]")) return apercu();
     const x = e.target.closest("[data-suppr]");
     if (x) return supprimer(+x.closest(".n").dataset.i);
     if (e.target.closest("[data-tout]")) return toutEffacer();
     if (e.target.closest("[data-masquer]")) return supprimer(+e.target.closest(".n").dataset.i);
     const n = e.target.closest(".n");
-    if (n) agir(+n.dataset.i);
+    if (n) agir(+n.dataset.i, 0);
   });
   window.__pcvNotifsMontrer = montrer;
+  clearInterval(window.__pcvNouveautesSuivi);
   (window.__pcvManette ||= {}).notifs = (b) => {
-    if (racine.hidden || document.body.classList.contains("pcv-barre-nav")) return false;
+    if (racine.hidden) return false;
+    if (quoi && (qInstallation && !qInstallation.erreur || window.__pcvMajInstallation)) return true;
+    if (quoi && qInstallation?.erreur) {
+      if (b === 1 || b === 2) choisirQuoi(0);
+      return true;
+    }
+    if (b === 1) window.__pcvAppui(racine.querySelector(quoi ? ".quoi .foc" : ".sel .foc, .tout.sel"));
     if (quoi) {
       if (b === 11 || b === 12) qAct = b === 12 ? 1 : 0;
       else if (b === 9 || b === 10) racine.querySelector(".quoi ul")?.scrollBy(0, b === 10 ? 120 : -120);
       else if (b === 1) return choisirQuoi(qAct), true;
-      else if (b === 2) quoi = false;
-      else return true;
+      else if (b === 2) {
+        quoi = false;
+      } else return true;
       dessinerQuoi();
       return true;
     }
     if (b === 9 && sel === 0) {
-      window.__pcvBarreEntrer?.("notifs");
+      window.__pcvBarreEntrer?.(ecrireLegende);
       return true;
     }
     if (b === 9) {
@@ -475,17 +650,15 @@
     } else if (b === 1) {
       if (sel === items.length) return toutEffacer(), true;
       const a = actions(items[sel])[act];
-      if (a === "masquer" || a === "suppr") supprimer(sel);
+      if (items[sel]?.avis === "nouveautes") agir(sel);
+      else if (a === "masquer" || a === "suppr") supprimer(sel);
       else agir(sel);
-      return true;
-    } else if (b === 3) {
-      apercu();
-      return true;
-    } else if (b === 4) {
-      supprimer(sel);
       return true;
     } else if (b === 2) {
       montrer(false);
+      return true;
+    } else if (b === 3 || b === 4) {
+      window.__pcvSon?.("bord");
       return true;
     } else return true;
     remplir();
@@ -566,6 +739,9 @@
     #pcv-toasts .b.grande .ic { width: ${u(62)}; height: ${u(62)}; background: var(--pcv-cyan); }
     #pcv-toasts .b.grande .t b { font-size: ${u(21)}; }
     #pcv-toasts .b.grande .t span { font-size: ${u(16)}; white-space: normal; }
+    
+    #pcv-toasts .b .vignette { flex: none; width: ${u(150)}; height: ${u(70)}; border-radius: ${u(14)}; background: var(--pcv-creux) center / cover; box-shadow: 0 0 0 ${u(3)} var(--pcv-lisere); margin-left: auto; }
+    #pcv-toasts .b .pcv-legende { flex: none; }
     @keyframes pcvBulleNait { 0% { opacity: 0; transform: scale(.2); } 60% { opacity: 1; transform: scale(1.05); } 100% { transform: scale(1); } }
     @keyframes pcvBulleRentre { to { opacity: 0; transform: scale(.2); } }
     #pcv-toasts .ic { flex: none; width: ${u(42)}; height: ${u(42)}; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center;
@@ -626,22 +802,23 @@
   };
   const CLOCHE = '<svg viewBox="0 0 24 24"><path d="M12 2.5a6.5 6.5 0 0 0-6.5 6.5v4.6L3.8 16.4a1 1 0 0 0 .9 1.5h14.6a1 1 0 0 0 .9-1.5l-1.7-2.8V9A6.5 6.5 0 0 0 12 2.5zm-2.6 17a2.6 2.6 0 0 0 5.2 0z"/></svg>';
   const unite = () => innerHeight / 800;
-  const laCloche = () => document.querySelector('#pcv-barre .rond[data-pcv-rond="notifs"]');
-  const clocheVue = () => {
-    const c = laCloche();
+  const laCloche = (rond = "notifs") => document.querySelector(`#pcv-barre .rond[data-pcv-rond="${rond}"]`);
+  const clocheVue = (rond) => {
+    if (window.__pcvDemarrage?.enCours()) return null;
+    const c = laCloche(rond);
     if (!c) return null;
     const r = c.getBoundingClientRect();
     if (r.width < 4 || r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) return null;
     const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
     return e && c.contains(e) ? r : null;
   };
-  const sonner = (t) => {
+  const sonner = (t, rond) => {
     try {
-      laCloche()?.querySelector("i")?.animate(["rotate(0)", "rotate(-18deg) scale(1.12)", "rotate(14deg) scale(1.12)", "rotate(-8deg)", "rotate(4deg)", "rotate(0)"].map((transform) => ({ transform, transformOrigin: "50% 15%" })), { duration: 650, easing: "ease-out" });
+      laCloche(rond)?.querySelector("i")?.animate(["rotate(0)", "rotate(-18deg) scale(1.12)", "rotate(14deg) scale(1.12)", "rotate(-8deg)", "rotate(4deg)", "rotate(0)"].map((transform) => ({ transform, transformOrigin: "50% 15%" })), { duration: 650, easing: "ease-out" });
     } catch (e) {
     }
     try {
-      laCloche()?.animate([{ transform: "scale(1)" }, { transform: "scale(1.1)" }, { transform: "scale(.97)" }, { transform: "scale(1)" }], { duration: 420, easing: "ease-out" });
+      laCloche(rond)?.animate([{ transform: "scale(1)" }, { transform: "scale(1.1)" }, { transform: "scale(.97)" }, { transform: "scale(1)" }], { duration: 420, easing: "ease-out" });
     } catch (e) {
     }
     if (window.__pcvSon) window.__pcvSon("notification");
@@ -660,14 +837,16 @@
       compteur.hidden = true;
       return;
     }
-    const k = unite();
-    compteur.textContent = retenues > 9 ? "9+" : String(retenues);
+    const k = unite(), n = retenues > 9 ? "9+" : String(retenues);
+    if (!compteur.hidden && compteur.textContent !== n) window.__pcvAppui(compteur);
+    compteur.textContent = n;
     compteur.style.left = `${r.right - 18 * k}px`;
     compteur.style.top = `${r.top - 4 * k}px`;
     compteur.hidden = false;
   };
-  const bulle = ({ img, svg, titre, ligne, agir, grande }, duree, t) => new Promise((fin) => {
-    const r = clocheVue();
+  let touchesActives = null;
+  const bulle = ({ img, svg, titre, ligne, agir, grande, rond, vignette, touches }, duree, t) => new Promise((fin) => {
+    const r = clocheVue(rond);
     if (!r) return fin(false);
     const k = unite(), el = document.createElement("div");
     el.className = grande ? "b grande" : "b";
@@ -675,15 +854,24 @@
     el.style.left = `${gauche}px`;
     el.style.top = `${r.bottom + 14 * k}px`;
     el.style.setProperty("--pointe", `${pointe}px`);
-    el.innerHTML = `<i class="ic">${img ? `<img src="${echappe(img)}">` : svg || CLOCHE}</i><span class="t"><b>${echappe(titre)}</b>${ligne ? `<span>${echappe(ligne)}</span>` : ""}</span>`;
+    el.innerHTML = `<i class="ic">${img ? `<img src="${echappe(img)}">` : svg || CLOCHE}</i><span class="t"><b>${echappe(titre)}</b>${ligne ? `<span>${echappe(ligne)}</span>` : ""}</span>` + (vignette ? `<i class="vignette" style="background-image:${echappe(vignette)}"></i>` : "") + (touches ? `<span class="pcv-legende">${window.__pcvIcones?.legende?.(touches) || ""}</span>` : "");
     el.querySelector("img")?.addEventListener("error", (e) => {
       e.target.parentNode.innerHTML = CLOCHE;
     });
     let parti = false;
+    const mesTouches = touches && Object.fromEntries(touches.map(([c, , f]) => [c, () => {
+      try {
+        f();
+      } catch (e) {
+      }
+      partir();
+    }]));
+    if (mesTouches) touchesActives = mesTouches;
     const partir = () => {
       if (parti) return;
       parti = true;
       clearInterval(veille);
+      if (touchesActives === mesTouches) touchesActives = null;
       el.classList.add("sort");
       setTimeout(() => {
         el.remove();
@@ -698,21 +886,27 @@
       }
       partir();
       setTimeout(() => {
-        if (O.location.pathname === avant) window.__pcvNotifsMontrer?.(true);
+        if (!rond && O.location.pathname === avant) window.__pcvNotifsMontrer?.(true);
       }, agir ? 300 : 0);
     });
     racine.appendChild(el);
-    sonner(t);
+    sonner(t, rond);
     setTimeout(partir, duree);
     const veille = setInterval(() => {
-      if (!clocheVue()) partir();
+      if (!clocheVue(rond)) partir();
     }, 400);
   });
+  (window.__pcvManette ||= {}).bulle = (b) => {
+    const f = touchesActives?.[b];
+    if (!f) return false;
+    f();
+    return true;
+  };
+  window.__pcvBulleRond = (rond, o, duree) => bulle({ ...o, rond, grande: true }, duree);
   window.__pcvBulleGrande = (o, duree) => bulle({ ...o, grande: true }, duree);
   const T = window.__pcvT || ((c) => c);
   const regroupe = (n) => ({ titre: n > 1 ? T("notifs.n_notifs", { n }) : T("notifs.une_notif"), ligne: T("notifs.touche_cloche"), svg: CLOCHE });
-  const debut = Math.max(O.performance.timeOrigin, performance.timeOrigin);
-  const retenir = () => Date.now() - debut < 2e4 || !!document.getElementById("pcv-connexion") || document.getElementById("pcv-place")?.hidden === false || !clocheVue();
+  const retenir = () => !!window.__pcvDemarrage?.enCours() || !!document.getElementById("pcv-connexion") || document.getElementById("pcv-place")?.hidden === false || !clocheVue();
   const enJeu = () => {
     try {
       return (O.SteamUIStore?.RunningApps?.length || 0) > 0;
@@ -745,6 +939,10 @@
     enCours = false;
     majCompteur();
   };
+  const invitationDejaVue = (c) => {
+    const v = window.__pcvInvitationVue, x = c.titre + " " + c.ligne;
+    return !!v && Date.now() - v.t < 15e3 && x.includes(v.nom) && x.includes(v.jeu);
+  };
   const recevoir = (t) => {
     if (t.decky) return void 0;
     if (enJeu() || t.__pcvPasser) return t;
@@ -757,6 +955,10 @@
     if (!p) return t;
     if (t.fnNotificationResolved) return t;
     lire(p, t).then((contenu) => {
+      if (contenu && invitationDejaVue(contenu)) {
+        contenu.fermer();
+        return;
+      }
       if (contenu) {
         file.push({ t, contenu });
         suivante();
@@ -827,9 +1029,9 @@
     return null;
   };
   const eteindreSteam = () => {
-    if (enJeu() || !retenir()) return;
+    if (enJeu()) return;
     const pr = toastAffiche();
-    if (!pr || congedies.has(pr.notification)) return;
+    if (!pr || congedies.has(pr.notification) || !retenir()) return;
     congedies.add(pr.notification);
     if (!pr.notification.decky) retenues++;
     try {
@@ -838,11 +1040,18 @@
     }
   };
   window.__pcvToastsTrouver = toastAffiche;
+  const libererToasts = () => {
+    document.documentElement.dataset.pcvToasts = "";
+  };
   let pose = crocheter(), essais = 0;
   setTimeout(eteindreSteam, 0);
   clearInterval(window.__pcvToastsCrochet);
-  if (!pose) window.__pcvToastsCrochet = setInterval(() => {
-    if ((pose = crocheter()) || ++essais > 240) clearInterval(window.__pcvToastsCrochet);
+  if (pose) libererToasts();
+  else window.__pcvToastsCrochet = setInterval(() => {
+    if ((pose = crocheter()) || ++essais > 240) {
+      clearInterval(window.__pcvToastsCrochet);
+      libererToasts();
+    }
   }, 250);
   let annonce = 0;
   window.__pcvToastsVeille = setInterval(() => {

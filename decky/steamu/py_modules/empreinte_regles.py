@@ -1,0 +1,27 @@
+FREQUENCE = 32000            
+FENETRE, PAS = 4096, 1024    
+BINS = 512                   
+VOISINS_F, VOISINS_T = 12, 8 
+PICS_PAR_SECONDE = 8         
+ELAN, ZONE = 3, 63           
+DUREE_LUE = 400              
+DELAI = 60                   
+COMMUNS_MIN = 25             
+PART_MIN = 0.03              
+BANDE_MIN = 0.62             
+BANAL = 64                   
+DECALAGE_MAX = 20000         
+LISSAGE = 2                  
+ECHELLES = tuple(k / 1000 for k in range(940, 1061))
+PART_SURE = 0.15
+FORMATS = {"mp3", "ogg", "wav", "flac", "mov", "matroska", "aiff", "aac", "bfstm", "brstm"}
+DUREE_COURTE = 8             
+TRAME_COURTE = 1024          
+BANDES_COURTES = 16          
+PLAGE_COURTE = 60            
+DECALAGE_COURT = 6           
+DUREE_RAPPORT = 1.35         
+COURT_MIN = 0.90             
+MARGE_COURTE = 0.004         
+COURT_SUR = 0.985            
+

@@ -17,7 +17,8 @@
   </style>`;
   document.body.appendChild(pB);
   let ouvert = null, ecran = null;
-  let suspendu = null;
+  let suspendu = null, preparationPanneau = null;
+  (window.__pcvPreparer ||= {}).casino = () => preparationPanneau;
   const rendreZone = () => {
     if (!surAccueil()) {
       window.__pcvZone = void 0;
@@ -33,7 +34,9 @@
       window.__pcvThemes?.ouvrir();
       return;
     }
+    window.__pcvAccentAppli?.(pB, p === "casino" ? "casino" : null);
     if (p === "casino" && suspendu) {
+      preparationPanneau = null;
       ouvert = "casino";
       ecran = suspendu.ecran;
       suspendu = null;
@@ -45,12 +48,12 @@
     casinoVu = false;
     pB.classList.add("on");
     son("choisir");
-    const C = p === "casino" && window.__pcvCasinoBadges, A = window.__pcvArcade;
-    ecran = C || A;
-    if (!ecran) return;
-    const r = ecran.ouvrir(pB);
-    if (C) Promise.resolve(r).then((ok) => {
-      if (ok === false && ouvert === p && ecran === C) ecran = A;
+    const E = ecran = p === "casino" ? window.__pcvCasinoBadges : window.__pcvArcade;
+    if (!E) return fermer(true);
+    const r = E.ouvrir(pB);
+    preparationPanneau = Promise.resolve(r);
+    Promise.resolve(r).then((ok) => {
+      if (ok === false && ouvert === p && ecran === E) fermer(true);
     }, () => {
     });
   };
@@ -70,10 +73,11 @@
     const c = choixDe[p], L = window.__pcvLancement;
     if (!L || !c) return ouvrir(p);
     L.appli({
+      appli: p,
       nom: c.nom,
-      fond: `linear-gradient(160deg, ${c.teinte})`,
-      html: `<svg viewBox="0 0 24 24" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">${c.svg}</svg>`,
-      pret: () => !!document.querySelector(p === "themes" ? "#pcv-themes.on" : "#pcv-badges.on"),
+      html: L.icone({ fond: c.teinte, ic: "perso" }, true),
+      /* (31/10) le même carré en relief que la tuile */
+      pret: () => !!document.querySelector("#pcv-themes.on"),
       faire: () => ouvrir(p)
     });
   };
@@ -81,7 +85,6 @@
   const personnaliser = (i) => {
     const choix = [
       { cle: "themes", nom: window.__pcvT("spaces.themes.nom"), teinte: "#ff8db5, #e8457c", svg: '<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.1 0-.9.7-1.5 1.6-1.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10" r="1"/>', faire: () => lancer("themes") },
-      { cle: "badges", nom: window.__pcvT("spaces.badges.nom"), teinte: "#ffc24d, #e6940f", svg: '<circle cx="12" cy="10" r="6"/><path d="M8.5 15l-1.5 6 5-2.5 5 2.5-1.5-6"/>', faire: () => lancer("badges") },
       window.__pcvDeco && { ic: "decorer", nom: window.__pcvT("perso.decorer"), faire: () => window.__pcvDeco.ouvrir() }
     ].filter(Boolean);
     choix.forEach((c) => {
@@ -89,7 +92,7 @@
     });
     if (!window.__pcvDossiers?.choix(i, choix)) ouvrir("themes");
   };
-  window.__pcvPerso = { ouvrir, fermer, rendreZone, personnaliser, casino: () => CASINO(), casinoSuspendu: () => !!suspendu };
+  window.__pcvPerso = { ouvrir, fermer, rendreZone, personnaliser, casino: () => CASINO() };
   const PAS_UNE_PAGE = /* @__PURE__ */ new Set(["pcv-badges", "pcv-toasts", "pcv-lancement"]);
   const autrePageDessus = () => {
     const e = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
@@ -149,17 +152,30 @@
     return !!e && !e.hidden;
   };
   const ECRANS = {
+    bienvenue: [() => !!window.__pcvBienvenue?.ouvert(), () => window.__pcvBienvenue?.fermer(false)],
+    // (29/10, l'auteur : « toutes nos applications doivent être considérées comme une application ») le 3e terme : l'appli
+    // que l'écran est, pour le menu HOME (logiciel en cours) : la clé de sa tuile de l'accueil (console.js, __pcvApplis),
+    // ou [clé, nom] quand l'écran porte un autre nom que sa tuile
+    eshop: [() => !!window.__pcvBoutique?.ouvert(), () => window.__pcvBoutique?.fermer(false), "eshop"],
+    medias: [() => !!window.__pcvMediatheque?.ouvert(), () => window.__pcvMediatheque?.fermer(false), "album"],
+    // (28/10) notre Album   // (false : sans revenir à l'accueil, la page qui la remplace reste)
     // (en tête : l'écran « il manque des fichiers » de nintendo.js remplace l'appli qui l'a demandé, même vue au même tour)
     verrou: [() => !!window.__pcvNintendo?.ouvert?.(), () => window.__pcvNintendo?.fermer?.()],
-    themes: [() => document.getElementById("pcv-themes")?.classList.contains("on") && vu("pcv-themes"), () => window.__pcvThemes?.fermer()],
-    perso: [() => !!ouvert, () => fermer(true)],
+    themes: [() => document.getElementById("pcv-themes")?.classList.contains("on") && vu("pcv-themes"), () => window.__pcvThemes?.fermer(false), ["perso", "spaces.themes.nom"]],
+    perso: [() => !!ouvert, () => fermer(true), () => ouvert === "casino" && "casino"],
+    spotpassPage: [() => vu("pcv-spotpass-page"), () => window.__pcvSpotPassPage?.fermer()],
     notifs: [() => vu("pcv-notifs"), () => window.__pcvNotifsMontrer?.(false)],
     amis: [() => vu("pcv-amis"), () => window.__pcvAmisMontrer?.(false)],
     profil: [() => vu("pcv-profil"), () => window.__pcvProfilMontrer?.(false)],
     place: [() => vu("pcv-place"), () => window.__pcvPlaceMontrer?.(false)],
     deco: [() => !!window.__pcvDeco?.actif?.(), () => window.__pcvDeco?.fermer?.()],
-    miimaker: [() => !!window.__pcvMiiMaker?.ouvert, () => window.__pcvMiiMaker?.fermer()]
+    miimaker: [() => !!window.__pcvMiiMaker?.ouvert, () => window.__pcvMiiMaker?.fermer(), "miimaker"],
+    // (30/10, l'auteur) la fenêtre SpotPass (spotpass.js) : une fenêtre, posée sur la page en cours sans la fermer (FENETRES),
+    // mais qu'un autre écran (barre, menu HOME, accueil) referme, son de fermeture ; un envoi en cours continue (avis ensuite)
+    spotpass: [() => !!window.__pcvSpotPassFenetre?.ouvert?.(), () => window.__pcvSpotPassFenetre?.fermer("fermer")]
   };
+  const FENETRES = ["spotpass"];
+  const ensemble = (a, b) => [a, b].sort().join() === "bienvenue,place";
   const casinoOccupe = () => {
     if (ouvert !== "casino") return false;
     try {
@@ -170,8 +186,18 @@
       return false;
     }
   };
-  let actif = null, avant = /* @__PURE__ */ new Set(), dernierB = 0;
+  const DE_LA_BARRE = ["amis", "notifs", "profil", ...FENETRES];
+  let actif = null, avant = /* @__PURE__ */ new Set(), dernierB = 0, route = O.location.pathname;
   const veiller = () => {
+    if (O.location.pathname !== route) {
+      route = O.location.pathname;
+      if (!surAccueil()) {
+        for (const n in ECRANS) if (n !== "perso") try {
+          if (ECRANS[n][0]()) ECRANS[n][1]();
+        } catch (e) {
+        }
+      }
+    }
     const vus = Object.keys(ECRANS).filter((n) => {
       try {
         return ECRANS[n][0]();
@@ -188,17 +214,19 @@
       avant = new Set(vus.filter((n) => n !== neuf));
       return;
     }
-    if (neuf) {
+    if (neuf && FENETRES.includes(neuf)) actif = neuf;
+    else if (neuf) {
       actif = neuf;
-      for (const n of vus) if (n !== neuf) try {
+      for (const n of vus) if (n !== neuf && !ensemble(n, neuf)) try {
         ECRANS[n][1]();
       } catch (e) {
       }
     } else if (actif && !vus.includes(actif)) {
+      const ferme2 = actif;
       actif = vus[0] || null;
-      if (!actif && performance.now() - dernierB < 800 && !surAccueil()) O.__pcvAller?.(1);
+      if (!actif && performance.now() - dernierB < 800 && !surAccueil() && !DE_LA_BARRE.includes(ferme2) && document.body.dataset.pcvPage !== "parametres") O.__pcvAller?.(1);
     }
-    avant = new Set(vus.filter((n) => !neuf || n === neuf));
+    avant = new Set(vus);
   };
   clearInterval(window.__pcvEcranSuivi);
   window.__pcvEcranSuivi = setInterval(veiller, 150);
@@ -220,11 +248,46 @@
       return false;
     }
   });
-  window.__pcvEcran = { actif: () => actif, ouvert: unOuvert, fermer: () => {
+  const decrire = (cle, nom, fermer2, reprendre) => {
+    const x = window.__pcvApplis?.[cle];
+    return x && { cle, nom: nom ? window.__pcvT(nom) : x.nom, fond: x.fond, html: window.__pcvLancement?.icone(x) || "", fermer: fermer2, reprendre };
+  };
+  const abandonner = () => {
+    try {
+      suspendu?.ecran?.fermer();
+    } catch (e) {
+    }
+    suspendu = null;
+  };
+  const appli = () => {
+    const E = ECRANS[actif];
+    let k = E?.[2];
+    try {
+      if (typeof k === "function") k = k();
+      if (k && E[0]()) {
+        const [cle, nom] = [].concat(k);
+        return decrire(cle, nom, E[1]);
+      }
+    } catch (e) {
+    }
+    return suspendu ? decrire("casino", null, abandonner, CASINO) : null;
+  };
+  const fermerTout = () => {
     for (const n in ECRANS) try {
       if (ECRANS[n][0]()) ECRANS[n][1]();
     } catch (e) {
     }
-  } };
+  };
+  const accueil = () => {
+    window.__pcvBarreQuitter?.();
+    try {
+      O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.VirtualKeyboardManager.SetVirtualKeyboardHidden();
+    } catch (e) {
+    }
+    abandonner();
+    fermerTout();
+    O.__pcvAller?.(1);
+  };
+  window.__pcvEcran = { actif: () => actif, appli, accueil, ouvert: unOuvert, fermer: fermerTout };
   return "personnalisation pr\xEAte";
 })();

@@ -113,9 +113,9 @@
   <div class="choix-b" hidden><button aria-label="${T("deco.retirer_badge")}">\u2715</button></div>
   <div class="tiroir"><div class="poignee"></div>
     <div class="haut"><div class="onglets"></div>
-      <div class="zm"><button data-z="-1" aria-label="${T("deco.moins_rangees")}">\u2212</button><span></span><button data-z="1" aria-label="${T("deco.plus_rangees")}">+</button></div>
+      <div class="zm"><button data-z="-1" aria-label="${T("deco.moins_rangees")}"><u data-touche="7"></u></button><span></span><button data-z="1" aria-label="${T("deco.plus_rangees")}"><u data-touche="8"></u></button></div>
       <button class="bt place"><u data-touche="4"></u>${T("deco.plus_de_place")}</button>
-      <button class="bt fin"><u data-touche="2"></u>${T("deco.termine")}</button></div>
+      <button class="bt fin"><u data-touche="2"></u>${T("touche.retour")}</button></div>
     <div class="bande"></div></div>
   <div class="fantome" hidden></div>`;
   document.body.appendChild(racine);
@@ -815,6 +815,10 @@
     }
     if (b === 4) {
       plusDePlace();
+      return true;
+    }
+    if (b === 7 || b === 8) {
+      zoomer(b === 8 ? 1 : -1);
       return true;
     }
     if (zone === "palette") {

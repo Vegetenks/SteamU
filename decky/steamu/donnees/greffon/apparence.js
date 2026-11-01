@@ -15,10 +15,10 @@
     } catch (e) {
     }
   };
-  const appel = (m, delai = 2e3) => {
+  const appel = (m, delai = 2e3, ...args) => {
     try {
       return Promise.race([
-        ((O.DeckyBackend || window.DeckyBackend)?.call("loader/call_plugin_method", window.__pcvGreffon.nom, m) ?? Promise.reject()).catch(() => null),
+        ((O.DeckyBackend || window.DeckyBackend)?.call("loader/call_plugin_method", window.__pcvGreffon.nom, m, ...args) ?? Promise.reject()).catch(() => null),
         new Promise((ok) => setTimeout(() => ok(null), delai))
       ]);
     } catch (e) {
@@ -109,7 +109,15 @@
     return s;
   };
   let actuelle = null;
+  let filmVoulu = null;
+  const film = (a, n = 6) => {
+    filmVoulu = a;
+    appel("film_apparence", 5e3, a, Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)).then((r) => {
+      if (r === null && n > 1 && filmVoulu === a) setTimeout(() => film(a, n - 1), 3e3);
+    });
+  };
   const poser = (a) => {
+    ecrire("pcv-apparence-posee", a);
     for (const d of fenetres()) if (d.documentElement.dataset.pcvApparence !== a) d.documentElement.dataset.pcvApparence = a;
   };
   const mettre = (a, fondu = true) => {
@@ -120,6 +128,7 @@
       poser(a);
       window.dispatchEvent(new CustomEvent("pcv-apparence", { detail: { apparence: a } }));
     };
+    film(a);
     if (fondu && !premier && document.startViewTransition && document.visibilityState === "visible") {
       try {
         document.startViewTransition(changer);

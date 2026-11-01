@@ -38,20 +38,8 @@
     });
   }, 150);
   (window.__pcvManette ||= {}).choixJeu = (b) => {
-    if (b !== 11 && b !== 12 || !document.querySelector(".pcv-choix-jeu")) return false;
-    try {
-      const req = window.opener.__pcvReq ||= (() => {
-        let r;
-        window.opener.webpackChunksteamui.push([[/* @__PURE__ */ Symbol("pcv")], {}, (q) => {
-          r = q;
-        }]);
-        return r;
-      })();
-      const nm = req(61236).oy.NavigationManager, d = { button: b === 12 ? 10 : 9, source: 1, is_repeat: false };
-      nm.DispatchVirtualGamepad("vgp_onbuttondown", d);
-      nm.DispatchVirtualGamepad("vgp_onbuttonup", d);
-    } catch (e) {
-    }
+    if (b !== 11 && b !== 12 || document.body.dataset.pcvPage !== "medias" || !document.querySelector(".pcv-choix-jeu")?.getClientRects().length) return false;
+    window.__pcvEnvoyer(b === 12 ? 10 : 9);
     return true;
   };
   return "m\xE9diath\xE8que pr\xEAte";

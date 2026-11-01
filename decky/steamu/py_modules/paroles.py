@@ -1,7 +1,7 @@
 import hashlib, json, pathlib, re, threading, time, unicodedata, urllib.error, urllib.parse, urllib.request
 
-HOTES = {"lrclib.net"}
-API = "https://lrclib.net/api/"
+APIS = ("https://lrclib.net/api/", "https://api.lrcmux.dev/compat/lrclib/api/")
+HOTES = {urllib.parse.urlsplit(a).hostname for a in APIS}
 AGENT = "SteamU (plugin Decky ; paroles)"
 ECART_S = 2.0                        
 DELAI_S = 10
@@ -29,8 +29,23 @@ class _Redirection(urllib.request.HTTPRedirectHandler):
 _ouvreur = None
 
 def _obtenir(chemin, params):
+    erreur, inconnu = None, False
+    for api in APIS:
+        try:
+            r = _obtenir_de(api, chemin, params)
+        except (urllib.error.URLError, OSError, Refus) as e:   
+            erreur = e
+            continue
+        if r:
+            return r
+        inconnu = True
+    if erreur and not inconnu:
+        raise erreur
+    return None
+
+def _obtenir_de(api, chemin, params):
     global _ouvreur, _derniere
-    url = API + chemin + "?" + urllib.parse.urlencode(params)
+    url = api + chemin + "?" + urllib.parse.urlencode(params)
     if not _sure(url):
         raise Refus("adresse hors de LRCLIB")
     if _ouvreur is None:
@@ -68,7 +83,7 @@ def _texte(v, n=200):
     return re.sub(r"\s+", " ", v).strip()[:n]
 
 _BRUIT = re.compile(r"\s*[(\[](?:[^)\]]*\b(?:official|officiel|offizielles?|oficial|video|vidéo|clip|audio|lyrics?|paroles|letra|"
-                    r"visuali[sz]er|hd|hq|4k|remaster(?:ed)?|live session|mv|feat|ft)\b[^)\]]*)[)\]]", re.I)
+                    r"visuali[sz]er|hd|hq|4k|remaster(?:ed)?|live session|mv|feat|ft|avec|with|con|from|de)\b[^)\]]*)[)\]]", re.I)
 
 def _nettoyer(artiste, titre):
     artiste = re.sub(r"\s*-\s*Topic$|VEVO$", "", _texte(artiste), flags=re.I).strip()
@@ -78,6 +93,7 @@ def _nettoyer(artiste, titre):
         a, t = titre.split(" - ", 1)
         artiste, titre = a.strip(), t.strip()   
     titre = re.sub(r"\s+(?:ft|feat)\.?\s.*$", "", titre, flags=re.I).strip()
+    artiste = re.split(r",\s*|\s+(?:et|and|y)\s+", artiste)[0].strip()   
     return artiste, titre
 
 _LIGNE = re.compile(r"\[(\d+):(\d{1,2}(?:[.:]\d{1,3})?)\]")
@@ -138,7 +154,7 @@ def chercher(artiste, titre, album, duree, dossier):
     if not titre:
         return {"vide": True}
     cache = pathlib.Path(dossier)
-    fichier = cache / (hashlib.sha1(json.dumps([artiste.lower(), titre.lower(), album.lower(), duree, "m2"]).encode()).hexdigest() + ".json")
+    fichier = cache / (hashlib.sha1(json.dumps([artiste.lower(), titre.lower(), album.lower(), duree, "m3"]).encode()).hexdigest() + ".json")
     try:
         d = json.loads(fichier.read_text())
         if d.get("lignes") or time.time() - fichier.stat().st_mtime < VIDE_JOURS * 86400:

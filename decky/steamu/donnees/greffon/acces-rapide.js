@@ -162,9 +162,8 @@
     }
   };
   const btEtat = { on: false, co: 0, liste: [], cherche: false };
-  const pointWifi = () => reseau().accessPoints?.find((a) => a.isConnected);
   const BASCULES = {
-    wifi: { lire: () => reseau().isWifiEnabled, ecrire: (v) => reseau().SetWifiEnabled(v), petit: (on) => on ? pointWifi()?.displayName || T("acces.aucun_reseau", "aucun r\xE9seau") : T("acces.desactive", "d\xE9sactiv\xE9") },
+    wifi: { lire: () => reseau().isWifiEnabled, ecrire: (v) => reseau().SetWifiEnabled(v), petit: (on) => on ? B.network().wifi || T("acces.aucun_reseau", "aucun r\xE9seau") : T("acces.desactive", "d\xE9sactiv\xE9") },
     bt: {
       lire: () => B.bluetooth.isEnabled(),
       ecrire: (v) => B.bluetooth.setEnabled(v),
@@ -233,7 +232,7 @@
         <div class="bouton verre" data-a="decky-reglages">${pastille("reglages", "var(--c-decky)")}${T("acces.reglages_decky", "R\xE9glages de Decky")}</div></div>
       <div class="droite defile"><div class="grille-g liste-greffons"></div></div>`)}
     ${sousEcran("cadre", "", "prise", "var(--c-decky)", '<div class="cadre-boite"></div>', "cadre")}
-    <div class="voile confirme" hidden><div class="fenetre verre"><span class="pastille grosse"></span><h2></h2><p></p>
+    <div class="voile confirme" hidden><div class="fenetre verre pcv-fenetre"><span class="pastille grosse"></span><h2></h2><p></p>
       <div class="choix"><div class="bouton verre ok" data-a="confirme"></div>${bouton("retour", "premier", 0, "var(--c-accueil)", "fleche", T("acces.annuler", "Annuler"))}</div></div></div>`;
   const ICO_BT = { 4: "casque", 10: "manette", 11: "clavier" };
   const noms = /* @__PURE__ */ new Map();
@@ -453,11 +452,12 @@
   const animerProg = (oui) => {
     cancelAnimationFrame(rafProg);
     if (!oui) return;
-    const pas = () => {
+    const pas = (t) => {
       if (e.racine.hidden) return;
-      const p = lect[cur];
+      const p = lect[cur], vu = !e.$('[data-sous="paroles"]').hidden;
       if (p?.statut === "Playing" && !scrub) e.racine.querySelectorAll(".prog .barre-l").forEach((b) => b.style.setProperty("--p", pctDe(p)));
-      if (ly?.etat === "actif" && !e.$('[data-sous="paroles"]').hidden) suivreParoles();
+      if (vu && ly?.etat === "actif") suivreParoles();
+      if (vu) danser(t);
       rafProg = requestAnimationFrame(pas);
     };
     rafProg = requestAnimationFrame(pas);
@@ -544,11 +544,12 @@
         setTimeout(() => {
           if (moi.entre) return;
           moi.entre = true;
-          e.$(".ly-lista")?.classList.add("entre");
+          e.$(".ly-lista")?.classList.add("monte");
           e.$(".ly-zone")?.classList.add("vu");
         }, ouverture ? 520 : 0);
-      } else e.$(".ly-lista").classList.add("entre");
+      } else e.$(".ly-lista").classList.add("monte");
     }
+    poserDanse(z);
     if (sousOuvert() === "paroles" && !e.focus()?.isConnected) e.premier();
   };
   const chargerParoles = (ouverture) => {
@@ -648,26 +649,645 @@
       pts[0]?.parentElement.style.setProperty("--fin", Math.max(0, Math.min(1, (fin - pos) / 0.5)).toFixed(3));
     }
   };
-  let cadre = null, gardeCadre = 0, rafCadre = 0;
+  const DANSE = {
+    y0: 680,
+    h: 520,
+    bpm: 110,
+    vif: 100,
+    chante: 0.09,
+    cam: { pos: [0, 2.3, 9.4], vise: [0, 0.8, 0], fov: 35 },
+    pieds: [[640, 1046], [860, 1104], [1080, 1104], [1296, 1046]],
+    caps: [24, 8, -8, -24]
+  };
+  let danse = null;
+  const tempoLy = (instants) => {
+    let m = null;
+    for (let bpm = 70; bpm <= 180; bpm += 0.25) {
+      const P = 60 / bpm;
+      let c = 0, s = 0;
+      for (const t of instants) {
+        const a = 2 * Math.PI * t / P;
+        c += Math.cos(a);
+        s += Math.sin(a);
+      }
+      const R = Math.hypot(c, s) / instants.length, sc = R * Math.exp(-(Math.log2(bpm / 115) ** 2) / 0.5);
+      if (!m || sc > m.sc) m = { bpm, R, sc, phase: (Math.atan2(s, c) / (2 * Math.PI) * P + P) % P };
+    }
+    return m && m.R >= 0.5 ? m : null;
+  };
+  const ambianceDe = (bpm, debit) => (bpm > 0 ? bpm >= DANSE.vif : debit > 0 && debit < DANSE.chante) ? "fete" : "douce";
+  const TEINTES = { vives: [[255, 120, 80], [255, 196, 90], [40, 196, 210]], sol: [192, 130, 80] };
+  const aviver = (c, haut, ch) => {
+    const m = (c[0] + c[1] + c[2]) / 3, r = Math.max(...c) - Math.min(...c) || 1, v = c.map((x) => m + (x - m) * Math.min(3, Math.max(1, ch / r)));
+    return v.map((x) => Math.max(0, Math.min(255, x * haut / Math.max(1, ...v))));
+  };
+  const teintesPoch = (url) => new Promise((ok) => {
+    if (!url) return ok(TEINTES);
+    const im = new Image();
+    im.onerror = () => ok(TEINTES);
+    im.onload = () => {
+      try {
+        const c = d.createElement("canvas");
+        c.width = c.height = 24;
+        const x = c.getContext("2d", { willReadFrequently: true });
+        x.drawImage(im, 0, 0, 24, 24);
+        const px = x.getImageData(0, 0, 24, 24).data, bacs = Array.from({ length: 12 }, () => [0, 0, 0, 0]), moy = [0, 0, 0];
+        for (let i = 0; i < px.length; i += 4) {
+          const [r, g, b] = px.subarray(i, i + 3), w = (Math.max(r, g, b) - Math.min(r, g, b)) ** 2;
+          const k = Math.floor((Math.atan2(Math.sqrt(3) * (g - b), 2 * r - g - b) * 180 / Math.PI + 360) % 360 / 30);
+          bacs[k][0] += w;
+          bacs[k][1] += w * r;
+          bacs[k][2] += w * g;
+          bacs[k][3] += w * b;
+          moy[0] += r;
+          moy[1] += g;
+          moy[2] += b;
+        }
+        const tri = bacs.filter((b) => b[0] > 24 * 24 * 40 * 40 * 0.04).sort((a, b) => b[0] - a[0]).slice(0, 3).map((b) => aviver(b.slice(1).map((v) => v / b[0]), 245, 120));
+        while (tri.length && tri.length < 3) tri.push(tri[0].map((v) => v + (255 - v) * 0.4 * tri.length));
+        ok({ vives: tri.length ? tri : TEINTES.vives, sol: moy.map((v) => v / 576) });
+      } catch (x) {
+        ok(TEINTES);
+      }
+    };
+    im.src = url;
+  });
+  const rgba = (c, a) => `rgba(${c.map(Math.round).join(",")},${a})`;
+  const peindreSol = (D, tons) => {
+    const { E, W, k } = D, g = D.fond.getContext("2d"), H = DANSE.h, y0 = DANSE.y0, ox = (W - 1920) / 2;
+    const [sol, sable, clair, joint] = [[192, 112], [231, 123], [243, 103], [201, 119]].map(([haut, ch]) => aviver(tons.sol, haut, ch));
+    g.setTransform(k, 0, 0, k, 0, 0);
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = rgba(sol, 1);
+    g.fillRect(0, 0, W, H);
+    g.save();
+    g.translate(760 + ox, 1060 - y0);
+    g.scale(1, 0.32);
+    const n = g.createRadialGradient(0, 0, 0, 0, 0, 900);
+    n.addColorStop(0, rgba(sable, 0.85));
+    n.addColorStop(0.55, rgba(sable, 0.25));
+    n.addColorStop(1, rgba(clair, 0));
+    g.fillStyle = n;
+    g.fillRect(-W, -2400, 2 * W, 4800);
+    g.restore();
+    const L = 0.4, J = 2, Z = [-14, 8.2], lattes = new Path2D(), traits = new Path2D(), M = Math.ceil(W / 60);
+    for (let i = -M; i < M; i++) {
+      const x0 = i * L, x1 = x0 + L, a = E(x0, Z[0]), b = E(x1, Z[0]), c = E(x1, Z[1]), e2 = E(x0, Z[1]);
+      if (i % 2) {
+        lattes.moveTo(...a);
+        lattes.lineTo(...b);
+        lattes.lineTo(...c);
+        lattes.lineTo(...e2);
+        lattes.closePath();
+      }
+      traits.moveTo(...a);
+      traits.lineTo(...e2);
+      for (let z = Z[0] + (i * 7 % 5 + 5) % 5 * J / 5; z < Z[1]; z += J) {
+        const p = E(x0, z), q = E(x1, z);
+        if (p[1] > 80) {
+          traits.moveTo(...p);
+          traits.lineTo(...q);
+        }
+      }
+    }
+    g.globalAlpha = 0.35;
+    g.fillStyle = rgba(clair, 1);
+    g.fill(lattes);
+    g.globalAlpha = 1;
+    g.strokeStyle = rgba(joint, 1);
+    g.lineWidth = 2.4;
+    g.stroke(traits);
+    g.globalCompositeOperation = "destination-in";
+    const f = g.createLinearGradient(0, 770 - y0, 0, 960 - y0);
+    f.addColorStop(0, "rgba(0,0,0,0)");
+    f.addColorStop(1, "#000");
+    g.fillStyle = f;
+    g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = "source-over";
+  };
+  const ambiance = (nom, PAL, E, W) => {
+    const fete = nom === "fete", CREME = [255, 241, 201], TRAIT = "#5e3020", ox = (W - 1920) / 2;
+    const mix = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
+    const teinte = (u) => {
+      const k = (u % 3 + 3) % 3, i = Math.floor(k);
+      return mix(PAL[i], PAL[(i + 1) % 3], k - i);
+    };
+    const coup = (b) => Math.exp(-((b % 1 + 1) % 1) * 5);
+    let germe = 7;
+    const hasard = () => (germe = germe * 16807 % 2147483647) / 2147483647;
+    const FLAQUES = fete ? [[-2.8, 1.4, 1.5, 0], [0, 2.4, 1.7, 2], [2.8, 1.4, 1.5, 1], [-5.6, 3.2, 2, 2], [5.6, 3.2, 2, 0]] : [[-1.9, 1.6, 2.6, 0], [2.1, 1.9, 2.6, 2]];
+    const flaque = (g, x, z, r, c, a) => {
+      const [cx, cy] = E(x, z), rx = E(x + r, z)[0] - cx, ry = (E(x, z + r)[1] - E(x, z - r)[1]) / 2;
+      g.save();
+      g.translate(cx, cy);
+      g.scale(1, ry / rx);
+      const d2 = g.createRadialGradient(0, 0, 0, 0, 0, rx);
+      d2.addColorStop(0, rgba(c, a));
+      d2.addColorStop(0.55, rgba(c, a * 0.45));
+      d2.addColorStop(1, rgba(c, 0));
+      g.fillStyle = d2;
+      g.beginPath();
+      g.arc(0, 0, rx, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
+    };
+    const note = (g, x, y, s, rot, c, a, double) => {
+      g.save();
+      g.globalAlpha = a;
+      g.translate(x, y);
+      g.rotate(rot);
+      g.scale(s, s);
+      g.lineWidth = 3 / s * 0.9;
+      g.strokeStyle = TRAIT;
+      g.fillStyle = rgba(c, 1);
+      g.lineJoin = "round";
+      const tete = (dx) => {
+        g.beginPath();
+        g.ellipse(dx, 0, 11, 8, -0.4, 0, Math.PI * 2);
+        g.fill();
+        g.stroke();
+      };
+      g.beginPath();
+      g.rect(8, -46, 4.5, 46);
+      g.fill();
+      g.stroke();
+      tete(0);
+      if (double) {
+        g.beginPath();
+        g.rect(38, -54, 4.5, 50);
+        g.fill();
+        g.stroke();
+        tete(30);
+        g.beginPath();
+        g.moveTo(8, -46);
+        g.lineTo(42.5, -54);
+        g.lineTo(42.5, -44);
+        g.lineTo(8, -36);
+        g.closePath();
+        g.fill();
+        g.stroke();
+      } else {
+        g.beginPath();
+        g.moveTo(12.5, -46);
+        g.bezierCurveTo(26, -38, 30, -28, 22, -16);
+        g.bezierCurveTo(24, -26, 20, -32, 12.5, -34);
+        g.closePath();
+        g.fill();
+        g.stroke();
+      }
+      g.restore();
+    };
+    const parts = Array.from({ length: fete ? 46 : 30 }, () => ({ x: hasard() * W, y: hasard(), v: 0.5 + hasard(), r: hasard(), c: Math.floor(hasard() * 4), ph: hasard() * 6.3 }));
+    const notes = Array.from({ length: fete ? 6 : 3 }, (_, k) => ({ x: [250, 1660, 420, 1500, 120, 1800][k] + ox, ph: k / (fete ? 6 : 3), c: k % 3, d: k % 2 === 1 }));
+    const fondu = (y) => Math.max(0, Math.min(1, (y - 60) / 90));
+    return {
+      // la lumière du moment : contre-jour des Mii (valeurs linéaires de FFL) et teinte de leur halo
+      lumiere: (t, b) => {
+        const c = fete ? teinte(Math.floor(b / 4)) : teinte(t / 5 * 2), k = fete ? 0.55 + 0.45 * coup(b) : 0.8;
+        return { rim: c.map((v) => (v / 255) ** 2.2 * k * 1.1 + 0.05), halo: rgba(c, 0.45), c, k, cote: fete ? Math.floor(b / 4) % 2 ? 0.9 : -0.9 : Math.sin(t * Math.PI / 5) };
+      },
+      dessous: (g, t, b) => {
+        g.save();
+        g.globalCompositeOperation = "screen";
+        const bas = g.createLinearGradient(0, 300, 0, 520);
+        bas.addColorStop(0, rgba(PAL[0], 0));
+        bas.addColorStop(1, rgba(PAL[0], fete ? 0.22 + 0.1 * coup(b) : 0.2));
+        g.fillStyle = bas;
+        g.fillRect(0, 300, W, 220);
+        g.globalCompositeOperation = "overlay";
+        FLAQUES.forEach(([x, z, r, i], k) => {
+          if (fete) flaque(g, x, z, r, teinte(i + Math.floor(b / 4)), 0.55 + 0.45 * coup(b + k * 0.25 * (k % 2)));
+          else flaque(g, x + 0.9 * Math.sin(t * Math.PI * 2 / 5 + i), z, r, teinte(i + t / 5), 0.7 + 0.15 * Math.sin(t * 1.3 + i));
+        });
+        g.globalCompositeOperation = "screen";
+        const h2 = fete ? teinte(Math.floor(b / 4) + 1) : teinte(t / 5 * 2 + 1.5), [hx, hy] = E(0, 1.2);
+        g.save();
+        g.translate(hx, hy - 170);
+        g.scale(1, 0.55);
+        const d2 = g.createRadialGradient(0, 0, 0, 0, 0, 640);
+        d2.addColorStop(0, rgba(h2, fete ? 0.3 + 0.15 * coup(b) : 0.3));
+        d2.addColorStop(1, rgba(h2, 0));
+        g.fillStyle = d2;
+        g.fillRect(-640, -640, 1280, 1280);
+        g.restore();
+        parts.forEach((p) => {
+          if (fete) {
+            const y = -40 + (p.y * 560 + t * (90 + 70 * p.v)) % 560, x = p.x + 30 * Math.sin(t * 2 + p.ph), a = fondu(y);
+            if (!a) return;
+            const rot = t * (3 + 4 * p.r) + p.ph;
+            g.save();
+            g.globalCompositeOperation = "source-over";
+            g.globalAlpha = a * 0.95;
+            g.translate(x, y);
+            g.rotate(rot);
+            g.scale(1, Math.cos(rot * 1.7));
+            g.fillStyle = rgba(p.c === 3 ? CREME : PAL[p.c], 1);
+            g.fillRect(-9, -5, 18, 10);
+            g.restore();
+          } else {
+            const y = 520 - (p.y * 520 + t * (18 + 22 * p.v)) % 520, x = p.x + 18 * Math.sin(t * 0.8 + p.ph), a = fondu(y) * (0.5 + 0.5 * Math.sin(t * 2 + p.ph)), r = 4 + 7 * p.r;
+            if (a <= 0) return;
+            const c = p.c === 3 ? CREME : PAL[p.c], d3 = g.createRadialGradient(x, y, 0, x, y, r * 2.4);
+            d3.addColorStop(0, rgba(CREME, a));
+            d3.addColorStop(0.25, rgba(c, a * 0.8));
+            d3.addColorStop(1, rgba(c, 0));
+            g.fillStyle = d3;
+            g.fillRect(x - r * 2.4, y - r * 2.4, r * 4.8, r * 4.8);
+          }
+        });
+        g.restore();
+        notes.forEach((n) => {
+          const u = (t / (fete ? 2.5 : 5) + n.ph) % 1, y = 440 - u * 380, saut = fete ? -14 * coup(b + 2 * n.ph) : 0;
+          const a = fondu(y) * Math.min(1, u * 6) * (fete ? 1 : 0.85);
+          if (a > 0) note(g, n.x + 24 * Math.sin(u * 6.3 + n.ph * 9), y + saut, fete ? 1.25 : 1.1, 0.18 * Math.sin(t * 1.6 + n.ph * 6), PAL[n.c], a, n.d);
+        });
+      }
+    };
+  };
+  const INSTRUMENTS = ["guitare", "tambour", "clavier", "maracas", "tambourin"];
+  const DANSES = { douce: ["balancer", "clap", "brasHaut"], fete: ["chasse", "brasHaut", "tour", "sautJoie", "clap", "balancer"] };
+  const graine = (s) => {
+    let h2 = 2166136261;
+    for (let i = 0; i < s.length; i++) h2 = Math.imul(h2 ^ s.charCodeAt(i), 16777619);
+    return h2 >>> 0;
+  };
+  const tirerGroupe = (cle, n) => {
+    let g = graine(cle) || 1;
+    const h2 = () => (g = Math.imul(g ^ g >>> 15, 2246822507) >>> 0 || 7) / 4294967296;
+    const melange = (a) => {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(h2() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+    const musiciens = h2() < 0.34 ? 1 : 2, roles = ["chanteur", ...melange([...INSTRUMENTS]).slice(0, musiciens)];
+    while (roles.length < n) roles.push("danseur");
+    return { roles: melange(roles), qui: melange([...Array(n).keys()]), danse: Math.floor(h2() * 6) };
+  };
+  const PEAU = 0.36;
+  const fabriquerObjets = (T2) => {
+    const M = (color, roughness = 0.45, metalness = 0) => new T2.MeshStandardMaterial({ color, roughness, metalness });
+    const mesh = (geo, mat, x = 0, y = 0, z = 0) => {
+      const o = new T2.Mesh(geo, mat);
+      o.position.set(x, y, z);
+      o.castShadow = true;
+      return o;
+    };
+    const tour = (pts, seg = 24) => new T2.LatheGeometry(pts.map(([x, y]) => new T2.Vector2(x, y)).reverse(), seg);
+    const groupe = (...o) => {
+      const g = new T2.Group();
+      g.add(...o);
+      g.visible = false;
+      return g;
+    };
+    const echelle = (k, g) => {
+      g.scale.setScalar(k);
+      return g;
+    };
+    const METAL = M(14212580, 0.28, 0.85), NOIR = M(2303275, 0.6), BOIS = M(13209429, 0.55), CREME = M(16182486, 0.7);
+    const micro = groupe(
+      mesh(tour([[0, -0.02], [0.017, -0.02], [0.021, 0.07], [0.026, 0.085], [0, 0.085]], 20), NOIR),
+      mesh(new T2.SphereGeometry(0.036, 22, 16), METAL, 0, 0.11, 0),
+      mesh(new T2.TorusGeometry(0.03, 5e-3, 8, 24).rotateX(Math.PI / 2), NOIR, 0, 0.095, 0)
+    );
+    const maraca = (c) => groupe(
+      mesh(tour([[0, -0.03], [0.011, -0.03], [0.01, 0.05], [0.024, 0.085], [0.04, 0.12], [0.036, 0.15], [0.02, 0.168], [0, 0.172]]), M(c, 0.32)),
+      mesh(new T2.TorusGeometry(0.039, 6e-3, 8, 28).rotateX(Math.PI / 2), M(16774364, 0.4), 0, 0.12, 0)
+    );
+    const baguette = () => groupe(mesh(tour([[0, -0.07], [8e-3, -0.07], [7e-3, 0.2], [4e-3, 0.24], [8e-3, 0.25], [0, 0.262]], 10), BOIS));
+    const cymb = new T2.InstancedMesh(new T2.CylinderGeometry(0.016, 0.016, 6e-3, 14).rotateZ(Math.PI / 2), METAL, 6), mt = new T2.Matrix4();
+    for (let i = 0; i < 6; i++) {
+      const a = (i + 0.5) / 6 * Math.PI * 2 + Math.PI / 2;
+      mt.makeTranslation(Math.cos(a) * 0.088, 0.088 + Math.sin(a) * 0.088, 0);
+      cymb.setMatrixAt(i, mt);
+    }
+    cymb.castShadow = true;
+    const tambourin = groupe(
+      mesh(new T2.CylinderGeometry(0.088, 0.088, 0.032, 36, 1, true).rotateX(Math.PI / 2), M(13780527, 0.38), 0, 0.088, 0),
+      mesh(new T2.CircleGeometry(0.086, 36), CREME, 0, 0.088, 0.012),
+      cymb
+    );
+    tambourin.children[0].material.side = T2.DoubleSide;
+    const demi = (x) => Math.max(Math.sqrt(Math.max(0, 0.01 - (x + 0.07) ** 2)), Math.sqrt(Math.max(0, 56e-4 - (x - 0.075) ** 2)), x > -0.07 && x < 0.075 ? 0.062 : 0);
+    const bord2 = Array.from({ length: 41 }, (_, i) => -0.17 + i * (0.32 / 40)), huit = new T2.Shape([...bord2.map((x) => new T2.Vector2(x, demi(x))), ...bord2.reverse().map((x) => new T2.Vector2(x, -demi(x)))]);
+    const caisse = new T2.ExtrudeGeometry(huit, { depth: 0.05, bevelEnabled: true, bevelSize: 0.012, bevelThickness: 0.012, bevelSegments: 3, curveSegments: 24 }).translate(0, 0, -0.025);
+    const guitare = groupe(
+      mesh(caisse, M(13780527, 0.3)),
+      mesh(new T2.CircleGeometry(0.032, 24), NOIR, 0.03, 0, 0.038),
+      mesh(new T2.BoxGeometry(0.012, 0.07, 0.012), NOIR, -0.09, 0, 0.04),
+      mesh(new T2.BoxGeometry(0.3, 0.034, 0.02), M(7027999, 0.5), 0.27, 0, 0.02),
+      mesh(new T2.BoxGeometry(0.07, 0.05, 0.02), NOIR, 0.45, 0, 0.02)
+    );
+    const HT = PEAU, pieds = new T2.InstancedMesh(new T2.CylinderGeometry(6e-3, 6e-3, 0.26, 6), NOIR, 3);
+    for (let i = 0; i < 3; i++) {
+      const a = i / 3 * Math.PI * 2;
+      mt.makeRotationFromEuler(new T2.Euler(Math.cos(a) * 0.45, 0, -Math.sin(a) * 0.45)).setPosition(Math.sin(a) * 0.055, 0.115, Math.cos(a) * 0.055);
+      pieds.setMatrixAt(i, mt);
+    }
+    pieds.castShadow = true;
+    const tambour = groupe(
+      mesh(new T2.CylinderGeometry(0.14, 0.14, 0.11, 36), M(3108818, 0.3, 0.25), 0, HT - 0.055, 0),
+      mesh(new T2.CircleGeometry(0.135, 36).rotateX(-Math.PI / 2), CREME, 0, HT + 1e-3, 0),
+      mesh(new T2.TorusGeometry(0.14, 7e-3, 8, 40).rotateX(Math.PI / 2), METAL, 0, HT, 0),
+      mesh(new T2.TorusGeometry(0.14, 7e-3, 8, 40).rotateX(Math.PI / 2), METAL, 0, HT - 0.11, 0),
+      mesh(new T2.CylinderGeometry(8e-3, 8e-3, HT - 0.11, 8), NOIR, 0, (HT - 0.11) / 2, 0),
+      pieds
+    );
+    const HC = 0.4, coin = new T2.Shape(), w = 0.32, p = 0.1, r = 0.025;
+    coin.moveTo(-w + r, -p);
+    coin.lineTo(w - r, -p);
+    coin.quadraticCurveTo(w, -p, w, -p + r);
+    coin.lineTo(w, p - r);
+    coin.quadraticCurveTo(w, p, w - r, p);
+    coin.lineTo(-w + r, p);
+    coin.quadraticCurveTo(-w, p, -w, p - r);
+    coin.lineTo(-w, -p + r);
+    coin.quadraticCurveTo(-w, -p, -w + r, -p);
+    const noires = new T2.InstancedMesh(new T2.BoxGeometry(0.014, 0.012, 0.06), NOIR, 22);
+    for (let i = 0, k = 0; i < 31 && k < 22; i++) if (![2, 6].includes(i % 7)) {
+      mt.makeTranslation(-0.27 + (i + 1) * 0.0175, HC + 0.012, 0);
+      noires.setMatrixAt(k++, mt);
+    }
+    const jambes = new T2.InstancedMesh(new T2.BoxGeometry(0.016, 0.5, 0.016), NOIR, 2);
+    [-1, 1].forEach((s, i) => {
+      mt.makeRotationZ(s * 0.55).setPosition(0, HC / 2 - 0.02, 0);
+      jambes.setMatrixAt(i, mt);
+    });
+    const clavier = groupe(
+      mesh(new T2.ExtrudeGeometry(coin, { depth: 0.035, bevelEnabled: true, bevelSize: 8e-3, bevelThickness: 8e-3, bevelSegments: 2 }).rotateX(Math.PI / 2), M(2763827, 0.35), 0, HC, 0),
+      mesh(new T2.BoxGeometry(0.56, 0.012, 0.11), M(16513266, 0.4), 0, HC + 3e-3, 0.03),
+      noires,
+      jambes
+    );
+    return {
+      micro: echelle(1.6, micro),
+      maracaD: echelle(1.6, maraca(15222060)),
+      maracaG: echelle(1.6, maraca(15971890)),
+      baguetteD: echelle(0.8, baguette()),
+      baguetteG: echelle(0.8, baguette()),
+      tambourin: echelle(1.4, tambourin),
+      guitare: echelle(0.85, guitare),
+      tambour,
+      clavier
+    };
+  };
+  const OBJETS = { chanteur: ["micro"], guitare: ["guitare"], tambour: ["tambour", "baguetteD", "baguetteG"], clavier: ["clavier"], maracas: ["maracaD", "maracaG"], tambourin: ["tambourin"], danseur: [] };
+  const teneur = (T2, O2) => {
+    const v = { a: new T2.Vector3(), b: new T2.Vector3(), d: new T2.Vector3(), g: new T2.Vector3(), x: new T2.Vector3(), y: new T2.Vector3(), z: new T2.Vector3(), M: new T2.Matrix4(), Y: new T2.Vector3(0, 1, 0) };
+    return (m, role) => {
+      m.objet.updateMatrixWorld(true);
+      const main = (cote) => {
+        v.a.setFromMatrixPosition(m.os[cote ? 9 : 6].matrixWorld);
+        v.b.setFromMatrixPosition(m.os[cote ? 8 : 5].matrixWorld);
+        const dir = v.a.clone().sub(v.b).normalize();
+        return { p: v.a.clone().addScaledVector(dir, 0.035 * m.taille), dir };
+      };
+      const dans = (o, h2, cible) => {
+        o.position.copy(h2.p);
+        if (cible) v.y.copy(cible).sub(h2.p);
+        else v.y.copy(h2.dir);
+        v.y.normalize();
+        v.z.set(Math.sin(m.cap), 0, Math.cos(m.cap)).addScaledVector(v.y, -v.y.dot(v.z)).normalize();
+        v.x.crossVectors(v.y, v.z);
+        o.quaternion.setFromRotationMatrix(v.M.makeBasis(v.x, v.y, v.z));
+      };
+      const devant = (o, dz) => {
+        o.position.copy(m.objet.position).add(v.z.set(Math.sin(m.cap) * dz, 0, Math.cos(m.cap) * dz));
+        o.rotation.set(0, m.cap, 0);
+      };
+      const avant = (dz, dx = 0, y = 0) => v.g.copy(m.objet.position).add(v.d.set(Math.sin(m.cap) * dz + Math.cos(m.cap) * dx, y, Math.cos(m.cap) * dz - Math.sin(m.cap) * dx));
+      if (role === "chanteur") {
+        const bouche = new T2.Vector3().setFromMatrixPosition(m.os[3].matrixWorld).add(v.d.set(Math.sin(m.cap) * 0.12, 0.03, Math.cos(m.cap) * 0.12));
+        dans(O2.micro, main(1), bouche);
+      } else if (role === "maracas") {
+        for (const [o, c] of [[O2.maracaD, 1], [O2.maracaG, 0]]) {
+          const h2 = main(c);
+          dans(o, h2, h2.p.clone().add(h2.dir).add(v.Y));
+        }
+      } else if (role === "tambourin") dans(O2.tambourin, main(1));
+      else if (role === "tambour") {
+        devant(O2.tambour, 0.2);
+        dans(O2.baguetteD, main(1), avant(0.2, -0.05, PEAU).clone());
+        dans(O2.baguetteG, main(0), avant(0.2, 0.05, PEAU).clone());
+      } else if (role === "clavier") devant(O2.clavier, 0.19);
+      else if (role === "guitare") {
+        const d2 = main(1), g = main(0);
+        v.g.copy(d2.p).add(v.z.set(Math.sin(m.cap), 0, Math.cos(m.cap)).multiplyScalar(-0.035));
+        v.x.copy(g.p).sub(v.g).normalize();
+        v.y.crossVectors(v.z.set(Math.sin(m.cap), 0, Math.cos(m.cap)), v.x).normalize();
+        v.z.crossVectors(v.x, v.y);
+        O2.guitare.position.copy(v.g);
+        O2.guitare.quaternion.setFromRotationMatrix(v.M.makeBasis(v.x, v.y, v.z));
+      }
+    };
+  };
+  const preparerDanse = () => {
+    if (danse) return;
+    danse = { mii: [], der: 0 };
+    let W;
+    try {
+      W = principale().m_BrowserWindow;
+    } catch (x) {
+      return;
+    }
+    W.__pcvVraisMii?.charger().then(async (M) => {
+      if (!M?.vrais || !danse) return;
+      const T2 = W.THREE, C = window.__pcvCharge, basse = !!C?.reglage().miiBasse, cv = () => d.createElement("canvas");
+      const k = Math.min(innerWidth / 1920, innerHeight / 1200), L = Math.round(innerWidth / k), H = DANSE.h;
+      const boite = d.createElement("div"), sol = cv(), fond = cv(), toile = cv();
+      boite.className = "pa-scene";
+      sol.className = "pa-sol";
+      toile.className = "pa-mii";
+      boite.append(sol, toile);
+      for (const c of [sol, fond, toile]) {
+        c.width = Math.round(L * k);
+        c.height = Math.round(H * k);
+      }
+      const rendu = new T2.WebGLRenderer({ canvas: toile, alpha: true, antialias: C?.reglage().miiLisse ?? true, powerPreference: "high-performance" });
+      rendu.setClearColor(0, 0);
+      rendu.setPixelRatio(1);
+      rendu.setSize(toile.width, toile.height, false);
+      rendu.shadowMap.enabled = !basse;
+      rendu.shadowMap.type = T2.PCFSoftShadowMap;
+      const Q = DANSE.cam, cam = new T2.PerspectiveCamera(Q.fov, L / 1200, 0.1, 60);
+      cam.position.set(...Q.pos);
+      cam.lookAt(...Q.vise);
+      cam.setViewOffset(L, 1200, 0, DANSE.y0, L, H);
+      cam.updateMatrixWorld();
+      const v = new T2.Vector3(), E = (x, z) => {
+        v.set(x, 0, z).project(cam);
+        return [(v.x + 1) / 2 * L, (1 - v.y) / 2 * H];
+      };
+      const auSol = (x, y) => {
+        v.set(x / L * 2 - 1, 1 - y / H * 2, 0.5).unproject(cam).sub(cam.position).normalize();
+        return cam.position.clone().addScaledVector(v, -cam.position.y / v.y);
+      };
+      const scene = new T2.Scene();
+      const cle = new T2.DirectionalLight(16777215, 1);
+      cle.position.set(-1.8, 10, 3.6);
+      cle.castShadow = true;
+      cle.shadow.mapSize.set(1024, 1024);
+      Object.assign(cle.shadow.camera, { left: -5, right: 5, top: 4, bottom: -4, near: 1, far: 20 });
+      cle.shadow.radius = 6;
+      cle.shadow.bias = -5e-4;
+      cle.shadow.normalBias = 0.02;
+      const plan = new T2.Mesh(new T2.PlaneGeometry(60, 60), new T2.ShadowMaterial({ color: 3806216, opacity: 0.32 }));
+      plan.rotation.x = -Math.PI / 2;
+      plan.receiveShadow = true;
+      const face = new T2.DirectionalLight(16777215, 1.6), ciel = new T2.HemisphereLight(16774374, 7030320, 1.4);
+      cle.intensity = 1.2;
+      const O2 = fabriquerObjets(T2);
+      scene.add(cle, plan, face, ciel, ...Object.values(O2));
+      const qui = [...await M.siens(), ...M.habitantsDefaut()].slice(0, DANSE.pieds.length);
+      for (let i = qui.length; i < DANSE.pieds.length; i++) qui.push(M.hasard(i));
+      const rims = [], lumieres = [], mii = qui.map((q, i) => {
+        const m = M.creer({
+          donnees: q.donnees,
+          graine: q.graine,
+          pantalon: q.pantalon,
+          nom: q.nom,
+          rendu,
+          resolution: 256,
+          expressions: ["neutre", "cligne", "sourire", "joie", "parle"],
+          ...q.tenue ? { tenue: q.tenue, couleursSwitch: q.couleursSwitch } : {}
+        });
+        m.regler(1);
+        m.sol = 0;
+        m.ombre.userData.force = 1.6;
+        m.ombre.material.color.set(2755588);
+        scene.add(m.objet, m.ombre);
+        m.jouer("repos", { fondu: 0 });
+        m.objet.traverse((o) => {
+          if (!o.isMesh) return;
+          o.castShadow = !o.material.transparent;
+          const u = o.material.uniforms;
+          if (!u) return;
+          for (const n of ["u_light_ambient", "u_light_diffuse", "u_light_specular", "u_rim_color", "u_light_dir"]) if (u[n]?.value?.clone) u[n] = { value: u[n].value.clone() };
+          if (u.u_rim_color) rims.push(u.u_rim_color.value);
+          if (u.u_light_ambient) lumieres.push(u);
+        });
+        return m;
+      });
+      if (!danse) {
+        mii.forEach((m) => m.liberer());
+        rendu.dispose();
+        return;
+      }
+      const places = DANSE.pieds.map(([x, y]) => auSol(x + (L - 1920) / 2, y - DANSE.y0));
+      Object.assign(danse, { boite, sol, fond, toile, rendu, scene, cam, mii, rims, lumieres, E, W: L, k, O: O2, face, ciel, places, tenir: teneur(T2, O2) });
+      await Promise.all([...mii.map((m) => m.objet), ...Object.values(O2)].map((o) => rendu.compileAsync?.(o, cam, scene))).catch(() => {
+      });
+      if (danse?.toile) {
+        danse.pret = true;
+        const z = e.$(".pa-zone");
+        if (z) poserDanse(z);
+      }
+    }).catch((x) => console.warn("pcv", "Paroles : pas de Mii", x?.message));
+  };
+  const poserDanse = (z) => {
+    preparerDanse();
+    const oui = !!(danse?.pret && lect[cur]);
+    z.classList.toggle("avec-mii", oui);
+    if (oui) z.append(danse.boite);
+  };
+  const danser = (t) => {
+    const D = danse, p = lect[cur];
+    if (!D?.pret || !p || window.__pcvJeuDevant) return;
+    const C = window.__pcvCharge, ips = C?.reglage().miiIps || 0;
+    if (ips && t - D.der < 1e3 / ips - 2) return;
+    const eu = t - D.der, dt = Math.max(0, Math.min(0.1, eu / 1e3));
+    D.der = t;
+    const t0 = performance.now();
+    if (D.lignes !== ly?.lignes || D.bpmLu !== p.bpm) {
+      D.lignes = ly?.lignes;
+      D.bpmLu = p.bpm;
+      const L = ly?.etat === "actif" ? ly.lignes : null;
+      D.tempo = p.bpm > 0 ? { bpm: p.bpm, phase: 0 } : L ? tempoLy(L.map((l) => l[0])) : null;
+      D.nom = ambianceDe(p.bpm, L && debitLy(L));
+      D.amb = null;
+    }
+    const cp = (p.pochette || "").length + (p.pochette || "").slice(-48);
+    if (D.cp !== cp) {
+      D.cp = cp;
+      teintesPoch(p.pochette).then((tons) => {
+        if (danse !== D || D.cp !== cp) return;
+        D.tons = tons;
+        D.amb = null;
+        peindreSol(D, tons);
+        const n = tons.sol.map((v) => v / Math.max(1, ...tons.sol)), vers = (base, f) => n.map((v) => base * (1 - f * (1 - v)));
+        D.base = { amb: vers(0.78, 0.3), dif: vers(0.62, 0.4) };
+        D.ciel.color.setRGB(...vers(1, 0.35));
+        D.lumieres.forEach((u) => {
+          u.u_light_ambient.value.setRGB(...D.base.amb);
+          u.u_light_specular?.value.setRGB(...vers(0.55, 0.4));
+        });
+      });
+    }
+    if (!D.tons) return;
+    if (!D.amb) D.amb = ambiance(D.nom, D.tons.vives, D.E, D.W);
+    const bpm = D.tempo?.bpm || DANSE.bpm, joue = p.statut === "Playing", b = (posDe(p) - (D.tempo?.phase || 0)) * bpm / 60, s = t / 1e3;
+    const cle = cleLy(p);
+    if (D.cle !== cle) {
+      D.cle = cle;
+      D.grp = tirerGroupe(cle, D.mii.length);
+      const vus = new Set(D.grp.roles.flatMap((r) => OBJETS[r]));
+      for (const [n, o] of Object.entries(D.O)) o.visible = vus.has(n);
+      D.grp.qui.forEach((j, place) => {
+        const m = D.mii[j];
+        m.place = place;
+        m.role = D.grp.roles[place];
+        m.objet.position.copy(D.places[place]);
+        m.cap = m.capVise = DANSE.caps[place] * Math.PI / 180;
+      });
+    }
+    const fete = D.nom === "fete", danse8 = DANSES[D.nom][(D.grp.danse + Math.floor(b / 8)) % DANSES[D.nom].length];
+    D.mii.forEach((m) => {
+      const nom = !joue ? "repos" : m.role === "chanteur" ? "chanter" : m.role === "danseur" ? danse8 : m.role;
+      if (m.anim !== nom) m.jouer(nom, { fondu: 0.25, vitesse: nom === "repos" ? 1 : 0 });
+      m.energie = fete ? 1 : 0.55;
+      if (joue) m.t = b;
+      const cap = DANSE.caps[m.place] * Math.PI / 180;
+      if (nom === "tour") m.cap = m.capVise = cap + Math.PI * 2 * (b % 2) / 2;
+      else m.capVise = cap + 6 * Math.sin(s * Math.PI * 0.65) * Math.PI / 180;
+      m.maj(dt);
+      D.tenir(m, m.role);
+    });
+    const lum = D.amb.lumiere(s, b), lin = lum.c.map((x) => (x / 255) ** 2.2), dif = D.base.dif.map((x, i) => x * 0.6 + lin[i] * 0.6 * lum.k);
+    D.rims.forEach((c) => c.setRGB(...lum.rim));
+    D.toile.style.setProperty("--halo", lum.halo);
+    D.lumieres.forEach((u) => {
+      u.u_light_diffuse?.value.setRGB(...dif);
+      u.u_light_dir?.value.set(0.7 * lum.cote, 0.45, 0.75).normalize();
+    });
+    D.face.color.setRGB(...lin.map((x) => 0.35 + 0.65 * x));
+    D.face.intensity = 1.8 * lum.k;
+    D.face.position.set(4 * lum.cote, 3, 7);
+    const g = D.sol.getContext("2d");
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, D.sol.width, D.sol.height);
+    g.globalAlpha = 0.92;
+    g.drawImage(D.fond, 0, 0);
+    g.globalAlpha = 1;
+    g.setTransform(D.k, 0, 0, D.k, 0, 0);
+    D.amb.dessous(g, s, b);
+    D.rendu.render(D.scene, D.cam);
+    C?.noter(t, ips ? 1e3 / ips : 0, eu, performance.now() - t0);
+  };
+  let cadre = null;
   const contenu = () => [...d.querySelectorAll('[id^="quickaccess_content_"]')].find((c) => c.offsetWidth);
-  const placerCadre = (moi) => {
-    if (cadre !== moi) return;
-    rafCadre = 0;
+  const placerCadre = () => {
     const c = contenu(), b = e.$(".cadre-boite");
-    if (!c) return void (rafCadre = requestAnimationFrame(() => placerCadre(moi)));
+    if (!c || !cadre) return requestAnimationFrame(placerCadre);
     const r = b.getBoundingClientRect();
     h.style.setProperty("--pcv-cadre-l", "0px");
     h.style.setProperty("--pcv-cadre-w", "1000px");
     const k = c.getBoundingClientRect().width / 1e3 || 1, z = parseFloat(getComputedStyle(h).getPropertyValue("--pcv-cadre-z")) || 1;
     for (const [n, v, zz] of [["l", r.left, 1], ["t", r.top, 1], ["w", r.width, z], ["h", r.height, z]]) h.style.setProperty("--pcv-cadre-" + n, (v / k / zz).toFixed(1) + "px");
-    try {
-      c.querySelector(".Focusable, button, [tabindex]")?.focus();
-    } catch (x) {
-    }
+    entrer(c);
   };
   const ouvrirCadre = (onglet, titre, p) => {
-    cancelAnimationFrame(rafCadre);
-    const moi = cadre = { onglet };
+    cadre = { onglet, titre };
     const s = e.$('[data-sous="cadre"]');
     s.querySelector(".titre-s > span:last-child").textContent = titre;
     s.querySelector(".titre-s .pastille").innerHTML = ico(p || "prise");
@@ -675,28 +1295,64 @@
     ouvrirSous("cadre");
     h.dataset.pcvPeCadre = "";
     e.racine.classList.add("en-cadre");
-    rafCadre = requestAnimationFrame(() => placerCadre(moi));
-    clearInterval(gardeCadre);
-    gardeCadre = setInterval(() => {
-      if (!cadre) return clearInterval(gardeCadre);
-      const g = d.querySelector(".gpfocus"), c = contenu();
-      if (g && c && !c.contains(g)) try {
-        c.querySelector(".Focusable, button, [tabindex]")?.focus();
-      } catch (x) {
-      }
-    }, 200);
+    requestAnimationFrame(placerCadre);
   };
+  const entrer = (c) => {
+    const el = cadre.dernier?.isConnected ? cadre.dernier : [...c.querySelectorAll("button, [tabindex]")].find((x) => !x.closest("{{Title@QuickAccessMenu}}")) || c.querySelector("button");
+    try {
+      const n = principale().m_BrowserWindow.__pcvNoeud?.(el);
+      if (n) n.BTakeFocus(4);
+      else el?.focus();
+    } catch (x) {
+    }
+  };
+  const garder = (ev) => {
+    const c = cadre && d.getElementById("quickaccess_content_" + cadre.onglet);
+    if (!c) return;
+    if (c.contains(ev.target)) cadre.dernier = ev.target;
+    else entrer(c);
+  };
+  d.addEventListener("focusin", garder, true);
+  const bord = () => {
+    try {
+      principale().m_BrowserWindow.__pcvSon?.("bord");
+    } catch (x) {
+    }
+  };
+  const ouvrirPlugin = (nom) => {
+    O.__pcvRetourDecky = B.page();
+    ouvrirDecky();
+    O.DeckyPluginLoader.deckyState.setActivePlugin(nom);
+    return ouvrirCadre(999, nom, "prise");
+  };
+  const ouvrirPluginDemande = () => {
+    const nom = O.__pcvPluginAouvrir;
+    if (!nom) return;
+    delete O.__pcvPluginAouvrir;
+    ouvrirPlugin(nom);
+  };
+  O.__pcvOuvrirPlugin = ouvrirPluginDemande;
   const fermerCadre = () => {
-    cancelAnimationFrame(rafCadre);
-    rafCadre = 0;
     if (!cadre) return false;
     cadre = null;
-    clearInterval(gardeCadre);
     delete h.dataset.pcvPeCadre;
     e.racine.classList.remove("en-cadre");
     for (const n of ["l", "t", "w", "h"]) h.style.removeProperty("--pcv-cadre-" + n);
     return true;
   };
+  const quitterCadre = () => {
+    const t = cadre?.titre;
+    if (!fermerCadre()) return false;
+    e.fermerVoile(e.$('[data-sous="cadre"]'));
+    const g = [...e.racine.querySelectorAll('[data-sous="decky"] [data-a^="greffon:"]')].find((x) => x.dataset.a === "greffon:" + t);
+    if (g && !g.closest("[hidden]")) e.poser(g);
+    else e.premier();
+    return true;
+  };
+  const suivreDecky = () => {
+    if (cadre?.onglet === 999 && !O.DeckyPluginLoader?.deckyState?._activePlugin) quitterCadre();
+  };
+  O.DeckyPluginLoader?.deckyState?.eventBus?.addEventListener("update", suivreDecky);
   const sousOuvert = () => [...e.racine.querySelectorAll(".sousecran")].filter((s) => !s.hidden).pop()?.dataset.sous || null;
   const ouvrirSous = (cle) => {
     const s = e.$(`[data-sous="${cle}"]`);
@@ -712,11 +1368,18 @@
         on = !!b.lire();
       } catch (x) {
       }
+      if (t.dataset.b === "wifi" && !t.classList.contains("grande-bascule")) {
+        const n = B.network();
+        t.querySelector(".pastille").innerHTML = ico(n.filaire ? "prise" : "wifi");
+        t.querySelector("b").firstChild.textContent = n.filaire ? T("acces.filaire", "Filaire") : "Wi-Fi";
+        t.dataset.a = n.filaire ? "reglages:wifi" : "bascule:wifi";
+        if (n.filaire) on = n.connected;
+      }
       t.classList.toggle("oui", on);
       if (!t.classList.contains("grande-bascule")) t.classList.toggle("verre", !on);
       const s = t.querySelector("small");
       if (s) try {
-        s.textContent = b.petit(on);
+        s.textContent = t.dataset.b === "wifi" && B.network().filaire && !t.classList.contains("grande-bascule") ? T("acces.connecte_statut", "Connect\xE9") : b.petit(on);
       } catch (x) {
       }
     }
@@ -847,7 +1510,10 @@
         if (quoi === "page") {
           ouvrirSous("musique");
           dernierRendu = "";
-          return peindreLecteur();
+          peindreLecteur();
+          const b = e.$(".paroles-star");
+          if (b) e.poser(b);
+          return;
         }
         if (quoi === "choisir") {
           cur = +n;
@@ -890,7 +1556,7 @@
       if (k === "confirme") {
         const cle = enAttente;
         enAttente = null;
-        e.$(".voile.confirme").hidden = true;
+        e.fermerVoile(e.$(".voile.confirme"));
         e.premier();
         return typeof cle === "function" ? cle() : cle && basculer(cle, true);
       }
@@ -908,23 +1574,11 @@
         B.navigate("Internet");
         return fermer();
       }
-      if (k === "greffon") {
+      if (k === "greffon") return ouvrirPlugin(v);
+      if (k === "boutique" || k === "decky-reglages") {
+        O.__pcvRetourDecky = B.page();
         try {
-          O.DeckyPluginLoader.deckyState.setActivePlugin(v);
-        } catch (x) {
-        }
-        return ouvrirCadre(999, v, "prise");
-      }
-      if (k === "boutique") {
-        try {
-          O.DFL.Navigation.Navigate("/decky/store");
-        } catch (x) {
-        }
-        return fermer();
-      }
-      if (k === "decky-reglages") {
-        try {
-          O.DFL.Navigation.Navigate("/decky/settings");
+          O.DFL.Navigation.Navigate(k === "boutique" ? "/decky/store" : "/decky/settings");
         } catch (x) {
         }
         return fermer();
@@ -1005,7 +1659,7 @@
         return true;
       }
       if (sousOuvert() === "paroles") {
-        e.$('[data-sous="paroles"]').hidden = true;
+        e.fermerVoile(e.$('[data-sous="paroles"]'));
         legOk(true);
         clearTimeout(lyMinuteur);
         dernierRendu = "";
@@ -1015,29 +1669,33 @@
         else e.premier();
         return true;
       }
-      if (fermerCadre()) {
-        e.$('[data-sous="cadre"]').hidden = true;
-        e.premier();
-        return true;
-      }
-      return false;
+      return quitterCadre();
     },
-    // dans le cadre, les touches vont au contenu de Steam (sa navigation), sauf B
-    laisser: (b) => !!cadre && b !== 2,
+    // dans le cadre, les touches vont au contenu de Steam (sa navigation), sauf B et ses changements d'onglet (LB RB LT RT :
+    // touche() ci-dessous, le son du bord ; un greffon est un seul panneau, B ramène à la liste)
+    laisser: (b) => !!cadre && b !== 2 && !(b >= 5 && b <= 8),
     y: (el) => el.dataset.y.startsWith("oublier:") ? oublier(el.dataset.y.slice(8)) : reglages(el.dataset.y),
     // LB / RB : un lecteur à l'autre ; X : lecture / pause du lecteur montré
     // (15/10 soir, l'auteur) LB / RB : morceau précédent / suivant (le lecteur revient au début du morceau s'il joue
     // depuis un moment, comme tout lecteur MPRIS) ; LT / RT : changer de lecteur, moins utile
     touche: (b) => {
+      if (cadre) return b >= 5 && b <= 8 && bord();
+      if (sousOuvert() !== "musique") return;
       if ((b === 5 || b === 6) && lect[cur]) return commanderL(b === 5 ? "precedent" : "suivant", cur);
       if (b === 7) return changerLecteur(-1);
       if (b === 8) return changerLecteur(1);
       if (b === 3 && lect[cur]) return commanderL("lecture", cur);
     },
+    differer: () => true,
+    // (lot 17 : préparé à la fermeture, repeint juste après la première image, menus-commun.js)
+    // (29/10) le plugin demandé par l'eShop (« Ses réglages ») s'ouvre ICI, à l'ouverture du menu : demandé avant, son
+    // cadre était aussitôt refermé par fermerCadre() et l'on ne voyait que les réglages rapides ; ouvert après le tour
+    // d'ouverture de menus-commun.js, qui referme ensuite tous les voiles (le cadre en est un)
     ouvrir: () => {
       fermerCadre();
       regler(null);
       peindre();
+      queueMicrotask(ouvrirPluginDemande);
     },
     minute: peindre,
     batterie: peindreBatterie,
@@ -1057,10 +1715,10 @@
     appui = false;
   }, true);
   e.racine.addEventListener("pointerdown", (ev) => {
-    const p = ev.target.closest(".piste"), c = p?.closest("[data-curseur]");
-    if (!c) return;
-    const differe = c.dataset.curseur === "tdp";
-    let v = 0, ecrit = 0, attente = 0;
+    const c = ev.target.closest("[data-curseur]"), p = c?.querySelector(".piste");
+    if (!p) return;
+    const differe = c.dataset.curseur === "tdp", x0 = ev.clientX, y0 = ev.clientY, surPiste = !!ev.target.closest(".piste");
+    let v = 0, ecrit = 0, attente = 0, pris = false;
     const ecrire = () => {
       clearTimeout(attente);
       attente = 0;
@@ -1077,22 +1735,38 @@
       else attente = setTimeout(ecrire, reste);
     };
     const finir = (ok) => {
-      p.onpointermove = p.onpointerup = p.onpointercancel = null;
+      c.onpointermove = c.onpointerup = c.onpointercancel = null;
       clearTimeout(attente);
       attente = 0;
       if (ok) poserCurseur(c, v);
       else if (differe) peindreCurseur(c, CURSEURS.tdp.lire());
     };
-    e.poser(c);
-    c.classList.remove("f");
-    try {
-      p.setPointerCapture(ev.pointerId);
-    } catch (x) {
-    }
-    suivre(ev);
-    p.onpointermove = suivre;
-    p.onpointerup = () => finir(true);
-    p.onpointercancel = () => finir(false);
+    const prendre = () => {
+      pris = true;
+      e.poser(c);
+      c.classList.remove("f");
+      try {
+        c.setPointerCapture(ev.pointerId);
+      } catch (x) {
+      }
+    };
+    c.onpointermove = (m) => {
+      if (!pris) {
+        const dx = Math.abs(m.clientX - x0), dy = Math.abs(m.clientY - y0);
+        if (Math.hypot(dx, dy) < 12) return;
+        if (dy > dx) return finir(false);
+        prendre();
+      }
+      suivre(m);
+    };
+    c.onpointerup = (u) => {
+      if (!pris && surPiste) {
+        prendre();
+        suivre(u);
+      }
+      finir(pris);
+    };
+    c.onpointercancel = () => finir(false);
   });
   const cibleLy = (g, y) => Math.max(0, Math.min(ly.lignes.length - 1, Math.round(g.foyer - (y - g.y) / LY_H)));
   e.racine.addEventListener("pointerdown", (ev) => {
@@ -1140,11 +1814,19 @@
     }
   });
   e.demarrer();
+  ouvrirPluginDemande();
   window.__pcvArFin = () => {
+    if (O.__pcvOuvrirPlugin === ouvrirPluginDemande) delete O.__pcvOuvrirPlugin;
     fermerCadre();
+    d.removeEventListener("focusin", garder, true);
+    O.DeckyPluginLoader?.deckyState?.eventBus?.removeEventListener("update", suivreDecky);
     e.fin();
     clearInterval(suiviBt);
     clearInterval(suiviWifi);
     B?.bluetooth?.setDiscovering(false);
+    danse?.mii.forEach((m) => m.liberer());
+    danse?.rendu?.dispose();
+    danse?.rendu?.forceContextLoss();
+    danse = null;
   };
 })();

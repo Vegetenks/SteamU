@@ -289,6 +289,7 @@
     return p.offertes + p.bonus;
   };
   const depenser = () => {
+    if (lire("pcv-casino-illimite", false) === true) return true;
     const p = parties();
     if (p.offertes > 0) p.offertes--;
     else if (p.bonus > 0) p.bonus--;
@@ -1229,7 +1230,12 @@
     T("arcade.astuce_8"),
     T("arcade.astuce_9")
   ];
-  const touches = (l) => l.map(([t, n, a]) => `<button data-action="${a}"><span class="tch">${t}</span>${n}</button>`).join("");
+  const CODES = { A: 1, B: 2, X: 3, Y: 4, LB: 5, RB: 6, LT: 7, RT: 8 };
+  const tch = (t) => t.split(" ").map((x) => {
+    const r = CODES[x] && window.__pcvTouche?.(CODES[x]);
+    return r ? r[2] ?? r[0] : x;
+  }).join(" ");
+  const touches = (l) => l.map(([t, n, a]) => `<button data-action="${a}"><span class="tch">${tch(t)}</span>${n}</button>`).join("");
   const JETONS = ["#ff6f9f", "#ffc63a", "#39b8f0", "#5fd38a", "#b47cff"];
   const PILE = [[6, 124, -12], [64, 128, 8], [122, 124, -6], [34, 84, 14], [94, 86, -10], [64, 46, 5], [126, 64, 18]];
   const apercu = (m) => PILE.map(([x, y, r], k) => {
@@ -1271,7 +1277,14 @@
       <div class="rail">${machines.map(htmlBorne).join("")}</div>
       <div class="hud-g"><span class="logo">\u{1F3AA}</span><span><b>${T("arcade.titre")}</b><small class="jour">${quand()}</small></span></div>
       <div class="aide">${aideHall()}</div></div>`;
-  const aideHall = () => touches([["\u25C0 \u25B6", T("arcade.machines"), "rien"], ["A", T("arcade.approcher"), "approcher"], ["X", T(modeGrands() === "morceaux" ? "arcade.mode_morceaux" : "arcade.mode_entiers"), "mode"], ["Y", T("arcade.ma_boite"), "boite"]]);
+  const aideHall = () => touches([
+    ["\u25C0 \u25B6", T("arcade.machines"), "rien"],
+    ["LB RB", T("arcade.premiere_derniere"), "rien"],
+    ["Y", T("arcade.ma_boite"), "boite"],
+    ["X", T(modeGrands() === "morceaux" ? "arcade.mode_morceaux" : "arcade.mode_entiers"), "mode"],
+    ["B", T("touche.retour"), "rien"],
+    ["A", T("arcade.approcher"), "approcher"]
+  ]);
   const basculerMode = () => {
     if (vue !== "hall" || boiteOuverte) return;
     const mode = modeGrands() === "morceaux" ? "entiers" : "morceaux";
@@ -1358,12 +1371,12 @@
       <div class="vitre-jeu"><canvas></canvas><i class="reflet"></i></div>
       <div class="commandes"><button class="bt g" data-dir="-1">\u25C0</button><button class="bt d" data-dir="1">\u25B6</button>
         <div class="consigne">${T(m.type === "pince" ? "arcade.consigne_pince" : "arcade.consigne_pousseur")}</div>
-        <button class="bt a"><span class="tch">A</span>${T(m.type === "pince" ? "arcade.descendre" : "arcade.pousser")}</button></div></div>
+        <button class="bt a"><span class="tch">${tch("A")}</span>${T(m.type === "pince" ? "arcade.descendre" : "arcade.pousser")}</button></div></div>
     <div class="cote">
       <div class="carte"><span class="t">${T(m.entrainement ? "arcade.plaque_entrainement" : m.type === "pince" ? "arcade.machine_pince" : "arcade.machine_pousseur")}</span><b class="dedans"></b><div class="detail-m"></div></div>
       ${m.entrainement ? `<div class="carte"><span class="t">${T("arcade.jetons_du_jour")}</span><b class="nj"></b><div class="jetons"></div></div>` : `<div class="carte"><span class="t">${T("arcade.ta_collection")}</span><b class="prog"></b><div class="jauge"><i></i></div></div>`}
-      <button class="carte" data-action="boite"><span class="coffre">\u{1F3C5}</span>${T("arcade.ma_boite")}<span class="tch" style="margin-left:auto">Y</span></button>
-      <button class="carte" data-action="hall"><span class="coffre" style="background:linear-gradient(180deg,#ffc0d8,#ff8ab0)">\u25C0</span>${T("arcade.le_hall")}<span class="tch" style="margin-left:auto">B</span></button></div>`;
+      <button class="carte" data-action="boite"><span class="coffre">\u{1F3C5}</span>${T("arcade.ma_boite")}<span class="tch" style="margin-left:auto">${tch("Y")}</span></button>
+      <button class="carte" data-action="hall"><span class="coffre" style="background:linear-gradient(180deg,#ffc0d8,#ff8ab0)">\u25C0</span>${T("arcade.le_hall")}<span class="tch" style="margin-left:auto">${tch("B")}</span></button></div>`;
   const majCote = () => {
     const m = mJeu;
     if (!m || !racine) return;
@@ -1846,7 +1859,7 @@
     const p = morceauxDe.get(id) || [], [w, h] = tailleDe(id), c = taille / Math.max(w, h);
     return `<span class="assemble" style="width:${u(c * w)};height:${u(c * h)};grid-template-columns:repeat(${w}, 1fr)">${p.map((pid, i) => `<img data-id="${echap(pid)}" data-k="${i}" class="${aMorceau(b, pid) ? "" : "manque"}${i === curseur ? " curseur" : ""}" alt="">`).join("")}</span>`;
   };
-  const boutons = (l) => l.map(([acte, t, n], i) => `<button data-acte="${acte}" class="${i ? "" : "choisi"}"><span class="tch">${t}</span>${n}</button>`).join("");
+  const boutons = (l) => l.map(([acte, t, n], i) => `<button data-acte="${acte}" class="${i ? "" : "choisi"}"><span class="tch">${tch(t)}</span>${n}</button>`).join("");
   const montrerGains = (m, liste) => {
     const c = liste.shift();
     if (!c) return;
@@ -1930,7 +1943,7 @@
       <div class="onglets">${bs.ordre.map(({ s, n, f }, i) => `<div class="ong ${f ? "" : "zero"}" data-i="${i}"><span class="ic">${s.icone ? `<img data-id="${echap(s.id + "/" + s.icone)}" alt="">` : "\u{1F3C5}"}</span>
         <span class="tx"><b>${echap(s.nom)}</b><small>${echap(s.sous)}</small><span class="jauge"><i style="width:${(100 * f).toFixed(1)}%"></i></span></span><em>${n}/${s.lots.length}</em></div>`).join("")}</div>
       <div class="velours">${index ? `<div class="titre-s"></div><div class="grille"></div>` : `<div class="vide-b">${T("arcade.boite_vide")}</div>`}<div class="fiche"></div></div>
-      <div class="aide">${touches([["\u25B2 \u25BC", T("arcade.series"), "rien"], ["A", T("notifs.voir"), "rien"], ["B", T("casino.fermer"), "fermer-boite"]])}</div>`;
+      <div class="aide">${touches([["\u25B2 \u25BC", T("arcade.series"), "rien"], ["B", T("touche.retour"), "fermer-boite"], ["A", T("notifs.voir"), "rien"]])}</div>`;
     el.classList.add("on");
     plus_tard(() => boiteOuverte && racine.classList.add("boite-on"), 480);
     bs.zone = "s";

@@ -16,7 +16,12 @@
     
     html:is(.pcv-steam-verrou, .pcv-steam-modale):not(#pcv-rien) [data-pcvc-sous] { visibility: inherit !important; }
     #pcv-barre { position: fixed; inset: 0 0 auto 0; height: 0; z-index: 9000; font-family: var(--pcv-police); }
-    #pcv-barre button { all: unset; box-sizing: border-box; cursor: pointer; }
+    
+    #pcv-barre::after { content: ""; position: fixed; inset: 0 0 auto 0; height: calc(var(--u) * 98); z-index: 50; pointer-events: none;
+      background: var(--pcv-fenetre-ombre); opacity: 0; transition: opacity var(--pcv-panneau-duree); }
+    
+    html:is(.pcv-question, .pcv-voile) #pcv-barre::after { opacity: 1; transition: none; }
+    #pcv-barre :is(button, [role=button]) { all: unset; box-sizing: border-box; cursor: pointer; }
     #pcv-barre .rond { position: fixed; top: calc(var(--u) * 20); width: calc(var(--u) * 56); height: calc(var(--u) * 56); border-radius: 50%;
       background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); display: flex; align-items: center; justify-content: center; }
     #pcv-barre .rond::before { content: ""; position: absolute; width: calc(var(--u) * 40); height: calc(var(--u) * 40); border-radius: 50%;
@@ -25,16 +30,22 @@
       -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; background: var(--c); }
     
     :root { --pcv-biseau-dy: -1.5px; }
-    #pcv-barre .rond:active { transform: scale(.93); }
     
-    #pcv-barre .rond.loupe { justify-content: flex-start; overflow: hidden; border-radius: calc(var(--u) * 28); padding-left: calc(var(--u) * 17); gap: calc(var(--u) * 21);
+    
+    #pcv-barre .rond:is(.loupe, .telech) { justify-content: flex-start; overflow: hidden; border-radius: calc(var(--u) * 28); padding-left: calc(var(--u) * 17); gap: calc(var(--u) * 21);
       transition: width .22s cubic-bezier(.2,.8,.2,1), box-shadow .12s !important; }
-    #pcv-barre .rond.loupe::before { left: calc(var(--u) * 8); top: calc(var(--u) * 8); }
-    #pcv-barre .rond.loupe i, #pcv-barre .rond.loupe .invite { flex: none; }   
+    #pcv-barre .rond:is(.loupe, .telech)::before { left: calc(var(--u) * 8); top: calc(var(--u) * 8); }
+    #pcv-barre .rond:is(.loupe, .telech) i, #pcv-barre .rond.loupe .invite { flex: none; }   
     #pcv-barre .rond.loupe .invite { position: relative; white-space: nowrap; font-size: calc(var(--u) * 17); font-weight: 800; color: var(--pcv-texte2); opacity: 0; transition: opacity .12s; }
     body.pcv-loupe-active #pcv-barre .rond.loupe { width: calc(var(--u) * 412);
       box-shadow: var(--pcv-reflet), 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 8) var(--pcv-cyan-plein), 0 calc(var(--u) * 12) calc(var(--u) * 26) color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     body.pcv-loupe-active #pcv-barre .rond.loupe .invite { opacity: 1; transition-delay: .12s; }
+    
+    #pcv-barre .rond.loupe .saisie { all: unset; display: none; position: relative; flex: 1; min-width: 0; margin-right: calc(var(--u) * 20);
+      font: 800 calc(var(--u) * 17) var(--pcv-police); color: var(--pcv-texte); }
+    #pcv-barre .rond.loupe .saisie::placeholder { color: var(--pcv-texte2); opacity: 1; }
+    body.pcv-loupe-nous #pcv-barre .rond.loupe .saisie { display: block; }
+    body.pcv-loupe-nous #pcv-barre .rond.loupe .invite { display: none; }
     #pcv-barre .rond.pcv-sel, #pcv-bascule.pcv-sel { background: var(--pcv-cyan, linear-gradient(180deg, #5fd0ff, #1a9ae6)) !important; transform: scale(1.08) !important;
       box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 8) var(--pcv-cyan-plein), 0 calc(var(--u) * 10) calc(var(--u) * 24) color-mix(in srgb, var(--pcv-cyan-plein) 45%, transparent) !important; }
     
@@ -45,47 +56,54 @@
     
     html.pcv-avatar-mii #header_profile img { content: var(--pcv-tete-mii); background: var(--pcv-creux); object-fit: cover; object-position: 50% 40%; }
     
-    #pcv-barre .rond.telech { --pcv-telech-c: #1a9ae6; }
+    #pcv-barre .rond.telech { --pcv-telech-c: var(--pcv-cyan-plein); transform-origin: calc(var(--u) * 28) 50%; left: calc(var(--u) * 288); }
+    #pcv-barre .rond.sp:not([hidden]) + .rond.telech { left: calc(var(--u) * 354); }   
+    
+    #pcv-barre .rond.sp[hidden] { display: none; }
+    #pcv-barre .rond.sp i { --c: var(--pcv-c-spotpass); }
+    #pcv-barre .rond.sp:is([data-etat=coupe], [data-etat=attente]) i { --c: var(--pcv-texte2); opacity: .45; }
+    #pcv-barre .rond.sp :is(.sp-diode, .sp-neuf) { position: absolute; z-index: 2; display: none; border-radius: 50%; right: calc(var(--u) * 3); bottom: calc(var(--u) * 3);
+      width: calc(var(--u) * 13); height: calc(var(--u) * 13); background: var(--sp-c); box-shadow: 0 0 0 calc(var(--u) * 2.5) var(--pcv-lisere), 0 0 calc(var(--u) * 9) var(--sp-c); }
+    #pcv-barre .rond.sp .sp-diode { --sp-c: var(--pcv-c-spotpass); }
+    #pcv-barre .rond.sp[data-etat=attente] .sp-diode { display: block; --sp-c: var(--pcv-ambre-texte); box-shadow: 0 0 0 calc(var(--u) * 2.5) var(--pcv-lisere); }
+    #pcv-barre .rond.sp[data-etat=neuf] .sp-neuf { display: block; --sp-c: var(--pcv-vert); right: calc(var(--u) * -2); bottom: auto; top: calc(var(--u) * -2);
+      width: calc(var(--u) * 17); height: calc(var(--u) * 17); }
+    
+    #pcv-barre .rond.sp .sp-neuf::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--pcv-lisere); opacity: 0;
+      animation: pcvSpRespire var(--sp-respire) ease-in-out infinite; }
+    @keyframes pcvSpRespire { 50% { opacity: .65; } }
+    @media (prefers-reduced-motion: reduce) { #pcv-barre .rond.sp :is(.sp-diode, .sp-neuf), #pcv-barre .rond.sp .sp-neuf::after { animation: none !important; } }
     #pcv-barre .rond.telech[hidden] { display: none; }
-    #pcv-barre .rond.telech .anneau { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); pointer-events: none; }
-    #pcv-barre .rond.telech .anneau circle { fill: none; stroke-width: 4; }
-    #pcv-barre .rond.telech .piste { stroke: var(--pcv-filet); }
-    #pcv-barre .rond.telech .plein { stroke: var(--pcv-telech-c); stroke-linecap: round; transition: stroke-dasharray .4s ease; }
-    #pcv-barre .rond.telech.pause { --pcv-telech-c: #8b9098; }
-    #pcv-barre .rond.telech.pcv-sel .piste { stroke: color-mix(in srgb, var(--pcv-carte) 35%, transparent); }
+    #pcv-barre .rond.telech .anneau { position: absolute; left: 0; top: 0; width: calc(var(--u) * 56); height: calc(var(--u) * 56); transform: rotate(-90deg); pointer-events: none; }
+    #pcv-barre .rond.telech .plein { fill: none; stroke-width: 3; stroke: var(--pcv-telech-c); stroke-linecap: round; transition: stroke-dasharray .4s ease; }
+    #pcv-barre .rond.telech.pause { --pcv-telech-c: var(--pcv-texte2); }
     #pcv-barre .rond.telech.pcv-sel .plein { stroke: var(--pcv-sur-accent); }
     
-    #pcv-barre .etat { position: fixed; top: calc(var(--u) * 24); right: calc(var(--u) * 24); height: var(--pcv-etat-h);
-      border-radius: calc(var(--pcv-etat-h) / 2); display: flex; align-items: center; padding: 0 calc(var(--u) * 6) 0 0;
-      background: var(--pcv-verre); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), inset 0 -2px 0 var(--pcv-reflet-bas), var(--pcv-ombre);
-      color: var(--pcv-texte); font-size: var(--pcv-etat-texte); font-weight: 800; }
-    #pcv-barre .etat > * { flex: none; }
-    #pcv-barre .etat .ico { width: var(--pcv-etat-ico); height: var(--pcv-etat-ico); margin: 0 calc(var(--u) * 10) 0 calc(var(--u) * 18); color: var(--pcv-texte); }
-    #pcv-barre .etat .ico.coupe { opacity: .3; }
-    #pcv-barre .etat .sep { width: 2px; align-self: stretch; background: var(--pcv-bord); }
-    #pcv-barre .etat .heure { padding: 0 calc(var(--u) * 7) 0 0; font-size: var(--pcv-etat-chiffres); font-weight: var(--pcv-etat-chiffres-graisse); line-height: 1; }
-    #pcv-barre .etat .pile { display: flex; align-items: center; gap: calc(var(--u) * 5); margin: 0 calc(var(--u) * 9) 0 calc(var(--u) * 12); }
+    #pcv-barre .rond.telech:is(.pcv-sel, :hover) { width: calc(var(--u) * 400); }
+    #pcv-barre .rond.telech .detail { flex: 1; min-width: 0; display: flex; align-items: center; gap: calc(var(--u) * 10); opacity: 0; transition: opacity .12s; }
+    #pcv-barre .rond.telech:is(.pcv-sel, :hover) .detail { opacity: 1; transition-delay: .12s; }
+    #pcv-barre .rond.telech .detail .mini { flex: none; width: calc(var(--u) * 38); height: calc(var(--u) * 38); border-radius: calc(var(--u) * 9); background: var(--fond, var(--pcv-pastille)) center / cover;
+      display: flex; align-items: center; justify-content: center; color: var(--pcv-sur-accent); box-shadow: var(--pcv-pastille-ombre); }
+    #pcv-barre .rond.telech .detail .mini svg { width: 60%; height: 60%; }
+    #pcv-barre .rond.telech .detail .txt { min-width: 0; display: flex; flex-direction: column; line-height: 1.15; white-space: nowrap; }
+    #pcv-barre .rond.telech .detail b { overflow: hidden; text-overflow: ellipsis; font-size: calc(var(--u) * 15); font-weight: 900; color: var(--pcv-texte); }
+    #pcv-barre .rond.telech .detail small { overflow: hidden; text-overflow: ellipsis; font-size: calc(var(--u) * 13); font-weight: 800; color: var(--pcv-texte2); font-variant-numeric: tabular-nums; }
+    #pcv-barre .rond.telech.pcv-sel .detail :is(b, small) { color: var(--pcv-sur-accent); }
+    
+    
   `;
   racine.appendChild(style);
   {
-    const b = document.createElement("button");
+    const b = document.createElement("div");
+    b.setAttribute("role", "button");
     b.className = "rond loupe";
     b.dataset.pcvRond = "loupe";
     b.dataset.pcvNom = T("barre.rechercher");
     b.setAttribute("aria-label", T("barre.rechercher"));
     b.style.left = "calc(var(--u) * 24)";
-    b.innerHTML = `<i data-ico-masque="recherche" style="--c:var(--pcv-texte2)"></i><span class="invite">${T("barre.rechercher")}</span>`;
-    b.onclick = () => {
-      window.__pcvProfilMontrer?.(false);
-      if (window.__pcvEcran?.ouvert?.()) {
-        window.__pcvVersLoupe = true;
-        window.__pcvEcran.fermer();
-      }
-      const i = document.querySelector("#header ._17M8gvakqjyaw_cLo6ntdl input, #header [class*=SearchAndTitleContainer] input");
-      if (!i) return;
-      window.__pcvNoeud?.(i)?.BTakeFocus?.(4);
-      i.focus();
-      i.click();
+    b.innerHTML = `<i data-ico-masque="recherche" style="--c:var(--pcv-texte2)"></i><span class="invite">${T("barre.rechercher")}</span><input class="saisie" type="text" autocomplete="off" spellcheck="false" placeholder="${T("barre.rechercher")}">`;
+    b.onclick = (e) => {
+      if (!e.target.closest(".saisie")) window.__pcvBarreChercher();
     };
     racine.appendChild(b);
   }
@@ -135,14 +153,48 @@
     };
     racine.appendChild(b);
   }
+  window.__pcvSpRespiration = 4400;
+  {
+    const b = document.createElement("button");
+    b.className = "rond sp";
+    b.hidden = true;
+    b.dataset.pcvRond = "spotpass";
+    b.dataset.pcvNom = T("spotpass.nom");
+    b.setAttribute("aria-label", T("spotpass.nom"));
+    b.style.left = "calc(var(--u) * 222)";
+    b.style.setProperty("--sp-respire", window.__pcvSpRespiration + "ms");
+    b.innerHTML = '<i data-ico-masque="spotpass"></i><span class="sp-diode"></span><span class="sp-neuf"></span>';
+    b.onclick = () => {
+      window.__pcvAmisMontrer?.(false);
+      window.__pcvNotifsMontrer?.(false);
+      window.__pcvProfilMontrer?.(false);
+      window.__pcvSpotPassPage?.ouvrir();
+    };
+    racine.appendChild(b);
+    window.__pcvSpotPassRond = () => {
+      const r = document.querySelector("#pcv-barre .rond.sp");
+      if (!r) return;
+      const e = window.__pcvNintendo?.mii && (window.__pcvSpotPassFenetre?.envoiEnCours?.() ? "envoi" : window.__pcvSpotPass?.etatRond?.());
+      if (r.hidden !== !e) r.hidden = !e;
+      if (e && r.dataset.etat !== e) r.dataset.etat = e;
+      const p = document.querySelector("#pcv-barre .rond.profil");
+      if (p) p.style.left = `calc(var(--u) * ${r.hidden ? 222 : 288})`;
+    };
+    window.__pcvSpRepartir = () => document.querySelector("#pcv-barre .rond.sp")?.getAnimations({ subtree: true }).forEach((a) => {
+      if (a.animationName === "pcvSpRespire") a.currentTime = 0;
+    });
+    if (!window.__pcvSpotPassRondEcoute) {
+      window.__pcvSpotPassRondEcoute = true;
+      window.addEventListener("pcv-nintendo", () => window.__pcvSpotPassRond?.());
+    }
+  }
   {
     const b = document.createElement("button");
     b.className = "rond telech";
     b.hidden = true;
     b.dataset.pcvNom = T("barre.telechargements");
     b.setAttribute("aria-label", T("barre.telechargements"));
-    b.style.left = "calc(var(--u) * 288)";
-    b.innerHTML = '<svg class="anneau" viewBox="0 0 56 56" aria-hidden="true"><circle class="piste" cx="28" cy="28" r="24.5"/><circle class="plein" cx="28" cy="28" r="24.5" pathLength="100" stroke-dasharray="0 100"/></svg><i data-ico-masque="telechargements" style="--c:var(--pcv-telech-c)"></i>';
+    b.innerHTML = '<svg class="anneau" viewBox="0 0 56 56" aria-hidden="true"><circle class="plein" cx="28" cy="28" r="21.5" pathLength="100" stroke-dasharray="0 100"/></svg><i data-ico-masque="telechargements" style="--c:var(--pcv-c-telech)"></i><span class="detail"></span>';
     const origine = () => document.querySelector("{{HeaderItem@Header}} > {{HeaderDownloadContainer@Header}}")?.parentElement;
     b.onclick = () => {
       window.__pcvProfilMontrer?.(false);
@@ -157,7 +209,7 @@
     let avant = "";
     window.__pcvTelechMaj = () => {
       let vu = false, pct = 0, pause = false;
-      const f = window.__pcvTelechFactice;
+      const f = window.__pcvTelechEshop || window.__pcvTelechFactice;
       if (f) {
         vu = true;
         pct = +f.pct || 0;
@@ -185,40 +237,8 @@
   }
   {
     const I = window.__pcvIcones, B = window.__pcvBridge;
-    const etat = document.createElement("div");
-    etat.className = "pilule verre etat";
-    etat.innerHTML = `${I.svg("wifi", { classe: "ico" })}<span class="sep"></span><span class="pile" hidden></span><span class="heure"></span>`;
-    racine.appendChild(etat);
-    const peindreEtatAccueil = () => {
-      try {
-        etat.querySelector(".ico").classList.toggle("coupe", !B.network().connected);
-      } catch (e) {
-      }
-      try {
-        const s = [...document.querySelectorAll("{{HeaderItem@Header}}{{BatteryIcon@HeaderItem}}")].find((x) => !x.closest(".pile"));
-        etat.querySelector(".pile").replaceChildren(...s ? [window.__pcvClonePile(s)] : []);
-      } catch (e) {
-      }
-      try {
-        const b = B.battery(), charge = b?.present && b.charging;
-        etat.querySelector(".pile").hidden = b?.present !== true;
-        for (const svg of etat.querySelectorAll('.pile svg:is([viewBox="0 0 48 36"], [viewBox="0 0 42 36"])')) {
-          const r = svg.parentElement, ec = r.querySelector(".pcv-eclair");
-          if (charge && !ec) r.appendChild(Object.assign(document.createElement("div"), { className: "pcv-eclair" }));
-          else if (!charge && ec) ec.remove();
-        }
-        for (const r of etat.querySelectorAll(".pile > *")) {
-          let p = r.querySelector(":scope > .pcv-pct");
-          if (!b?.present) p?.remove();
-          else {
-            if (!p) r.prepend(p = Object.assign(document.createElement("div"), { className: "pcv-pct" }));
-            p.textContent = Math.round(b.percent * 100) + "%";
-          }
-        }
-      } catch (e) {
-      }
-      etat.querySelector(".heure").textContent = (/* @__PURE__ */ new Date()).toTimeString().slice(0, 5).replace(/^0/, "");
-    };
+    racine.insertAdjacentHTML("beforeend", window.__pcvEtat.html());
+    const peindreEtatAccueil = () => window.__pcvEtat.peindre(racine, [...document.querySelectorAll("{{HeaderItem@Header}}{{BatteryIcon@HeaderItem}}")].find((x) => !x.closest(".pile")));
     clearInterval(window.__pcvEtatAccueil);
     try {
       window.__pcvEtatAccueilAbo?.unregister();
@@ -226,17 +246,20 @@
     }
     peindreEtatAccueil();
     window.__pcvEtatAccueil = setInterval(peindreEtatAccueil, 3e4);
+    window.__pcvEtatAccueilHeure?.();
+    window.__pcvEtatAccueilHeure = window.__pcvEtat.suivre(racine, peindreEtatAccueil);
     try {
       window.__pcvEtatAccueilAbo = B.onBattery(peindreEtatAccueil);
     } catch (e) {
     }
   }
   racine.addEventListener("click", (e) => {
-    if (!e.target.closest?.('[data-pcv-rond="amis"]')) window.__pcvAmisMontrer?.(false);
-    if (!e.target.closest?.('[data-pcv-rond="notifs"]')) window.__pcvNotifsMontrer?.(false);
+    if (!e.target.closest?.('[data-pcv-rond="amis"], [data-pcv-rond="loupe"]')) window.__pcvAmisMontrer?.(false);
+    if (!e.target.closest?.('[data-pcv-rond="notifs"], [data-pcv-rond="loupe"]')) window.__pcvNotifsMontrer?.(false);
   }, true);
   window.__pcvIcones?.rafraichir(racine);
   document.body.appendChild(racine);
+  window.__pcvSpotPassRond();
   {
     const O = window.opener, delai = (ms) => new Promise((_, non) => setTimeout(() => non(new Error("d\xE9lai")), ms));
     const appel = (m, ...a) => O.DeckyBackend?.call("loader/call_plugin_method", "Pause Games", m, ...a) ?? Promise.reject(new Error("Decky absent"));
@@ -281,7 +304,7 @@
           try {
             const a = appidJeu(), pid = O.__pcvHomePid || a && await pg("pid_from_appid", a);
             if (!pid) return true;
-            if (await pg("is_paused", pid)) await pg("resume", pid);
+            await Promise.race([appelPCV("reprendre_jeu", pid), delai(4e3)]).then((ok) => ok || pg("resume", pid)).catch(() => pg("resume", pid));
             if (!await pg("is_paused", pid)) {
               if (O.__pcvHomePid === pid) O.__pcvHomePid = 0;
               return true;
@@ -396,7 +419,8 @@
     ["magasin", /^\/routes\/store/],
     ["web", /^\/routes\/steamweb/],
     ["amis", /^\/routes\/friends/],
-    ["medias", /^\/routes\/media/]
+    ["medias", /^\/routes\/media/],
+    ["decky", /^(\/routes)?\/decky\//]
   ];
   const pageDe = (p) => (PAGES.find(([, re]) => re.test(p)) || ["autre"])[0];
   window.__pcvTeteMii = async (octets) => {
@@ -472,9 +496,10 @@
     const fond = mii ? `url("${teteURL}")` : "";
     if (h.style.getPropertyValue("--pcv-tete-mii") !== fond) h.style.setProperty("--pcv-tete-mii", fond);
     if (h.classList.contains("pcv-avatar-mii") !== mii) h.classList.toggle("pcv-avatar-mii", mii);
-    const av = document.querySelector("#header_profile img")?.src, r = document.querySelector("#pcv-barre .rond.profil img");
-    if (r && av && r.getAttribute("src") !== av) r.setAttribute("src", av);
+    const img = window.__pcvImageMoi(), r = document.querySelector("#pcv-barre .rond.profil img");
+    if (r && img && r.getAttribute("src") !== img) r.setAttribute("src", img);
   };
+  window.__pcvImageMoi = () => document.documentElement.classList.contains("pcv-avatar-mii") && teteURL || document.querySelector("#header_profile img")?.src || "";
   const oy = () => {
     const O = window.opener;
     if (O.__pcvOy !== void 0) return O.__pcvOy;
@@ -499,6 +524,21 @@
     }
     return O.__pcvOy = t || null;
   };
+  window.__pcvEnvoyer = (button) => {
+    try {
+      const nm = oy().NavigationManager, d = { button, source: 1, is_repeat: false };
+      nm.DispatchVirtualGamepad("vgp_onbuttondown", d);
+      nm.DispatchVirtualGamepad("vgp_onbuttonup", d);
+    } catch (x) {
+    }
+  };
+  window.__pcvToutesTouches = (f) => {
+    try {
+      return oy().NavigationManager.SetCatchAllGamepadInput(f).Unregister;
+    } catch (x) {
+      return null;
+    }
+  };
   const pavePin = () => {
     const vus = /* @__PURE__ */ new Set();
     for (const b of document.querySelectorAll("button, [role=button], .Focusable")) {
@@ -517,7 +557,15 @@
       return false;
     }
   };
-  const modale = () => [...document.querySelectorAll(".FullModalOverlay, .ModalPosition, [role=dialog], .contextMenu")].some((e) => e.getClientRects().length > 0);
+  let modaleVue = false, modaleT = -1e9;
+  const modale = (age = 0) => {
+    const t = performance.now();
+    if (t - modaleT >= age) {
+      modaleT = t;
+      modaleVue = [...document.querySelectorAll(".FullModalOverlay, .ModalPosition, [role=dialog], .contextMenu")].some((e) => e.style.display !== "none" && e.getClientRects().length > 0);
+    }
+    return modaleVue;
+  };
   const requis = (n) => requis.req()(n);
   requis.req = () => window.opener.__pcvReq ||= (() => {
     let r;
@@ -528,7 +576,7 @@
   })();
   window.__pcvClavier = (champ2) => {
     if (!champ2) return false;
-    if (document.activeElement !== champ2) champ2.focus();
+    if (champ2.getRootNode().activeElement !== champ2) champ2.focus();
     try {
       const V = (window.__pcvW ||= requis(75380).SteamUIStore.WindowStore.GamepadUIMainWindowInstance).VirtualKeyboardManager;
       const ecrire = (t) => {
@@ -550,14 +598,20 @@
         champ2.dispatchEvent(new Event("input", { bubbles: true }));
       };
       window.__pcvClavierAbo ||= V.IsShowingVirtualKeyboard.Subscribe((v) => document.documentElement.classList.toggle("pcv-clavier", !!v));
+      window.__pcvClavierFin = () => {
+        if (champ2.getRootNode().activeElement === champ2) champ2.blur();
+      };
+      window.__pcvClavierAbo2 ||= V.IsShowingVirtualKeyboard.Subscribe((v) => {
+        if (!v) window.__pcvClavierFin?.();
+      });
       document.documentElement.classList.add("pcv-clavier");
       const ref = V.CreateVirtualKeyboardRef({
-        BIsElementValidForInput: () => champ2.isConnected && document.activeElement === champ2,
+        BIsElementValidForInput: () => champ2.isConnected && champ2.getRootNode().activeElement === champ2,
         onTextEntered: (t) => {
           if (!champ2.isConnected) return;
           if (t === "Enter") {
-            ref.HideVirtualKeyboard();
             champ2.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, bubbles: true, cancelable: true }));
+            window.__pcvClavierCacher();
             return;
           }
           if (t === "ArrowLeft" || t === "ArrowRight") {
@@ -574,10 +628,17 @@
       return false;
     }
   };
+  window.__pcvClavierCacher = () => {
+    try {
+      window.__pcvW?.VirtualKeyboardManager.SetVirtualKeyboardHidden();
+    } catch (e) {
+    }
+  };
   const suivre = () => {
     const p = window.opener.location.pathname;
     const page = pageDe(p);
     if (document.body.dataset.pcvPage !== page) document.body.dataset.pcvPage = page;
+    window.__pcvSteamLegende?.(page);
     teteMoi();
     window.__pcvTelechMaj?.();
     for (const l of document.querySelectorAll("[role=tablist]")) {
@@ -588,6 +649,7 @@
     {
       const m = !!window.__pcvMenuOuvert?.();
       if (document.body.classList.contains("pcv-menu-ouvert") !== m) document.body.classList.toggle("pcv-menu-ouvert", m);
+      if (m) return;
     }
     for (const h of document.querySelectorAll("{{HeaderItem@Header}}")) {
       const oui = !!h.querySelector(":scope > {{ControllerBatteryImgContainer@Header}}") || !h.firstElementChild && !h.matches("{{Clock@Header}}, {{NotificationsIcon@Header}}");
@@ -599,7 +661,7 @@
       if (h.contains("pcv-steam-verrou") !== v) h.toggle("pcv-steam-verrou", v);
       if (h.contains("pcv-steam-modale") !== m) h.toggle("pcv-steam-modale", m);
     }
-    if (ui) for (const id of ["pcv-accueil", "pcv-console", "pcv-themes", "pcv-badges", "pcv-profil", "pcv-amis", "pcv-notifs", "pcv-place", "pcv-bascule", "pcv-barre", "pcv-bulle-nom"]) {
+    if (ui) for (const id of ["pcv-accueil", "pcv-console", "pcv-themes", "pcv-badges", "pcv-biblio-d", "pcv-miimaker", "pcv-telech", "pcv-bascule", "pcv-barre", "pcv-bulle-nom", ...window.__pcvPagesDessus || []]) {
       const el = document.getElementById(id);
       if (el && el.parentElement !== ui) ui.appendChild(el);
     }
@@ -608,7 +670,7 @@
       const m = window.__pcvMenus, ouvert = m.m_eOpenSideMenu === 2;
       racine.querySelectorAll(".rond").forEach((b) => b.classList.toggle(
         "actif",
-        (ouvert && m.m_eQuickAccessTab === 0 || document.getElementById("pcv-notifs")?.hidden === false) && b.dataset.pcvRond === "notifs" || b.dataset.pcvRond === "amis" && document.getElementById("pcv-amis")?.hidden === false
+        (ouvert && m.m_eQuickAccessTab === 0 || document.getElementById("pcv-notifs")?.hidden === false) && b.dataset.pcvRond === "notifs" || b.dataset.pcvRond === "amis" && document.getElementById("pcv-amis")?.hidden === false || b.dataset.pcvRond === "spotpass" && document.getElementById("pcv-spotpass-page")?.hidden === false
       ));
     } catch (e) {
     }
@@ -630,10 +692,10 @@
   const PASTILLE_NEUTRE = "var(--pcv-touche-neutre)", PASTILLE_PS = "var(--pcv-touche-ps)";
   const TOUCHE_MENU = '<svg viewBox="0 0 24 24" style="width:1.1em;height:1.1em" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="2.6" stroke-linecap="round"><path d="M6 7.5h12M6 12h12M6 16.5h12"/></svg>';
   const TOUCHES = {
-    xbox: { 1: ["A", "#2fbf71"], 2: ["B", "#e5484d"], 3: ["X", "#2a8cff"], 4: ["Y", "#e0a100"], 5: ["LB", PASTILLE_NEUTRE], 6: ["RB", PASTILLE_NEUTRE] },
-    ps: { 1: ["\u2715", "#6f9bff"], 2: ["\u25CB", "#ff6b6b"], 3: ["\u25A1", "#e58ad6"], 4: ["\u25B3", "#3ec7a6"], 5: ["L1", PASTILLE_NEUTRE], 6: ["R1", PASTILLE_NEUTRE] },
-    nintendo: { 1: ["A", PASTILLE_NEUTRE], 2: ["B", PASTILLE_NEUTRE], 3: ["X", PASTILLE_NEUTRE], 4: ["Y", PASTILLE_NEUTRE], 5: ["L", PASTILLE_NEUTRE], 6: ["R", PASTILLE_NEUTRE] },
-    deck: { 1: ["A", PASTILLE_NEUTRE], 2: ["B", PASTILLE_NEUTRE], 3: ["X", PASTILLE_NEUTRE], 4: ["Y", PASTILLE_NEUTRE], 5: ["L1", PASTILLE_NEUTRE], 6: ["R1", PASTILLE_NEUTRE] }
+    xbox: { 1: ["A", "#2fbf71"], 2: ["B", "#e5484d"], 3: ["X", "#2a8cff"], 4: ["Y", "#e0a100"], 5: ["LB", PASTILLE_NEUTRE], 6: ["RB", PASTILLE_NEUTRE], 7: ["LT", PASTILLE_NEUTRE], 8: ["RT", PASTILLE_NEUTRE] },
+    ps: { 1: ["\u2715", "#6f9bff"], 2: ["\u25CB", "#ff6b6b"], 3: ["\u25A1", "#e58ad6"], 4: ["\u25B3", "#3ec7a6"], 5: ["L1", PASTILLE_NEUTRE], 6: ["R1", PASTILLE_NEUTRE], 7: ["L2", PASTILLE_NEUTRE], 8: ["R2", PASTILLE_NEUTRE] },
+    nintendo: { 1: ["A", PASTILLE_NEUTRE], 2: ["B", PASTILLE_NEUTRE], 3: ["X", PASTILLE_NEUTRE], 4: ["Y", PASTILLE_NEUTRE], 5: ["L", PASTILLE_NEUTRE], 6: ["R", PASTILLE_NEUTRE], 7: ["ZL", PASTILLE_NEUTRE], 8: ["ZR", PASTILLE_NEUTRE] },
+    deck: { 1: ["A", PASTILLE_NEUTRE], 2: ["B", PASTILLE_NEUTRE], 3: ["X", PASTILLE_NEUTRE], 4: ["Y", PASTILLE_NEUTRE], 5: ["L1", PASTILLE_NEUTRE], 6: ["R1", PASTILLE_NEUTRE], 7: ["L2", PASTILLE_NEUTRE], 8: ["R2", PASTILLE_NEUTRE] }
   };
   const ECHANGE = { 1: 2, 2: 1, 3: 4, 4: 3 };
   const PS = {
@@ -719,18 +781,10 @@
     [/pro controller/i, "manette-pro"],
     [/joy-?con/i, "joycons"]
   ];
-  const PICTO_CONSOLE = [
-    [/Valve.*(Jupiter|Galileo)/, "portable-deck"],
-    [/Legion Go S|83L3|83N6|83Q2|83Q3/, "portable-legion-go-s"],
-    [/Legion Go 2|83N0|83N1/, "portable-legion-go-2"],
-    [/Legion Go|83E1/, "portable-legion-go"],
-    [/RC73/, "portable-xbox-ally"],
-    [/ROG Ally|RC71|RC72/, "portable-ally"],
-    [/Claw|MS-1T/, "portable-claw"],
-    [/AYA ?NEO/i, "portable-ayaneo"]
-  ];
   let machine = null;
-  window.__pcvJoueurs = async () => {
+  const hex = (n) => (+n || 0).toString(16).padStart(4, "0");
+  window.__pcvPictoManette = (c) => emulee(c) ? "integree" : PICTO_USB.find(([r]) => r.test(hex(c.unVendorID) + ":" + hex(c.unProductID)))?.[1] || PICTO_TYPE[c.eControllerType] || PICTO_NOM.find(([r]) => r.test(c.strName || ""))?.[1] || "manette-inconnue";
+  window.__pcvJoueurs = async (tous) => {
     try {
       machine = await window.opener.DeckyBackend.call("loader/call_plugin_method", window.__pcvGreffon.nom, "machine") || machine;
     } catch (e) {
@@ -742,33 +796,12 @@
     }
     if (mode === "auto") mode = machine?.ecran || "portable";
     const dmi = machine ? [machine.sys_vendor, machine.product_name, machine.product_version, machine.board_name].join(" ") : "";
-    const portable = PICTO_CONSOLE.find(([r]) => r.test(dmi))?.[1] || "portable", hex = (n) => (+n || 0).toString(16).padStart(4, "0");
+    const portable = window.__pcvPictoConsole?.(dmi) || "portable";
     const l = window.__pcvBridge.controllers();
     return l.sort((a, b) => (a.nXInputIndex < 0) - (b.nXInputIndex < 0) || a.nXInputIndex - b.nXInputIndex).map((c) => {
-      const usb = hex(c.unVendorID) + ":" + hex(c.unProductID);
-      const p = emulee(c) ? "integree" : PICTO_USB.find(([r]) => r.test(usb))?.[1] || PICTO_TYPE[c.eControllerType] || PICTO_NOM.find(([r]) => r.test(c.strName || ""))?.[1] || "manette-inconnue";
+      const p = window.__pcvPictoManette(c);
       return p !== "integree" ? { c, picto: p } : { c, picto: portable, integree: true };
-    }).filter((j, i, l2) => !(j.integree && mode === "tele" && (!DETACHABLES[j.picto] || attachees()) && l2.some((x) => !x.integree))).map((j) => j.integree && DETACHABLES[j.picto] && (mode === "tele" ? !attachees() : detachee()) ? { ...j, picto: DETACHABLES[j.picto] } : j);
-  };
-  const NOMS_CONSOLE = {
-    "portable-deck": "Steam Deck",
-    "portable-legion-go-s": "Legion Go S",
-    "portable-legion-go-2": "Legion Go 2",
-    "portable-legion-go": "Legion Go",
-    "portable-xbox-ally": "ROG Xbox Ally",
-    "portable-ally": "ROG Ally",
-    "portable-claw": "MSI Claw",
-    "portable-ayaneo": "AYANEO"
-  };
-  window.__pcvNomMachine = async () => {
-    try {
-      machine = await window.opener.DeckyBackend.call("loader/call_plugin_method", window.__pcvGreffon.nom, "machine") || machine;
-    } catch (e) {
-    }
-    if (!machine) return null;
-    const dmi = [machine.sys_vendor, machine.product_name, machine.product_version, machine.board_name].join(" ");
-    const modele = NOMS_CONSOLE[PICTO_CONSOLE.find(([r]) => r.test(dmi))?.[1]] || machine.product_version || machine.product_name || "";
-    return [machine.systeme, modele].filter(Boolean).join(", ");
+    }).filter((j, i, l2) => tous || !(j.integree && mode === "tele" && (!DETACHABLES[j.picto] || attachees()) && l2.some((x) => !x.integree))).map((j) => j.integree && DETACHABLES[j.picto] && (mode === "tele" ? !attachees() : detachee()) ? { ...j, picto: DETACHABLES[j.picto] } : j);
   };
   const DETACHABLES = { "portable-legion-go": "manettes-legion-go", "portable-legion-go-2": "manettes-legion-go-2" };
   const attachees = () => machine?.legion?.left === "attached" && machine?.legion?.right === "attached";
@@ -801,7 +834,7 @@
     r.id = "pcv-rideau";
     r.style.cssText = "position:fixed;inset:calc(var(--u) * 98) 0 0 0;z-index:8450;pointer-events:none;background:var(--pcv-fond-page);opacity:0";
     document.body.appendChild(r);
-    let chemin = O.location.pathname, page = pageDe(chemin);
+    let chemin = O.location.pathname, page = pageDe(chemin), fondu = null;
     const veiller = () => {
       const p = O.location.pathname;
       if (p === chemin) return;
@@ -810,8 +843,8 @@
       page = suite;
       document.body.dataset.pcvPage = page;
       if (memePage) return;
-      r.getAnimations().forEach((a) => a.cancel());
-      r.animate([{ opacity: 1 }, { opacity: 1, offset: 0.25 }, { opacity: 0 }], { duration: 380, easing: "ease-out" });
+      fondu?.cancel();
+      fondu = r.animate([{ opacity: 1 }, { opacity: 1, offset: 0.25 }, { opacity: 0 }], { duration: 380, easing: "ease-out" });
     };
     if (O.navigation) {
       O.navigation.addEventListener("currententrychange", O.__pcvRideauNav = veiller);
@@ -830,8 +863,34 @@
       e.preventDefault();
     }, true);
   }
+  const TENUE = { attente: 380, pas: 220, min: 70, acc: 0.8 };
+  window.__pcvTenir = (b, pas) => {
+    clearTimeout(window.__pcvTenue?.m);
+    window.__pcvTenue = null;
+    if (!pas()) return;
+    const t = window.__pcvTenue = { b }, suite = (ms) => {
+      t.m = setTimeout(() => {
+        if (window.__pcvTenue === t && pas()) suite(Math.max(TENUE.min, ms === TENUE.attente ? TENUE.pas : ms * TENUE.acc));
+      }, ms);
+    };
+    suite(TENUE.attente);
+  };
+  if (!window.__pcvTenueEcoute) {
+    window.__pcvTenueEcoute = true;
+    const lacher = (e) => {
+      const t = window.__pcvTenue;
+      if (t && e.type === "vgp_onbuttonup" === (e.detail?.button === t.b)) {
+        clearTimeout(t.m);
+        window.__pcvTenue = null;
+      }
+    };
+    window.addEventListener("vgp_onbuttonup", lacher, true);
+    window.addEventListener("vgp_onbuttondown", lacher, true);
+  }
   window.__pcvPageVoisine = (sens, curseur = true) => {
-    const su = window.__pcvSteamU, pages = [...document.querySelectorAll('.PageListColumn [role=tab][id*="/settings/"]')];
+    const P = window.__pcvParametres;
+    if (P?.rangee()?.isConnected) return P.voisine(sens);
+    const su = window.__pcvSteamU, pages = [...document.querySelectorAll('.PageListColumn [role=tab][id*="/settings/"]:not([data-pcv-choix=retirer])')];
     const i = su?.ouvert() ? -1 : pages.findIndex((p) => p.getAttribute("aria-selected") === "true");
     if (i + sens === -1 && su && !su.ouvert()) {
       su.ouvrir();
@@ -840,7 +899,7 @@
     const cible = pages[i + sens];
     if (!cible) {
       window.__pcvSon?.("bord");
-      return true;
+      return false;
     }
     su?.fermer();
     cible.click();
@@ -907,7 +966,7 @@
       return r.height > 0 && r.width > 0;
     });
     (window.__pcvManette ||= {}).fiche = (b) => {
-      if (b === 4 && document.body.dataset.pcvPage === "fiche") {
+      if (b === 4 && document.body.dataset.pcvPage === "fiche" && !window.__pcvEcran?.ouvert?.()) {
         const bt = document.querySelector(".pcv-accueil");
         if (bt) {
           bt.click();
@@ -984,9 +1043,80 @@
       setTimeout(verifier, 60);
       return false;
     };
+    {
+      let mot = "", colonne = null, textes = null;
+      const pagesP = () => [...document.querySelectorAll('.PageListColumn [role=tab][id*="/settings/"]:not([data-pcv-choix=retirer])')];
+      const nomP = (x) => x.id.split("/settings/")[1]?.split("/")[0] || "", mots = (t) => " " + window.__pcvPlat(t).replace(/[^a-z0-9]+/g, " ");
+      const reglages = (x) => {
+        if (!textes) {
+          textes = new Map(pagesP().map((p) => [nomP(p), ""]));
+          try {
+            for (const [k, v] of window.opener.LocalizationManager.m_mapTokens) {
+              const [a, b] = k.toLowerCase().split("_"), a0 = a.replace(/settings$/, "");
+              const n = a === "settings" ? b : textes.has(a0) ? a0 : a0 + "s";
+              if (textes.has(n)) textes.set(n, textes.get(n) + mots(v));
+            }
+          } catch (e) {
+          }
+        }
+        return textes.get(nomP(x)) || "";
+      };
+      const note = (x, q) => {
+        const n = mots(x.textContent);
+        return (n.includes(" " + q) ? 1e3 : n.includes(q) ? 0.5 : 0) + reglages(x).split(" " + q).length - 1;
+      };
+      const filtrer = () => {
+        const q = window.__pcvPlat(mot.trim());
+        pagesP().forEach((x) => x.style.setProperty("display", !q || note(x, q) ? "" : "none", "important"));
+      };
+      window.__pcvParamQuitter?.();
+      window.__pcvParamQuitter = window.__pcvBridge?.ecouterPages?.((p) => {
+        if (mot && !/^(\/routes)?\/settings/.test(p)) {
+          mot = "";
+          filtrer();
+        }
+      });
+      (window.__pcvLoupes ||= {}).parametres = () => {
+        if (document.body.dataset.pcvPage !== "parametres" || window.__pcvEcran?.ouvert?.()) return null;
+        const c = document.querySelector(".PageListColumn");
+        if (c !== colonne) {
+          colonne = c;
+          mot = "";
+        }
+        return {
+          texte: mot,
+          invite: T("barre.chercher_parametres"),
+          chercher: (t) => {
+            mot = t;
+            filtrer();
+          },
+          rendre: () => {
+            const q = window.__pcvPlat(mot.trim()), p = pagesP().filter((x) => x.style.display !== "none").sort((x, y) => q ? note(y, q) - note(x, q) : 0)[0];
+            if (p && q && !window.__pcvParametres?.aller?.(p)) p.click();
+            window.__pcvNoeud?.(p)?.BTakeFocus?.(4);
+          }
+        };
+      };
+    }
+    const routeDecky = (p) => /^(\/routes)?\/decky(?:\/|$)/.test(p || "");
     (window.__pcvManette ||= {}).pages = (b) => {
+      if (b === 2 && routeDecky(window.__pcvBridge?.page?.())) {
+        const o = window.opener || window, p = o.__pcvRetourDecky;
+        delete o.__pcvRetourDecky;
+        if (p && !routeDecky(p)) window.__pcvBridge.revenirA(p);
+        else o.__pcvAller?.("accueil");
+        return true;
+      }
+      if (b === 4) {
+        const p = window.__pcvLoupes.parametres();
+        if (p) {
+          window.__pcvBarreEntrer?.(p.rendre);
+          window.__pcvBarreChercher();
+          return true;
+        }
+      }
       if ((b === 5 || b === 6) && document.body.dataset.pcvPage === "parametres" && document.querySelector('.PageListColumn [role=tab][id*="/settings/"]'))
-        return window.__pcvPageVoisine(b === 6 ? 1 : -1);
+        return window.__pcvTenir(b, () => window.__pcvPageVoisine(b === 6 ? 1 : -1)), true;
       let f = null;
       try {
         window.__pcvNav ||= oy().NavigationManager;
@@ -996,6 +1126,10 @@
       if (!f || !document.contains(f)) f = document.querySelector(".gpfocus");
       const tuile = f ? f.closest(".PageListColumn [role=tab]") : visibles(".PageListColumn [role=tab][aria-selected=true]")[0];
       if (!f && !tuile) return false;
+      if (tuile && b === 9 && document.body.dataset.pcvPage === "parametres") {
+        window.__pcvBarreEntrer?.(() => noeud(tuile)?.BTakeFocus(4));
+        return true;
+      }
       if (tuile && b === 10) {
         const c = visibles(".DialogContentTransition")[0];
         if (!c) return false;
@@ -1025,16 +1159,10 @@
       return false;
     };
   }
-  const appuyer = (el) => el?.animate?.(
-    [{ transform: "scale(1)" }, { transform: "scale(.86)", offset: 0.35 }, { transform: "scale(1.08)", offset: 0.7 }, { transform: "scale(1)" }],
-    { duration: 260, easing: "ease-out" }
-  );
-  racine.addEventListener("pointerdown", (e) => appuyer(e.target.closest?.(".rond, #pcv-bascule")));
   const champ = () => document.querySelector("#header ._17M8gvakqjyaw_cLo6ntdl input, #header [class*=SearchAndTitleContainer] input");
   const loupe = () => {
     const l = document.querySelector("{{SearchAndTitleContainer@SearchBox}}"), b = document.body.classList, i = champ();
-    const nous = b.contains("pcv-zone-jaquettes") || b.contains("pcv-barre-nav") || !!window.__pcvEcran?.ouvert?.();
-    const v = !!l && !nous && (l.matches(":hover, .gpfocuswithin, .gpfocus") || !!i && document.activeElement === i && !!i.value);
+    const v = b.contains("pcv-loupe-nous") || b.contains("pcv-barre-main") && !b.contains("pcv-barre-nav") || !!l && l.matches(":hover") || !!i && document.activeElement === i && !!i.value;
     if (b.contains("pcv-loupe-active") !== v) b.toggle("pcv-loupe-active", v);
   };
   for (const t of ["focusin", "focusout", "pointerover", "pointerout"]) document.removeEventListener(t, window.__pcvLoupeEcoute, true);
@@ -1051,29 +1179,114 @@
   for (const t of ["focusin", "focusout", "pointerover", "pointerout"]) document.addEventListener(t, window.__pcvLoupeEcoute, true);
   clearInterval(window.__pcvLoupeSuivi);
   window.__pcvLoupeSuivi = setInterval(loupe, 120);
+  for (const t of ["keydown", "keypress"]) {
+    removeEventListener(t, window.__pcvCtrlChiffre, true);
+  }
+  window.__pcvCtrlChiffre = (e) => {
+    if ((e.ctrlKey || e.metaKey) && /^Digit\d$/.test(e.code) && !e.composedPath()[0]?.matches?.("input, textarea")) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  };
+  for (const t of ["keydown", "keypress"]) addEventListener(t, window.__pcvCtrlChiffre, true);
   window.__pcvLoupeClasses?.disconnect();
   (window.__pcvLoupeClasses = new MutationObserver(window.__pcvLoupeEcoute)).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  window.__pcvLoupePage = () => {
+    if (window.__pcvMiiMaker?.ouvert) return window.__pcvLoupes?.miimaker?.() || null;
+    for (const f of Object.values(window.__pcvLoupes ||= {})) {
+      const p = f();
+      if (p) return p;
+    }
+    return null;
+  };
+  window.__pcvPlat = (t) => String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   {
-    let curs = -1;
-    const cibles = () => [...document.querySelectorAll("#pcv-barre .rond:not(.loupe), #pcv-bascule" + (window.__pcvEcran?.ouvert?.() ? ", #pcv-barre .rond.loupe" : ""))].filter((b) => {
+    let curs = -1, rendre = null;
+    const cibles = () => [...document.querySelectorAll("#pcv-barre .rond:not(.loupe), #pcv-bascule")].filter((b) => {
       const r = b.getBoundingClientRect();
       return r.width > 8 && !b.hidden && !b.closest("[hidden]");
     }).sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
     const marquer = () => {
       document.querySelectorAll(".pcv-sel").forEach((x) => x.classList.remove("pcv-sel"));
       document.body.classList.toggle("pcv-barre-nav", curs >= 0);
+      document.body.classList.toggle("pcv-barre-main", curs >= 0 || !!rendre);
       if (curs >= 0) cibles()[curs]?.classList.add("pcv-sel");
-      window.__pcvLegende?.();
+      for (const f of Object.values(window.__pcvLegendes ||= {})) f();
     };
+    window.__pcvLegendeDe = (l) => document.body.classList.contains("pcv-barre-main") ? window.__pcvLegendeBarre() : l;
+    window.__pcvLegendeBarre = () => [[1, document.querySelector("#pcv-barre .rond.pcv-sel")?.dataset.pcvNom || T("acces.rechercher")], [2, T("touche.retour")]];
     window.__pcvBarreQuitter = () => {
       curs = -1;
+      rendre = null;
+      fermerRecherche();
       marquer();
     };
-    document.body.classList.remove("pcv-barre-nav");
-    window.__pcvBarreEntrer = (nom) => {
-      const l = cibles(), i = l.findIndex((x) => x.dataset.pcvRond === nom);
-      curs = Math.max(0, i);
+    document.body.classList.remove("pcv-barre-nav", "pcv-barre-main", "pcv-loupe-nous");
+    let chercher = null;
+    const saisie = () => document.querySelector("#pcv-barre .rond.loupe .saisie");
+    const fermerRecherche = () => {
+      chercher = null;
+      document.body.classList.remove("pcv-loupe-nous");
+      saisie()?.blur();
+    };
+    {
+      const s = saisie();
+      if (s) {
+        s.oninput = () => chercher?.(s.value);
+        s.onkeydown = (x) => {
+          if (x.key === "Enter" || x.key === "Escape") {
+            const r = rendre;
+            rendre = null;
+            fermerRecherche();
+            marquer();
+            r?.();
+          }
+        };
+        s.onblur = () => setTimeout(() => {
+          if (!chercher || document.activeElement === s) return;
+          const r = rendre;
+          rendre = null;
+          fermerRecherche();
+          marquer();
+          r?.();
+        }, 0);
+      }
+    }
+    window.__pcvBarreEntrer = (r = () => {
+    }) => {
+      let f = document.activeElement;
+      while (f?.shadowRoot?.activeElement) f = f.shadowRoot.activeElement;
+      if (f?.matches?.("input, textarea") && f !== saisie()) f.blur();
+      fermerRecherche();
+      curs = -1;
+      rendre = r;
+      const iv = document.querySelector("#pcv-barre .rond.loupe .invite");
+      if (iv) iv.textContent = window.__pcvLoupePage()?.invite || T("barre.rechercher");
       marquer();
+    };
+    window.__pcvBarreChercher = () => {
+      if (chercher) {
+        window.__pcvClavier?.(saisie());
+        return;
+      }
+      const p = window.__pcvLoupePage();
+      if (!rendre && !p && document.body.dataset.pcvPage === "accueil") window.__pcvMonter?.();
+      if (!rendre) window.__pcvBarreEntrer(p?.rendre);
+      curs = -1;
+      if (p) {
+        const s = saisie();
+        chercher = p.chercher;
+        s.value = p.texte || "";
+        s.placeholder = p.invite;
+        document.body.classList.add("pcv-loupe-nous");
+        marquer();
+        window.__pcvClavier?.(s);
+      } else {
+        marquer();
+        const i = champ();
+        i?.focus();
+        i?.click();
+      }
     };
     (window.__pcvManette ||= {}).barre = (b) => {
       const place = document.getElementById("pcv-place");
@@ -1084,20 +1297,26 @@
         }
         return false;
       }
-      const loupe2 = document.querySelector("#header .gpfocus")?.closest("._17M8gvakqjyaw_cLo6ntdl");
+      if (!rendre && curs < 0) return false;
       if (curs < 0) {
-        if (window.__pcvZone === "jaquettes" && document.body.dataset.pcvPage === "accueil") return false;
-        if (loupe2 && b === 12) {
-          curs = 0;
+        if (b === 10 || b === 2) {
+          const r = rendre;
+          rendre = null;
+          fermerRecherche();
           marquer();
+          r?.();
           return true;
         }
-        return false;
-      }
-      if (!loupe2 && !window.__pcvEcran?.ouvert?.()) {
-        curs = -1;
-        marquer();
-        return false;
+        if (b === 1) {
+          window.__pcvBarreChercher();
+          return true;
+        }
+        if (b === 12) {
+          fermerRecherche();
+          curs = 0;
+          marquer();
+        }
+        return true;
       }
       const l = cibles();
       if (curs > l.length - 1) curs = l.length - 1;
@@ -1116,20 +1335,24 @@
       if (b === 1) {
         const el = l[curs];
         curs = -1;
+        rendre = null;
         marquer();
-        appuyer(el);
         el?.click();
         return true;
       }
       if (b === 2 || b === 10) {
+        const r = rendre;
         curs = -1;
+        rendre = null;
         marquer();
-        return b === 2 && document.body.dataset.pcvPage !== "accueil";
+        r?.();
+        return true;
       }
       return true;
     };
   }
-  window.__pcvOrdre = ["perso", "fiche", "garde", "connexion", "choixJeu", "profil", "amis", "notifs", "pages", "barre", "deco", "place", "console", "accueil"];
+  window.__pcvPagesDessus = ["pcv-bienvenue", "pcv-place", "pcv-profil", "pcv-amis", "pcv-notifs", "pcv-spotpass-page", "pcv-connexion", "pcv-eshop", "pcv-eshop-unifie", "pcv-eshop-themes", "pcv-medias"];
+  window.__pcvOrdre = ["connexion", "bienvenue", "bulle", "boutique", "eshop", "eshopThemes", "medias", "perso", "fiche", "choixJeu", "profil", "amis", "notifs", "spotpassPage", "telech", "biblio", "stockage", "parametres", "reglages", "pages", "barre", "deco", "place", "console", "accueil", "garde"];
   {
     const table = window.__pcvManette?.__brute || Object.assign({}, window.__pcvManette || {});
     const menuOuvert = window.__pcvMenuOuvert = () => {
@@ -1146,35 +1369,110 @@
         return false;
       }
     };
-    const steamDessus = window.__pcvSteamDessus = () => menuOuvert() || clavierOuvert() || verrou() || modale();
-    window.__pcvManette = new Proxy(table, { get: (t, k) => k === "__brute" ? t : typeof t[k] === "function" ? (b) => b >= 1 && b <= 12 && (k === "alim" || !steamDessus()) ? t[k](b) : false : t[k] });
+    const steamDessus = window.__pcvSteamDessus = (age) => menuOuvert() || clavierOuvert() || verrou() || modale(age);
+    const barre = () => document.body.classList.contains("pcv-barre-main");
+    window.__pcvManette = new Proxy(table, { get: (t, k) => k === "__brute" ? t : typeof t[k] === "function" ? (b) => b >= 1 && b <= 12 && (k === "alim" || !steamDessus(20)) && (k === "alim" || k === "connexion" || k === "barre" || !barre()) ? t[k](b) : false : t[k] });
   }
   window.removeEventListener("vgp_onbuttondown", window.__pcvHorsJeu, true);
+  window.__pcvNosPages = () => !!window.__pcvMiiMaker?.ouvert || !!window.__pcvEcran?.ouvert?.() || !!window.__pcvSteamU?.ouvert?.() || ["accueil", "bibliotheque", "telechargements", "parametres"].includes(document.body.dataset.pcvPage);
   window.addEventListener("vgp_onbuttondown", window.__pcvHorsJeu = (e) => {
     const b = e.detail?.button;
-    if (b >= 13 && b <= 26 && window.__pcvEcran?.ouvert?.() && !window.__pcvSteamDessus()) {
+    if (b >= 13 && b <= 26 && window.__pcvNosPages() && !window.__pcvSteamDessus()) {
       e.stopPropagation();
       e.preventDefault();
     }
   }, true);
+  window.__pcvPrendre = (e) => {
+    let b = e.detail?.button;
+    const m = window.__pcvManette || {}, centre = b === 13 || b === 14;
+    const connexion = window.__pcvConnexionDiagnostic;
+    if (b === 1 && connexion?.affiche && !connexion.valide) {
+      connexion.entrees = (connexion.entrees || 0) + 1;
+      connexion.steamDessus = !!window.__pcvSteamDessus?.();
+    }
+    if (centre && (!window.__pcvNosPages() || window.__pcvSteamDessus())) return;
+    try {
+      if (window.__pcvMenus?.m_eOpenSideMenu) return;
+    } catch (e2) {
+    }
+    const prise = () => {
+      e.stopPropagation();
+      e.preventDefault();
+    };
+    if (b === 13) {
+      prise();
+      if (!Object.values(window.__pcvVue || {}).some((f) => {
+        try {
+          return f();
+        } catch (x) {
+          return false;
+        }
+      })) window.__pcvSon?.("bord");
+      return;
+    }
+    if (b === 14) b = 3;
+    if (!(b >= 1 && b <= 12)) return;
+    const aAuAppui = () => !!document.querySelector?.("#pcv-badges.on");
+    if (b === 1 && typeof e.composedPath === "function" && performance.now() - (window.__pcvAEnvoye || 0) > 500 && window.__pcvAuRelacher && window.__pcvNosPages() && !window.__pcvSteamDessus() && !aAuAppui()) {
+      prise();
+      const vise = window.__pcvVise?.();
+      window.__pcvAuRelacher(() => {
+        const f = { detail: { button: 1 }, pris: false, stopPropagation() {
+          this.pris = true;
+        }, preventDefault() {
+        } };
+        window.__pcvPrendre(f);
+        if (!f.pris) {
+          window.__pcvAEnvoye = performance.now();
+          window.__pcvEnvoyer(1);
+        }
+      }, vise);
+      return;
+    }
+    const son = window.__pcvSonAvant?.(b);
+    for (const nom of window.__pcvOrdre) if (m[nom]?.(b)) {
+      (window.__pcvPreneurs ||= {})[b] = nom;
+      prise();
+      window.__pcvSonApres?.(b, nom, son);
+      return;
+    }
+    if (centre) {
+      prise();
+      window.__pcvSon?.("bord");
+    }
+  };
+  if (!window.__pcvLegendeTactile) {
+    window.__pcvLegendeTactile = true;
+    document.addEventListener("click", (e) => {
+      const s = e.composedPath().find((x) => x.dataset?.b && x.parentElement?.classList.contains("pcv-legende"));
+      if (!s) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const button = +s.dataset.b, f = { detail: { button }, pris: false, stopPropagation() {
+        this.pris = true;
+      }, preventDefault() {
+      } };
+      window.__pcvPrendre(f);
+      if (f.pris) return;
+      window.__pcvEnvoyer(button);
+    }, true);
+  }
+  document.getElementById("pcv-steam-legende")?.remove();
+  {
+    const l = document.createElement("div");
+    l.id = "pcv-steam-legende";
+    l.className = "pcv-legende";
+    document.body.appendChild(l);
+    let avant = "";
+    const LEG = { parametres: [[[5, 6], "touche.onglets"], [4, "touche.rechercher"], [2, "touche.retour"], [1, "touche.choisir"]], recherche: [[2, "touche.retour"], [1, "touche.choisir"]] };
+    window.__pcvSteamLegende = (page) => {
+      const h = LEG[page] && window.__pcvIcones.legende(LEG[page].map(([c, k]) => [c, T(k)]));
+      if (h && h !== avant) l.innerHTML = avant = h;
+    };
+  }
   if (!window.__pcvAiguillage) {
     window.__pcvAiguillage = true;
-    const prendre = (e) => {
-      const b = e.detail?.button, m = window.__pcvManette || {};
-      if (!(b >= 1 && b <= 12)) return;
-      try {
-        if (window.__pcvMenus?.m_eOpenSideMenu) return;
-      } catch (e2) {
-      }
-      const son = window.__pcvSonAvant?.(b);
-      for (const nom of window.__pcvOrdre) if (m[nom]?.(b)) {
-        e.stopPropagation();
-        e.preventDefault();
-        window.__pcvSonApres?.(b, nom, son);
-        return;
-      }
-    };
-    window.addEventListener("vgp_onbuttondown", prendre, true);
+    window.addEventListener("vgp_onbuttondown", (e) => window.__pcvPrendre(e), true);
   }
   clearInterval(window.__pcvQamSuivi);
   window.__pcvQamSuivi = setInterval(() => {
@@ -1310,95 +1608,6 @@
     } catch (e) {
     }
   }, 1e3);
-  if (!window.__pcvFond) {
-    const SYM = [
-      "M6 9h12a5 5 0 0 1 4.8 6.3l-.8 3a2.5 2.5 0 0 1-4.3 1L16 17H8l-1.7 2.3a2.5 2.5 0 0 1-4.3-1l-.8-3A5 5 0 0 1 6 9z",
-      "M5 9h14l-1.2 11.5a1.5 1.5 0 0 1-1.5 1.5H7.7a1.5 1.5 0 0 1-1.5-1.5zM9 9V7a3 3 0 0 1 6 0v2",
-      "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0zM16.5 10a3 3 0 1 0 0-6M17 14a5.5 5.5 0 0 1 4.5 6",
-      "M14 4l-7 8 7 8v-4.5c4 0 6.5 1.5 8 4.5-.5-5.5-3.5-9-8-9.5z",
-      "M4 5h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9l-5 4v-4H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z",
-      "M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z",
-      "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM2 12h20M12 2c3 3 3 17 0 20M12 2c-3 3-3 17 0 20",
-      "M9 18V6l11-2v12M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3z",
-      "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM6.5 8.5a6 6 0 0 1 4-3.5"
-    ];
-    const cuire = (d, flou, bulle) => {
-      const c = document.createElement("canvas");
-      c.width = c.height = 96;
-      const x = c.getContext("2d");
-      x.filter = `blur(${flou}px)`;
-      x.translate(12, 12);
-      x.scale(3, 3);
-      const p = new Path2D(d);
-      x.lineJoin = x.lineCap = "round";
-      x.fillStyle = bulle ? "rgba(255,255,255,.35)" : "rgba(255,255,255,.6)";
-      x.fill(p);
-      x.strokeStyle = "rgba(255,255,255,.95)";
-      x.lineWidth = 1.4;
-      x.translate(-0.5, -0.6);
-      x.stroke(p);
-      x.translate(0.5, 1.2);
-      x.strokeStyle = bulle ? "#d3dbd6" : "#c4cec8";
-      x.lineWidth = 0.9;
-      x.stroke(p);
-      return c;
-    };
-    let sprites = null;
-    window.__pcvFond = (hote) => {
-      if (!hote || hote.querySelector(":scope > canvas.pcv-fond")) return;
-      sprites ||= SYM.map((d, i) => [1.2, 2.4, 3.6].map((f) => cuire(d, f, i === SYM.length - 1)));
-      const cv = document.createElement("canvas");
-      cv.className = "pcv-fond";
-      cv.style.cssText = "position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none";
-      hote.style.isolation = "isolate";
-      hote.prepend(cv);
-      const x = cv.getContext("2d"), objets = [];
-      for (let i = 0; i < 30; i++) {
-        const bulle = i >= 20, prof = i * 53 % 100 / 100;
-        objets.push({
-          s: sprites[bulle ? SYM.length - 1 : i % (SYM.length - 1)][prof > 0.66 ? 0 : prof > 0.33 ? 1 : 2],
-          t: bulle ? 18 + i * 29 % 40 : 60 + i * 37 % 80,
-          x: i * 211 % 1400,
-          y: i * 137 % 900,
-          v: 0.01 + prof * 0.018,
-          r: i * 47 % 360,
-          vr: (i % 2 ? 1 : -1) * (4e-3 + i % 5 * 15e-4),
-          a: 0.14 + prof * 0.18
-        });
-      }
-      let der = 0;
-      const tour = (t) => {
-        if (!cv.isConnected) return;
-        requestAnimationFrame(tour);
-        if (t - der < 33 || hote.hidden || document.hidden) return;
-        const dt = Math.min(100, t - der);
-        der = t;
-        const W = cv.clientWidth, H = cv.clientHeight;
-        if (!W) return;
-        if (cv.width !== W) {
-          cv.width = W;
-          cv.height = H;
-        }
-        x.clearRect(0, 0, W, H);
-        const k = W / 1280;
-        for (const o of objets) {
-          o.x += o.v * dt;
-          o.y -= o.v * dt * 0.6;
-          o.r += o.vr * dt;
-          if (o.x > 1350) o.x = -o.t;
-          if (o.y < -o.t) o.y = 880;
-          const T2 = o.t * k;
-          x.save();
-          x.globalAlpha = o.a;
-          x.translate(o.x * k, o.y * k);
-          x.rotate(o.r * Math.PI / 180);
-          x.drawImage(o.s, -T2 / 2, -T2 / 2, T2, T2);
-          x.restore();
-        }
-      };
-      requestAnimationFrame(tour);
-    };
-  }
   if (!window.__pcvLoupeClic) {
     window.__pcvLoupeClic = true;
     document.addEventListener("click", (e) => {
@@ -1423,18 +1632,41 @@
     let minuterie;
     document.addEventListener("mouseover", (e) => {
       const el = e.target.closest?.("[data-pcv-nom]");
-      if (!el) {
+      if (!el || el.dataset.pcvRond === "loupe") {
         bulle.classList.remove("vu");
         return;
       }
       const r = el.getBoundingClientRect();
       bulle.textContent = el.dataset.pcvNom;
-      bulle.style.left = r.left + r.width / 2 + "px";
       bulle.style.top = r.bottom + innerHeight / 800 * 12 + "px";
+      const m = bulle.offsetWidth / 2 + 8;
+      bulle.style.left = Math.min(innerWidth - m, Math.max(m, r.left + r.width / 2)) + "px";
       bulle.classList.add("vu");
       clearTimeout(minuterie);
       minuterie = setTimeout(() => bulle.classList.remove("vu"), 3500);
     }, true);
+  }
+  {
+    (window.__pcvVuesFins || []).forEach((f) => {
+      try {
+        f();
+      } catch (e) {
+      }
+    });
+    const fins = window.__pcvVuesFins = [];
+    const recaler = () => {
+      for (const el of document.querySelectorAll("div")) {
+        const k = Object.keys(el).find((x2) => x2.startsWith("__reactFiber")), f = k && el[k], p = f?.return?.memoizedProps;
+        if (!p?.visible || !p.browser?.SetBounds || f.memoizedProps?.className !== p.className) continue;
+        const r = el.getBoundingClientRect(), [x, y, w, h] = r.width && r.height ? [r.left, r.top, r.width, r.height] : [0, 0, innerWidth, innerHeight];
+        try {
+          p.browser.SetBounds(x, y, w, h);
+        } catch (e) {
+        }
+      }
+    };
+    addEventListener("resize", recaler);
+    fins.push(() => removeEventListener("resize", recaler));
   }
   {
     (window.__pcvDoigtFins || []).forEach((f) => {
@@ -1473,6 +1705,7 @@
         return null;
       }
     };
+    window.__pcvFenetreMenu = fenetre;
     const ecranX = (e) => e.screenX - screenX;
     const ELAN = 0.45;
     const fraction = (mode, sens, x0, x, larg) => Math.max(0, Math.min(1, (mode === "ouvrir" ? 0 : 1) + sens * (x - x0) / larg));
@@ -1519,6 +1752,13 @@
             return;
           }
           noter("bascule", n, this.m_eOpenSideMenu);
+          if (Object.values(this.__pcvVerrou || {}).some(Boolean)) {
+            this.__pcvEnAttente = this.__pcvEnAttente === n ? null : n;
+            noter("bascule-en-attente", n, this.__pcvEnAttente);
+            return;
+          }
+          const v = n === this.m_eOpenSideMenu && this.__pcvVideurs?.[n];
+          if (v) return v(() => basculer.call(this, n, force));
         }
         return basculer.call(this, n, force);
       };
@@ -1851,16 +2091,18 @@
         if (!touche) osd.classList.remove("vu", "large");
       }, ms);
     };
-    const montrer = (s, v) => {
+    const montrer = (s, v, doigt = false) => {
       try {
-        if (window.__pcvBridge.menuState()) return;
+        if (window.__pcvBridge.menuState() === 2) return;
       } catch (e) {
       }
-      if (v == null || isNaN(v)) return;
+      if (v == null || isNaN(v) || touche && !doigt) return;
       sorte = s;
       peindreIcone(v);
       osd.style.setProperty("--f", Math.max(0, Math.min(1, v)).toFixed(3));
       osd.querySelector("b").textContent = Math.round(v * 100) + " %";
+      const W = window.__pcvBridge?.menuState?.() === 1 && window.__pcvFenetreMenu?.(1), hote = (W ? W.document : document).body;
+      if (hote && osd.parentNode !== hote) hote.appendChild(hote.ownerDocument.adoptNode(osd));
       osd.classList.add("vu");
       garder(osd.classList.contains("large") ? 3e3 : 1600);
     };
@@ -1868,7 +2110,7 @@
       v = Math.max(0, Math.min(1, v));
       if (sorte === "volume") sortie()?.setDeviceVolume(SORTIE, v);
       else magasin("SystemStoragStore").SetDisplayBrightness(v);
-      montrer(sorte, v);
+      montrer(sorte, v, true);
     };
     let avantMuet = null, envoi = 0, attente = null;
     const ecrireLimite = (v) => {
@@ -1905,7 +2147,9 @@
       } catch (x) {
       }
       const suivre2 = (e) => {
-        ecrireLimite(position(e, b));
+        const v = Math.max(0, Math.min(1, position(e, b)));
+        montrer(sorte, v, true);
+        ecrireLimite(v);
       };
       suivre2(ev);
       osd.onpointermove = suivre2;

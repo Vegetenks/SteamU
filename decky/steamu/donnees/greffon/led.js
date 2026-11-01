@@ -3,6 +3,8 @@
   const INTENTIONS = /* @__PURE__ */ new Set([
     "theme",
     "notif",
+    "spotpass",
+    "spotpass-fin",
     "casino-entree",
     "casino-sortie",
     "casino-pince",
@@ -69,6 +71,7 @@
   };
   window.__pcvLedReglage = (m = mode()) => appeler("led_reglage", MODES.includes(m) ? m : "non").then(() => {
     ecranAvant = null;
+    spAvant = false;
     window.__pcvLed("theme");
   });
   let essais = 0;
@@ -132,8 +135,18 @@
       window.__pcvLed("theme");
     }, ms));
   };
+  let spAvant = false;
+  const suivreSpotPass = () => {
+    const v = !!window.__pcvSpotPass?.neuf?.() && !jeu() && mode() !== "non";
+    if (v === spAvant) return;
+    spAvant = v;
+    if (!v) return window.__pcvLed("spotpass-fin");
+    window.__pcvLed("spotpass");
+    window.__pcvSpRepartir?.();
+  };
   window.__pcvLedSuivi = setInterval(() => {
     suivreEcran();
+    suivreSpotPass();
     let n = 0;
     try {
       n = window.__pcvMenus?.m_eOpenSideMenu || 0;

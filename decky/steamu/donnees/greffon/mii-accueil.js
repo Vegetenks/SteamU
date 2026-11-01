@@ -290,14 +290,26 @@
       }
     }
   };
-  let toile = null, rendu = null, scene = null, cam = null, camEcran = null, raf = 0, dernier = 0, minuterie = 0, veille = 0, demarre = false;
+  let toile = null, rendu = null, rendLisse = false, scene = null, cam = null, camEcran = null, raf = 0, dernier = 0, minuterie = 0, veille = 0, demarre = false;
   const acteurs = [];
+  const jeterRendu = () => {
+    oublierMiiAvance();
+    if (!rendu) return;
+    viderPartage();
+    rendu.dispose();
+    rendu.forceContextLoss();
+    toile.remove();
+    rendu = null;
+    toile = null;
+  };
   const preparerRendu = () => {
+    const voulu = REG.lissage !== false && (window.__pcvCharge?.reglage().miiLisse ?? true);
+    if (rendu && rendLisse !== voulu && !acteurs.length) jeterRendu();
     if (rendu) return true;
     try {
       toile = document.createElement("canvas");
       toile.id = "pcv-mii-toile";
-      rendu = new T.WebGLRenderer({ canvas: toile, alpha: true, antialias: REG.lissage !== false, powerPreference: "high-performance" });
+      rendu = new T.WebGLRenderer({ canvas: toile, alpha: true, antialias: rendLisse = voulu, powerPreference: "high-performance" });
     } catch (e) {
       console.warn("mii-accueil : pas de WebGL", e);
       rendu = null;
@@ -324,13 +336,14 @@
     camEcran.bottom = -H;
     camEcran.updateProjectionMatrix();
     cadre.w = cadre.h = 0;
+    cadre.x = null;
     majSol();
     for (const a of acteurs) {
       a.mii.regler(hMii());
       a.tailleVue = hMii();
     }
   };
-  const cadre = { w: 0, h: 0, petit: 0 };
+  const cadre = { w: 0, h: 0, petit: 0, x: null, y: null };
   const cadrer = (t) => {
     const h = hMii(), Q = 128, W = innerWidth, H = innerHeight;
     let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
@@ -369,7 +382,11 @@
       toile.style.width = w + "px";
       toile.style.height = hh + "px";
     }
-    toile.style.transform = `translate(${x0}px, ${y0}px)`;
+    if (cadre.x !== x0 || cadre.y !== y0) {
+      cadre.x = x0;
+      cadre.y = y0;
+      toile.style.transform = `translate(${x0}px, ${y0}px)`;
+    }
     cam.left = x0;
     cam.right = x0 + cadre.w;
     cam.top = -y0;
@@ -1495,7 +1512,7 @@
     pantalon: qui.pantalon,
     nom: qui.nom,
     rendu,
-    resolution: REG.resolution,
+    ...window.__pcvCharge?.reglage().miiBasse ? { qualite: "basse" } : { resolution: REG.resolution },
     ...qui.tenue ? { tenue: qui.tenue, couleursSwitch: qui.couleursSwitch } : {}
   });
   const preparerMiiAvance = () => {
@@ -4824,17 +4841,24 @@
     a.mii.maj(dt);
     cache(a);
   };
+  let appui = -1e9;
+  window.removeEventListener("vgp_onbuttondown", window.__pcvMiiAppui, true);
+  window.addEventListener("vgp_onbuttondown", window.__pcvMiiAppui = () => {
+    appui = performance.now();
+  }, true);
   const tour = (t) => {
     raf = requestAnimationFrame(tour);
     window.__pcvGrilleAvantImage?.(t);
-    if (REG.plafond && t - dernier < 1e3 / REG.plafond - 2) return;
-    const dt = Math.max(0, Math.min(0.1, (t - dernier) / 1e3));
+    const C = window.__pcvCharge, plafond = REG.plafond || C?.reglage().miiIps || (t - appui < 300 && C?.palier() ? 30 : 0);
+    if (plafond && t - dernier < 1e3 / plafond - 2) return;
+    const eu = t - dernier, dt = Math.max(0, Math.min(0.1, eu / 1e3));
     dernier = t;
     dtImage = dt;
     if (!actif()) {
       toutRetirer();
       return;
     }
+    if (autrePage !== void 0) return;
     const t0 = performance.now();
     if (!gel) for (const a of [...acteurs]) majActeur(a, dt);
     else for (const a of acteurs) if (a.mode === "appui" && reprendre(a.appui)) {
@@ -4857,6 +4881,7 @@
     cadrer(t);
     rendu.render(scene, cam);
     const t2 = performance.now();
+    C?.noter(t, plafond ? 1e3 / plafond : 0, eu, t2 - t0);
     mesure.n++;
     mesure.logique += t1 - t0;
     mesure.rendu += t2 - t1;
@@ -4890,17 +4915,17 @@
     };
     if (document.hidden) return non("cach\xE9e");
     if (window.__pcvJeuDevant) return non("jeu au premier plan");
-    const o = ["pcv-place", "pcv-connexion", "pcv-profil", "pcv-miimaker"].find(ouvert);
-    if (o) return non(o);
-    if (document.querySelector(".pcv-panneau.on")) return non("panneau");
-    if (window.__pcvDossiers?.modal?.()) return non("dossier");
     try {
       if (window.__pcvMenus?.IsAnySideMenuVisible?.()) return non("menu de Steam");
     } catch (e) {
     }
+    const o = ["pcv-place", "pcv-connexion", "pcv-profil", "pcv-miimaker"].find(ouvert);
+    if (o) return non(o);
+    if (document.querySelector(".pcv-panneau.on")) return non("panneau");
+    if (window.__pcvDossiers?.modal?.()) return non("dossier");
     if (document.querySelector(".gpfocus")?.closest(".contextMenuItem, .FullModalOverlay")) return non("fen\xEAtre de Steam");
-    if (document.querySelector("#pcv-amis .carte-zone > *")) return non("carte d'ami");
     if (document.querySelector("#pcv-notifs .quoi:not([hidden])")) return non("Quoi de neuf");
+    if (!Object.values(RACINES).some((id) => document.getElementById(id)?.hidden === false)) return non("aucune page du th\xE8me");
     const el = document.elementFromPoint(innerWidth / 2, innerHeight * 0.62);
     if (!el) return non("rien au milieu");
     for (const [nom, id] of Object.entries(RACINES)) {
@@ -4911,7 +4936,7 @@
   };
   const pageMii = () => {
     const t = performance.now();
-    if (t - pageT > 120) {
+    if (t - pageT > 120 && !window.__pcvLancement?.etat?.()) {
       pageT = t;
       pageLue = lirePage();
     }
@@ -5065,15 +5090,7 @@
       el.classList.remove("pcv-mii-bouge");
       clearTimeout(el.__pcvMiiT);
     });
-    oublierMiiAvance();
-    if (rendu) {
-      viderPartage();
-      rendu.dispose();
-      rendu.forceContextLoss();
-      toile.remove();
-      rendu = null;
-      toile = null;
-    }
+    jeterRendu();
   };
   window.__pcvMiiAccueil = {
     demarrer,

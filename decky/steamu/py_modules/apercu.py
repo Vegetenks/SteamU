@@ -1,6 +1,7 @@
 import ctypes, os, secrets, shutil, subprocess, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pleinecran import AFFICHAGES
+from session_x import environnement
 
 QUALITE_JPEG = 6    
 
@@ -34,6 +35,9 @@ PID_CLIENT = 2
 _ERREUR = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)(lambda d, e: 0)   
 
 def _fenetre(appid):
+    env = environnement()
+    if env.get("XAUTHORITY"):
+        os.environ["XAUTHORITY"] = env["XAUTHORITY"]   
     vus = {}
     X = ctypes.CDLL("libX11.so.6")
     try:
@@ -50,7 +54,7 @@ def _fenetre(appid):
     X.XFree.argtypes = [ctypes.c_void_p]; X.XCloseDisplay.argtypes = [ctypes.c_void_p]
     X.XSetErrorHandler(_ERREUR)
     meilleure, aire = None, 0
-    for affichage in AFFICHAGES:
+    for affichage in dict.fromkeys((env.get("DISPLAY", ":0"), *AFFICHAGES)):
         d = X.XOpenDisplay(affichage.encode())
         if not d: continue
         try:
@@ -88,7 +92,7 @@ class _Flux(BaseHTTPRequestHandler):
             affichage, fenetre, largeur, ips = cible
             p = subprocess.Popen(["ffmpeg", "-loglevel", "error", "-f", "x11grab", "-draw_mouse", "0", "-window_id", str(fenetre), "-framerate", str(ips), "-i", affichage,
                                   "-vf", f"scale={largeur}:-2:flags=fast_bilinear", "-pix_fmt", "yuvj420p", "-q:v", str(QUALITE_JPEG), "-threads", "1", "-f", "mpjpeg", "-"],
-                                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env={**os.environ, "LD_LIBRARY_PATH": ""})
+                                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=environnement())
             _etat["ffmpeg"].append(p)
         try:
             self.send_response(200)

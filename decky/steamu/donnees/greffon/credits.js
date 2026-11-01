@@ -23,6 +23,15 @@ window.__pcvCredits = {
   "bibliotheques": [
     { "nom": "three.js", "ico": "livre", "auteurs": "credits.threejs.auteurs", "licence": "MIT", "lien": "github.com/mrdoob/three.js" },
     { "nom": "planck.js", "ico": "livre", "auteurs": "credits.planck.auteurs", "licence": "MIT", "lien": "github.com/piqnt/planck.js" },
+    {
+      "nom": "Shaka Player",
+      "ico": "livre",
+      "auteurs": "credits.shaka.auteurs",
+      "licence": "Apache 2.0",
+      "lien": "github.com/shaka-project/shaka-player",
+      "detail": "Version 4.16.4, licence fournie dans greffon/vendor/shaka-LICENSE.txt."
+    },
+    { "nom": "FFmpeg", "ico": "livre", "auteurs": "FFmpeg developers", "licence": "LGPL 2.1", "lien": "ffmpeg.org" },
     { "nom": "jsQR", "ico": "livre", "auteurs": "cozmo", "licence": "Apache 2.0", "lien": "github.com/cozmo/jsQR" },
     { "nom": "jeepney", "ico": "livre", "auteurs": "Thomas Kluyver", "licence": "MIT", "lien": "gitlab.com/takluyver/jeepney" },
     { "nom": "websocket-client", "ico": "livre", "auteurs": "engn33r", "licence": "Apache 2.0", "lien": "github.com/websocket-client/websocket-client" }
@@ -47,11 +56,13 @@ window.__pcvCredits = {
     }
   ],
   "communautes": [
+    { "nom": "Decky Plugins Explorer", "ico": "internet", "auteurs": "Safet Zahirovic", "lien": "safetzahirovic.github.io/decky-plugins-explorer/" },
     { "nom": "ThemePlaza", "ico": "internet", "lien": "themeplaza.art" },
     { "nom": "Themezer", "ico": "internet", "lien": "themezer.net" },
     { "nom": "InfiniMii", "ico": "internet", "lien": "infinimii.com" },
     { "nom": "titledb", "ico": "internet", "auteurs": "blawar", "licence": "MIT", "lien": "github.com/blawar/titledb" },
-    { "nom": "LRCLIB", "ico": "paroles", "cheznous": "credits.lrclib.cheznous", "lien": "lrclib.net" }
+    { "nom": "LRCLIB", "ico": "paroles", "cheznous": "credits.lrclib.cheznous", "lien": "lrclib.net" },
+    { "nom": "lrcmux", "ico": "paroles", "cheznous": "credits.lrclib.cheznous", "lien": "lrcmux.dev" }
   ],
   "divers": [
     {

@@ -12,10 +12,6 @@
   const son = (n) => window.__pcvSon?.(n);
   const T = window.__pcvT || ((c) => c);
   const acc = () => window.__pcvGrille;
-  const glyphe = (b) => {
-    const [t, c, h] = window.__pcvTouche?.(b) || ["?", "var(--pcv-touche-neutre)"];
-    return `<u style="background:${c}">${h ?? echap(t)}</u>`;
-  };
   const svg = (d) => `<svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
   const IC = {
     dossier: svg('<path d="M3 7.5a2 2 0 0 1 2-2h4l2 2.2h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/>'),
@@ -24,38 +20,45 @@
     suppr: svg('<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5M10 10.5v6M14 10.5v6"/>'),
     decoller: svg('<path d="M5 5h10l4 4v10H5z"/><path d="M15 5v4h4"/><path d="M9 13.5l2.5 2.5L16 11"/>')
   };
-  const TEINTES = { dossier: "#3fb6ff, #1a8fe0", decorer: "#ffb35c, #ff7a1f", nom: "#7fd17f, #3aa64a", suppr: "#ff8a8a, #e5484d", decoller: "#c9a4ff, #8a5ce6" };
+  const GRIS = "#c3ccd8, #8f9bab";
+  const TEINTES = { dossier: "#3fb6ff, #1a8fe0", decorer: "#ffb35c, #ff7a1f", nom: "#7fd17f, #3aa64a", suppr: GRIS, decoller: "#c9a4ff, #8a5ce6", reglages: GRIS };
   const rond = (n, c = {}) => `<u style="background:radial-gradient(circle at 50% 35%, ${c.teinte || TEINTES[n]})">${c.svg ? svg(c.svg) : IC[n]}</u>`;
   const racine = document.createElement("div");
   racine.id = "pcv-dossiers";
   racine.hidden = true;
   racine.innerHTML = `<style>${css(`
-    #pcv-dossiers { position: fixed; inset: 98u 0 0 0; z-index: 8620; font-family: var(--pcv-police); color: var(--pcv-texte); user-select: none; -webkit-user-select: none; }
+    
+    #pcv-dossiers { position: fixed; inset: 98u 0 0 0; z-index: 8720; font-family: var(--pcv-police); color: var(--pcv-texte); user-select: none; -webkit-user-select: none; }
     #pcv-dossiers[hidden] { display: none; }
     #pcv-dossiers * { box-sizing: border-box; }
     #pcv-dossiers button { font: inherit; color: inherit; border: 0; padding: 0; background: none; cursor: pointer; }
     #pcv-dossiers u { text-decoration: none; flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 26u; height: 26u; padding: 0 5u; border-radius: 13u;
       color: var(--pcv-sur-accent); font-size: 12u; font-weight: 900; }
-    #pcv-dossiers .voile { position: absolute; inset: 0; background: rgba(30,40,60,0); transition: background .2s; }
-    #pcv-dossiers.boite-ouverte .voile { background: rgba(30,40,60,.32); }
+    #pcv-dossiers .voile { position: absolute; inset: 0; background: var(--pcv-voile-fenetre); opacity: 0; transition: opacity .2s; }   
+    #pcv-dossiers.boite-ouverte .voile { opacity: 1; }
     
     #pcv-dossiers .menu { z-index: 1; position: fixed; left: 0; top: 0; min-width: 270u; padding: 8u; border-radius: 24u; display: none; flex-direction: column; gap: 6u;
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 14u 34u rgba(30,50,80,.3); transform-origin: var(--ox, 0) 50%; }
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 14u 34u rgba(30,50,80,.3); transform-origin: var(--ox, 0) var(--oy, 50%); }
     #pcv-dossiers .menu.on { display: flex; animation: pcvDosMenu .26s cubic-bezier(.3,1.5,.5,1) both; }
     @keyframes pcvDosMenu { from { opacity: 0; transform: scale(.7) } }
     #pcv-dossiers .menu button { display: flex; align-items: center; gap: 12u; height: 54u; padding: 0 20u 0 9u; border-radius: 18u; font-size: 19u; font-weight: 800; text-align: left; white-space: nowrap; }
     #pcv-dossiers .menu button u { width: 38u; height: 38u; border-radius: 50%; }
+    #pcv-dossiers .menu .leg-bulle { margin-top: 4u; }
+    
+    #pcv-dossiers .leg-bas { position: fixed; right: 34u; bottom: 24u; z-index: 2; }
+    html.pcv-question .pcv-legende { visibility: hidden; } html.pcv-question #pcv-dossiers .pcv-legende { visibility: visible; }
     #pcv-dossiers .menu button.k { background: var(--pcv-carte); box-shadow: 0 0 0 3u var(--pcv-anneau-c), 0 0 0 7u var(--pcv-cyan-plein); }
     
-    #pcv-dossiers .carte { position: absolute; left: 50%; top: 150u; width: 600u; margin-left: -300u; padding: 24u 28u 22u; border-radius: 32u; display: none;
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 20u 50u rgba(20,40,70,.35); }
-    #pcv-dossiers .carte.on { display: block; animation: pcvDosCarte .3s cubic-bezier(.3,1.4,.5,1) both; }
-    @keyframes pcvDosCarte { from { opacity: 0; transform: translateY(24u) scale(.94) } }
+    
+    #pcv-dossiers .carte { position: absolute; left: 50%; top: -98u; bottom: 0; height: fit-content; margin: auto 0 auto -300u; width: 600u; padding: 24u 28u 22u; border-radius: 32u; display: none;
+      background: var(--pcv-fenetre-fond); box-shadow: var(--pcv-reflet), 0 20u 50u rgba(20,40,70,.35); }
+    #pcv-dossiers .carte.on { display: block; }   
     #pcv-dossiers .carte.tremble { animation: pcvDosNon .3s; }
     @keyframes pcvDosNon { 25% { transform: translateX(-10u) } 75% { transform: translateX(10u) } }
     #pcv-dossiers .t { display: flex; align-items: center; gap: 12u; font-size: 24u; font-weight: 900; }
     #pcv-dossiers .t u { width: 42u; height: 42u; border-radius: 50%; }
     #pcv-dossiers .t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #pcv-dossiers p:empty { display: none; }
     #pcv-dossiers p { margin: 14u 0 0; font-size: 17u; font-weight: 700; color: var(--pcv-texte2); line-height: 1.45; }
     #pcv-dossiers input { display: block; width: 100%; height: 62u; margin-top: 18u; padding: 0 20u; border-radius: 18u; border: 0; outline: 0; font: inherit; font-size: 26u; font-weight: 800;
       color: var(--pcv-texte); background: var(--pcv-carte); box-shadow: inset 0 2u 5u rgb(from var(--pcv-ombre-c) r g b / .18), 0 0 0 3u color-mix(in srgb, var(--pcv-carte) 90%, transparent); user-select: text; -webkit-user-select: text; }
@@ -63,13 +66,24 @@
     #pcv-dossiers .reste { margin-top: 8u; text-align: right; font-size: 14u; font-weight: 800; color: var(--pcv-texte2); }
     #pcv-dossiers .bts { display: flex; justify-content: flex-end; gap: 12u; margin-top: 20u; }
     
-    #pcv-dossiers .bts button { display: flex; align-items: center; gap: 9u; height: 50u; padding: 0 22u 0 10u; border-radius: 25u; font-size: 18u; font-weight: 900; color: var(--pcv-texte);
+    #pcv-dossiers .bts button { display: flex; align-items: center; gap: 9u; height: 56u; padding: 0 30u; border-radius: 28u; font-size: 19u; font-weight: 900; color: var(--pcv-texte);
       background: var(--pcv-verre); box-shadow: inset 0 2u 0 var(--pcv-reflet-haut), inset 0 -3u 0 var(--pcv-reflet-bas), 0 3u 0 rgb(from var(--pcv-ombre-c) r g b / .22); }
-    #pcv-dossiers .bts button.oui { background: var(--pcv-cyan); color: var(--pcv-sur-accent); box-shadow: inset 0 2u 0 rgba(255,255,255,.5), 0 3u 0 rgba(20,90,140,.35); }
-    #pcv-dossiers .bts button.rouge { background: linear-gradient(180deg, #ff8a8a, #e5484d); box-shadow: inset 0 2u 0 rgba(255,255,255,.45), 0 3u 0 rgba(150,30,40,.35); }
-    #pcv-dossiers .bts button.k { outline: 4u solid var(--pcv-anneau-c); outline-offset: 2u; box-shadow: 0 0 0 9u var(--pcv-cyan-plein); }
+    #pcv-dossiers .bts button { white-space: nowrap; } #pcv-dossiers .bts button[hidden] { display: none; }
+    #pcv-dossiers .carte.sup.trois { width: 760u; margin-left: -380u; }   
+    #pcv-dossiers .bts button.plein { background: var(--pcv-cyan); color: var(--pcv-sur-accent); box-shadow: inset 0 2u 0 rgba(255,255,255,.5), 0 3u 0 rgba(20,90,140,.35); }
     
-    #pcv-dossiers .carte.dispo { top: 110u; width: 990u; margin-left: -495u; transition: opacity .2s; }
+    #pcv-dossiers .carte.liste { left: 0; right: 0; width: fit-content; min-width: 380u; max-width: 640u; max-height: calc(100% - 140u); margin: auto; padding: 18u; flex-direction: column; }
+    #pcv-dossiers .carte.liste.on { display: flex; }
+    #pcv-dossiers .liste .t { font-size: 20u; margin: 0 0 4u 8u; }
+    #pcv-dossiers .liste .elts { display: flex; flex-direction: column; gap: 8u; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 8u; margin: 0 -8u -8u; }
+    #pcv-dossiers .liste .elts button { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 18u; height: 50u; padding: 0 18u; border-radius: 25u;
+      font-size: 18u; font-weight: 900; background: var(--pcv-verre); box-shadow: var(--pcv-reflet); }
+    #pcv-dossiers .liste .elts i { font-style: normal; visibility: hidden; }
+    #pcv-dossiers .liste .elts button[disabled] { opacity: .5; }
+    #pcv-dossiers .liste .elts .oui { color: var(--pcv-cyan-plein); } #pcv-dossiers .liste .elts .oui i { visibility: visible; }
+    #pcv-dossiers .liste .elts button.k, #pcv-dossiers .bts button.k { outline: 4u solid var(--pcv-anneau-c); outline-offset: 2u; box-shadow: 0 0 0 9u var(--pcv-cyan-plein); }
+    
+    #pcv-dossiers .carte.dispo { width: 990u; margin-left: -495u; transition: opacity .2s; }
     #pcv-dossiers.par-dessus .carte.dispo { opacity: 0; }   
     #pcv-dossiers .dispo .fen { overflow: hidden; margin: 10u -12u 0; padding: 10u 12u 6u; }
     #pcv-dossiers .dispo .rang { display: flex; gap: 14u; transition: transform .25s cubic-bezier(.3,1.2,.5,1); }
@@ -88,37 +102,59 @@
     #pcv-dossiers .dispo p.info { min-height: 24u; margin-top: 8u; }
   `)}</style>
   <div class="voile"></div><div class="menu"></div>
-  <div class="carte dispo"><div class="t">${rond("dossier", { svg: window.__pcvIcones.trace("dispositions") })}<span>${T("dispo.titre")}</span></div>
+  <div class="carte pcv-fenetre dispo"><div class="t">${rond("dossier", { svg: window.__pcvIcones.trace("dispositions") })}<span>${T("dispo.titre")}</span></div>
     <div class="fen"><div class="rang"></div></div><p class="info"></p><div class="bts leg"></div></div>
-  <div class="carte nom"><div class="t">${rond("nom")}<span>${T("dossier.nom")}</span></div>
+  <div class="carte pcv-fenetre nom"><div class="t">${rond("nom")}<span>${T("dossier.nom")}</span></div>
     <input type="text" spellcheck="false" autocomplete="off" enterkeyhint="done"><div class="reste"></div>
-    <div class="bts"><button class="non"></button><button class="oui"></button></div></div>
-  <div class="carte sup"><div class="t">${rond("suppr")}<span></span></div><p></p>
-    <div class="bts"><button class="non"></button><button class="oui rouge"></button></div></div>`;
+    <div class="bts"><button class="clav"></button><button class="non"></button><button class="oui plein"></button></div></div>
+  <div class="carte pcv-fenetre sup"><div class="t">${rond("suppr")}<span></span></div><p></p>
+    <div class="bts"><button class="non"></button><button class="alt" hidden></button><button class="oui"></button></div></div>
+  <div class="carte pcv-fenetre liste"><div class="t"></div><div class="elts"></div></div><div class="pcv-legende leg-bas"></div>`;
   document.body.appendChild(racine);
-  fins.push(() => racine.remove());
+  fins.push(() => {
+    racine.remove();
+    document.documentElement.classList.remove("pcv-question");
+    document.body.classList.remove("pcv-dossiers-ouvert");
+  });
   const $ = (s) => racine.querySelector(s), menuEl = $(".menu"), champ = $(".nom input");
   let ouvert = null;
+  const legendeBas = (l) => {
+    $(".leg-bas").innerHTML = l ? window.__pcvIcones.legende(l) : "";
+    document.documentElement.classList.toggle("pcv-question", !!l || !!window.__pcvSpotPassFenetre?.ouvert?.());
+  };
   const fermer = (bruit = true) => {
     if (!ouvert) return;
+    if (ouvert.genre === "nom") window.__pcvClavierCacher?.();
     const sous = ouvert.dessous;
+    window.__pcvApparition(sous ? racine.querySelector(".carte.on:not(.dispo)") : racine, true, ".carte.on");
     ouvert = null;
     menuEl.classList.remove("on");
     racine.querySelectorAll(".carte").forEach((e) => e.classList.toggle("on", !!sous && e.classList.contains("dispo")));
     if (document.activeElement === champ) champ.blur();
+    legendeBas(null);
     if (sous) {
       ouvert = sous;
       racine.classList.remove("par-dessus");
+      if (sous === P) choisirVig();
       if (bruit) son("retour");
       return;
     }
     racine.classList.remove("boite-ouverte");
     racine.hidden = true;
+    document.body.classList.remove("pcv-dossiers-ouvert");
     if (bruit) son("retour");
+  };
+  const couleurAppli = () => {
+    const a = [...document.querySelectorAll(".pcv-appli")].find((x) => x !== racine && x.getClientRects().length);
+    racine.classList.toggle("pcv-appli", !!a);
+    racine.style.setProperty("--pcv-appli-couleur", a ? a.style.getPropertyValue("--pcv-appli-couleur") : "");
+    window.__pcvFenetreAppli?.(racine);
   };
   const montrer = (o) => {
     ouvert = o;
+    couleurAppli();
     racine.hidden = false;
+    document.body.classList.add("pcv-dossiers-ouvert");
     racine.classList.toggle("par-dessus", !!o.dessous && o.genre !== "menu");
   };
   const dessinerMenu = () => menuEl.querySelectorAll("button").forEach((b, k) => b.classList.toggle("k", k === ouvert.k));
@@ -128,6 +164,7 @@
     const d = a.dossier?.(), deco = !!window.__pcvDeco;
     return choix(i, [
       !d && deco && { ic: "decorer", nom: T("perso.decorer"), faire: () => window.__pcvDeco.ouvrir({ case: i }) },
+      a.peutRetirerCase?.(i) && { ic: "suppr", nom: T("console.retirer_case"), faire: () => a.retirerCase(i) },
       !d && { ic: "dossier", nom: T("dossier.creer"), faire: () => creer(i) },
       d && { ic: "nom", nom: T("dossier.renommer"), faire: () => renommer(d.id) },
       d?.ec && { ic: "decoller", nom: T("console.decoller_badge"), faire: () => a.decollerDossier?.(d.id) },
@@ -137,17 +174,19 @@
   };
   const choix = (i, choix2, o = {}) => {
     const a = acc();
-    if (!a || !choix2.length) return false;
-    menuEl.innerHTML = choix2.map((c2, k) => `<button data-k="${k}">${rond(c2.ic, c2)}${echap(c2.nom)}</button>`).join("");
-    montrer({ genre: "menu", choix: choix2, k: 0, dessous: o.dessous });
+    if (!a && !o.pres || !choix2.length) return false;
+    menuEl.innerHTML = choix2.map((c2, k) => `<button data-k="${k}">${rond(c2.ic, c2)}${echap(c2.nom)}</button>`).join("") + `<div class="pcv-legende leg-bulle">${window.__pcvIcones.legende([[1, T("touche.choisir")], [2, T("touche.retour")]])}</div>`;
+    legendeBas(null);
+    montrer({ genre: "menu", choix: choix2, k: 0, dessous: o.dessous, ailleurs: o.ailleurs });
     dessinerMenu();
     const c = (o.pres || a.grille().children[i])?.getBoundingClientRect(), u = innerHeight / 800;
     menuEl.classList.add("on");
-    const l = menuEl.offsetWidth, h = menuEl.offsetHeight, droite = !c || c.right + 14 * u + l < innerWidth - 16 * u;
-    const x = c ? droite ? c.right + 14 * u : c.left - 14 * u - l : (innerWidth - l) / 2, y = c ? Math.min(Math.max(110 * u, c.top + c.height / 2 - h / 2), innerHeight - h - 20 * u) : 300 * u;
+    const l = menuEl.offsetWidth, h = menuEl.offsetHeight, droite = !c || c.right + 14 * u + l < innerWidth - 16 * u, sous = o.sous && c;
+    const x = sous ? Math.min(c.left + c.width / 2 - l / 2, innerWidth - l - 16 * u) : c ? droite ? c.right + 14 * u : c.left - 14 * u - l : (innerWidth - l) / 2, y = sous ? c.bottom + 10 * u : c ? Math.min(Math.max(110 * u, c.top + c.height / 2 - h / 2), innerHeight - h - 20 * u) : 300 * u;
     menuEl.style.left = Math.max(16 * u, x) + "px";
     menuEl.style.top = y + "px";
-    menuEl.style.setProperty("--ox", droite ? "0" : "100%");
+    menuEl.style.setProperty("--ox", sous ? "50%" : droite ? "0" : "100%");
+    menuEl.style.setProperty("--oy", sous ? "0" : "50%");
     son("choisir");
     return true;
   };
@@ -179,15 +218,24 @@
     champ.value = d.nom;
     reste();
     $(".nom .t span").textContent = o?.titre || T("dossier.nom");
-    $(".nom .non").innerHTML = `${glyphe(2)}${o?.annuler || T("dispo.annuler")}`;
-    $(".nom .oui").innerHTML = `${glyphe(1)}${o?.oui || T("dispo.ok")}`;
-    montrer({ genre: "nom", id, ok: o?.ok, dessous: o?.dessous });
+    $(".nom .clav").textContent = T("dossier.clavier");
+    $(".nom .non").textContent = o?.annuler || T("dispo.annuler");
+    $(".nom .oui").textContent = o?.oui || T("dispo.ok");
+    montrer({ genre: "nom", id, ok: o?.ok, dessous: o?.dessous, ailleurs: o?.ailleurs, k: 2 });
     racine.classList.add("boite-ouverte");
     $(".carte.nom").classList.add("on");
+    window.__pcvApparition($(".carte.nom"));
+    dessinerNom();
     son("choisir");
     clavier();
     champ.select();
     return true;
+  };
+  const boutonsNom = () => [$(".nom .clav"), $(".nom .non"), $(".nom .oui")];
+  const dessinerNom = () => {
+    const l = boutonsNom();
+    l.forEach((b, k) => b.classList.toggle("k", k === ouvert.k));
+    legendeBas([[3, l[0].textContent], [2, l[1].textContent], ...ouvert.k ? [[1, l[ouvert.k].textContent]] : []]);
   };
   const valider = () => {
     if (ouvert?.genre !== "nom") return;
@@ -205,17 +253,28 @@
   champ.addEventListener("input", reste);
   $(".nom .oui").onclick = valider;
   $(".nom .non").onclick = () => fermer();
-  const dessinerSup = () => [$(".sup .non"), $(".sup .oui")].forEach((b, k) => b.classList.toggle("k", k === ouvert.k));
+  $(".nom .clav").onclick = clavier;
+  const dessinerSup = () => {
+    const l = [$(".sup .non"), ...ouvert.autre ? [$(".sup .alt")] : [], $(".sup .oui")], t = [ouvert.non, ...ouvert.autre ? [ouvert.autre.texte] : [], ouvert.oui];
+    $(".sup .alt").hidden = !ouvert.autre;
+    $(".carte.sup").classList.toggle("trois", !!ouvert.autre);
+    ouvert.n = l.length;
+    l.forEach((b, k) => {
+      b.classList.toggle("k", k === ouvert.k);
+      b.classList.toggle("plein", k === ouvert.plein);
+      b.textContent = t[k];
+    });
+    legendeBas(ouvert.k ? [[2, ouvert.non], [1, t[ouvert.k]]] : [[1, ouvert.non]]);
+  };
   const demander = (o) => {
     $(".sup .t").firstElementChild.outerHTML = rond(o.ic || "suppr", o);
     $(".sup .t span").textContent = o.titre;
     $(".sup p").textContent = o.texte;
-    $(".sup .non").innerHTML = `${glyphe(2)}${o.non}`;
-    $(".sup .oui").innerHTML = `${glyphe(1)}${o.oui}`;
-    $(".sup .oui").classList.toggle("rouge", o.rouge !== false);
-    montrer({ genre: "sup", k: o.rouge === false ? 1 : 0, ok: o.ok, dessous: o.dessous });
+    const k = o.danger === false ? o.autre ? 2 : 1 : 0;
+    montrer({ genre: "sup", k, plein: k, ok: o.ok, autre: o.autre, dessous: o.dessous, ailleurs: o.ailleurs, non: o.non, oui: o.oui });
     racine.classList.add("boite-ouverte");
     $(".carte.sup").classList.add("on");
+    window.__pcvApparition($(".carte.sup"));
     dessinerSup();
     son("choisir");
     return true;
@@ -231,14 +290,45 @@
       texte: d.n ? d.n === 1 ? T("dossier.contenu_un") : T("dossier.contenu_n", { n: d.n }) : T("dossier.vide")
     });
   };
-  const confirmer = () => {
+  const confirmer = (autre) => {
     if (ouvert?.genre !== "sup") return;
     const o = ouvert;
     fermer(false);
-    o.ok();
+    (autre ? o.autre.ok : o.ok)();
   };
-  $(".sup .oui").onclick = confirmer;
+  $(".sup .oui").onclick = () => confirmer();
+  $(".sup .alt").onclick = () => confirmer(true);
   $(".sup .non").onclick = () => fermer();
+  const dessinerListe = () => {
+    const l = $(".liste .elts").children;
+    [...l].forEach((b, k) => b.classList.toggle("k", k === ouvert.k));
+    l[ouvert.k]?.scrollIntoView({ block: "nearest" });
+  };
+  const liste = (o) => {
+    if (!o.choix?.length) return false;
+    $(".liste .t").innerHTML = `${o.ic || o.svg ? rond(o.ic || "reglages", o) : ""}<span>${echap(o.titre)}</span>`;
+    $(".liste .elts").innerHTML = o.choix.map((c, k) => `<button data-k="${k}"${k === o.v || o.coches?.includes(k) ? ' class="oui"' : ""}${o.grises?.includes(k) ? " disabled" : ""}>${echap(c)}<i>\u2713</i></button>`).join("");
+    legendeBas([[2, T("touche.retour")], [1, T("touche.choisir")]]);
+    montrer({ genre: "liste", k: Math.max(0, o.v ?? 0), n: o.choix.length, ok: o.ok, grises: o.grises, dessous: o.dessous, ailleurs: o.ailleurs });
+    racine.classList.add("boite-ouverte");
+    $(".carte.liste").classList.add("on");
+    window.__pcvApparition($(".carte.liste"));
+    dessinerListe();
+    son("choisir");
+    return true;
+  };
+  const prendre = (k) => {
+    if (ouvert?.genre !== "liste") return;
+    if (ouvert.grises?.includes(k)) return son("bord");
+    const o = ouvert;
+    fermer(false);
+    son("choisir");
+    o.ok(k);
+  };
+  $(".liste .elts").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (b) prendre(+b.dataset.k);
+  });
   $(".voile").addEventListener("pointerdown", (e) => {
     e.stopPropagation();
     fermer();
@@ -246,7 +336,7 @@
   const PLACES = 10, NOM_MAX = 20;
   const appel = (m, ...a) => window.opener.DeckyBackend.call("loader/call_plugin_method", window.__pcvGreffon.nom, m, ...a);
   let DD = null, occupe = false;
-  const P = { genre: "dispo", k: 0 };
+  const P = { genre: "dispo", k: 0, bt: -1 };
   const actuelle = () => ({ ...acc().disposition(), theme: window.__pcvThemes?.actuel?.() || null });
   const empreinte = (d) => {
     let h = 0;
@@ -293,9 +383,12 @@
   };
   const choisirVig = () => {
     const k = P.k, plein = !!DD?.l[k];
-    [...$(".dispo .rang").children].forEach((b, j) => b.classList.toggle("k", j === k));
+    [...$(".dispo .rang").children].forEach((b, j) => b.classList.toggle("k", j === k && !(P.bt >= 0)));
     $(".dispo .rang").style.transform = `translateX(calc(var(--u) * ${-Math.max(0, Math.min(PLACES - 5, k - 2)) * 190}))`;
-    $(".dispo .leg").innerHTML = `<button data-b="2">${glyphe(2)}${T("dispo.fermer")}</button>` + (!DD ? "" : (plein ? `<button data-b="4">${glyphe(4)}${T("dispo.options")}</button>` : "") + `<button data-b="1" class="oui">${glyphe(1)}${T(plein ? "dispo.charger" : "dispo.enregistrer")}</button>`);
+    const l = [DD && plein && [3, T("touche.options")], [2, T("touche.retour")], DD && [1, T(plein ? "dispo.charger" : "dispo.enregistrer")]].filter(Boolean);
+    if (P.bt >= l.length) P.bt = l.length - 1;
+    $(".dispo .leg").innerHTML = l.map(([b, t], j) => `<button data-b="${b}" class="${b === 1 ? "plein" : ""}${j === P.bt ? " k" : ""}">${t}</button>`).join("");
+    legendeBas(l);
   };
   const charger = (k) => agirSur(k, async () => {
     const d = DD.l[k], th = window.__pcvThemes;
@@ -334,7 +427,7 @@
       texte: T("dispo.change_texte", { ici: nomDe(ici), nom: d.nom }),
       non: T("dispo.annuler"),
       oui: T("dispo.enregistrer_charger"),
-      rouge: false,
+      danger: false,
       dessous: P,
       ok: () => agirSur(ici, () => enregistrer(ici)).then((ok) => ok && charger(k))
     });
@@ -390,9 +483,11 @@
       DD = r?.ok ? { courant: null, ref: null, ...r.d || {} } : null;
       if (DD) DD.l = Array.from({ length: PLACES }, (_, k) => DD.l?.[k] || null);
       P.k = DD?.courant ?? 0;
+      P.bt = -1;
       montrer(P);
       racine.classList.add("boite-ouverte");
       $(".carte.dispo").classList.add("on");
+      window.__pcvApparition($(".carte.dispo"));
       vignettes();
       info(DD ? "" : T("dispo.illisible"));
       son("choisir");
@@ -443,13 +538,50 @@
       return true;
     }
     if (ouvert.genre === "nom") {
-      if (b === 1) valider();
-      else if (b === 3 || b === 4) clavier();
+      if (b === 11 || b === 12) {
+        const k = ouvert.k + (b === 12 ? 1 : -1);
+        if (k < 0 || k > 2) son("bord");
+        else {
+          ouvert.k = k;
+          dessinerNom();
+          son("bouge");
+        }
+      } else if (b === 1) [clavier, () => fermer(), valider][ouvert.k]();
+      else if (b === 3) clavier();
+      else son("bord");
       return true;
     }
     if (ouvert.genre === "dispo") {
       if (occupe || !DD) return true;
-      if (b === 11 || b === 12) {
+      const bts = [...$(".dispo .leg").children];
+      if (ouvert.bt >= 0) {
+        if (b === 11 || b === 12) {
+          const j = ouvert.bt + (b === 12 ? 1 : -1);
+          if (j < 0 || j >= bts.length) son("bord");
+          else {
+            ouvert.bt = j;
+            choisirVig();
+            son("bouge");
+          }
+        } else if (b === 9) {
+          ouvert.bt = -1;
+          choisirVig();
+          son("bouge");
+        } else if (b === 1) {
+          const v = +bts[ouvert.bt].dataset.b;
+          ouvert.bt = -1;
+          choisirVig();
+          if (v !== 1) return touche(v);
+          aDispo();
+        } else if (b === 3 && DD.l[ouvert.k]) optionsDispo();
+        else son("bord");
+        return true;
+      }
+      if (b === 10 && bts.length) {
+        ouvert.bt = bts.length - 1;
+        choisirVig();
+        son("bouge");
+      } else if (b === 11 || b === 12) {
         const k = ouvert.k + (b === 12 ? 1 : -1);
         if (k < 0 || k >= PLACES) son("bord");
         else {
@@ -458,28 +590,42 @@
           son("bouge");
         }
       } else if (b === 1) aDispo();
-      else if (b === 4 && DD.l[ouvert.k]) optionsDispo();
+      else if (b === 3 && DD.l[ouvert.k]) optionsDispo();
+      else son("bord");
+      return true;
+    }
+    if (ouvert.genre === "liste") {
+      if (b === 9 || b === 10) {
+        const k = ouvert.k + (b === 10 ? 1 : -1);
+        if (k < 0 || k >= ouvert.n) son("bord");
+        else {
+          ouvert.k = k;
+          dessinerListe();
+          son("bouge");
+        }
+      } else if (b === 1) prendre(ouvert.k);
+      else son("bord");
       return true;
     }
     if (b === 11 || b === 12) {
-      const k = b === 12 ? 1 : 0;
-      if (k !== ouvert.k) {
+      const k = ouvert.k + (b === 12 ? 1 : -1);
+      if (k >= 0 && k < ouvert.n) {
         ouvert.k = k;
         dessinerSup();
         son("bouge");
       } else son("bord");
     } else if (b === 1) {
-      if (ouvert.k) confirmer();
-      else fermer();
+      if (!ouvert.k) fermer();
+      else confirmer(ouvert.k < ouvert.n - 1);
     }
     return true;
   };
   (window.__pcvManette ||= {}).dossiers = (b) => touche(b);
   const ordre = () => {
     const o = window.__pcvOrdre;
-    if (!Array.isArray(o) || o.includes("dossiers")) return;
-    const k = ["barre", "deco", "place", "console"].map((n) => o.indexOf(n)).find((x) => x >= 0);
-    o.splice(k ?? o.length, 0, "dossiers");
+    if (!Array.isArray(o) || o[0] === "dossiers") return;
+    if (o.includes("dossiers")) o.splice(o.indexOf("dossiers"), 1);
+    o.unshift("dossiers");
   };
   const clavierPage = (e) => {
     if (!ouvert) return;
@@ -495,7 +641,7 @@
   const tic = setInterval(() => {
     ordre();
     const c = document.getElementById("pcv-console");
-    if (ouvert && (!c || c.hidden)) fermer(false);
+    if (ouvert && !ouvert.ailleurs && (!c || c.hidden)) fermer(false);
   }, 300);
   fins.push(() => {
     clearInterval(tic);
@@ -505,7 +651,7 @@
     delete window.__pcvManette?.dossiers;
   });
   ordre();
-  window.__pcvDossiers = { menu, choix, creer, renommer, supprimer, dispositions, modal: () => !!ouvert, fermer: (bruit) => fermer(bruit), etat: () => ouvert && { genre: ouvert.genre, k: ouvert.k } };
+  window.__pcvDossiers = { menu, choix, demander, liste, creer, renommer, supprimer, dispositions, modal: () => !!ouvert, fermer: (bruit) => fermer(bruit), etat: () => ouvert && { genre: ouvert.genre, k: ouvert.k } };
   fins.push(() => {
     if (window.__pcvDossiers?.menu === menu) delete window.__pcvDossiers;
   });

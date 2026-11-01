@@ -12,12 +12,14 @@ def _donnees():
     return "~/" + os.path.relpath(d, maison) if d and maison and d.startswith(maison.rstrip("/") + "/") else d
 GREFFON_JS = "window.__pcvGreffon = " + json.dumps({"nom": NOM, "donnees": _donnees()}, ensure_ascii=False)
 ANCIEN_NOM, ANCIEN_DOSSIER = "Premium Clear View", "premium-clear-view"
-SCRIPTS_PRINCIPALE = ["secours.js", "icones.js", "i18n.js", "steam-bridge.js", "apparence.js", "barre-haut.js", "bibliotheque.js", "alimentation.js", "accueil.js", "vendor/three.min.js", "vendor/three-gltf.js", "mii3d.js", "vrais-mii.js", "garde-robe.js", "sons.js", "nintendo.js", "credits.js", "steamu.js", "mii-base.js", "vendor/qrcodegen.js", "mii-qr.js", "mii-maker.js", "themes.js", "themeplaza.js", "themezer.js", "led.js", "console.js", "mii-accueil.js", "arcade.js", "luigi-vrai.js", "luigi-wonder.js", "casino.js", "casino-jeux.js", "deco.js", "dossiers.js", "perso.js", "fiche.js", "place.js", "place3d.js", "profil.js", "amis.js", "notifs.js", "medias.js", "recherche.js", "collections.js", "connexion.js"]
-SCRIPTS_MENU = ["secours.js", "icones.js", "i18n.js", "steam-bridge.js", "menu-pont.js", "menus-commun.js", "menu-home.js"]
-SCRIPTS_ACCES = ["secours.js", "icones.js", "i18n.js", "steam-bridge.js", "menus-commun.js", "acces-rapide.js"]   
-SCRIPTS_BULLES = ["secours.js", "apparence-suivre.js"]   
+SCRIPTS_PRINCIPALE = ["secours.js", "demarrage.js", "icones.js", "i18n.js", "steam-bridge.js", "relations-theme.js", "compte.js", "apparence.js", "barre-haut.js", "presentation.js", "bibliotheque.js", "eshop.js", "eshop-jeux.js", "alimentation.js", "accueil.js", "vendor/three.min.js", "vendor/three-gltf.js", "mii3d.js", "vrais-mii.js", "garde-robe.js", "sons.js", "nintendo.js", "credits.js", "reglages.js", "steamu.js", "stockage.js", "parametres.js", "mii-base.js", "vendor/qrcodegen.js", "mii-qr.js", "mii-maker.js", "themes.js", "themeplaza.js", "themezer.js", "eshop-themes.js", "led.js", "console.js", "mii-accueil.js", "arcade.js", "luigi-vrai.js", "luigi-wonder.js", "casino.js", "casino-jeux.js", "deco.js", "dossiers.js", "perso.js", "fiche.js", "place.js", "place3d.js", "profil.js", "amis.js", "bienvenue.js", "notifs.js", "spotpass.js", "telechargements.js", "medias.js", "mediatheque.js", "recherche.js", "collections.js", "connexion.js"]
+SCRIPTS_MENU = ["secours.js", "icones.js", "i18n.js", "steam-bridge.js", "relations-theme.js", "menu-pont.js", "menus-commun.js", "menu-home.js"]
+SCRIPTS_ACCES = ["secours.js", "icones.js", "i18n.js", "steam-bridge.js", "relations-theme.js", "menus-commun.js", "acces-rapide.js"]   
+SCRIPTS_AVANT_CONNEXION = ["relations-theme.js", "icones.js", "i18n.js", "compte.js", "apparence.js", "themes.js", "demarrage.js"]
+SCRIPTS_BULLES = ["relations-theme.js", "secours.js", "apparence-suivre.js"]   
 VENDOR_JS = "if (!(window.__pcvVendor || {})[%s]) {\n%s\n;(window.__pcvVendor ||= {})[%s] = 1; }"
-if os.environ.get("PCV_SANS_CONNEXION"): SCRIPTS_PRINCIPALE.remove("connexion.js")   
+if os.environ.get("PCV_SANS_CONNEXION"):
+    SCRIPTS_PRINCIPALE.remove("connexion.js"); SCRIPTS_PRINCIPALE.remove("demarrage.js"); SCRIPTS_AVANT_CONNEXION.remove("demarrage.js")   
 
 AVANT_CONNEXION_JS = r"""(() => { try {
   const s = window.SteamUIStore?.WindowStore?.GamepadUIMainWindowInstance;
@@ -86,8 +88,53 @@ def compiler(texte, modules):
         return classes[0] if len(classes) == 1 else ":is(" + ", ".join(classes) + ")"
     return re.sub(r"\{\{(\w+)@(\w+)\}\}", classe, texte)
 
+CLASSE_SEULE = re.compile(r"\s*\.-?[_a-zA-Z][-\w]*\s*")
+def _scinder(sel):
+    out, prof, cur = [], 0, ""
+    for c in sel:
+        prof += c in "([" ; prof -= c in ")]"
+        if c == "," and prof == 0: out.append(cur); cur = ""
+        else: cur += c
+    return out + [cur]
+def _etaler_selecteur(sel):
+    s = sel.strip(); prof, k = 0, 0
+    for i in range(len(s) - 1, -1, -1):   
+        prof += s[i] in ")]"; prof -= s[i] in "(["
+        if prof == 0 and s[i] in " >+~": k = i + 1; break
+    comp, prof = s[k:], 0
+    for i, c in enumerate(comp):          
+        if prof == 0 and comp.startswith(":is(", i):
+            j, p = i + 4, 1
+            while p: p += comp[j] == "("; p -= comp[j] == ")"; j += 1
+            args = _scinder(comp[i + 4:j - 1])
+            if len(args) < 2 or not all(CLASSE_SEULE.fullmatch(a) for a in args): return [sel]
+            return [s[:k] + comp[:i] + a.strip() + comp[j:] for a in args]
+        prof += c == "("; prof -= c == ")"
+    return [sel]
+def etaler(css):
+    out, k, debut, pile = [], 0, 0, []
+    while k < len(css):
+        if css.startswith("/*", k): k = css.index("*/", k + 2) + 2; continue
+        c = css[k]
+        if c in "\"'":
+            k += 1
+            while css[k] != c: k += 2 if css[k] == "\\" else 1
+        elif c == "{":
+            tete = re.sub(r"/\*.*?\*/", "", css[debut:k], flags=re.S); t = tete.strip()   
+            pile.append("kf" if (pile and pile[-1] == "kf") or t.startswith(("@keyframes", "@-webkit-keyframes")) else "@" if t.startswith("@") else "r")
+            if pile[-1] == "r":
+                parts = _scinder(tete); tout = [x for p in parts for x in _etaler_selecteur(p)]
+                if len(tout) != len(parts): out.append((debut, k, " " + ", ".join(x.strip() for x in tout) + " "))
+            debut = k + 1
+        elif c == "}": pile and pile.pop(); debut = k + 1
+        elif c == ";": debut = k + 1
+        k += 1
+    for a, b, t in reversed(out): css = css[:a] + t + css[b:]
+    return css
+
 def poser_style(ident, css, version):
-    return f"""(() => {{ let s = document.getElementById({json.dumps(ident)}); if (s && s.dataset.v === {json.dumps(version)}) return 0;
+    return f"""(() => {{ const h = document.documentElement; if (!h.dataset.pcvApparence) try {{ const a = JSON.parse(localStorage.getItem("pcv-apparence-posee")); if (["clair", "gris", "noir"].includes(a)) h.dataset.pcvApparence = a; }} catch (e) {{}}
+      let s = document.getElementById({json.dumps(ident)}); if (s && s.dataset.v === {json.dumps(version)}) return 0;
       if (!s) {{ s = document.createElement('style'); s.id = {json.dumps(ident)}; (document.head || document.documentElement).appendChild(s); }}
       s.textContent = {json.dumps(css)}; s.dataset.v = {json.dumps(version)}; return 1; }})()"""
 
@@ -216,6 +263,10 @@ def ancien_actif(tous_les=5):
         _ancien[0] = time.time()
     return _ancien[1]
 
+def pid_steam():
+    try: return min(int(p.name) for p in pathlib.Path("/proc").iterdir() if p.name.isdigit() and (p / "comm").read_text().strip() == "steam")
+    except (ValueError, OSError): return None
+
 class Secours:
     def __init__(self, fichier=None, horloge=time.time):
         self.fichier, self.horloge = fichier, horloge
@@ -237,12 +288,15 @@ class Secours:
             os.replace(tmp, f)
         except Exception: pass
 
-    def contexte(self, ident):
+    def contexte(self, ident, steam=None):
         if not ident: return
         t = self.horloge()
         if ident == self.ctx: self.vu = t; return
         ancien, pose, vu = self.ctx, self.pose, self.vu
         self.ctx, self.pose, self.vu = ident, None, t
+        steam = steam() if callable(steam) else steam   
+        avant, self.steam = getattr(self, "steam", None), steam
+        if avant and steam and steam != avant: self.fenetres = {}; return
         self.fenetres = {}   
         if ancien is None: return                                    
         if ancien == self.voulu: self.voulu = None; return           
@@ -291,16 +345,51 @@ class Secours:
 secours = Secours()            
 etat_scripts = {}              
 
+def fenetre_principale(c):
+    t, url = c["title"], c.get("url", "")
+    return c.get("type") == "page" and url.startswith("about:blank") and "Gamepad" in url and ("Big" in t or t == "SP")
+
+TOASTS_TOT = "html:not([data-pcv-toasts]) :is({{GamepadToastPlaceholder@GamepadToastPlaceholder}}, {{GamepadToastPopup@GamepadToastPopup}}) { visibility: hidden !important; }"
+
+TOASTS_BULLES = "html:not([data-pcv-toasts]) body { visibility: hidden !important; }"
+
+def poser_toasts(cibles, carte):
+    css = compiler(TOASTS_TOT, carte)
+    for c in cibles:
+        if fenetre_principale(c): evaluer(c, poser_style("pcv-toasts-tot", css, "1"))
+        elif c["title"].startswith("notificationtoasts"): evaluer(c, poser_style("pcv-toasts-tot", TOASTS_BULLES, "2"))
+
+def poser_avant_connexion(DOSSIER, cibles, carte, journal):
+    ident, modules = carte; cle = "avant:" + ident
+    theme, v_theme = preparer(DOSSIER / "theme-wiiu.src.css", lambda t: etaler(compiler(t, modules)), cle)
+    scripts = {n: preparer(DOSSIER / "greffon" / n, lambda t: compiler(t, modules), cle) for n in SCRIPTS_AVANT_CONNEXION if (DOSSIER / "greffon" / n).exists()}
+    version = "avant-" + hashlib.sha1(" ".join(n + ":" + v for n, (_, v) in scripts.items()).encode()).hexdigest()[:12]
+    for c in cibles:
+        t = c["title"]
+        if secours.pause or arreter: return
+        if not fenetre_principale(c): continue
+        v_page, s_page = deja(c, "theme-clair")
+        if v_page != v_theme and evaluer(c, poser_style("theme-clair", theme, v_theme)): journal("thème (avant connexion) →", t)
+        if s_page == version: continue
+        evaluer(c, GREFFON_JS)
+        for n, (code, _) in scripts.items():
+            erreur = evaluer(c, code, erreur=True)[1]
+            if erreur: journal("greffon : erreur à la pose de", n, "(avant connexion) →", t, ":", erreur[:160])
+        evaluer(c, f"window.__pcvScripts = {json.dumps(version)}")
+        journal("greffon (avant connexion) →", t, "(" + ", ".join(scripts) + ")")
+
 def boucle(DOSSIER, ecrire=None):
     journal = (lambda *a: ecrire(" ".join(map(str, a)))) if ecrire else _journal
     modules, cle_modules, dernier, garder, garde_ctx, ancien_annonce = None, None, None, True, None, None
     connexion = None   
+    carte_avant = None   
+    couvertes = set()    
     while not arreter:
         try:
             cibles = json.load(urllib.request.urlopen(DEBOGUEUR, timeout=3))
             partage = next((c for c in cibles if c["title"] == "SharedJSContext"), None)
             principale = any(c.get("type") == "page" and ("Big" in c["title"] or c["title"] == "SP") for c in cibles)
-            secours.contexte(partage and partage["id"])
+            secours.contexte(partage and partage["id"], pid_steam)
             if ancien_actif():   
                 nettoyer(set())
                 if partage and principale and ancien_annonce != partage["id"] and evaluer(partage, annonce_js("ancien")):
@@ -323,17 +412,29 @@ def boucle(DOSSIER, ecrire=None):
             if not partage or not principale:
                 time.sleep(1); continue
             avant_connexion = evaluer(partage, AVANT_CONNEXION_JS)
+            if modules or carte_avant: poser_toasts(cibles, modules or carte_avant[1])
             etat_connexion = "prête" if avant_connexion is False else "avant connexion" if avant_connexion is True else "signal indisponible"
             if etat_connexion != connexion:
                 connexion = etat_connexion; journal("connexion Steam :", connexion)
             if avant_connexion is not False:
-                nettoyer({c["id"] for c in cibles}); fermer(partage["id"])
+                nettoyer({c["id"] for c in cibles})
+                if avant_connexion is True:
+                    if not carte_avant or carte_avant[0] != partage["id"]:
+                        carte = evaluer(partage, CARTE_JS)
+                        if carte and len(carte) > 200: carte_avant = (partage["id"], carte); journal("carte des classes (avant connexion) :", len(carte), "modules")
+                    if carte_avant: poser_avant_connexion(DOSSIER, cibles, carte_avant, journal)
+                fermer(partage["id"])
                 time.sleep(1); continue
             if partage and principale and partage["id"] != cle_modules:
                 carte = evaluer(partage, CARTE_JS); fermer(partage["id"])   
-                if carte and len(carte) > 200: modules, cle_modules, garder = carte, partage["id"], True; journal("carte des classes :", len(modules), "modules")
+                if carte and len(carte) > 200: modules, cle_modules, garder = carte, partage["id"], True; couvertes.clear(); journal("carte des classes :", len(modules), "modules")
             if modules is None: time.sleep(1); continue
-            theme, v_theme = preparer(DOSSIER / "theme-wiiu.src.css", lambda t: compiler(t, modules), cle_modules)
+            if "demarrage.js" in SCRIPTS_PRINCIPALE and not secours.chutes and (DOSSIER / "greffon" / "demarrage.js").exists():
+                couverture = preparer(DOSSIER / "greffon" / "demarrage.js", lambda t: compiler(t, modules), cle_modules)[0]
+                for c in cibles:
+                    if fenetre_principale(c) and c["id"] not in couvertes and not (secours.pause or arreter):
+                        evaluer(c, couverture); couvertes.add(c["id"]); journal("couverture du démarrage →", c["title"])
+            theme, v_theme = preparer(DOSSIER / "theme-wiiu.src.css", lambda t: etaler(compiler(t, modules)), cle_modules)
             scripts, versions = {}, []
             for n in dict.fromkeys(SCRIPTS_PRINCIPALE + SCRIPTS_MENU + SCRIPTS_ACCES + SCRIPTS_BULLES):
                 if not (DOSSIER / "greffon" / n).exists(): continue

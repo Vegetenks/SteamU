@@ -48,13 +48,14 @@
   const familleTheme = () => document.documentElement.dataset.pcvFamille === "3ds" ? "3ds" : "wiiu";
   const forme = (z = ZOOMS[zi]) => {
     const F = FORMES[familleTheme()], j = F.joint && (F.joint[ZOOMS.indexOf(z)] ?? F.joint.at(-1)), d = j ? Math.max(0, (z.g - j * (z.c + z.g)) / 2) : z.g * F.debord, t = z.c + 2 * d;
-    return { d, pad: t * F.marge, im: t * (1 - 2 * F.marge), bo: t * F.marge - d };
+    return { d, arr: z.c * 0.15, pad: t * F.marge, im: t * (1 - 2 * F.marge), bo: t * F.marge - d };
   };
   const DOSSIERS = { max: 60, elements: 60, nom: 17 };
   const GRILLE = { accueil: 360, dossier: 24, libreFin: 0.4 };
-  const CADRE = { cote: 40, haut: -4, bas: -6 };
+  const CADRE = { haut: -4, bas: -6 };
   const ECUSSON = { taille: 0.5 }, SORTIE_MS = 260;
   const GRILLE_HAUT = 8, DEBORD_SEL = 56;
+  const ZONE_H = 2 * GRILLE_HAUT + Math.max(...ZOOMS.map((z) => z.r * z.c + (z.r - 1) * z.g));
   const IM_DEFAUT = { position: "center 18%", taille: "cover" };
   const icoEntete = (n) => window.__pcvIcones.svg(n, { attrs: 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"' });
   const racine = document.createElement("div");
@@ -74,14 +75,14 @@
     html[data-pcv-fond="image"] #pcv-console .titre { padding: calc(var(--u) * 4) calc(var(--u) * 16); margin-left: calc(var(--u) * -16); border-radius: calc(var(--u) * 20);
       background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); text-shadow: none; }
     
-    #pcv-console { --pcv-zone-haut: calc(var(--u) * 52); --pcv-zone-h: calc(var(--u) * 480); }
+    #pcv-console { --pcv-zone-haut: calc(var(--u) * 52); --pcv-zone-h: calc(var(--u) * ${ZONE_H}); }
     
     #pcv-console.une-rangee:not(.dans-dossier) { --pcv-zone-haut: calc(var(--u) * 116); }
     #pcv-console.une-rangee:not(.dans-dossier) .titre { top: calc(var(--u) * 50); }
     #pcv-console.une-rangee:not(.dans-dossier) .infos { top: calc(var(--u) * 442); }
-    #pcv-console .zone { touch-action: none; position: absolute; left: 0; right: 0; top: var(--pcv-zone-haut); height: var(--pcv-zone-h); }
+    #pcv-console .zone { touch-action: none; position: absolute; z-index: 0;    left: 0; right: 0; top: var(--pcv-zone-haut); height: var(--pcv-zone-h); }
     #pcv-console .grille { position: absolute; left: calc(var(--u) * 64); top: calc(var(--u) * ${GRILLE_HAUT}); display: grid; grid-auto-flow: column;
-      grid-template-rows: repeat(var(--r), calc(var(--u) * var(--c))); grid-auto-columns: calc(var(--u) * var(--c)); gap: calc(var(--u) * var(--g));
+      grid-auto-columns: calc(var(--u) * var(--c)); gap: calc(var(--u) * var(--g));
       transition: transform .25s cubic-bezier(.3,1.2,.5,1); will-change: transform; }   
     
     html[data-pcv-plaque] #pcv-console:not(.dans-dossier) .zone { top: calc(var(--pcv-zone-haut) - var(--u) * ${DEBORD_SEL}); height: calc(var(--pcv-zone-h) + var(--u) * ${DEBORD_SEL}); }
@@ -98,13 +99,15 @@
     #pcv-console .fantome.vide { box-shadow: none; }
     #pcv-console .cel.vise-libre { box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), 0 0 0 calc(var(--u) * 8) var(--pcv-rangement) !important; background: color-mix(in srgb, var(--pcv-carte) 18%, transparent) !important; }
     #pcv-console .cel.vise-echange { box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), 0 0 0 calc(var(--u) * 8) var(--pcv-rangement) !important; transform: scale(.9); opacity: .8; transition: transform .15s, opacity .15s; }
-    #pcv-console .cel .im { width: 100%; height: 100%; border-radius: calc(var(--u) * var(--c) * .15); background: var(--pcv-creux) ${IM_DEFAUT.position} / ${IM_DEFAUT.taille}; position: relative; overflow: hidden; }
+    #pcv-console .cel .im { width: 100%; height: 100%; border-radius: calc(var(--u) * var(--arr)); background: var(--pcv-creux) ${IM_DEFAUT.position} / ${IM_DEFAUT.taille}; position: relative; overflow: hidden; }
     #pcv-console .cel .im::after { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, color-mix(in srgb, var(--pcv-carte) 40%, transparent), transparent 35%); }
     
-    #pcv-console .cel.app .im { display: flex; align-items: center; justify-content: center; background: var(--fond);
-      box-shadow: inset 0 calc(var(--u) * var(--c) * -.04) calc(var(--u) * var(--c) * .08) rgba(0,0,0,.18); }
-    #pcv-console .cel.app .im::after { background: linear-gradient(180deg, color-mix(in srgb, var(--pcv-carte) 45%, transparent), transparent 48%); }
-    #pcv-console .cel.app .im svg { position: relative; z-index: 1; width: 58%; height: 58%; filter: drop-shadow(0 calc(var(--u) * var(--c) * .012) 0 rgba(0,0,0,.18)); }
+    #pcv-console .cel.app .im > .pcv-marque-relief { --pcv-relief-teinte: var(--pcv-relief-franc); --pcv-relief-taille: calc(var(--u) * var(--im)); border-radius: inherit; box-shadow: var(--pcv-reflet); }
+    #pcv-console .cel.app .im::after { content: none; }
+    
+    #pcv-console .cel .im.nomme { background: var(--fond); display: flex; align-items: center; justify-content: center; padding: 8%; text-align: center; color: var(--pcv-sur-accent); }
+    #pcv-console .cel .im.nomme > .pcv-nom { position: relative; z-index: 1; font-size: calc(var(--u) * var(--c) * .115); font-weight: 900; line-height: 1.15; overflow-wrap: anywhere;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 2px rgb(0 0 0 / .25); }
     
     #pcv-console .rien { position: absolute; left: calc(var(--u) * 64); bottom: calc(var(--u) * 96); display: none; align-items: center; gap: calc(var(--u) * 12);
       padding: calc(var(--u) * 8) calc(var(--u) * 20) calc(var(--u) * 8) calc(var(--u) * 8); border-radius: calc(var(--u) * 26); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre);
@@ -114,8 +117,7 @@
     #pcv-console .rien i { width: calc(var(--u) * 38); height: calc(var(--u) * 38); border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, #b9a4ff, #6d4fd6); }
     #pcv-console .rien i svg { width: 58%; height: 58%; }
     
-    #pcv-console .chem .ap b.a { display: flex; align-items: center; justify-content: center; }
-    #pcv-console .chem .ap b.a svg { width: 70%; height: 70%; }
+    #pcv-console .chem .ap b.a > .pcv-marque-relief { --pcv-relief-taille: calc(var(--u) * var(--im) * .68 * .38); width: 100%; height: 100%; border-radius: inherit; box-shadow: none; }
     
     #pcv-console .cel .im > video.pcv-anim, #pcv-console .cel .im > .pcv-anim-dessus { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; pointer-events: none; }
     #pcv-console .cel .im > video.pcv-anim { object-fit: fill; background: var(--pcv-creux); }
@@ -134,16 +136,18 @@
     #pcv-console .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { content: ""; position: absolute; left: 50%; top: 50%; width: calc(var(--u) * (var(--c) + var(--g)) * .35); aspect-ratio: 1;
       transform: translate(-50%, -50%); border-radius: 42%; background: color-mix(in srgb, var(--pcv-carte) 40%, transparent);
       box-shadow: inset 0 0 0 calc(var(--u) * 1.5) rgb(from var(--pcv-ombre-c) r g b / .16); pointer-events: none; }
-    #pcv-console .grille:has(.porte) .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { background: color-mix(in srgb, var(--pcv-carte) 65%, transparent); }
     
-    body:not(.pcv-zone-jaquettes) #pcv-console .cel.vide.sel { box-shadow: none; }
-    body.pcv-zone-jaquettes #pcv-console .cel.vide.sel { transform: none; box-shadow: 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 color-mix(in srgb, var(--pcv-cyan-plein) 30%, transparent); }
+    #pcv-console .grille.en-rangement .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { background: color-mix(in srgb, var(--pcv-carte) 65%, transparent); }
+    
+    
+    body:not(.pcv-zone-jaquettes) #pcv-console .sel.cel.vide { box-shadow: none; }
+    body.pcv-zone-jaquettes #pcv-console .sel.cel.vide { transform: none; box-shadow: 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 color-mix(in srgb, var(--pcv-cyan-plein) 30%, transparent); }
     #pcv-console .cel.couverte, #pcv-console .cel.ancre:not(.sel) { background: none !important; box-shadow: none !important; }
     #pcv-console .cel.couverte.sel { outline: calc(var(--u) * 3) dashed var(--pcv-cyan-plein); outline-offset: calc(var(--u) * -3); }
     
-    body.pcv-zone-jaquettes #pcv-console .cel.vide.sel:has(> .bdg) { box-shadow: none; }
-    body.pcv-zone-jaquettes #pcv-console .cel.vide.sel:has(> .bdg)::before { content: none; }
-    body.pcv-zone-jaquettes #pcv-console .cel.sel > .bdg::after { content: ""; position: absolute; inset: 0; border-radius: calc(var(--u) * var(--c) * .18); pointer-events: none;
+    body.pcv-zone-jaquettes #pcv-console .sel.cel.vide:has(> .bdg) { box-shadow: none; }
+    body.pcv-zone-jaquettes #pcv-console .sel.cel.vide:has(> .bdg)::before { content: none; }
+    body.pcv-zone-jaquettes #pcv-console .sel.cel > .bdg::after { content: ""; position: absolute; inset: 0; border-radius: calc(var(--u) * var(--c) * .18); pointer-events: none;
       box-shadow: inset 0 0 0 calc(var(--u) * var(--si, 0)) var(--pcv-cyan-plein), 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 color-mix(in srgb, var(--pcv-cyan-plein) 30%, transparent); }
     
     #pcv-console .cel .bdg { position: absolute; inset: calc(var(--u) * var(--g) / -2 - .5px); background: center / contain no-repeat; image-rendering: pixelated; }
@@ -192,9 +196,12 @@
       clip-path: var(--dos-ouvert); }
     html[data-pcv-dossier="image"] #pcv-console .chem em { bottom: 7%; color: var(--pcv-texte); text-shadow: 0 0 calc(var(--u) * 3) rgb(var(--pcv-halo-rgb) / .9), 0 0 calc(var(--u) * 6) rgb(var(--pcv-halo-rgb) / .7); }   
     
-    #pcv-console .zone::before { content: ""; position: absolute; left: calc(var(--u) * ${CADRE.cote}); right: calc(var(--u) * ${CADRE.cote}); top: calc(var(--u) * ${CADRE.haut}); bottom: calc(var(--u) * ${CADRE.bas}); border-radius: calc(var(--u) * 34);
+    #pcv-console .zone::before { content: ""; position: absolute; left: calc(var(--u) * var(--dos-bord)); right: calc(var(--u) * var(--dos-bord)); top: calc(var(--u) * ${CADRE.haut}); bottom: calc(var(--u) * ${CADRE.bas}); border-radius: calc(var(--u) * 34);
       background: color-mix(in srgb, var(--pcv-accent, #2fb8ff) 16%, color-mix(in srgb, var(--pcv-carte) 30%, transparent)); box-shadow: inset 0 0 0 calc(var(--u) * 2) color-mix(in srgb, var(--pcv-carte) 55%, transparent); opacity: 0; transform: scale(.96); transition: opacity .3s, transform .3s; pointer-events: none; }
     #pcv-console.dans-dossier .zone::before { opacity: 1; transform: none; }
+    
+    #pcv-console.dans-dossier .grille { left: calc(var(--u) * var(--dos-g)); }
+    #pcv-console.dans-dossier .zone { clip-path: inset(calc(var(--u) * -200) calc(var(--u) * var(--dos-bord))); }
     
     #pcv-console .grille.partant { pointer-events: none; }
     #pcv-console.dans-dossier .titre { left: auto; right: calc(var(--u) * 64); }
@@ -217,14 +224,15 @@
       padding: 0 calc(var(--u) * 14) 0 calc(var(--u) * 8); border-radius: calc(var(--u) * 18); font-size: calc(var(--u) * 15); font-weight: 800;
       
       background: var(--pcv-verre); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 2px 0 rgb(from var(--pcv-ombre-c) r g b / .22); transition: transform .15s, box-shadow .15s; }
+    #pcv-console .entete button { position: relative; } #pcv-console .entete button::after { content: ""; position: absolute; inset: calc(var(--u) * -8) calc(var(--u) * -3); }   
     #pcv-console .entete button[hidden] { display: none; }
     #pcv-console .entete button i { width: calc(var(--u) * 20); height: calc(var(--u) * 20); flex: none; }
     #pcv-console .entete button i svg { width: 100%; height: 100%; }
     
     #pcv-console .entete button.choisi { transform: scale(1.06); box-shadow: 0 0 0 calc(var(--u) * 3) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 6) var(--pcv-cyan-plein); }
-    body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.sel { transform: none; box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 2px color-mix(in srgb, var(--pcv-carte) 80%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 20) rgba(0,0,0,.16); }
-    body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.vide.sel { box-shadow: none; }
-    body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.sel::before, body.pcv-zone-jaquettes #pcv-console.sur-tete .cel.sel > .bdg::after { content: none; }
+    body.pcv-zone-jaquettes #pcv-console.sur-tete .sel.cel { transform: none; box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 2px color-mix(in srgb, var(--pcv-carte) 80%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 20) rgba(0,0,0,.16); }
+    body.pcv-zone-jaquettes #pcv-console.sur-tete .sel.cel.vide { box-shadow: none; }
+    body.pcv-zone-jaquettes #pcv-console.sur-tete .sel.cel::before, body.pcv-zone-jaquettes #pcv-console.sur-tete .sel.cel > .bdg::after { content: none; }
     #pcv-console .entete button.cible { transform: scale(1.1); box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), 0 0 0 calc(var(--u) * 8) var(--pcv-rangement); }
     body.pcv-deco #pcv-console .entete { visibility: hidden; }
     #pcv-console .note { position: absolute; left: 50%; top: calc(var(--u) * 58); transform: translateX(-50%); padding: calc(var(--u) * 7) calc(var(--u) * 18); border-radius: calc(var(--u) * 20); z-index: 7;
@@ -234,9 +242,9 @@
     #pcv-console .cel.sel { z-index: 3; transform: scale(var(--sk, 1.05));
       box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent); }
     
-    body.pcv-zone-jaquettes #pcv-console .cel.sel::before { content: ""; position: absolute; inset: 0; z-index: 4; border-radius: inherit; pointer-events: none;
+    body.pcv-zone-jaquettes #pcv-console .sel.cel::before { content: ""; position: absolute; inset: 0; z-index: 4; border-radius: inherit; pointer-events: none;
       box-shadow: inset 0 0 0 calc(var(--u) * var(--si, 0)) var(--pcv-cyan-plein); }
-    body:not(.pcv-zone-jaquettes) #pcv-console .cel.sel { transform: none; box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 2px color-mix(in srgb, var(--pcv-carte) 80%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 20) rgba(0,0,0,.16); }
+    body:not(.pcv-zone-jaquettes) #pcv-console .sel.cel { transform: none; box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 2px color-mix(in srgb, var(--pcv-carte) 80%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 20) rgba(0,0,0,.16); }
     #pcv-console .cel.porte { transform: scale(1.15) rotate(5deg) translateY(calc(var(--u) * -8)) !important; z-index: 9;
       box-shadow: 0 0 0 calc(var(--u) * 5) var(--pcv-lisere), 0 0 0 calc(var(--u) * 10) var(--pcv-rangement), 0 calc(var(--u) * 22) calc(var(--u) * 34) rgba(0,0,0,.3) !important; }
     #pcv-console .cel.pulse { animation: pcvPulseC .5s ease-in-out 2; }
@@ -256,6 +264,7 @@
       padding: calc(var(--u) * 6); border-radius: calc(var(--u) * 30); background: var(--pcv-verre);    box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-weight: 900; font-size: calc(var(--u) * 15); }
     
     #pcv-console .zoom b { width: calc(var(--u) * 28); height: calc(var(--u) * 28); border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--pcv-creux); color: #fff; cursor: pointer; font-size: calc(var(--u) * 13); }
+    #pcv-console .zoom b { position: relative; } #pcv-console .zoom b::after { content: ""; position: absolute; inset: calc(var(--u) * -14); }   
     
     #pcv-console .zoom .pic { width: calc(var(--u) * 26); height: calc(var(--u) * 26); color: var(--pcv-cyan-plein); display: flex; }
     #pcv-console .zoom .pic svg { width: 100%; height: 100%; }
@@ -263,6 +272,11 @@
     #pcv-console .zoom i.on { background: var(--pcv-cyan-plein); box-shadow: 0 0 0 calc(var(--u) * 3) var(--pcv-anneau-c); }
     
     #pcv-console .bas { position: absolute; left: calc(var(--u) * 400); right: calc(var(--u) * 34); bottom: calc(var(--u) * 24); display: flex; justify-content: flex-end; gap: calc(var(--u) * 12); }
+    
+    
+    body.pcv-dossiers-ouvert #pcv-console .bas { visibility: hidden; }
+    
+    :is(body, .BasicUI):has(> #pcv-notifs:not([hidden]), > #pcv-amis:not([hidden]), > #pcv-profil:not([hidden])) #pcv-console .bas { visibility: hidden; }
     
     #pcv-console .etat { position: absolute; left: 50%; top: calc(var(--u) * 6); transform: translateX(-50%); padding: calc(var(--u) * 6) calc(var(--u) * 18); border-radius: calc(var(--u) * 20);
       background: var(--pcv-rangement); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 16); font-weight: 800; z-index: 7; white-space: nowrap; display: flex; align-items: center; gap: calc(var(--u) * 6); }
@@ -278,8 +292,8 @@
     <button class="ret"><i>${icoEntete("sortie")}</i>${T("console.retour")}</button></div>
   <div class="zone"><div class="grille"></div></div>
   <div class="infos cache"></div><div class="rien"></div>
-  <div class="zoom"><b data-z="-1" data-touche="5"></b><span class="pic">${window.__pcvIcones.svg("tuiles-grandes")}</span>${ZOOMS.map(() => "<i></i>").join("")}<span class="pic">${window.__pcvIcones.svg("tuiles-petites")}</span><b data-z="1" data-touche="6"></b></div>
-  <div class="bas pcv-legende"><span class="leg-vue"><u class="pcv-touche" data-touche="13"></u>${T("console.dispositions")}</span><span class="leg-x"><u class="pcv-touche" data-touche="3"></u>${T("console.ranger")}</span><span class="leg-y"><u class="pcv-touche" data-touche="4"></u>${T("spaces.place.nom")}</span><span><u class="pcv-touche" data-touche="1"></u><em class="leg-a">${T("console.ouvrir")}</em></span><span class="leg-start" hidden><u class="pcv-touche" data-touche="14"></u>${T("console.menu")}</span></div>
+  <div class="zoom">${window.__pcvIcones.zoom(ZOOMS.length, -1, [5, 6])}</div>
+  <div class="bas pcv-legende"></div>
   <div class="blanc"></div>`;
   document.body.appendChild(racine);
   window.__pcvFond?.(racine);
@@ -295,6 +309,7 @@
   let cible = -1;
   const RACCOURCI = 1073741824;
   const raccourci = (a) => a.app_type === RACCOURCI || !!a.BIsShortcut?.();
+  const lanceurDe = (a) => O.appDetailsStore?.GetAppDetails?.(a.appid)?.strShortcutExe || "";
   let appsMemo = null, appsT = -1e9;
   const apps = () => {
     const t = performance.now();
@@ -313,7 +328,7 @@
   };
   const installe = (a) => raccourci(a) ? window.__pcvBridge?.unifideck?.etat(a) ?? true : !!a.local_per_client_data?.installed;
   const versionUnifideck = () => window.__pcvBridge?.unifideck?.version() ?? 0;
-  const distant = (a) => !installe(a) && (a.per_client_data || []).some((p) => p.clientid !== "0" && p.installed);
+  const distant = (a) => !!window.__pcvBridge?.unifideck?.nuage(a) || !installe(a) && (a.per_client_data || []).some((p) => p.clientid !== "0" && p.installed);
   const reglageJeux = () => {
     try {
       return String(localStorage.getItem("pcv-accueil-jeux") || "").replace(/"/g, "") === "tous" ? "tous" : "installes";
@@ -342,14 +357,25 @@
     return m;
   };
   const NUAGE = '<svg viewBox="0 0 24 24"><path d="M7.2 19h10.3a4.3 4.3 0 0 0 .8-8.5 6 6 0 0 0-11.5 1.4A3.6 3.6 0 0 0 7.2 19z" fill="#fff" stroke="#5b6676" stroke-width="1.8" stroke-linejoin="round"/></svg>';
-  const icone = (x) => window.__pcvIcones.svg(x.ic, { attrs: 'color="var(--pcv-sur-accent)" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"' });
+  const icNom = (x) => x.ic === "casino" ? "de" : x.ic;
+  const icone = (x, relief) => {
+    const [haut, bas] = x.fond.split(","), n = icNom(x);
+    return relief ? window.__pcvIcones.relief(n, bas.trim()) : window.__pcvIcones.email(n, haut, bas);
+  };
   const CADENAS = `<svg class="cadenas" viewBox="0 0 24 24" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2.6"/><path d="M8 11V7.6a4 4 0 0 1 8 0V11"/></svg>`;
   const SUR_PAGE = () => !/^\/routes\/library\/home/.test(O.location.pathname);
   const APPLIS = {
-    boutique: { nom: T("spaces.boutique.nom"), fond: "#ffb257, #ff7a1f", ic: "boutique", ouvrir: () => O.__pcvAller?.(3), pret: SUR_PAGE },
+    eshop: {
+      nom: T("boutique.titre"),
+      fond: "var(--pcv-orange), var(--pcv-orange)",
+      ic: "boutique",
+      ouvrir: () => window.__pcvBoutique.ouvrir(),
+      pret: () => !!window.__pcvBoutique?.ouvert()
+    },
     bibliotheque: { nom: T("spaces.bibliotheque.nom"), fond: "#b9a4ff, #6d4fd6", ic: "bibliotheque", ouvrir: () => O.__pcvAller?.(2), pret: SUR_PAGE },
     parametres: { nom: T("spaces.parametres.nom"), fond: "#9aa6b8, #5b6676", ic: "parametres", ouvrir: () => O.__pcvAller?.(7), pret: SUR_PAGE },
-    album: { nom: T("spaces.medias.nom"), fond: "#5fb2ff, #2a6fe0", ic: "album", ouvrir: () => O.__pcvAller?.(5), pret: SUR_PAGE },
+    album: { nom: T("spaces.medias.nom"), fond: "#5fb2ff, #2a6fe0", ic: "album", ouvrir: () => window.__pcvMediatheque.ouvrir(), pret: () => !!window.__pcvMediatheque?.ouvert() },
+    // (28/10) notre Album, plus la page de Steam
     perso: {
       nom: T("console.personnaliser"),
       fond: "#ff8db5, #e8457c",
@@ -357,31 +383,23 @@
       ouvrir: (i) => window.__pcvPerso?.personnaliser?.(i)
     },
     // le casino définitif n'est pas encore choisi : perso.js garde le seul point d'accroche (__pcvPerso.casino).
-    // Verrou Nintendo : sans prive/luigi/ ET prive/casino-luigi/, cadenas « Bientôt » — on n'ouvre ni le casino ni
-    // son repli (l'arcade, mêmes fichiers Nintendo) depuis cette tuile.
+    // Le garde de l'appli affiche le même écran de fichiers manquants que les Badges.
     casino: {
       nom: T("console.casino_luigi"),
       fond: "#e5484d, #9e1b25",
       ic: "casino",
       verrouille: () => !window.__pcvNintendo?.casino,
-      ouvrir: () => {
-        if (!window.__pcvNintendo?.casino) return void window.__pcvSon?.("rate");
-        window.__pcvPerso?.casino?.();
-      },
+      ouvrir: () => window.__pcvPerso?.casino?.(),
       pret: () => !!document.querySelector("#pcv-badges.on canvas")
     },
     // le Mii Maker (mii-maker.js, chargé avant ce fichier) : seulement s'il est là — pas de tuile qui n'ouvre rien.
-    // Verrou Nintendo : sans prive/mii/ (moteur FFL), cadenas « Bientôt » (mii-maker.js sait déjà refuser proprement
-    // si on l'ouvre malgré tout — montrerAbsent() — mais la tuile évite l'essai pour rien).
+    // Mii Maker vérifie lui-même ses fichiers avec ce garde commun.
     ...window.__pcvMiiMaker ? { miimaker: {
       nom: T("steamu.appli.mii"),
       fond: "#8ee05a, #2ea84a",
       ic: "miimaker",
       verrouille: () => !window.__pcvNintendo?.mii,
-      ouvrir: () => {
-        if (!window.__pcvNintendo?.mii) return void window.__pcvSon?.("rate");
-        window.__pcvMiiMaker?.ouvrir();
-      },
+      ouvrir: () => window.__pcvMiiMaker?.ouvrir(),
       pret: () => !!document.querySelector("#pcv-miimaker .etagere, #pcv-miimaker .absent")
     } } : {}
   };
@@ -389,7 +407,7 @@
     mset: "parametres",
     edit: "miimaker",
     meet: "place",
-    tiger: "boutique",
+    tiger: "eshop",
     pnote: "album",
     plog: "profil",
     dlplay: "telechargements",
@@ -413,15 +431,30 @@
     }, 380);
   };
   window.__pcvBadgesApplis = { appliDuBadge };
-  window.__pcvFondsApplis = Object.fromEntries(Object.entries(APPLIS).map(([k, v]) => [k, v.fond]));
+  window.__pcvApplis = APPLIS;
+  window.__pcvAccentAppli = (racine2, cle) => {
+    const applis = {
+      "pcv-eshop": "eshop",
+      "pcv-eshop-unifie": "eshop",
+      "pcv-eshop-themes": "eshop",
+      "pcv-biblio-d": "bibliotheque",
+      "pcv-medias": "album",
+      "pcv-themes": "perso",
+      "pcv-miimaker": "miimaker"
+    };
+    const a = APPLIS[cle === void 0 ? applis[racine2.id] : cle];
+    racine2.classList.toggle("pcv-appli", !!a);
+    if (a) racine2.style.setProperty("--pcv-appli-couleur", a.fond.split(",")[0].trim());
+    else racine2.style.removeProperty("--pcv-appli-couleur");
+    window.__pcvFenetreAppli?.(racine2);
+  };
   const appliDe = (c) => c?.appli && APPLIS[c.appli] || null;
   const peindreAppli = (el, c) => {
     const x = appliDe(c);
-    el.style.setProperty("--fond", `linear-gradient(160deg, ${x.fond})`);
     el.dataset.appli = c.appli;
     const verrou = !!x.verrouille?.();
     el.parentElement?.classList.toggle("pcv-verrou", verrou);
-    el.innerHTML = icone(x) + (verrou ? CADENAS : "");
+    el.innerHTML = icone(x, true) + (verrou ? CADENAS : "");
   };
   const libre = (c) => !!c?.vide && c.bd == null;
   const reserver = (l, r = ZOOMS[zi].r) => {
@@ -496,14 +529,45 @@
     marquerTete();
   };
   let sigGrille = null;
+  const bibliothequePrete = () => !!window.__pcvBridge?.resumeBibliotheque?.().pret;
   const signatureGrille = () => {
-    try {
-      const l = O.appStore?.allApps || [];
-      return [localStorage.getItem("pcv-grille"), localStorage.getItem("pcv-accueil-retires"), reglageJeux(), familleTheme(), zi, versionUnifideck(), l.length, l.reduce((n, a) => n + (a.installed ? 1 : 0) + (a.rt_last_time_played || 0) % 997, 0)].join("|");
-    } catch (e) {
-      return String(Math.random());
-    }
+    const l = [...montres().values()];
+    return [
+      localStorage.getItem("pcv-grille"),
+      localStorage.getItem("pcv-accueil-retires"),
+      reglageJeux(),
+      familleTheme(),
+      zi,
+      versionUnifideck(),
+      l.map((a) => [a.appid, +distant(a), a.rt_last_time_played || a.rt_last_time_played_or_installed || 0].join(":")).sort().join(",")
+    ].join("|");
   };
+  let grilleARefaire = false, jeuxChanges = true, nombreApps = -1, bibliothequeAvant = false;
+  const grilleChangee = () => {
+    const nombre = O.appStore?.allApps?.length || 0, prete = bibliothequePrete();
+    if (nombre !== nombreApps || prete !== bibliothequeAvant) jeuxChanges = true;
+    nombreApps = nombre;
+    bibliothequeAvant = prete;
+    if (!jeuxChanges) return grilleARefaire;
+    jeuxChanges = false;
+    appsMemo = null;
+    return grilleARefaire = signatureGrille() !== sigGrille;
+  };
+  window.__pcvConsoleBibliotheque?.unregister?.();
+  const repeindreNommees = () => {
+    if (tuilesFinies) return;
+    grille.querySelectorAll(".cel.jeu .im.nomme").forEach((el) => {
+      const a = O.appStore?.GetAppOverviewByAppID?.(+el.dataset.appid);
+      if (a) {
+        el.__pcvJeu = a;
+        peindreJeu(el, a);
+      }
+    });
+  };
+  window.__pcvConsoleBibliotheque = window.__pcvBridge?.ecouterBibliotheque?.(() => {
+    jeuxChanges = true;
+    repeindreNommees();
+  });
   const applisDevant = (l) => {
     const places = [], applis = [], jeux = [];
     l.forEach((c, i) => {
@@ -524,13 +588,29 @@
     const recent = (a) => a.rt_last_time_played || a.rt_last_time_played_or_installed || 0;
     const recents2 = [...tous.values()].filter((a) => mode2 === "installes" || a.rt_last_time_played).sort((a, b) => recent(b) - recent(a)).slice(0, mode2 === "installes" ? Infinity : 36);
     const range = lire("pcv-grille", null);
+    const signe = (c, a) => {
+      const n = a ? raccourci(a) ? a.display_name : null : c.n, x = a && lanceurDe(a) || c.x;
+      return n == null ? {} : x ? { n, x } : { n };
+    };
     const vus = /* @__PURE__ */ new Set(), garder = (c) => {
+      if (c.appli === "boutique") c = { ...c, appli: "eshop" };
       const id = c.app || c.cache, k = id ? "j" + id : "a" + c.appli;
-      if (id ? tous.has(id) : APPLIS[c.appli]) return vus.has(k) ? { vide: 1 } : (vus.add(k), id ? { app: id } : { appli: c.appli });
-      return id && connus.has(id) ? { vide: 1, cache: id } : { vide: 1 };
+      if (id ? tous.has(id) : APPLIS[c.appli]) return vus.has(k) ? { vide: 1 } : (vus.add(k), id ? { app: id, ...signe(c, tous.get(id)) } : { appli: c.appli });
+      return id ? { vide: 1, cache: id, ...signe(c, connus.get(id)) } : { vide: 1 };
     };
     let l = (range || []).filter((c) => c && (c.vide || c.biblio || c.app || c.appli || c.dossier)).map((c) => c.biblio ? { appli: "bibliotheque" } : c.cache && c.bd != null ? (({ cache, ...x }) => x)(c) : c).map((c) => c.dossier ? dossierSur(c, garder) : c.app || c.appli || c.cache && c.bd == null ? garder(c) : c);
     const deja = new Set(l.flatMap((c) => c.dossier ? c.l : [c]).filter((c) => c.app).map((c) => c.app));
+    const orphelins = l.flatMap((c) => c.dossier ? c.l : [c]).filter((c) => c.cache && c.n != null && c.bd == null && !connus.has(c.cache));
+    for (const a of orphelins.length ? tous.values() : []) {
+      if (deja.has(a.appid) || !raccourci(a)) continue;
+      const x = lanceurDe(a), o = orphelins.find((c) => c.n === a.display_name && (!c.x || !x || c.x === x));
+      if (!o) continue;
+      delete o.vide;
+      delete o.cache;
+      Object.assign(o, { app: a.appid }, signe(o, a));
+      deja.add(a.appid);
+      orphelins.splice(orphelins.indexOf(o), 1);
+    }
     const nouveaux = recents2.filter((a) => !deja.has(a.appid)).map((a) => ({ app: a.appid }));
     if (!range) l = nouveaux;
     else {
@@ -572,6 +652,9 @@
     principal = completer(l, GRILLE.accueil);
     montrerVue();
     sauver();
+    sigGrille = signatureGrille();
+    grilleARefaire = false;
+    jeuxChanges = false;
     const vide = mode2 === "installes" && !principal.some((c) => c.app || c.dossier && c.l.some((x) => x.app));
     $(".rien").classList.toggle("on", vide);
     if (vide) {
@@ -581,9 +664,9 @@
       } catch (e) {
       }
       const r = $(".rien");
-      r.dataset.vers = neuf ? "boutique" : "bibliotheque";
+      r.dataset.vers = neuf ? "eshop" : "bibliotheque";
       r.onclick = () => APPLIS[r.dataset.vers]?.ouvrir?.();
-      r.innerHTML = `<i>${icone(neuf ? APPLIS.boutique : APPLIS.bibliotheque)}</i><span>${neuf ? T("console.aucun_jeu_compte", "Pas encore de jeu : trouvez-en dans la Boutique") : T("console.aucun_jeu_installe")}</span>`;
+      r.innerHTML = `<i>${icone(neuf ? APPLIS.eshop : APPLIS.bibliotheque)}</i><span>${neuf ? T("console.aucun_jeu_compte", "Pas encore de jeu : trouvez-en dans la Boutique") : T("console.aucun_jeu_installe")}</span>`;
     }
   };
   let vueJeux = null;
@@ -603,15 +686,55 @@
   let masques = [];
   const compacter = (l) => {
     const m = [], v = [];
-    l.forEach((c, i) => c.cache && c.bd == null ? m.push({ i, c }) : v.push(c));
+    let p, s = 0;
+    l.forEach((c, i) => {
+      if (c.cache && c.bd == null) m.push({ i, c, p, s });
+      else {
+        v.push(c);
+        if (libre(c)) s++;
+        else {
+          p = c;
+          s = 0;
+        }
+      }
+    });
     return [v, m];
   };
   const deplier = (v, m = []) => {
-    const l = v.slice();
-    for (const { i, c } of m) l.splice(Math.min(i, l.length), 0, c);
+    const suite = /* @__PURE__ */ new Map(), l = [];
+    let attente = [], s = 0;
+    m.forEach((x) => {
+      if (!suite.has(x.p)) suite.set(x.p, []);
+      suite.get(x.p).push(x);
+    });
+    const poser2 = () => {
+      while (attente.length && attente[0].s <= s) l.push(attente.shift().c);
+    };
+    const reperer = (e) => {
+      attente = suite.get(e) || [];
+      suite.delete(e);
+      s = 0;
+      poser2();
+    };
+    reperer(void 0);
+    v.forEach((e) => {
+      if (libre(e)) {
+        l.push(e);
+        s++;
+        poser2();
+      } else {
+        attente.forEach((x) => l.push(x.c));
+        attente = [];
+        l.push(e);
+        reperer(e);
+      }
+    });
+    attente.forEach((x) => l.push(x.c));
+    for (const r of suite.values()) for (const { i, c } of r) l.splice(Math.min(i, l.length), 0, c);
     return l;
   };
   const sauver = () => {
+    if (!bibliothequePrete() || !apps().size) return;
     fusionner();
     const { ancreDe } = reserver(cases), min = minVue();
     let n = libres(cases, ancreDe);
@@ -619,11 +742,11 @@
       cases.pop();
       n--;
     }
-    ecrire("pcv-grille", deplier(principal.map((c) => {
+    ecrire("pcv-grille", deplier(principal, masques).map((c) => {
       if (!c.dossier) return c;
       const { masques: m, ...d } = c;
       return { ...d, l: deplier(sansFin(c.l), m) };
-    }), masques));
+    }));
   };
   const remettre = (l) => {
     const d = dossierOuvert();
@@ -631,15 +754,41 @@
     else principal = l;
     cases = l;
   };
+  const peutRetirerCase = (i) => porte < 0 && !deco && libre(cases[i]) && !reserve.ancreDe.has(i) && cases.slice(i + 1).some((c) => !libre(c));
+  const retirerCase = (i) => {
+    if (!peutRetirerCase(i)) return false;
+    const ancienne = reserver(cases);
+    const l = cases.map((c, k) => k < i || ancienne.ancreDe.has(k) && ancienne.ancreDe.get(k) < i ? c : { vide: 1 });
+    let suivant = i, fin = cases.length;
+    while (fin > i && libre(cases[fin - 1]) && !ancienne.ancreDe.has(fin - 1)) fin--;
+    for (let k = i + 1; k < fin; k++) {
+      if (ancienne.ancreDe.has(k)) continue;
+      const c = cases[k];
+      if (libre(c)) {
+        const r = reserver(l);
+        while (r.ancreDe.has(suivant)) suivant++;
+        suivant++;
+      } else suivant = caser(l, c, suivant) + 1;
+    }
+    remettre(l);
+    sel = i;
+    sauver();
+    dessiner();
+    window.__pcvSon?.("retour");
+    return true;
+  };
   const appDe = (c) => c.app && apps().get(c.app);
   const badgeURL = (id) => window.__pcvBadgeURL?.(id) || "";
   const perso = (f, a) => {
+    if (a.__pcvImages) return [];
     try {
       return O.appStore[f](a) || [];
     } catch (e) {
       return [];
     }
   };
+  const sourcesTuile = (a, fichier, verifiee) => verifiee && !a.__pcvImages ? [verifiee] : [...verifiee ? [verifiee] : [], ...a.__pcvImages ? [] : [IMG(a.appid, fichier)], CDN(a.appid, fichier)];
+  window.__pcvFondRepli = (d) => `linear-gradient(160deg, oklch(from var(--pcv-cyan-plein) .76 c calc(h + ${d})), oklch(from var(--pcv-cyan-plein) .55 c calc(h + ${d})))`;
   const urlCss = (x) => `url('${String(x).replace(/['\\\n\r]/g, (c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))}')`;
   const sansArt = (a) => !perso("GetCustomVerticalCapsuleURLs", a).length && !perso("GetCustomLandcapeImageURLs", a).length && !perso("GetCustomLogoImageURLs", a).length && !perso("GetCustomHeroImageURLs", a).length;
   const ARTAUTO = lire("pcv-art-auto-essaye", {});
@@ -658,11 +807,12 @@
         } catch (e) {
         }
       }
-      grille.querySelectorAll(`.cel.jeu .im[data-appid="${id}"]`).forEach((el) => peindreJeu(el, a));
+      tuilesDe(id).forEach((el) => peindreJeu(el, a));
     }).catch(() => {
     });
   };
   const imagesJeu = (a) => {
+    if (a.__pcvImages) return [...sourcesTuile(a, "capsule_616x353.jpg"), ...sourcesTuile(a, "header.jpg"), a.__pcvImages.repli].filter(Boolean);
     let vert = "", icone2 = "";
     try {
       vert = O.appStore.GetVerticalCapsuleURLForApp(a) || "";
@@ -710,7 +860,7 @@
   const cadrer = (id, el, urls = [IMG(id, "library_600x900.jpg"), CDN(id, "library_600x900.jpg")]) => {
     if (!origine && !el.__pcvProche || enCadrage.has(id)) return;
     enCadrage.add(id);
-    charge(urls, tailleTuile(el)).then((im) => {
+    charge(urls, tailleTuile(el), el.__pcvJeu?.__pcvImages?.charger).then((im) => {
       if (tuilesFinies || !im) return;
       try {
         const W = 30, H = 45, cv = document.createElement("canvas");
@@ -748,10 +898,12 @@
       }
     });
   };
+  const logoVide = (v) => v.l != null && v.l < 0.03 && String(v.b) === "0,1,0,1";
   const AUTO = lire("pcv-tuile-auto", {}), enVerif = /* @__PURE__ */ new Map();
-  const charge = async (l, S = TUILE.pas) => {
+  for (const v of Object.values(AUTO)) if (v?.a && logoVide(v)) v.a = false;
+  const charge = async (l, S = TUILE.pas, charger) => {
     for (const url of l.filter(Boolean)) {
-      const u = await copieDe(absolu(url), S);
+      const u = await copieDe(absolu(url), S, charger);
       if (!u) continue;
       const lectures = MEMOIRE.lectures;
       lectures.set(u, (lectures.get(u) || 0) + 1);
@@ -820,14 +972,15 @@
     const id = a.appid;
     if (AUTO[id] && "b" in AUTO[id] || AUTO[id] && !AUTO[id].r && "l" in AUTO[id] && AUTO[id].d || enVerif.has(id)) return;
     const S = el ? tailleTuile(el) : TUILE.pas;
-    enVerif.set(id, enFile(() => imagesDetails(id)).then((d) => d || [[], []]).then(([dl, dh]) => Promise.all([
-      charge([...perso("GetCustomLogoImageURLs", a), IMG(id, "logo.png"), CDN(id, "logo.png"), ...dl], S),
-      charge([...perso("GetCustomHeroImageURLs", a), IMG(id, "library_hero.jpg"), CDN(id, "library_hero.jpg"), ...dh], S)
+    enVerif.set(id, (a.__pcvImages ? Promise.resolve([[], []]) : enFile(() => imagesDetails(id))).then((d) => d || [[], []]).then(([dl, dh]) => Promise.all([
+      charge([...perso("GetCustomLogoImageURLs", a), ...sourcesTuile(a, "logo.png"), ...dl], S, a.__pcvImages?.charger),
+      charge([...perso("GetCustomHeroImageURLs", a), ...sourcesTuile(a, "library_hero.jpg"), ...dh], S, a.__pcvImages?.charger)
     ])).then(([logo, fond]) => {
       if (tuilesFinies) return;
-      AUTO[id] = { a: !!(logo && fond), r: logo ? +(logo.naturalWidth / logo.naturalHeight).toFixed(2) : 0, ...logo ? lireLogo(logo) : { l: null }, lu: logo?.__pcvOrigine, fu: fond?.__pcvOrigine, d: 1 };
+      const lu = logo ? lireLogo(logo) : { l: null };
+      AUTO[id] = { a: !!(logo && fond) && !logoVide(lu), r: logo ? +(logo.naturalWidth / logo.naturalHeight).toFixed(2) : 0, ...lu, lu: logo?.__pcvOrigine, fu: fond?.__pcvOrigine, d: 1 };
       ecrire("pcv-tuile-auto", AUTO);
-      grille.querySelectorAll(`.cel.jeu .im[data-appid="${id}"]`).forEach((el2) => peindreJeu(el2, a));
+      tuilesDe(id).forEach((el2) => peindreJeu(el2, el2.__pcvJeu || a));
     }).catch(() => {
     }).finally(() => enVerif.delete(id)));
   };
@@ -856,6 +1009,8 @@
     // une source muette ne retient pas indéfiniment une place de la file
     detailsDelai: 4e3,
     paralleles: 2,
+    parallelesBoutique: 6,
+    // (29/10) les images de l'eShop attendent le réseau, pas le processeur : 2 à la fois mettaient 8 s par page (file mesurée sur la VM)
     purgeDelai: 1e3,
     chauffeDelai: 250,
     reposDelai: 50,
@@ -891,24 +1046,30 @@
   const MEMOIRE = window["__pcvTuiles-" + TUILE.cache] ||= {};
   for (const [n, f] of Object.entries({ copies: Map, dernieres: Map, decodees: Map, animees: Set, origines: Map, videos: Map, blobs: Map, lectures: Map })) MEMOIRE[n] ||= new f();
   const COPIES = MEMOIRE.copies;
+  const MESURES_IMAGES = [], noterImage = (etape, debut2, autres = {}) => {
+    MESURES_IMAGES.push({ etape, ms: +(performance.now() - debut2).toFixed(2), ...autres });
+    if (MESURES_IMAGES.length > 200) MESURES_IMAGES.shift();
+  };
   const LARGEUR_TOUR = { n: 0 };
-  const tailleTuile = (el) => !el.__pcvProche || racine.hidden || document.hidden ? TUILE.pas : Math.max(TUILE.pas, Math.ceil(((el.__pcvLargeurTour === LARGEUR_TOUR.n ? el.__pcvLargeur : el.offsetWidth) || 160) * (devicePixelRatio || 1) * TUILE.agrandie * TUILE.marge / TUILE.pas) * TUILE.pas);
+  const tuilesDe = (id) => [...grille.querySelectorAll(`.cel.jeu .im[data-appid="${id}"]`), ...window.__pcvTuilesAilleurs?.(id) || [], ...window.__pcvTuilesBoutique?.(id) || []];
+  const tailleTuile = (el) => el.__pcvTaille || (!el.__pcvProche || racine.hidden || document.hidden ? TUILE.pas : Math.max(TUILE.pas, Math.ceil(((el.__pcvLargeurTour === LARGEUR_TOUR.n ? el.__pcvLargeur : el.offsetWidth) || 160) * (devicePixelRatio || 1) * TUILE.agrandie * TUILE.marge / TUILE.pas) * TUILE.pas));
   let enCopie = 0, tuilesFinies = false;
   const aCopier = [], lecturesImages = /* @__PURE__ */ new Set(), annulationsVideos = /* @__PURE__ */ new Set();
   const copieSuivante = () => {
-    while (!tuilesFinies && enCopie < TUILE.paralleles && aCopier.length) {
+    while (!tuilesFinies && aCopier.length && enCopie < (aCopier[0].boutique ? TUILE.parallelesBoutique : TUILE.paralleles)) {
       enCopie++;
       aCopier.shift().lancer();
     }
   };
-  const enFile = (f) => new Promise((ok) => {
+  const enFile = (f, prioritaire = false, boutique = false) => new Promise((ok) => {
     if (tuilesFinies) return ok(null);
-    aCopier.push({ annuler: () => ok(null), lancer: () => Promise.resolve().then(() => tuilesFinies ? null : f()).catch(() => null).then(ok).finally(() => {
+    aCopier[prioritaire ? "unshift" : "push"]({ boutique, annuler: () => ok(null), lancer: () => Promise.resolve().then(() => tuilesFinies ? null : f()).catch(() => null).then(ok).finally(() => {
       enCopie--;
       copieSuivante();
     }) });
     copieSuivante();
   });
+  let indexPetites;
   let magasin;
   const ouvrirMagasin = async () => {
     if (magasin === void 0) {
@@ -939,7 +1100,7 @@
     });
     if (octets <= TUILE.memoire) return;
     const utilisees = new Set(MEMOIRE.lectures.keys());
-    grille.querySelectorAll(".cel.jeu > .im, .pcv-anim-dessus, video.pcv-anim").forEach((el) => {
+    [...grille.querySelectorAll(".cel.jeu > .im, .pcv-anim-dessus, video.pcv-anim"), ...window.__pcvTuilesAilleurs?.() || [], ...window.__pcvTuilesBoutique?.() || []].forEach((el) => {
       for (const u2 of (el.style.backgroundImage || "").match(/blob:[^'\")\s,]+/g) || []) utilisees.add(u2);
       const u = el.getAttribute("src");
       if (u) utilisees.add(u);
@@ -978,7 +1139,7 @@
     return a("GIF8") || a("RIFF") && a("WEBP", 8) && cherche("ANIM") || t[1] === 80 && a("PNG", 1) && cherche("acTL");
   };
   const ANIMEES = MEMOIRE.animees, ORIGINES = MEMOIRE.origines;
-  const lireImage = async (u) => {
+  const lireImage = async (u, charger) => {
     const controle = new AbortController(), minuterie = setTimeout(() => controle.abort(), TUILE.delai);
     if (tuilesFinies) {
       clearTimeout(minuterie);
@@ -986,27 +1147,54 @@
     }
     lecturesImages.add(controle);
     try {
-      const r = await fetch(u, { credentials: "omit", signal: controle.signal });
-      return r.ok ? await r.blob() : null;
+      if (charger) {
+        const debut3 = performance.now(), d = await charger(u);
+        noterImage("pont-python", debut3, d?.mesures || {});
+        if (!d?.image || controle.signal.aborted || tuilesFinies) return null;
+        u = d.image;
+      }
+      const debut2 = performance.now(), r = await fetch(u, { credentials: "omit", signal: controle.signal });
+      const b = r.ok ? await r.blob() : null;
+      if (charger) noterImage("lecture-base64", debut2, { octets: b?.size || 0 });
+      return b;
     } finally {
       clearTimeout(minuterie);
       lecturesImages.delete(controle);
     }
   };
-  const copier = async (u, S) => {
+  const copier = async (u, S, charger) => {
+    const debutCache = charger && performance.now();
     const m = await ouvrirMagasin(), req = `${TUILE.adresseCache}?s=${S}&u=${encodeURIComponent(u)}`;
-    const deja = m && await m.match(req).catch(() => null);
+    let deja = m && await m.match(req).catch(() => null);
+    if (!deja && m && S === TUILE.pas) {
+      indexPetites ||= m.keys().then((cles) => {
+        const index2 = /* @__PURE__ */ new Map();
+        for (const r of cles) {
+          const q = new URL(r.url).searchParams, source = q.get("u"), taille = +q.get("s");
+          if (!index2.has(source) || taille < index2.get(source).taille) index2.set(source, { req: r, taille });
+        }
+        return index2;
+      }).catch(() => /* @__PURE__ */ new Map());
+      const petite = (await indexPetites).get(u);
+      if (petite) deja = await m.match(petite.req).catch(() => null);
+    }
+    if (charger) noterImage("cache", debutCache, { trouve: !!deja });
     if (deja) {
       if (deja.headers.get("X-Pcv-Anime") === "1") ANIMEES.add(u);
       const b = await deja.blob();
-      return b.size ? garderBlob(b) : u;
+      if (b.size) return garderBlob(b);
+      if (!charger) return u;
     }
+    if (S === TUILE.pas) await new Promise((ok) => window.requestIdleCallback ? window.requestIdleCallback(ok) : setTimeout(ok, 0));
+    const debutFile = performance.now();
     return enFile(async () => {
-      const b = await lireImage(u);
+      if (charger) noterImage("file", debutFile, { actives: enCopie, enAttente: aCopier.length });
+      const b = await lireImage(u, charger);
       if (!b) return null;
       const anime = await animee(b);
       if (anime) ANIMEES.add(u);
-      const im = await createImageBitmap(b).catch(() => null);
+      const debutBitmap = performance.now(), im = await createImageBitmap(b).catch(() => null);
+      if (charger) noterImage("bitmap", debutBitmap);
       if (!im) return null;
       let sortie = new Blob([]);
       try {
@@ -1014,29 +1202,31 @@
         const w = im.width, h2 = im.height, k = Math.min(1, Math.max(S / Math.min(w, h2), TUILE.long * S / Math.max(w, h2)));
         if (k < TUILE.gain || anime) {
           const pw = Math.max(1, Math.round(w * k)), ph = Math.max(1, Math.round(h2 * k));
-          const p = await createImageBitmap(im, { resizeWidth: pw, resizeHeight: ph, resizeQuality: "high" });
+          const debutReduction = performance.now(), p = await createImageBitmap(im, { resizeWidth: pw, resizeHeight: ph, resizeQuality: "high" });
           try {
             const c = new OffscreenCanvas(pw, ph);
             c.getContext("2d").drawImage(p, 0, 0);
             sortie = await c.convertToBlob(await b.slice(1, 4).text() === "PNG" ? { type: "image/png" } : { type: "image/webp", quality: TUILE.qualite });
           } finally {
             p.close();
+            if (charger) noterImage("reduction-encodage", debutReduction, { largeur: pw, hauteur: ph });
           }
         }
       } finally {
         im.close();
       }
       if (tuilesFinies) return null;
+      if (charger && !sortie.size) sortie = b;
       m?.put(req, new Response(sortie, { headers: { "X-Pcv-Anime": anime ? "1" : "0" } })).catch(() => {
       });
       return sortie.size ? garderBlob(sortie) : u;
-    });
+    }, !!charger || S === TUILE.pas, !!charger);
   };
-  const copieDe = (u, S) => {
+  const copieDe = (u, S, charger) => {
     if (tuilesFinies) return null;
     const k = u + "|" + S;
     let c = COPIES.get(k);
-    if (c === void 0) COPIES.set(k, c = copier(u, S).catch(() => null).then((r) => {
+    if (c === void 0) COPIES.set(k, c = copier(u, S, charger).catch(() => null).then((r) => {
       if (tuilesFinies) {
         oublierBlob(r);
         return null;
@@ -1048,35 +1238,61 @@
     if (typeof c === "string") toucherBlob(c);
     return c;
   };
-  const copieTuile = (u, S, el, a) => {
-    const c = copieDe(u, S);
+  const pretePourTaille = (u, S) => {
+    const D = MEMOIRE.decodees, peinte = MEMOIRE.dernieres.get(u);
+    let c = null;
+    for (let s = Math.max(TUILE.pas, Math.ceil(S / TUILE.marge / TUILE.pas) * TUILE.pas); s <= 2 * S; s += TUILE.pas) {
+      const x = COPIES.get(u + "|" + s);
+      if (typeof x !== "string" || D.get(x) !== true) continue;
+      c ||= x;
+      if (x === peinte) {
+        c = x;
+        break;
+      }
+    }
+    if (c) toucherBlob(c);
+    return c;
+  };
+  const copieTuile = (u, S, repeindre, charger, attentes) => {
+    const deja = pretePourTaille(u, S);
+    if (deja) {
+      MEMOIRE.dernieres.set(u, deja);
+      return deja;
+    }
+    const c = copieDe(u, S, charger);
     if (c === null) return null;
     const D = MEMOIRE.decodees, pret = typeof c === "string" && D.get(c) === true;
     if (pret) {
       MEMOIRE.dernieres.set(u, c);
       return c;
     }
-    Promise.resolve(c).then((r) => {
+    const travail = Promise.resolve(c).then((r) => {
       if (!r) return;
       if (!D.has(r)) {
-        const im = new Image();
+        const debut2 = performance.now(), im = new Image();
         im.src = r;
         D.set(r, im.decode().catch(() => {
-        }).then(() => D.set(r, true)));
+        }).then(() => {
+          if (charger) noterImage("decodage-copie", debut2);
+          D.set(r, true);
+        }));
       }
       return D.get(r);
     }).then(() => {
-      if (!tuilesFinies && el.isConnected && el.dataset.appid === String(a.appid)) peindreJeu(el, a);
+      if (!tuilesFinies) repeindre();
     });
+    attentes?.push(travail);
     return MEMOIRE.dernieres.get(u);
   };
   let origine = false;
   const couche = (el, a, l) => {
     l = l.filter(Boolean);
     if (origine) return l.map(urlCss);
-    const S = el.__pcvS = tailleTuile(el);
+    const S = el.__pcvS = tailleTuile(el), repeindre = () => {
+      if (el.isConnected && el.dataset.appid === String(a.appid)) peindreJeu(el, a);
+    };
     for (const u of l) {
-      const c = copieTuile(absolu(u), S, el, a);
+      const c = copieTuile(absolu(u), S, repeindre, a.__pcvImages?.charger, el.__pcvAttentes);
       if (c === void 0) return [];
       if (c) return [urlCss(c)];
     }
@@ -1182,7 +1398,7 @@
     };
   })();
   const VIDEO = { images: 900, debit: 7e5, cle: 90, file: 8, coteMin: 64, pas: 16, loinMs: 1e4 };
-  const fabriquerVideo = async (u, T2, position) => {
+  const fabriquerVideo = async (u, T2, position, charger) => {
     const m = await ouvrirMagasin(), req = `${TUILE.adresseCache}video?t=${T2}&p=${encodeURIComponent(position)}&u=${encodeURIComponent(u)}`;
     const deja = m && await m.match(req).catch(() => null);
     if (deja) {
@@ -1191,7 +1407,7 @@
     }
     if (typeof ImageDecoder === "undefined" || typeof VideoEncoder === "undefined") return null;
     return enFile(async () => {
-      const b = await lireImage(u);
+      const b = await lireImage(u, charger);
       if (!b) return null;
       const t = String.fromCharCode(...new Uint8Array(await b.slice(0, 12).arrayBuffer()));
       const dec = new ImageDecoder({ data: b.stream(), type: t.startsWith("GIF8") ? "image/gif" : t.slice(8, 12) === "WEBP" ? "image/webp" : "image/png" });
@@ -1260,12 +1476,12 @@
     });
   };
   const VIDEOS = MEMOIRE.videos;
-  const videoVisible = (el) => !racine.hidden && !document.hidden && !window.__pcvJeuDevant && !window.__pcvEconomie?.() && el.__pcvProche === true;
+  const videoVisible = (el) => !racine.hidden && !document.hidden && !window.__pcvJeuDevant && window.__pcvCharge?.reglage().videos !== false && el.__pcvProche === true;
   const videoDe = (u, T2, position, el) => {
     const k = `${u}|${T2}|${position}`;
     let c = VIDEOS.get(k);
     if (tuilesFinies) return null;
-    if (c === void 0) VIDEOS.set(k, c = fabriquerVideo(u, T2, position).catch(() => null).then((r) => {
+    if (c === void 0) VIDEOS.set(k, c = fabriquerVideo(u, T2, position, el.__pcvJeu?.__pcvImages?.charger).catch(() => null).then((r) => {
       if (tuilesFinies) {
         oublierBlob(r);
         return null;
@@ -1468,11 +1684,31 @@
       el.style.backgroundRepeat = n.repete;
     }, DESSOUS_MS);
   };
+  const nommer = (el, a, oui) => {
+    if (!oui && !el.classList.contains("nomme")) return;
+    let b = el.querySelector(":scope > .pcv-nom");
+    if (!oui) {
+      b?.remove();
+      el.classList.remove("nomme");
+      return;
+    }
+    if (!b) {
+      b = document.createElement("b");
+      b.className = "pcv-nom";
+      el.prepend(b);
+      el.style.setProperty("--fond", window.__pcvFondRepli(0));
+    }
+    b.textContent = a.display_name || "";
+    el.classList.add("nomme");
+  };
   const peindreJeu = (el, a) => {
     if (tuilesFinies) return;
     const avant2 = el.__pcvDessous && el.__pcvAvant || { image: el.style.backgroundImage, taille: el.style.backgroundSize, position: el.style.backgroundPosition };
     peindreCouches(el, a);
-    if (!origine) {
+    const illustree = /url\(/.test(el.style.backgroundImage);
+    el.classList.toggle("pcv-illustree", illustree);
+    nommer(el, a, !illustree && (raccourci(a) || !!a.__pcvImages));
+    if (!origine && !el.__pcvPetite) {
       animer(el);
       garderDessous(el, avant2);
       el.__pcvAvant = avant2;
@@ -1482,12 +1718,13 @@
   const peindreCouches = (el, a) => {
     const id = a.appid;
     el.dataset.appid = id;
+    el.dataset.logo = "";
     el.style.backgroundSize = el.style.backgroundPosition = el.style.backgroundRepeat = "";
-    let m = faconVoulue(a);
+    let m = a.__pcvImages ? "auto" : faconVoulue(a);
     const verts = perso("GetCustomVerticalCapsuleURLs", a);
-    if (raccourci(a) && (origine || el.__pcvProche)) essayerArtAuto(a);
+    if (!el.__pcvPetite && raccourci(a) && (origine || el.__pcvProche)) essayerArtAuto(a);
     if (raccourci(a) || verts.length) {
-      verifier(a, el);
+      if (!el.__pcvPetite) verifier(a, el);
       if (m === "jaquette" && verts.length) {
         el.dataset.facon = m;
         el.style.backgroundImage = imageJeu(a, el);
@@ -1498,7 +1735,7 @@
         el.dataset.facon = "cadrage";
         el.style.backgroundImage = imageJeu(a, el);
         if (CADRES[id] != null) el.style.backgroundPosition = `center ${CADRES[id]}%`;
-        else cadrer(id, el, verts);
+        else if (!el.__pcvPetite) cadrer(id, el, verts);
         return;
       } else {
         el.dataset.facon = "jaquette";
@@ -1507,9 +1744,11 @@
         return;
       }
     } else if (m === "auto") {
-      verifier(a, el);
+      if (!el.__pcvPetite) verifier(a, el);
       m = AUTO[id] ? AUTO[id].a ? "logo" : "cadrage" : "cadrage";
-    } else if (m === "logo" || m === "carre") verifier(a, el);
+    } else if (m === "logo" || m === "carre") {
+      if (!el.__pcvPetite) verifier(a, el);
+    }
     if (m === "logo" && AUTO[id] && !AUTO[id].a) m = "cadrage";
     if (m === "carre" && AUTO[id] && !AUTO[id].a) {
       el.dataset.facon = m;
@@ -1526,14 +1765,24 @@
     }
     if (m === "cadrage") {
       el.style.backgroundImage = imageJeu(a, el);
+      if (a.__pcvImages) {
+        const im = el.style.backgroundImage;
+        if (!im) return;
+        el.style.backgroundImage = `${im},linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),${im}`;
+        el.style.backgroundSize = "contain,100% 100%,auto 600%";
+        el.style.backgroundPosition = "center";
+        el.style.backgroundRepeat = "no-repeat";
+        return;
+      }
       if (CADRES[id] != null) el.style.backgroundPosition = `center ${CADRES[id]}%`;
-      else cadrer(id, el, [IMG(id, "library_600x900.jpg"), CDN(id, "library_600x900.jpg"), ...perso("GetCachedVerticalCapsuleURL", a).map(absolu)]);
+      else if (!el.__pcvPetite) cadrer(id, el, [...sourcesTuile(a, "library_600x900.jpg"), ...a.__pcvImages ? [a.__pcvImages.repli] : perso("GetCachedVerticalCapsuleURL", a).map(absolu)]);
       return;
     }
-    const v = AUTO[id], logos = couche(el, a, v?.lu ? [v.lu] : [...perso("GetCustomLogoImageURLs", a), IMG(id, "logo.png"), CDN(id, "logo.png")]);
-    const fonds = couche(el, a, v?.fu ? [v.fu] : [...perso("GetCustomHeroImageURLs", a), IMG(id, "library_hero.jpg"), CDN(id, "library_hero.jpg"), CDN(id, "header.jpg")]);
+    const v = AUTO[id], logos = couche(el, a, [...v?.lu ? [] : perso("GetCustomLogoImageURLs", a), ...sourcesTuile(a, "logo.png", v?.lu)]);
+    const fonds = couche(el, a, [...v?.fu ? [] : perso("GetCustomHeroImageURLs", a), ...sourcesTuile(a, "library_hero.jpg", v?.fu), ...!v?.fu ? [CDN(id, "header.jpg")] : []]);
     const carres = m === "carre" ? couche(el, a, [CDN(id, "hero_capsule.jpg")]) : [], [tl, pl] = placeLogo(id);
-    const l = v?.l, halo = l == null ? [] : [`radial-gradient(ellipse 60% 42% at center, ${l < 0.45 ? "rgb(var(--pcv-halo-rgb) / .66)" : "rgba(0,0,0,.5)"}, transparent)`];
+    el.dataset.logo = logos.length ? "1" : "";
+    const l = v?.l, halo = !logos.length || l == null ? [] : [`radial-gradient(ellipse 60% 42% at center, ${l < 0.45 ? "rgb(var(--pcv-halo-rgb) / .66)" : "rgba(0,0,0,.5)"}, transparent)`];
     el.style.backgroundImage = [...carres, ...logos, ...halo, ...fonds].join(",");
     el.style.backgroundSize = [...carres.map(() => "cover"), ...logos.map(() => tl), ...halo.map(() => "100% 100%"), ...fonds.map(() => "cover")].join(",");
     el.style.backgroundRepeat = "no-repeat";
@@ -1548,7 +1797,7 @@
     }
     return { image: el.style.backgroundImage, taille: el.style.backgroundSize || IM_DEFAUT.taille, position: el.style.backgroundPosition || IM_DEFAUT.position, repete: el.style.backgroundRepeat || "no-repeat" };
   };
-  const TRACES = { page: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>', image: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>' };
+  const TRACES = { ranger: '<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>', page: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>', image: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>' };
   const changerImage = (a, i) => {
     const actuel = choixTuiles()[a.appid] || "auto";
     return window.__pcvDossiers?.choix(i, FACONS.map((f) => ({
@@ -1560,13 +1809,17 @@
         if (f === "auto") delete c[a.appid];
         else c[a.appid] = f;
         ecrire("pcv-tuile-image-jeu", c);
-        grille.querySelectorAll(`.cel.jeu .im[data-appid="${a.appid}"]`).forEach((el) => peindreJeu(el, a));
+        tuilesDe(a.appid).forEach((el) => peindreJeu(el, el.__pcvJeu || a));
         window.__pcvSon?.("choisir");
       }
     })));
   };
   const menuJeu = (a, i) => window.__pcvDossiers?.choix(i, [
     { svg: TRACES.page, teinte: "#7fd17f, #3aa64a", nom: T("console.page_jeu"), faire: () => voir(a) },
+    { svg: TRACES.ranger, teinte: "#ffd36b, #e6a21a", nom: T("console.ranger"), faire: () => {
+      prendre(i);
+      dessiner();
+    } },
     { svg: TRACES.image, teinte: "#5fd0ff, #1a9ae6", nom: T("console.image_tuile"), faire: () => changerImage(a, i) },
     {
       svg: window.__pcvIcones?.trace("epingle") || "",
@@ -1641,8 +1894,7 @@
       if (a) b.style.backgroundImage = imageJeu(a);
       else if (appliDe(x)) {
         b.className = "a";
-        b.style.background = `linear-gradient(160deg, ${appliDe(x).fond})`;
-        b.innerHTML = icone(appliDe(x));
+        b.innerHTML = icone(appliDe(x), true);
       } else {
         b.className = "b";
         b.dataset.bd = x.bd;
@@ -1681,7 +1933,13 @@
   const dessiner = (poser2 = false, zoomSeul = false) => {
     const z = ZOOMS[zi], f = forme(z);
     vueFamille = familleTheme();
-    for (const [k, v] of Object.entries({ r: z.r, c: z.c, g: z.g, d: f.d, pad: f.pad, im: f.im, bo: f.bo, ...selection(z, f) })) grille.style.setProperty("--" + k, +v.toFixed(3));
+    for (const [k, v] of Object.entries({ c: z.c, g: z.g, ...f, ...selection(z, f) })) grille.style.setProperty("--" + k, +v.toFixed(3));
+    const cd = cadreDossier(z);
+    for (const [k, x] of [["--dos-g", cd.g], ["--dos-bord", cd.bord]]) {
+      const v = x.toFixed(2);
+      if (racine.style.getPropertyValue(k) !== v) racine.style.setProperty(k, v);
+    }
+    grille.style.setProperty("grid-template-rows", `repeat(${z.r}, calc(var(--u) * ${z.c}))`, "important");
     racine.classList.toggle("une-rangee", zi === 0);
     if (zoomSeul && grille.children.length === cases.length) {
       const r = reserver(cases), limite2 = colonneLimite(z);
@@ -1709,7 +1967,7 @@
         d.className = "cel jeu";
         d.innerHTML = '<div class="im"></div>';
         d.firstChild.__pcvJeu = a;
-        if (distant(a) || window.__pcvBridge?.unifideck?.nuage(a)) {
+        if (distant(a)) {
           const n = document.createElement("i");
           n.className = "nuage";
           n.innerHTML = NUAGE;
@@ -1755,6 +2013,7 @@
       grille.appendChild(d);
     });
     prochesPlus();
+    window.__pcvTelech?.tuiles();
     barreZoom(zi);
     if (fusionAnimer >= 0) {
       grille.children[fusionAnimer]?.querySelector(".bdg")?.animate([
@@ -1774,6 +2033,10 @@
   let pos = 0, elan = null;
   let dodo = null, infosDe = -1, decal = -1;
   const visibles = (z) => Math.floor((innerWidth / (innerHeight / 800) - 128) / (z.c + z.g));
+  const cadreDossier = (z = ZOOMS[zi]) => {
+    const g = (innerWidth / (innerHeight / 800) - visibles(z) * (z.c + z.g) + z.g) / 2;
+    return { g, bord: g - z.g / 2 };
+  };
   const placer = () => {
     const z = ZOOMS[zi];
     if (elan) {
@@ -1797,6 +2060,7 @@
       e.classList.toggle("porte", k === porte);
       e.classList.toggle("cible", k === cible);
     });
+    grille.classList.toggle("en-rangement", porte >= 0);
     $(".entete .ret").classList.toggle("cible", cible === SORTIE);
     const z = ZOOMS[zi], col = Math.floor(sel / z.r);
     if (!appui?.long && !deco || decal < 0) decal = Math.max(0, col - visibles(z) + 2, decal < 0 ? 0 : Math.min(decal, col - 1));
@@ -1875,15 +2139,34 @@
     if (deux) l.push(bulle("semaines", T("console.ces_2_semaines", { temps: h(deux) }), "", 0.24));
     inf.replaceChildren(...l);
   };
-  const RAFALE = 160, GLISSE = 320;
+  const RAFALE = 160;
+  const initiale = (n) => {
+    const c = String(n).normalize("NFD")[0]?.toUpperCase() || "#";
+    return c >= "A" && c <= "Z" ? c : "#";
+  };
+  const lettreVoisine = (noms, i, sens) => {
+    const ici2 = noms[i] == null ? sens > 0 ? "" : "~" : initiale(noms[i]);
+    let k = -1, kl = "";
+    noms.forEach((n, j) => {
+      if (n == null) return;
+      const l = initiale(n);
+      if (sens > 0 ? l <= ici2 : l >= ici2) return;
+      if (k < 0 || (sens > 0 ? l < kl : l > kl) || l === kl && n.localeCompare(noms[k]) < 0) {
+        k = j;
+        kl = l;
+      }
+    });
+    return k;
+  };
   const crans = (o) => {
     let vise2 = -1, fin = 0, id = 0;
     return (d) => {
+      o.demande?.(d);
       const de = vise2 < 0 ? o.cran() : vise2, n = Math.max(0, Math.min(o.max(), de + d));
       if (n === de) return void window.__pcvSon?.("bord");
       window.__pcvSon?.(d > 0 ? "zoom+" : "zoom-");
       const t = performance.now(), calme = vise2 < 0 && t >= fin;
-      fin = t + GLISSE;
+      fin = t + ANIM.duree;
       if (calme) return void o.aller(n);
       vise2 = n;
       o.barre(n);
@@ -1891,40 +2174,102 @@
       id = setTimeout(() => {
         const v = vise2;
         vise2 = -1;
-        fin = performance.now() + GLISSE;
+        fin = performance.now() + ANIM.duree;
         if (v !== o.cran()) o.aller(v);
       }, RAFALE);
     };
   };
-  const zoomer = crans({ cran: () => zi, max: () => ZOOMS.length - 1, barre: barreZoom, aller: (n) => {
-    const avant2 = [...grille.children].map((e) => e.getBoundingClientRect());
-    zi = n;
-    ecrire("pcv-zoom", zi);
-    infosDe = -1;
-    decal = -1;
-    completer(cases, minVue());
-    grille.style.transition = "none";
-    dessiner(false, true);
-    void grille.offsetWidth;
-    grille.style.transition = "";
-    const apres = [...grille.children].map((e) => e.getBoundingClientRect());
-    [...grille.children].forEach((e, i) => {
-      const a = avant2[i], b = apres[i];
-      if (!a || b.right < 0 || b.left > innerWidth) return;
-      if (a.right < 0 || a.left > innerWidth) {
-        e.animate([{ opacity: 0, transform: "scale(.6)" }, { opacity: 1, transform: "none" }], { duration: 300, easing: "ease-out" });
+  const diagnosticGrille = window.__pcvGrilleDiagnostic = { demandes: [], appliques: [], disposition: null };
+  const zoomer = crans({
+    cran: () => zi,
+    max: () => ZOOMS.length - 1,
+    barre: barreZoom,
+    demande: (d) => {
+      diagnosticGrille.demandes.push(d);
+      if (diagnosticGrille.demandes.length > 12) diagnosticGrille.demandes.shift();
+    },
+    aller: (n) => {
+      const avant2 = [...grille.children].map((e) => e.getBoundingClientRect());
+      zi = n;
+      ecrire("pcv-zoom", zi);
+      infosDe = -1;
+      decal = -1;
+      completer(cases, minVue());
+      grille.style.transition = "none";
+      dessiner(false, true);
+      void grille.offsetWidth;
+      grille.style.transition = "";
+      glisser([...grille.children], avant2);
+      diagnosticGrille.appliques.push(n);
+      if (diagnosticGrille.appliques.length > 12) diagnosticGrille.appliques.shift();
+    }
+  });
+  const PINCE = { seuil: 1.25, apres: 400 };
+  const pincer = (el, pas, permis = () => true) => {
+    const doigts = /* @__PURE__ */ new Map();
+    let d0 = 0, fin = -1e9;
+    const ecart = () => {
+      const [a, b] = [...doigts.values()];
+      return Math.hypot(a.x - b.x, a.y - b.y) || 1;
+    };
+    el.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "touch") return;
+      doigts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (doigts.size === 2) d0 = permis() ? ecart() : 0;
+    }, true);
+    el.addEventListener("pointermove", (e) => {
+      const p = doigts.get(e.pointerId);
+      if (!p) return;
+      p.x = e.clientX;
+      p.y = e.clientY;
+      if (doigts.size !== 2 || !d0) return;
+      const r = ecart() / d0;
+      if (r >= PINCE.seuil || r <= 1 / PINCE.seuil) {
+        pas(r > 1 ? -1 : 1);
+        d0 = ecart();
+      }
+    }, true);
+    const lever = (e) => {
+      if (!el.isConnected) {
+        for (const t of ["pointerup", "pointercancel"]) window.removeEventListener(t, lever, true);
         return;
       }
-      e.style.transformOrigin = "0 0";
-      const an = e.animate(
-        [{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width})` }, { transform: "none" }],
-        { duration: GLISSE, easing: "cubic-bezier(.3,1.15,.5,1)" }
+      if (!doigts.delete(e.pointerId)) return;
+      if (doigts.size < 2) {
+        if (d0 || doigts.size) fin = performance.now();
+        d0 = 0;
+      }
+    };
+    for (const t of ["pointerup", "pointercancel"]) window.addEventListener(t, lever, true);
+    return { deux: () => doigts.size >= 2 || performance.now() - fin < PINCE.apres };
+  };
+  const ANIM = { duree: 320, courbe: "cubic-bezier(.3,1.15,.5,1)", entree: 0.82, pasMs: 14, pasMax: 220, sortie: 200 };
+  const vu = (r) => r && r.right > 0 && r.left < innerWidth && r.bottom > 0 && r.top < innerHeight;
+  const glisser = (els, avant2, o = {}) => {
+    const apres = els.map((e) => e.getBoundingClientRect());
+    let n = 0;
+    for (const { el, r } of o.partants || []) {
+      if (!vu(r) || !o.couche) continue;
+      Object.assign(el.style, { position: "fixed", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px", margin: "0", pointerEvents: "none" });
+      o.couche.appendChild(el);
+      el.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: `scale(${ANIM.entree})` }], { duration: ANIM.sortie, easing: "ease-in", fill: "forwards" }).onfinish = () => el.remove();
+    }
+    els.forEach((e, i) => {
+      const a = avant2[i], b = apres[i];
+      if (!vu(b)) return;
+      if (!vu(a)) {
+        e.animate(
+          [{ opacity: 0, transform: `scale(${ANIM.entree})` }, { opacity: 1, transform: "none" }],
+          { duration: ANIM.duree, easing: ANIM.courbe, delay: Math.min(ANIM.pasMax, n++ * ANIM.pasMs), fill: "backwards" }
+        );
+        return;
+      }
+      e.animate(
+        [{ transform: `translate(${a.left + a.width / 2 - b.left - b.width / 2}px, ${a.top + a.height / 2 - b.top - b.height / 2}px) scale(${a.width / b.width})` }, { transform: "none" }],
+        { duration: ANIM.duree, easing: ANIM.courbe }
       );
-      an.onfinish = an.oncancel = () => {
-        e.style.transformOrigin = "";
-      };
     });
-  } });
+  };
   racine.querySelectorAll(".zoom b").forEach((b) => b.onclick = () => zoomer(+b.dataset.z));
   const echanger = (n) => {
     if (n === porte || cases[n]?.dossier && rangeable(cases[porte])) {
@@ -2014,12 +2359,17 @@
     if (porte >= 0) return window.__pcvSon?.("bord");
     window.__pcvZone = "barre";
     document.body.classList.remove("pcv-zone-jaquettes");
-    const l = document.querySelector("#header ._17M8gvakqjyaw_cLo6ntdl, #header [class*=SearchAndTitleContainer]");
-    const n = window.__pcvNoeud?.(l?.querySelector(".Focusable") || l);
-    if (n) n.BTakeFocus(4);
     marquer(false);
+    window.__pcvBarreEntrer?.(() => {
+      entrer();
+      marquer();
+    });
   };
-  const ouvrir = (id) => O.SteamClient.URL.ExecuteSteamURL(`steam://nav/games/details/${id}`);
+  let pageVoulue = 0;
+  const ouvrir = (id) => {
+    pageVoulue = +id;
+    O.SteamClient.URL.ExecuteSteamURL(`steam://nav/games/details/${id}`);
+  };
   const lancerAppli = (x, i) => {
     if (!x.pret) {
       grille.children[i]?.classList.add("pulse");
@@ -2030,14 +2380,15 @@
       }, 380);
       return;
     }
-    lancerAvecEcran({ nom: x.nom, fond: `linear-gradient(160deg, ${x.fond})`, html: icone(x), depuis: grille.children[i], pret: x.pret, faire: () => x.ouvrir(i) });
+    lancerAvecEcran({ appli: Object.keys(APPLIS).find((k) => APPLIS[k] === x), nom: x.nom, html: icone(x, true), depuis: grille.children[i], pret: x.pret, faire: () => x.ouvrir(i) });
   };
-  const voir = (a) => {
+  const voir = (a) => window.__pcvPageJeu?.(a.appid, cases.map(appDe).filter(Boolean).map((x) => x.appid)) || voirSteam(a);
+  const voirSteam = (a) => {
     const page = O.location.pathname;
-    lancerAvecEcran({ nom: a.display_name, image: imageJeu(a), depuis: grille.children[sel], pret: () => O.location.pathname !== page, faire: () => ouvrir(a.appid) });
+    lancerAvecEcran({ nom: a.display_name, jeu: a, depuis: grille.children[sel], pret: () => O.location.pathname !== page, faire: () => ouvrir(a.appid) });
   };
   const ici = (a) => (window.__pcvLancement?.banc?.installe || installe)(a);
-  const lancer = (a) => ici(a) ? jouerJeu(a, grille.children[sel]) : voir(a);
+  const lancer = (a) => window.__pcvTelech?.ouvrir(a.appid) || (ici(a) ? jouerJeu(a, grille.children[sel]) : installer(a));
   let avant = null;
   const prendre = (i) => {
     avant = { cases: cases.slice(), sel: i };
@@ -2303,15 +2654,23 @@
       return monter();
     }
     if (b === 3) {
-      if (porte >= 0) return poser();
+      if (porte >= 0 || badgeMain != null) return window.__pcvSon?.("bord");
       if (reserve.ancreDe.has(sel)) sel = reserve.ancreDe.get(sel);
       if (libre(cases[sel])) return caseLibre(sel);
+      const a = appDe(cases[sel]);
+      if (a) return menuJeu(a, sel);
       prendre(sel);
       dessiner();
       return;
     }
     if (b === 5) return zoomer(-1);
     if (b === 6) return zoomer(1);
+    if (b === 7 || b === 8) {
+      const n = porte < 0 && badgeMain == null ? lettreVoisine(cases.map((c2, k) => libre(c2) ? null : nomCase(k)), sel, b === 8 ? 1 : -1) : -1;
+      if (n < 0) return window.__pcvSon?.("bord");
+      sel = n;
+      return marquer();
+    }
     if (b === 9) return deplacer(0, -1);
     if (b === 10) return deplacer(0, 1);
     if (b === 11) return deplacer(-1, 0);
@@ -2358,17 +2717,18 @@
   };
   let sortant = null;
   const cadre = () => {
-    const z = $(".zone").getBoundingClientRect(), u = uPx();
-    return { l: z.left + CADRE.cote * u, r: z.right - CADRE.cote * u, t: z.top + CADRE.haut * u, b: z.bottom - CADRE.bas * u };
+    const z = $(".zone").getBoundingClientRect(), u = uPx(), b = cadreDossier().bord;
+    return { l: z.left + b * u, r: z.right - b * u, t: z.top + CADRE.haut * u, b: z.bottom - CADRE.bas * u };
   };
   const sortir = () => {
     const d = dossierOuvert(), x = cases[porte];
     if (!d || !x) return;
     const g = grille.getBoundingClientRect(), partant = grille.cloneNode(true);
     partant.classList.add("partant");
+    const cs = getComputedStyle(grille), t = cs.transform, t0 = t === "none" ? "" : t;
+    partant.style.left = cs.left;
     partant.style.transformOrigin = `${innerWidth / 2 - g.left}px 50%`;
     grille.after(partant);
-    const t = getComputedStyle(grille).transform, t0 = t === "none" ? "" : t;
     partant.animate([{ opacity: 1, transform: `${t0} scale(1)` }, { opacity: 0, transform: `${t0} scale(.8)` }], { duration: SORTIE_MS, easing: "ease-in", fill: "forwards" }).onfinish = () => partant.remove();
     sortant = { id: d.id, x, n: -2, k: -1 };
     porte = -1;
@@ -2490,38 +2850,47 @@
     setTimeout(finir, 260);
   };
   racine.addEventListener("contextmenu", (e) => e.preventDefault());
+  const pince = pincer(racine, (d) => zoomer(d), () => !appui?.long && porte < 0);
   racine.addEventListener("pointerdown", (e) => {
+    if (pince.deux()) {
+      if (appui?.balaye) finBalayage(appui, performance.now());
+      else if (appui?.arrete) finElan();
+      finAppui();
+      return;
+    }
     if (e.button > 0 || e.clientX < BORD_DOIGT() || e.clientX > innerWidth - BORD_DOIGT()) return;
     const arrete = arreterElan(), i = arrete ? -1 : celSous(e.clientX, e.clientY);
-    if (i < 0 && !e.target.closest?.("#pcv-console .zone")) {
+    const k = vue && i < 0 && !arrete && [racine, grille, $(".zone")].includes(e.target) ? cadre() : null;
+    const dehors = !!k && (e.clientX < k.l || e.clientX > k.r || e.clientY < k.t || e.clientY > k.b);
+    if (i < 0 && !dehors && !e.target.closest?.("#pcv-console .zone")) {
       if (arrete) finElan();
       return;
     }
     window.__pcvBarreQuitter?.();
     finAppui();
-    appui = { i, arrete, pDepart: arrete ? pos : null, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, long: false, t: i < 0 ? 0 : setTimeout(() => {
+    appui = { i, arrete, dehors, pDepart: arrete ? pos : null, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, long: false, t: i < 0 ? 0 : setTimeout(() => {
       if (!racine.isConnected || !cases[i]) return;
-      const k = reserve.ancreDe.get(i) ?? i;
-      if (libre(cases[k])) {
+      const k2 = reserve.ancreDe.get(i) ?? i;
+      if (libre(cases[k2])) {
         finAppui();
         entrer();
-        sel = k;
+        sel = k2;
         marquer(false);
-        caseLibre(k);
+        caseLibre(k2);
         return;
       }
       appui.long = true;
       entrer();
-      prendre(k);
+      prendre(k2);
       racine.classList.add("au-doigt");
       marquer(false);
-      grille.children[k]?.classList.add("prise");
+      grille.children[k2]?.classList.add("prise");
       fantome?.remove();
-      prendreFantome(k, appui.x, appui.y);
+      prendreFantome(k2, appui.x, appui.y);
       glisserVers();
       window.__pcvDefile = setInterval(defiler, 400);
-      const a = appDe(cases[k]);
-      if (a) menuJeu(a, k);
+      const a = appDe(cases[k2]);
+      if (a) menuJeu(a, k2);
     }, 450) };
   });
   const DOIGT = {
@@ -2678,7 +3047,7 @@
       return lacherFantome();
     }
     if (a.balaye) return finBalayage(a, e.timeStamp);
-    if (a.i < 0) return a.arrete ? finElan() : void 0;
+    if (a.i < 0) return a.arrete ? finElan() : a.dehors ? fermerDossier() : void 0;
     if (a.long) {
       if (sortant) return lacherSortant(e.clientX ?? a.x, e.clientY ?? a.y);
       if (porte < 0) return lacherFantome();
@@ -2700,12 +3069,10 @@
       if (d.quoi === "retour") window.__pcvSon?.("retour");
       return vers ? poserFantome(f, vers, fin, d.quoi === "dossier" || d.quoi === "sortie") : (f?.remove(), fin());
     }
-    if (a.i === sel && document.body.classList.contains("pcv-zone-jaquettes")) agir(1);
-    else {
-      entrer();
-      sel = a.i;
-      marquer();
-    }
+    entrer();
+    sel = a.i;
+    marquer();
+    if (aDuContenu(cases[a.i]) || badgeMain != null || porte >= 0) agir(1);
   });
   window.addEventListener("pointercancel", window.__pcvAppuiPerdu = () => {
     const a = appui;
@@ -2815,6 +3182,7 @@
   };
   const disposition = () => ({ grille: lire("pcv-grille", null), zoom: zi });
   const chargerDisposition = (d) => {
+    diagnosticGrille.disposition = { grille: Array.isArray(d?.grille), zoom: Number.isFinite(+d?.zoom) ? +d.zoom : null };
     if (!Array.isArray(d?.grille)) return false;
     if (porte >= 0) annuler();
     finAppui();
@@ -2861,6 +3229,21 @@
       }
       return null;
     };
+    const dessin = async (ap, c, t) => {
+      const im2 = new Image();
+      im2.src = /^url\("(.+)"\)$/.exec(window.__pcvIcones.masque(icNom(ap)))?.[1] || "";
+      try {
+        await im2.decode();
+      } catch (e) {
+        return null;
+      }
+      const o = new OffscreenCanvas(t, t), y = o.getContext("2d");
+      y.drawImage(im2, 0, 0, t, t);
+      y.globalCompositeOperation = "source-in";
+      y.fillStyle = c;
+      y.fillRect(0, 0, t, t);
+      return o;
+    };
     const fond = v("--pcv-fond-page"), u = /url\(["']?([^"')]+)/.exec(fond)?.[1], cs = fond.match(/#[0-9a-f]{3,8}\b|(rgb|hsl)a?\([^)]*\)/gi) || [v("--pcv-carte")];
     const g = x.createLinearGradient(0, 0, 0, APERCU.h);
     cs.forEach((c, j) => {
@@ -2883,7 +3266,8 @@
       if (col < 0 || col >= cols || ancreDe.has(i)) return;
       if (libre(c)) return;
       const [px, py] = cel(i), [w, hh] = grands.has(i) ? c.bt : [1, 1], lx = (w * pas - z.g) * k, ly = (hh * pas - z.g) * k, a = appDe(c), ap = appliDe(c);
-      const bm = a ? await image(imagesJeu(a)) : c.bd != null ? await image([badgeURL(c.bd)]) : null;
+      const bm = a ? await image(imagesJeu(a)) : c.bd != null ? await image([badgeURL(c.bd)]) : null, bas = ap?.fond.split(",").at(-1).trim().replace(/^var\((--[\w-]+)\)$/, (_, n) => v(n));
+      const ic = ap && await dessin(ap, bas, Math.round(lx / 2));
       x.save();
       x.beginPath();
       x.roundRect(px, py, lx, ly, lx * 0.18);
@@ -2893,11 +3277,16 @@
         x.fill();
       }
       if (ap) {
-        const [g1, g2] = ap.fond.split(","), g3 = x.createLinearGradient(px, py, px + lx, py + ly);
-        g3.addColorStop(0, g1.trim());
-        g3.addColorStop(1, (g2 || g1).trim());
-        x.fillStyle = g3;
+        const g2 = x.createRadialGradient(px + lx / 2, py + ly * 0.05, 0, px + lx / 2, py + ly * 0.05, ly);
+        try {
+          g2.addColorStop(0, `color-mix(in srgb, ${bas} ${v("--pcv-relief-teinte")}, ${v("--pcv-carte")})`);
+        } catch (e) {
+          g2.addColorStop(0, bas);
+        }
+        g2.addColorStop(1, v("--pcv-creux"));
+        x.fillStyle = g2;
         x.fill();
+        if (ic) x.drawImage(ic, px + lx / 4, py + ly / 4);
       } else if (c.dossier) {
         x.fillStyle = v("--pcv-accent");
         x.fillRect(px + lx * 0.12, py + ly * 0.22, lx * 0.76, ly * 0.6);
@@ -2919,6 +3308,8 @@
     chargerDisposition,
     remettreApplisDevant,
     apercu,
+    peutRetirerCase,
+    retirerCase,
     cases: () => cases,
     zooms: () => ZOOMS,
     zoom: () => ({ ...ZOOMS[zi], i: zi }),
@@ -3004,14 +3395,14 @@
     const e = document.getElementById(id);
     return !!e && !e.hidden;
   };
-  const recouvert = () => racine.hidden || ["pcv-place", "pcv-profil", "pcv-amis", "pcv-notifs", "pcv-connexion"].some(ouvert) || !!window.__pcvDossiers?.modal?.() || !!document.querySelector(".pcv-panneau.on, #pcv-themes.on") || !!document.querySelector(".gpfocus")?.closest(".contextMenuItem, .FullModalOverlay");
+  const recouvert = () => racine.hidden || window.__pcvPagesDessus.some(ouvert) || ouvert("pcv-miimaker") || !!window.__pcvDossiers?.modal?.() || !!document.querySelector(".pcv-panneau.on, #pcv-themes.on") || !!document.querySelector(".gpfocus")?.closest(".contextMenuItem, .FullModalOverlay");
   (window.__pcvManette ||= {}).console = (b) => {
     if (b === 10 && !racine.hidden && ouvert("pcv-profil") && document.querySelector("#header .gpfocus")) return true;
     if (recouvert()) return false;
     if (window.__pcvDeco?.actif()) return window.__pcvDeco.touche(b);
-    const dansBarre = !!document.querySelector("#header .gpfocus") || document.body.classList.contains("pcv-barre-nav");
+    const dansBarre = !!document.querySelector("#header .gpfocus");
     if (dansBarre) {
-      if (b === 10 && !document.body.classList.contains("pcv-barre-nav") && window.__pcvZone !== "jaquettes") {
+      if (b === 10 && window.__pcvZone !== "jaquettes") {
         entrer();
         marquer();
         return true;
@@ -3032,7 +3423,7 @@
       }
       return true;
     }
-    if ([1, 2, 3, 5, 6, 9, 10, 11, 12].includes(b)) {
+    if ([1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12].includes(b)) {
       agir(b);
       return true;
     }
@@ -3044,30 +3435,9 @@
     if (racine.hidden || recouvert() || window.__pcvDeco?.actif() || window.__pcvMenuOuvert?.() || porte >= 0 || !D?.dispositions) return false;
     return D.dispositions(), true;
   };
-  $(".leg-vue").addEventListener("click", dispositions);
   if (window.__pcvVueConsole) window.removeEventListener("vgp_onbuttondown", window.__pcvVueConsole, true);
-  window.addEventListener("vgp_onbuttondown", window.__pcvVueConsole = (e) => {
-    if (e.detail?.button !== 13 || window.__pcvZone !== "jaquettes" && window.__pcvDossiers?.etat?.()?.genre !== "dispo") return;
-    if (dispositions()) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-  }, true);
   if (window.__pcvStartConsole) window.removeEventListener("vgp_onbuttondown", window.__pcvStartConsole, true);
-  window.addEventListener("vgp_onbuttondown", window.__pcvStartConsole = (e) => {
-    if (e.detail?.button === 14 && !racine.hidden && window.__pcvDossiers?.modal?.()) {
-      e.stopPropagation();
-      e.preventDefault();
-      window.__pcvDossiers.fermer(true);
-      return;
-    }
-    if (e.detail?.button !== 14 || racine.hidden || window.__pcvZone !== "jaquettes" || recouvert() || window.__pcvDeco?.actif() || window.__pcvMenuOuvert?.()) return;
-    if (document.querySelector("#header .gpfocus") && !document.body.classList.contains("pcv-zone-jaquettes")) return;
-    const a = porte < 0 && badgeMain == null && cases[sel] && appDe(cases[sel]);
-    e.stopPropagation();
-    e.preventDefault();
-    if (a) menuJeu(a, sel);
-  }, true);
+  (window.__pcvVue ||= {}).console = () => (window.__pcvZone === "jaquettes" || window.__pcvDossiers?.etat?.()?.genre === "dispo") && dispositions();
   if (window.__pcvTouchesConsole) window.removeEventListener("keydown", window.__pcvTouchesConsole, true);
   window.addEventListener("keydown", window.__pcvTouchesConsole = (e) => {
     if (recouvert() || document.activeElement?.matches?.("input,textarea") || window.__pcvDeco?.actif()) return;
@@ -3091,25 +3461,22 @@
       else e.textContent = t;
       if (e.tagName === "U" || e.tagName === "B") e.style.background = c;
     });
+    legende();
   };
   const legende = () => {
-    if (window.__pcvZone !== "jaquettes") {
-      $(".leg-x").hidden = $(".leg-y").hidden = $(".leg-vue").hidden = $(".leg-start").hidden = true;
-      texte($(".leg-a"), document.querySelector("#pcv-barre .rond.pcv-sel")?.dataset.pcvNom || T("acces.rechercher"));
-      return;
+    const R = T("touche.retour"), c = cases[sel], l = [];
+    if (document.body.classList.contains("pcv-barre-main")) l.push(...window.__pcvLegendeBarre());
+    else if (tete >= 0) l.push([1, boutonsTete()[tete]?.textContent.trim() || ""], [2, R], [4, T("spaces.place.nom")]);
+    else if (porte >= 0 || badgeMain != null) l.push([1, T("touche.poser")], [2, R]);
+    else {
+      const a = c && appDe(c), la = !!a && ici(a), vide = !c || libre(c);
+      const verbe = a ? window.__pcvTelech?.dans(a.appid) ? T("telech.voir") : la ? T("accueil.jouer") : T("biblio.installer") : c && (appliDe(c) || c.dossier || appliDuBadge(c.bd)) ? T("console.ouvrir") : "";
+      l.push(verbe && [1, verbe], vue && [2, R], [3, a || vide ? T("touche.options") : T("console.ranger")], [4, T("spaces.place.nom")], [13, T("console.dispositions")], [[7, 8], T("biblio.lettre")]);
     }
-    if (tete >= 0) {
-      $(".leg-x").hidden = $(".leg-y").hidden = $(".leg-vue").hidden = $(".leg-start").hidden = true;
-      texte($(".leg-a"), boutonsTete()[tete]?.textContent.trim() || "");
-      return;
-    }
-    $(".leg-x").hidden = $(".leg-y").hidden = $(".leg-vue").hidden = false;
-    const a = cases[sel] && appDe(cases[sel]), la = !!a && ici(a);
-    texte($(".leg-a"), a ? la ? T("accueil.jouer") : T("console.voir_jeu") : T("console.ouvrir"));
-    const st = $(".leg-start");
-    if (st.hidden === !!a) st.hidden = !a;
+    window.__pcvIcones.poser($(".bas"), l);
   };
-  window.__pcvLegende = legende;
+  window.__pcvMonter = monter;
+  window.__pcvLegende = (window.__pcvLegendes ||= {}).console = legende;
   let etaitVisible = false;
   let dernierTour = Date.now(), ecranAvant = false;
   const tourConsole = () => {
@@ -3117,7 +3484,7 @@
     const maintenant = Date.now();
     if (maintenant - dernierTour > 2e4) window.__pcvAccueilPose = false;
     dernierTour = maintenant;
-    const visible = /^\/routes\/library\/home/.test(O.location.pathname) && mode() === "nouvelle" && !!O.appStore?.allApps?.length && !window.__pcvJeuDevant;
+    const visible = window.__pcvDemarrage?.connexionPassee() !== false && /^\/routes\/library\/home/.test(O.location.pathname) && mode() === "nouvelle" && (!!O.appStore?.allApps?.length || bibliothequePrete()) && !window.__pcvJeuDevant;
     if (racine.hidden !== !visible) {
       racine.hidden = !visible;
       prochesPlus();
@@ -3142,6 +3509,7 @@
       }
     }
     ecranAvant = ecran;
+    const changementJeux = grilleChangee();
     if (visible && !etaitVisible) {
       entrer();
       porte = -1;
@@ -3150,7 +3518,7 @@
       chargerIndex();
       const sg = signatureGrille();
       if (sg !== sigGrille || grille.children.length !== cases.length) {
-        sigGrille = sg;
+        jeuxChanges = false;
         construireCases();
         infosDe = -1;
         decal = -1;
@@ -3161,7 +3529,8 @@
       signaler();
       window.__pcvMusique?.("home-menu");
     } else if (visible && vueFamille !== familleTheme() && !appui) dessiner();
-    else if (visible && vueJeux && vueJeux !== reglageJeux() + "|" + versionUnifideck() && porte < 0 && !appui && !deco) {
+    else if (visible && (changementJeux || vueJeux && vueJeux !== reglageJeux() + "|" + versionUnifideck()) && porte < 0 && !appui && !deco) {
+      jeuxChanges = false;
       construireCases();
       infosDe = -1;
       decal = -1;
@@ -3169,12 +3538,24 @@
       dessiner();
     }
     if (visible) window.__pcvBridge?.unifideck?.charger();
+    if (visible) window.__pcvDemarrage?.accueilPret();
     etaitVisible = visible;
   };
   window.__pcvConsole = setInterval(tourConsole, 150);
   O.navigation?.removeEventListener("currententrychange", O.__pcvConsoleNav);
   O.navigation?.addEventListener("currententrychange", O.__pcvConsoleNav = () => setTimeout(tourConsole, 0));
-  const LANCEMENT = { min: 1e3, max: 1500, sortie: 200, jeuMax: 6e4, essai: 3e3 };
+  const LANCEMENT = {
+    min: 1e3,
+    max: 1500,
+    preparationMax: 9e3,
+    sortie: 200,
+    pret: 700,
+    // préparation bornée, animation habituelle sinon
+    jeuMax: 6e4,
+    essai: 3e3,
+    // (29/10, l'auteur : « la boutique s'ouvre beaucoup trop vite », la musique d'attente à peine entendue)
+    eshop: { min: 6e3, pret: 2e3 }
+  };
   document.getElementById("pcv-lancement")?.remove();
   try {
     (window.__pcvLancementAbos || []).forEach((a) => a?.unregister?.());
@@ -3183,7 +3564,6 @@
   const lanc = document.createElement("div");
   lanc.id = "pcv-lancement";
   lanc.hidden = true;
-  lanc.setAttribute("aria-hidden", "true");
   lanc.innerHTML = `<style>
     #pcv-lancement { position: fixed; inset: 0; z-index: 9700; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center;
       --lanc-a: var(--pcv-accent, #2fb8ff);   
@@ -3193,27 +3573,60 @@
     #pcv-lancement.sort { opacity: 0; transition: opacity ${LANCEMENT.sortie}ms ease-in; }
     #pcv-lancement .ic { position: relative; width: calc(var(--u) * 168); height: calc(var(--u) * 168); border-radius: calc(var(--u) * 30);
       animation: pcvLancVol .3s cubic-bezier(.2,.8,.25,1) both; will-change: transform; }
-    #pcv-lancement.jeu .ic { width: calc(var(--u) * 156); height: calc(var(--u) * 234); border-radius: calc(var(--u) * 16); }
+    #pcv-lancement.jeu .ic { border-radius: calc(var(--u) * var(--arr)); }
     #pcv-lancement .ic .fond { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; background: var(--fond); background-size: cover; background-position: center;
       box-shadow: inset 0 3px 1px color-mix(in srgb, var(--pcv-carte) 70%, transparent), 0 0 0 calc(var(--u) * 5) var(--pcv-lisere);
       -webkit-box-reflect: below calc(var(--u) * 7) linear-gradient(transparent 62%, rgba(0,0,0,.24)); display: flex; align-items: center; justify-content: center; }
-    #pcv-lancement .ic .fond svg { width: 58%; height: 58%; }
+    #pcv-lancement .ic .fond > .pcv-marque-relief { --pcv-relief-taille: calc(var(--u) * 168); border-radius: inherit; }
+    #pcv-lancement .ic .fond > svg { width: 58%; height: 58%; }
     
     #pcv-lancement .ic .halo { position: absolute; inset: calc(var(--u) * -10); border-radius: calc(var(--u) * 38);
       box-shadow: 0 0 0 calc(var(--u) * 6) var(--lanc-a), 0 0 calc(var(--u) * 34) calc(var(--u) * 12) color-mix(in srgb, var(--lanc-a) 55%, transparent);
       animation: pcvLancSouffle 1s ease-in-out infinite; will-change: opacity, transform; }
-    #pcv-lancement.jeu .nom { margin-top: calc(var(--u) * 100); }
-    #pcv-lancement.jeu .ic .halo { border-radius: calc(var(--u) * 24); }
+    #pcv-lancement.jeu .ic .halo { border-radius: calc(var(--u) * (var(--arr) + 10)); }
     
     #pcv-lancement .nom { margin-top: calc(var(--u) * 78); max-width: 70%; text-align: center; color: color-mix(in srgb, var(--lanc-a) 55%, var(--pcv-texte)); font-size: calc(var(--u) * 24); font-weight: 800;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: pcvLancFond .2s .12s ease-out backwards; }
+    #pcv-lancement .etat { margin-top: calc(var(--u) * 12); color: var(--pcv-texte2); font-size: calc(var(--u) * 18); }
+    #pcv-lancement .eshop { display: none; position: absolute; left: 50%; top: calc(50% - var(--u) * 56); width: 0; height: 0; }
+    #pcv-lancement[data-appli="eshop"] { background: var(--pcv-fond-page); }
+    #pcv-lancement[data-appli="eshop"] .eshop { display: block; }
+    #pcv-lancement .eshop > * { position: absolute; left: calc(var(--u) * var(--x)); top: calc(var(--u) * var(--y)); translate: -50% -50%;
+      animation: pcvEshopSaut 1.1s var(--d) ease-in-out infinite alternate; will-change: transform; }
+    #pcv-lancement .eshop .sac { width: calc(var(--u) * var(--t)); height: calc(var(--u) * var(--t)); color: var(--pcv-orange); filter: drop-shadow(0 calc(var(--u) * 4) calc(var(--u) * 6) rgba(0,0,0,.18)); }
+    #pcv-lancement .eshop .sac svg { width: 100%; height: 100%; }
+    #pcv-lancement .eshop .piece { width: calc(var(--u) * 30); height: calc(var(--u) * 30); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6b8, #ffc928 45%, #e09a00);
+      box-shadow: inset 0 0 0 calc(var(--u) * 3) #f5b400, 0 calc(var(--u) * 3) calc(var(--u) * 5) rgba(0,0,0,.18); }
+    
+    #pcv-lancement .eshop .mascotte { width: calc(var(--u) * 110); height: calc(var(--u) * 110); border-radius: 50%; object-fit: cover; object-position: 50% 40%; background: var(--pcv-creux);
+      box-shadow: 0 0 0 calc(var(--u) * 5) var(--pcv-carte), 0 calc(var(--u) * 6) calc(var(--u) * 12) rgba(0,0,0,.18); animation-duration: .55s; }
+    #pcv-lancement .eshop .mascotte:not([src]), #pcv-lancement .eshop .mascotte[src=""] { display: none; }
+    #pcv-lancement.pret .eshop > * { animation: pcvEshopPret .45s ease-out both; }
+    #pcv-lancement[data-appli="eshop"]:not(.pret) .etat::after { content: "..."; display: inline-block; width: 1.2em; text-align: left; vertical-align: bottom;
+      animation: pcvEshopPoints 1.2s steps(4, jump-none) infinite; }   
+    #pcv-lancement[data-appli="eshop"] .etat { color: color-mix(in srgb, var(--lanc-a) 55%, var(--pcv-texte)); font-size: calc(var(--u) * 26); font-weight: 900; }
+    #pcv-lancement.pret .etat { animation: pcvEshopPret .45s ease-out both; }
+    @keyframes pcvEshopSaut { from { transform: translateY(calc(var(--u) * 8)) rotate(-6deg); } to { transform: translateY(calc(var(--u) * -10)) rotate(6deg); } }
+    @keyframes pcvEshopPret { 0% { transform: scale(1); } 45% { transform: scale(1.25); } 100% { transform: scale(1.08); } }
+    @keyframes pcvEshopPoints { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
     @keyframes pcvLancFond { from { opacity: 0 } }
     @keyframes pcvLancVol { from { transform: translate(var(--dx, 0), var(--dy, 0)) scale(var(--s, .6)); } }
     @keyframes pcvLancSouffle { 0%, 100% { opacity: .35; transform: scale(.985); } 50% { opacity: 1; transform: scale(1.025); } }
-  </style><div class="ic"><div class="halo"></div><div class="fond"></div></div><div class="nom"></div>`;
+  </style><div class="eshop" aria-hidden="true"></div><div class="ic"><div class="halo"></div><div class="fond"></div></div><div class="nom"></div><div class="etat" role="status"></div>`;
   document.body.appendChild(lanc);
   window.__pcvFond?.(lanc);
-  const lancIc = lanc.querySelector(".ic"), lancFond = lanc.querySelector(".fond"), lancNom = lanc.querySelector(".nom");
+  const ESHOP_DECO = [
+    ["sac", -250, -40, 64, 0],
+    ["piece", -190, -130, 0, 0.3],
+    ["sac", 230, -110, 52, 0.5],
+    ["piece", 270, 10, 0, 0.15],
+    ["sac", 190, 110, 76, 0.7],
+    ["piece", -230, 90, 0, 0.45],
+    ["mascotte", -380, 60, 0, 0.1]
+  ];
+  const lancEshop = lanc.querySelector(".eshop");
+  const lancIc = lanc.querySelector(".ic"), lancNom = lanc.querySelector(".nom"), lancStatut = lanc.querySelector(".etat");
+  let lancFond = lanc.querySelector(".fond");
   let lancTic = 0, lancFin = 0, lancEtat = null;
   const lancRetirer = (vite, pourquoi) => {
     if (!lancEtat) return;
@@ -3237,30 +3650,44 @@
   const lancTouche = () => {
     if (lancEtat && Date.now() - lancEtat.depuis > 120) lancRetirer(false, "touche");
   };
-  const lancModale = () => [...document.querySelectorAll(".FullModalOverlay, .ModalPosition, .contextMenu")].some((e) => e.getClientRects().length > 0) || !!window.__pcvMenuOuvert?.();
-  const lancMontrer = ({ nom, fond, html = "", depuis, jeu = false, muet = false }) => {
+  const affichee = (e) => e.style.display !== "none" && e.getClientRects().length > 0;
+  const lancModale = () => [...document.querySelectorAll(".FullModalOverlay, .ModalPosition, .contextMenu")].some(affichee) || !!window.__pcvMenuOuvert?.();
+  const lancMontrer = ({ nom, fond, html = "", depuis, jeu = null, muet = false, appli = "" }) => {
     lancRetirer(true);
+    lanc.dataset.appli = appli || "";
+    lanc.dataset.pcvEspace = appli === "eshop" ? "boutique" : "";
+    lanc.classList.remove("pret");
+    if (appli === "eshop") lancEshop.innerHTML = ESHOP_DECO.map(([k, x, y, t, d]) => `<${k === "mascotte" ? "img" : "span"} class="${k}" style="--x:${x};--y:${y};--t:${t};--d:${-d}s"${k === "mascotte" ? ` src="${window.__pcvImageMoi?.() || ""}"` : ""}>${k === "sac" ? window.__pcvIcones.svg("boutique") : ""}${k === "mascotte" ? "" : `</span>`}`).join("");
+    const fondNeuf = document.createElement("div");
+    fondNeuf.className = "fond";
+    lancFond.replaceWith(fondNeuf);
+    lancFond = fondNeuf;
     lancFond.style.setProperty("--fond", fond || "#dfe4ea");
     lancFond.innerHTML = html;
     lancNom.textContent = nom || "";
-    lanc.classList.toggle("jeu", jeu);
-    const r = depuis?.getBoundingClientRect?.(), u = innerHeight / 800, L = 168 * u, H = (jeu ? 234 : 168) * u;
-    const cx = innerWidth / 2, cy = innerHeight / 2 - (jeu ? 66 : 56) * u;
+    lancStatut.textContent = jeu ? T("console.lancement") : appli === "eshop" ? T("console.eshop_attente") : "";
+    lanc.classList.toggle("jeu", !!jeu);
+    if (jeu) {
+      lancIc.style.setProperty("--arr", window.__pcvJeux.cotes(168, 0).arr);
+      window.__pcvJeux.peindre(lancFond, jeu, 168);
+    }
+    const r = depuis?.getBoundingClientRect?.(), u = innerHeight / 800, L = 168 * u;
+    const cx = innerWidth / 2, cy = innerHeight / 2 - 56 * u;
     if (r && r.width) {
       lancIc.style.setProperty("--dx", `${r.left + r.width / 2 - cx}px`);
       lancIc.style.setProperty("--dy", `${r.top + r.height / 2 - cy}px`);
-      lancIc.style.setProperty("--s", Math.max(0.2, Math.min(1, r.width / (jeu ? 156 * u : L))));
+      lancIc.style.setProperty("--s", Math.max(0.2, Math.min(1, r.width / L)));
     } else {
       lancIc.style.removeProperty("--dx");
       lancIc.style.removeProperty("--dy");
       lancIc.style.setProperty("--s", 0.6);
     }
-    lanc.classList.remove("sort");
-    lanc.hidden = false;
-    void lanc.offsetWidth;
     addEventListener("vgp_onbuttondown", lancTouche, true);
     addEventListener("keydown", lancTouche, true);
     if (!muet) window.__pcvSon?.("lance");
+    lanc.classList.remove("sort");
+    lanc.hidden = false;
+    void lanc.offsetWidth;
   };
   const lancSurveiller = () => {
     clearInterval(lancTic);
@@ -3273,18 +3700,35 @@
         if (pageAct() !== e.page && !pageSteam(e.appid) && !EN_COURS.test(pageAct()) || age > LANCEMENT.jeuMax) lancRetirer(false, "page " + pageAct());
         return;
       }
-      let pret = false;
+      let pret = e.preparee === true;
       try {
-        pret = !!e.pret?.();
+        if (e.pret) pret = !!e.pret();
       } catch (x) {
       }
-      if (pret && age >= LANCEMENT.min || age >= e.max) lancRetirer();
+      if (!(pret && e.preparee !== false && age >= (e.appli === "eshop" ? LANCEMENT.eshop.min : LANCEMENT.min) || age >= e.max)) return;
+      if (e.appli !== "eshop") return lancRetirer();
+      if (!e.pretDepuis) {
+        e.pretDepuis = Date.now();
+        lanc.classList.add("pret");
+        lancStatut.textContent = T("console.eshop_pret");
+        (window.__pcvEshopChargements ||= []).push({ ms: age, prepare: e.preparee === true, max: age >= e.max });
+      }
+      if (Date.now() - e.pretDepuis >= LANCEMENT.eshop.pret) lancRetirer();
     }, 100);
   };
-  const lancerAvecEcran = ({ nom, fond, html, depuis, image, pret, faire, tenir }) => {
-    lancMontrer({ nom, fond: image || fond, html, depuis, jeu: !!image });
-    lancEtat = { jeu: false, depuis: Date.now(), pret, max: tenir || LANCEMENT.max };
+  const lancerAvecEcran = ({ appli, nom, fond, html, depuis, jeu, pret, faire, tenir }) => {
+    lancMontrer({ nom, fond, html, depuis, jeu, appli });
+    const preparer = window.__pcvPreparer?.[appli];
+    const etat = lancEtat = {
+      jeu: false,
+      appli,
+      depuis: Date.now(),
+      pret,
+      preparee: preparer ? false : void 0,
+      max: tenir || (preparer ? LANCEMENT.preparationMax : LANCEMENT.max)
+    };
     requestAnimationFrame(() => {
+      if (lancEtat !== etat) return;
       const son = window.__pcvSon;
       window.__pcvSon = (n) => n === "choisir" ? void 0 : son?.(n);
       try {
@@ -3294,6 +3738,10 @@
       } finally {
         window.__pcvSon = son;
       }
+      if (preparer) Promise.resolve().then(() => preparer()).catch(() => {
+      }).finally(() => {
+        etat.preparee = true;
+      });
     });
     lancSurveiller();
   };
@@ -3311,14 +3759,23 @@
     })();
     if (!a && !essai) return;
     const k = cases.findIndex((c) => c?.app === +appid), t = k >= 0 ? grille.children[k] : null;
-    lancMontrer({ nom: a?.display_name || T("console.jeu_n", { id: appid }), fond: a ? imageJeu(a) : "var(--pcv-texte2)", depuis: depuis || (racine.hidden ? null : t), jeu: true, muet });
+    lancMontrer({ nom: a?.display_name || T("console.jeu_n", { id: appid }), fond: "var(--pcv-texte2)", depuis: depuis || (racine.hidden ? null : t), jeu: a, muet });
     lancEtat = { jeu: true, appid: +appid, action, depuis: Date.now(), page: pageAct() };
     lancSurveiller();
     if (essai) lancFin = setTimeout(() => lancEtat?.appid === +appid && lancRetirer(), LANCEMENT.essai);
   };
   const EN_COURS = /^(\/routes)?\/apprunning/;
   const pageAct = () => window.__pcvBridge?.page?.() || O.location.pathname;
-  const pageSteam = (appid) => new RegExp(`^(/routes)?/library/app/${+appid}/?$`).test(pageAct());
+  const PAGE_STEAM = /^(?:\/routes)?\/library\/app\/(\d+)\/?$/;
+  const pageSteam = (appid) => +pageAct().match(PAGE_STEAM)?.[1] === +appid;
+  const appDeGid = (g) => {
+    try {
+      const b = BigInt(g);
+      return Number(b >> 32n) || Number(b);
+    } catch (e) {
+      return +g;
+    }
+  };
   const journal = [], noter = (x) => {
     journal.push({ t: Date.now(), ...x });
     if (journal.length > 40) journal.shift();
@@ -3334,7 +3791,7 @@
         if (lancRetour === r && r.fini) lancRetour = null;
         return clearInterval(tic);
       }
-      const m = lancModale() && [...document.querySelectorAll(".FullModalOverlay, .ModalPosition")].find((e) => e.getClientRects().length > 0);
+      const m = lancModale() && [...document.querySelectorAll(".FullModalOverlay, .ModalPosition")].find(affichee);
       const mt = m ? `${m.className} ${m.innerText}`.replace(/\s+/g, " ").slice(0, 160) : "";
       if (mt !== r.modale) {
         r.modale = mt;
@@ -3350,6 +3807,61 @@
     noter({ retour: r.page });
     window.__pcvBridge?.revenirA?.(r.page);
   };
+  const tourne = (id) => O.SteamUIStore.RunningApps.some((x) => +x.appid === id);
+  const suivreLancement = (id) => {
+    const r = lancRetour;
+    if (r?.appid === id && Date.now() - r.t0 < 5e3) return;
+    if (r?.appid === id && tourne(id)) return lancGarder(LANCEMENT.jeuMax);
+    journal.length = 0;
+    lancRetour = { appid: id, page: pageAct(), essai: 0, t0: Date.now(), vu: tourne(id) };
+    noter({ lance: id, depuis: lancRetour.page });
+    lancGarder(LANCEMENT.jeuMax);
+  };
+  const versFiche = () => {
+    const id = +pageAct().match(PAGE_STEAM)?.[1];
+    if (id !== pageVoulue) pageVoulue = 0;
+    if (!id || id === pageVoulue || lancRetour?.appid === id && Date.now() <= lancRetour.fin || lancModale() || !apps().has(id)) return;
+    noter({ fiche: id });
+    window.__pcvPageJeu?.(id);
+  };
+  const nomJeu = (id) => O.appStore.GetAppOverviewByAppID(id)?.display_name || T("console.jeu_n", { id });
+  const echecLancement = (id, raison) => {
+    lancRetirer(true, "\xE9chec");
+    noter({ echec: raison || "arr\xEAt\xE9" });
+    recents.delete(id);
+    if (raison === "AppError_16") return void setTimeout(() => window.__pcvJeuDevant || dejaLance(id), 1500);
+    const a = apps().get(id);
+    window.__pcvDossiers?.demander?.({
+      ailleurs: true,
+      ic: "reglages",
+      svg: window.__pcvIcones.trace("info"),
+      titre: T("console.echec_titre"),
+      texte: T("console.echec_texte", { nom: nomJeu(id) }),
+      non: T("dispo.fermer"),
+      oui: T("console.reessayer"),
+      ok: () => a && jouerJeu(a)
+    });
+  };
+  const dejaLance = (id) => window.__pcvDossiers?.demander?.({
+    ailleurs: true,
+    ic: "reglages",
+    svg: window.__pcvIcones.trace("lecture"),
+    danger: false,
+    titre: T("console.deja_titre"),
+    texte: T("console.deja_texte", { nom: nomJeu(id) }),
+    non: T("dispo.annuler"),
+    oui: T("home.reprendre"),
+    ok: () => {
+      O.__pcvJeuReprendre?.();
+      O.SteamUIStore.NavigateToRunningApp();
+    }
+  });
+  const fermerErreurSteam = (n = 0) => {
+    const m = document.querySelector(".ModalOverlayContent.active button");
+    let f = m && m[Object.keys(m).find((k) => k.startsWith("__reactFiber"))];
+    for (let i = 0; f && i < 60; f = f.return, i++) if (typeof f.memoizedProps?.closeModal === "function") return void f.memoizedProps.closeModal();
+    if (n < 20) setTimeout(() => fermerErreurSteam(n + 1), 50);
+  };
   const abo = (f) => {
     try {
       return f();
@@ -3359,8 +3871,10 @@
   };
   const SC = O.SteamClient?.Apps ? O.SteamClient : window.SteamClient;
   window.__pcvLancementAbos = [
-    abo(() => SC.Apps.RegisterForGameActionStart((id, appid, action) => {
+    abo(() => SC.Apps.RegisterForGameActionStart((id, gid, action) => {
       if (/launch/i.test(String(action))) {
+        const appid = appDeGid(gid);
+        suivreLancement(appid);
         lancJeu(appid, id);
       }
     })),
@@ -3369,14 +3883,20 @@
     abo(() => SC.Apps.RegisterForGameActionEnd((id) => {
       if (lancEtat?.jeu && lancEtat.action === id) setTimeout(() => lancEtat?.action === id && window.__pcvBridge?.runningApp?.()?.appid !== lancEtat.appid && lancRetirer(false, "fin sans jeu"), 3e3);
     })),
-    abo(() => SC.Apps.RegisterForGameActionShowError((id) => {
+    abo(() => SC.Apps.RegisterForGameActionShowError((id, gid, action, code) => {
       if (lancEtat?.jeu && lancEtat.action === id) lancRetirer();
+      if (/launch/i.test(String(action))) {
+        fermerErreurSteam();
+        echecLancement(appDeGid(gid), String(code));
+      }
     })),
     abo(() => SC.GameSessions.RegisterForAppLifetimeNotifications((n) => {
-      if (lancRetour?.appid === +n?.unAppID) {
+      const r = lancRetour;
+      if (r?.appid === +n?.unAppID) {
         noter({ tourne: !!n.bRunning });
-        lancRetour.fini = !n.bRunning;
+        r.fini = !n.bRunning;
         lancGarder(n.bRunning ? 3e3 : 5e3);
+        if (!n.bRunning && !r.vu && Date.now() - r.t0 < LANCEMENT.jeuMax) echecLancement(r.appid);
       }
     }))
   ];
@@ -3384,6 +3904,7 @@
   addEventListener("pcv-jeu-devant", window.__pcvLancDevant = (ev) => {
     noter({ devant: ev.detail });
     if (ev.detail) {
+      if (lancRetour) lancRetour.vu = true;
       if (lancEtat?.jeu) lancRetirer(false, "jeu devant");
       return;
     }
@@ -3391,7 +3912,7 @@
   });
   const couvrir = () => {
     const id = window.__pcvBridge?.runningApp?.()?.appid || lancRetour?.appid;
-    if (id && !lancEtat && !window.__pcvJeuDevant && EN_COURS.test(pageAct())) lancJeu(id, null, false, null, true);
+    if (id && !lancEtat && !window.__pcvJeuDevant && !window.__pcvMenuOuvert?.() && EN_COURS.test(pageAct())) lancJeu(id, null, false, null, true);
   };
   try {
     window.__pcvLancPages?.();
@@ -3402,6 +3923,7 @@
     setTimeout(() => {
       revenir();
       couvrir();
+      versFiche();
     }, 0);
   });
   const recents = /* @__PURE__ */ new Map();
@@ -3409,16 +3931,14 @@
     const id = a.appid, t0 = recents.get(id);
     if (t0 && Date.now() - t0 < 5e3) return;
     recents.set(id, Date.now());
+    if (tourne(id)) return void dejaLance(id);
     let gid = "";
     try {
       gid = a.GetGameID?.() || a.m_gameid || String(id);
     } catch (e) {
       gid = String(id);
     }
-    journal.length = 0;
-    lancRetour = { appid: id, page: window.__pcvBridge?.page?.() || "", essai: 0 };
-    noter({ lance: id, depuis: lancRetour.page });
-    lancGarder(LANCEMENT.jeuMax);
+    suivreLancement(id);
     try {
       window.__pcvLancement.run(gid, a);
     } catch (e) {
@@ -3428,10 +3948,77 @@
     }
     lancJeu(id, null, false, depuis);
   };
+  const installer = (a) => {
+    if (window.__pcvBridge?.unifideck?.etat(a) != null || !window.__pcvBridge?.installer?.(a.appid)) return ouvrir(a.appid);
+    let vu2 = Date.now();
+    const t = setInterval(() => {
+      if (window.__pcvTelech?.dans?.(a.appid)) {
+        clearInterval(t);
+        O.__pcvAller?.("telechargements");
+      } else if (lancModale()) vu2 = Date.now();
+      else if (Date.now() - vu2 > 3e3) clearInterval(t);
+    }, 300);
+  };
+  window.__pcvJeux = {
+    apps,
+    installe,
+    raccourci,
+    ouvrir,
+    installer,
+    glisser,
+    pincer,
+    crans,
+    lettre: lettreVoisine,
+    jouer: (a, el) => ici(a) ? jouerJeu(a, el) : installer(a),
+    banc: BANC ? BANC_BASE : 0,
+    zooms: ZOOMS,
+    peindre: (el, a, c, petite = false, images) => {
+      if (images) a = { ...a, __pcvImages: images };
+      el.__pcvJeu = a;
+      el.__pcvPetite = petite;
+      el.__pcvTaille = petite ? TUILE.pas : Math.max(TUILE.pas, Math.ceil(c * innerHeight / 800 * (devicePixelRatio || 1) * TUILE.marge / TUILE.pas) * TUILE.pas);
+      el.__pcvProche = true;
+      peindreJeu(el, a);
+    },
+    preparer: async (el, a, c, images) => {
+      do {
+        const attentes = el.__pcvAttentes = [];
+        window.__pcvJeux.peindre(el, a, c, false, images);
+        if (enVerif.has(a.appid)) attentes.push(enVerif.get(a.appid));
+        if (!attentes.length) break;
+        await Promise.allSettled(attentes);
+      } while (!tuilesFinies && el.isConnected);
+      delete el.__pcvAttentes;
+    },
+    mesuresImages: () => MESURES_IMAGES.slice(),
+    sansImage: (a) => raccourci(a) && sansArt(a),
+    // hero(a) : le décor du jeu (sans titre), l'image choisie par l'utilisateur d'abord, en adresses de repli successives
+    hero: (a) => [...perso("GetCustomHeroImageURLs", a), IMG(a.appid, "library_hero.jpg"), CDN(a.appid, "library_hero.jpg")],
+    dossier: (nom, l, n) => {
+      const t = tuileDossier({ dossier: true, nom, l: l.slice(0, 3).map((a) => ({ app: a.appid })) });
+      t.querySelector("small").textContent = n;
+      return t;
+    },
+    // surAccueil(id) / mettreAccueil(id, oui) : le jeu a-t-il sa place sur l'accueil (réglage de SteamU, rien sur le compte)
+    surAccueil: (id) => !accueilRetire(id),
+    mettreAccueil: (id, oui) => accueilRetirer(id, !oui),
+    cotes: (c, g) => {
+      const z = { c, g }, f = forme(z);
+      return { c, g, ...f, ...selection(z, f) };
+    }
+  };
   window.__pcvLancement = {
     banc: {},
     run: (gid) => SC.Apps.RunGame(gid, "", -1, 100),
     appli: lancerAvecEcran,
+    icone: (x) => icone(x, true),
+    /* (31/10) le relief, comme la tuile et le lancement : menu HOME « Logiciel en cours » */
+    ouvrirAppli: (k) => {
+      const x = APPLIS[k];
+      if (!x?.pret) return false;
+      lancerAvecEcran({ appli: k, nom: x.nom, html: icone(x, true), pret: x.pret, faire: () => x.ouvrir() });
+      return true;
+    },
     jeu: (appid) => lancJeu(appid, null),
     essai: (appid) => lancJeu(appid, null, true),
     fermer: () => lancRetirer(),

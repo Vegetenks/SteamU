@@ -5,7 +5,7 @@ try {
 try {
   const S = (window.opener || window).SteamClient;
   window.__pcvAbonnementJeuDevant = S?.System?.UI?.RegisterForFocusChangeEvents?.((e) => {
-    const id = e?.focusedApp?.appid, devant = !!id && id !== 769;
+    const id = Number(e?.focusedApp?.appid) >>> 0, devant = !!id && id !== 769 && id === Number(window.__pcvBridge?.runningApp()?.appid) >>> 0;
     if (devant !== !!window.__pcvJeuDevant) {
       window.__pcvJeuDevant = devant;
       window.dispatchEvent(new CustomEvent("pcv-jeu-devant", { detail: devant }));
@@ -14,10 +14,264 @@ try {
 } catch (e) {
 }
 {
-  const TDP_ECONOMIE_W = 8;
-  window.__pcvEconomie = () => {
-    const w = window.__pcvBridge?.limiteTdp?.();
-    return w != null && w < TDP_ECONOMIE_W;
+  const PALIERS = [
+    { fondPas: 0, fondEchelle: 1, miiLisse: true, miiBasse: false, miiIps: 0, videos: true },
+    { fondPas: 66, fondEchelle: 1, miiLisse: false, miiBasse: false, miiIps: 0, videos: true },
+    { fondPas: 66, fondEchelle: 0.5, miiLisse: false, miiBasse: true, miiIps: 0, videos: true },
+    { fondPas: 100, fondEchelle: 0.5, miiLisse: false, miiBasse: true, miiIps: 30, videos: false }
+  ];
+  const QUALITE = { fenetre: 1e3, descente: 2, remontee: 8, haut: 1.18, marge: 0.65, grace: 2e3 };
+  const ATTENTE_MAX = 12e4;
+  const juger = (e, t, m, trop, large, sature, n) => {
+    const p = e.palier, aller = (q, essai) => {
+      e.sens = q - p;
+      e.palier = q;
+      e.change = t;
+      e.avant = essai ? m : 0;
+      e.lentes = e.fluides = 0;
+      return true;
+    };
+    if (t < e.grace || t - e.change < QUALITE.fenetre * 1.5) {
+      e.lentes = e.fluides = 0;
+      return false;
+    }
+    e.lentes = trop ? e.lentes + 1 : 0;
+    e.fluides = large ? e.fluides + 1 : 0;
+    if (e.sens > 0 ? !trop : e.fluides >= QUALITE.descente) e.avant = 0;
+    if (e.lentes >= QUALITE.descente) {
+      if (e.avant && e.sens < 0 && (m > e.avant * 1.05 || sature)) {
+        e.hausseApres = t + e.reessai;
+        e.reessai = Math.min(ATTENTE_MAX, e.reessai * 2);
+        return aller(p + 1);
+      }
+      if (e.avant && e.sens > 0 && m > e.avant * 0.95 && !sature) {
+        e.interdit = p;
+        e.interditJusqua = t + ATTENTE_MAX;
+        return aller(p - 1);
+      }
+      if (e.avant && e.sens < 0) {
+        e.interdit = p + 1;
+        e.interditJusqua = t + ATTENTE_MAX;
+        e.avant = 0;
+      }
+      if (p < (t < e.interditJusqua && !sature ? e.interdit - 1 : n - 1)) return aller(p + 1, true);
+      if (p > 0 && t >= e.hausseApres && !sature) return aller(p - 1, true);
+    } else if (e.fluides >= QUALITE.remontee && p > 0 && t >= e.hausseApres) return aller(p - 1, true);
+    return false;
+  };
+  const etatQualite = (palier = 0) => ({ palier, lentes: 0, fluides: 0, change: -1e9, avant: 0, sens: 0, grace: 0, interdit: 0, interditJusqua: 0, reessai: 15e3, hausseApres: 0 });
+  const C = { ...etatQualite(), force: null, ecran: 1e3 / 60, voulu: 0, eu: 0, travail: 0, n: 0, t0: 0, tp: -1e9, bilan: null };
+  window.__pcvCharge = {
+    PALIERS,
+    QUALITE,
+    juger,
+    etatQualite,
+    palier: () => C.force ?? C.palier,
+    reglage: () => PALIERS[C.force ?? C.palier],
+    bilan: () => C.bilan,
+    forcer: (p) => C.force = p == null ? null : Math.max(0, Math.min(PALIERS.length - 1, p | 0)),
+    // mesures sur le banc
+    // une boucle vient de dessiner : t, l'heure de l'image ; voulu, l'intervalle visé (0 : chaque image de l'écran) ;
+    // eu, l'intervalle réel depuis sa précédente image ; travail, les ms de calcul de celle-ci
+    noter(t, voulu, eu, travail = 0) {
+      if (!(eu > 0) || eu > 250) return;
+      if (!voulu && eu > 1e3 / 240) C.ecran = Math.min(C.ecran, eu);
+      if (t - C.tp > QUALITE.fenetre) {
+        C.voulu = C.eu = C.travail = C.n = 0;
+        C.t0 = t;
+      }
+      C.tp = t;
+      C.voulu += voulu || C.ecran;
+      C.eu += eu;
+      C.travail += travail;
+      C.n++;
+      if (t - C.t0 < QUALITE.fenetre) return;
+      C.t0 = t;
+      const lent = C.eu / C.voulu, calcul = C.travail / C.n;
+      const sature = calcul > C.ecran * 0.9, trop = lent > QUALITE.haut || sature, large = lent <= 1.08 && calcul < C.ecran * QUALITE.marge;
+      if (juger(C, t, lent, trop, large, sature, PALIERS.length)) try {
+        window.dispatchEvent(new CustomEvent("pcv-charge", { detail: C.palier }));
+      } catch (e) {
+      }
+      C.bilan = { palier: C.palier, ecranMs: +C.ecran.toFixed(2), lenteur: +lent.toFixed(2), calculMs: +calcul.toFixed(2), images: C.n };
+      C.voulu = C.eu = C.travail = C.n = 0;
+    }
+  };
+}
+window.__pcvPanneau = /* @__PURE__ */ (() => {
+  const vus = /* @__PURE__ */ new WeakMap();
+  return (doc = document) => {
+    let j = vus.get(doc);
+    if (!j) {
+      const cs = getComputedStyle(doc.documentElement), t = cs.getPropertyValue("--pcv-panneau-duree").trim();
+      vus.set(doc, j = { duration: parseFloat(t) * (t.endsWith("ms") ? 1 : 1e3) || 300, easing: cs.getPropertyValue("--pcv-panneau-courbe").trim() || "ease-out" });
+    }
+    return j;
+  };
+})();
+window.__pcvRapide = 120;
+window.__pcvReduit = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+window.__pcvVoile = /* @__PURE__ */ (() => {
+  const ouvertes = /* @__PURE__ */ new Set();
+  return (cle, oui) => {
+    ouvertes[oui ? "add" : "delete"](cle);
+    document.documentElement.classList.toggle("pcv-voile", ouvertes.size > 0);
+  };
+})();
+window.__pcvApparition = /* @__PURE__ */ (() => {
+  let j;
+  return (el, sortie = false, boite, fin) => {
+    if (!el?.animate || !el.isConnected) return fin?.();
+    el.__pcvSortie?.cancel();
+    el.__pcvSortie = null;
+    j ||= window.__pcvPanneau(el.ownerDocument);
+    let x = el;
+    if (sortie && !fin) {
+      x = el.cloneNode(true);
+      x.inert = true;
+      x.style.pointerEvents = "none";
+      x.querySelectorAll("style").forEach((s2) => s2.remove());
+      if (el.parentElement?.classList.contains("BasicUI")) el.parentElement.append(x);
+      else el.after(x);
+      x.getAnimations({ subtree: true }).forEach((a2) => a2.cancel());
+      const toiles = el.querySelectorAll("canvas");
+      x.querySelectorAll("canvas").forEach((c, i) => {
+        try {
+          c.getContext("2d").drawImage(toiles[i], 0, 0);
+        } catch (e) {
+        }
+      });
+    }
+    const reduit = window.__pcvReduit(), o = { ...reduit ? { duration: window.__pcvRapide, easing: "ease-out" } : j, fill: sortie ? "forwards" : "none" };
+    const s = !reduit && (boite && x.querySelector(boite) || x).animate({ scale: sortie ? [1, 0.94] : [0.94, 1] }, o), a = x.animate({ opacity: sortie ? [1, 0] : [0, 1] }, o);
+    if (!sortie) return;
+    const annuler = () => {
+      a.cancel();
+      s && s.cancel();
+      el.__pcvSortie = null;
+    };
+    if (fin) el.__pcvSortie = { cancel: annuler };
+    a.onfinish = () => {
+      if (x !== el) return x.remove();
+      fin();
+      annuler();
+    };
+    return x;
+  };
+})();
+{
+  let aTenue = false, tenu = null;
+  const enfoncer = (el) => {
+    if (tenu?.el === el) return tenu;
+    tenu?.();
+    const a = el.animate({ scale: [1, 0.93] }, { duration: window.__pcvRapide, easing: "ease-in", fill: "forwards", composite: "add" });
+    let fait = false;
+    const haut = () => {
+      if (fait) return;
+      fait = true;
+      if (tenu === haut) tenu = null;
+      a.onfinish = () => {
+        a.onfinish = () => a.cancel();
+        a.reverse();
+      };
+      if (a.playState === "finished") a.onfinish();
+    };
+    haut.el = el;
+    return tenu = haut;
+  };
+  window.__pcvAppui = (el) => {
+    if (!el?.animate) return;
+    const haut = enfoncer(el);
+    setTimeout(() => {
+      if (!aTenue) haut();
+    }, window.__pcvRapide);
+  };
+  const notre = (p) => {
+    const b = p[0]?.closest?.("button, [data-a], [role=button], .pcv-legende > [data-b]");
+    return b && !b.closest(".pcvc") && p.some((n) => n.id?.startsWith?.("pcv")) ? b : null;
+  };
+  let pose = null;
+  const dans = (r, e) => e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+  const appui = (e) => {
+    pose = null;
+    const b = notre(e.composedPath());
+    if (!b?.animate) return;
+    const r = b.getBoundingClientRect();
+    pose = { b, r };
+    const haut = enfoncer(b), x = e.clientX, y = e.clientY;
+    const glisse = (m) => {
+      if (Math.hypot(m.clientX - x, m.clientY - y) > 15 || !dans(r, m)) fin();
+    };
+    const fin = () => {
+      haut();
+      window.removeEventListener("pointermove", glisse, true);
+      window.removeEventListener("pointerup", fin, true);
+      window.removeEventListener("pointercancel", fin, true);
+    };
+    window.addEventListener("pointermove", glisse, true);
+    window.addEventListener("pointerup", fin, true);
+    window.addEventListener("pointercancel", fin, true);
+  };
+  const clic = (e) => {
+    const p = pose;
+    pose = null;
+    if (!e.detail) {
+      const b = notre(e.composedPath());
+      if (b) window.__pcvAppui(b);
+    } else if (p && !e.composedPath().includes(p.b) && dans(p.r, e)) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      p.b.dispatchEvent(new MouseEvent("click", e));
+    }
+  };
+  let attente = null;
+  window.__pcvVise = () => {
+    const SEL = ":is(.f, .pcv-f, .k, .sel, .sur-action, .mm-focus)", vues = /* @__PURE__ */ new Set();
+    for (const h of document.querySelectorAll('[id^="pcv"]')) for (const x of [...h.querySelectorAll(SEL), ...h.shadowRoot?.querySelectorAll(SEL) || []]) vues.add(x);
+    return [...vues].filter((x) => {
+      const r = x.getBoundingClientRect();
+      if (!r.width || !r.height) return false;
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      let el = document.elementFromPoint(cx, cy);
+      while (el?.shadowRoot) {
+        const f = el.shadowRoot.elementFromPoint(cx, cy);
+        if (!f || f === el) break;
+        el = f;
+      }
+      return !!el && (el === x || x.contains(el));
+    }).pop() || null;
+  };
+  window.__pcvAuRelacher = (faire, el) => {
+    attente = faire;
+    if (!faire) tenu?.();
+    else if (el?.animate) enfoncer(el);
+  };
+  const bouton = (e) => {
+    const b = e.detail?.button, bas = e.type === "vgp_onbuttondown";
+    if (b !== 1) {
+      if (bas && attente) window.__pcvAuRelacher(null);
+      return;
+    }
+    aTenue = bas;
+    if (bas) return;
+    const f = attente;
+    attente = null;
+    tenu?.();
+    f?.();
+  };
+  const sansMenuNavigateur = (e) => e.preventDefault();
+  window.__pcvAppuiFin?.();
+  window.addEventListener?.("pointerdown", appui, true);
+  window.addEventListener?.("click", clic, true);
+  window.addEventListener?.("contextmenu", sansMenuNavigateur, true);
+  window.addEventListener?.("vgp_onbuttondown", bouton, true);
+  window.addEventListener?.("vgp_onbuttonup", bouton, true);
+  window.__pcvAppuiFin = () => {
+    window.removeEventListener("pointerdown", appui, true);
+    window.removeEventListener("click", clic, true);
+    window.removeEventListener("contextmenu", sansMenuNavigateur, true);
+    window.removeEventListener("vgp_onbuttondown", bouton, true);
+    window.removeEventListener("vgp_onbuttonup", bouton, true);
   };
 }
 window.__pcvBridge = (() => {
@@ -119,16 +373,53 @@ window.__pcvBridge = (() => {
         return null;
       }
     },
-    // Ne jamais lire visibleApps avant collectionsFromStorage : Steam mémorise l'erreur de calcul.
-    // Une bibliothèque vide est prête ; aucune énumération de allApps pendant l'attente.
+    // Présence des données seulement : aucun nom, identifiant ou URL dans le diagnostic du démarrage.
+    etatCompte: () => {
+      try {
+        const f = O.g_FriendsUIApp?.FriendStore, p = f?.self?.persona;
+        return {
+          amis: !!f,
+          soi: !!f?.self,
+          profil: !!p,
+          nom: !!p?.m_strPlayerName,
+          avatar: !!(p?.avatar_url_full || p?.avatar_url_medium)
+        };
+      } catch (e) {
+        return { erreur: true };
+      }
+    },
+    // Ne rien lire avant collectionsFromStorage : Steam mémorise l'erreur de calcul. Une bibliothèque vide est prête.
+    // Le nombre est celui de la Bibliothèque (jeux et raccourcis, console.js) : visibleApps suit le filtre de Steam (83 sur 164, 28/10).
     resumeBibliotheque: () => {
       try {
         if (!O.collectionStore?.collectionsFromStorage) return { pret: false, nombreJeux: null };
-        const n = O.collectionStore.allGamesCollection.visibleApps.length;
+        const n = window.__pcvJeux?.apps?.().size;
         return Number.isSafeInteger(n) && n >= 0 ? { pret: true, nombreJeux: n } : { pret: false, nombreJeux: null };
       } catch (e) {
         return { pret: false, nombreJeux: null };
       }
+    },
+    // Changements de fiches (raccourcis compris) et d'installation ; nettoyage à chaque réinjection.
+    ecouterBibliotheque: (cb) => {
+      const a = [];
+      try {
+        a.push(O.SteamClient.Apps.RegisterForAppOverviewChanges(cb));
+      } catch (e) {
+      }
+      try {
+        a.push(O.SteamClient.Downloads.RegisterForDownloadOverview(cb));
+      } catch (e) {
+      }
+      try {
+        a.push(O.downloadsStore.RegisterForDownloadItemsUpdate(cb));
+      } catch (e) {
+      }
+      return { unregister: () => a.forEach((x) => {
+        try {
+          x?.unregister ? x.unregister() : x?.Unregister?.();
+        } catch (e) {
+        }
+      }) };
     },
     // Adaptation provisoire à l'hôte Steam : la vue n'a pas à connaître ses routes.
     // (21/10) le TDP réglé dans les réglages rapides, en watts ; null sans limite (automatique) ou sans SteamOS
@@ -189,18 +480,28 @@ window.__pcvBridge = (() => {
         };
       }
     },
+    // (22/10) un jeu pas installé ici : la fenêtre d'installation de Steam (choix du disque), sans passer par sa page
+    installer: (appid) => {
+      try {
+        O.SteamClient.Installs.OpenInstallWizard([+appid]);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
     // (22/10, idée de lieserlV, PR #7 du dépôt public) Unifideck range les jeux de ses boutiques (Epic, GOG, Amazon…) dans
     // Steam en raccourcis non Steam, installés ou non : pour Steam ils sont tous là. Unifideck sait lesquels le sont (RPC
-    // get_all_unifideck_games, la source de ses propres onglets) : on le lui demande. LA source de l'accueil (console.js,
-    // installe()).
+    // get_all_unifideck_games, la source de ses propres onglets) : on le lui demande. LA source de l'accueil, de la
+    // bibliothèque et de sa page du jeu (console.js, installe()).
     // etat(a) : true / false selon Unifideck ; null : pas un de ses jeux, ou Unifideck absent (le raccourci reste
     // « installé », comme avant). version() change avec un état (l'accueil se refait). charger(force) : relu au plus
     // toutes les 30 s ; 3 échecs de suite (Unifideck absent), plus aucun appel jusqu'à un événement d'Unifideck.
     // L'état vit sur la fenêtre principale (O.__pcvUnifideck, lisible pour un diagnostic sur la console)
-    // Un raccourci reconnu à son lanceur mais absent de la liste d'Unifideck compte comme non installé.
-    // Les jeux Xbox d'Unifideck (tag « xcloud ») se jouent en streaming : jamais « installés » pour lui, mais toujours
-    // jouables. etat(a) les rend donc vrais, et nuage(a) dit lesquels sont du cloud (l'accueil y met un nuage).
+    // (26/10, PR #10 de lieserlV) Les jeux Xbox Cloud d'Unifideck (tag TAG_NUAGE) se jouent en streaming : jamais
+    // « installés » pour lui, toujours jouables. etat(a) les dit donc vrais, nuage(a) dit lesquels (l'accueil y met le
+    // nuage). Un raccourci reconnu à son lanceur mais absent de la liste d'Unifideck (GameVault hors ligne) : pas installé.
     unifideck: (() => {
+      const TAG_NUAGE = "xcloud", LANCEUR = "unifideck-launcher", REVOIR_LANCEUR = 1e4;
       const u = O.__pcvUnifideck ||= { jeux: /* @__PURE__ */ new Map(), ok: false, version: 0, enCours: false, rejouer: false, dernier: 0, echecs: 0, erreur: "" };
       u.nuage ||= /* @__PURE__ */ new Set();
       const formes = (id) => {
@@ -210,13 +511,13 @@ window.__pcvBridge = (() => {
       const appliquer = (l) => {
         const m = /* @__PURE__ */ new Map(), nuage = /* @__PURE__ */ new Set();
         for (const g of l) if (g && g.app_id != null && g.store && g.store !== "steam") {
-          const cloud = Array.isArray(g.tags) && g.tags.some((t) => String(t).toLowerCase() === "xcloud");
+          const cloud = Array.isArray(g.tags) && g.tags.some((t) => String(t).toLowerCase() === TAG_NUAGE);
           for (const id of formes(g.app_id)) {
             m.set(id, !!g.installed || cloud);
             if (cloud) nuage.add(id);
           }
         }
-        if (m.size !== u.jeux.size || nuage.size !== u.nuage.size || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
+        if (m.size !== u.jeux.size || nuage.size !== u.nuage.size || [...nuage].some((k) => !u.nuage.has(k)) || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
         Object.assign(u, { jeux: m, nuage, ok: true, echecs: 0, erreur: "" });
       };
       const rate = (e) => {
@@ -243,9 +544,10 @@ window.__pcvBridge = (() => {
       };
       const surEvenement = (e) => {
         const d = e?.detail;
-        if (d && d.appId != null && typeof d.isInstalled === "boolean") {
-          for (const id of formes(d.appId)) if (u.jeux.get(id) !== (d.isInstalled || u.nuage.has(id))) {
-            u.jeux.set(id, d.isInstalled || u.nuage.has(id));
+        if (d && d.appId != null && typeof d.isInstalled === "boolean") for (const id of formes(d.appId)) {
+          const v = d.isInstalled || u.nuage.has(id);
+          if (u.jeux.get(id) !== v) {
+            u.jeux.set(id, v);
             u.version++;
           }
         }
@@ -269,18 +571,17 @@ window.__pcvBridge = (() => {
         }
         if (force || u.echecs < 3 && Date.now() - u.dernier >= (u.ok ? 3e4 : 5e3)) lire();
       };
-      // Un raccourci d'Unifideck se reconnaît à son lanceur. Oui : retenu pour de bon ; non : revérifié au bout de 10 s
-      // (les détails d'un raccourci peuvent n'être chargés que plus tard)
-      const memoLanceur = /* @__PURE__ */ new Map();
+      const vus = /* @__PURE__ */ new Map();
       const lanceur = (a) => {
-        const m = memoLanceur.get(a.appid), t = Date.now();
-        if (m && (m.v || t - m.t < 1e4)) return m.v;
+        const m = vus.get(a.appid), t = Date.now();
+        if (m && (m.v || t - m.t < REVOIR_LANCEUR)) return m.v;
         let v = false;
         try {
-          v = String(O.appDetailsStore?.GetAppDetails?.(a.appid)?.strShortcutExe || "").includes("unifideck-launcher");
+          v = String(O.appDetailsStore?.GetAppDetails?.(a.appid)?.strShortcutExe || "").includes(LANCEUR);
         } catch (e) {
         }
-        memoLanceur.set(a.appid, { v, t });
+        if (v && m) u.version++;
+        vus.set(a.appid, { v, t });
         return v;
       };
       return {
@@ -290,10 +591,7 @@ window.__pcvBridge = (() => {
         etat: (a) => {
           charger();
           const v = u.jeux.get(Number(a.appid));
-          if (v !== void 0) return v;
-          // un jeu d'Unifideck qu'il ne connaît pas (GameVault dont le serveur est éteint, synchro en retard...) n'est pas
-          // installé pour SteamU ; avant sa première réponse (ou s'il n'en donne plus), seulement pendant les premiers essais
-          return (u.ok || u.echecs < 3) && lanceur(a) ? false : null;
+          return v !== void 0 ? v : (u.ok || u.echecs < 3) && lanceur(a) ? false : null;
         }
       };
     })(),
@@ -361,6 +659,89 @@ window.__pcvBridge = (() => {
       } catch (e) {
       }
     },
+    // (29/10, Paramètres lot 1, reglages.js) un réglage du client, lu et écrit comme Steam le fait (CMsgClientSettings) ;
+    // le texte d'un jeton de traduction de Steam dans sa langue ; les jeux masqués (nombre, et leur collection)
+    reglageClient: (nom) => {
+      try {
+        return clientSettings()?.[nom];
+      } catch (e) {
+        return void 0;
+      }
+    },
+    ecrireReglageClient: (nom, v) => {
+      try {
+        settingsWriter()?.(nom, v);
+      } catch (e) {
+      }
+    },
+    texteSteam: (jeton) => {
+      try {
+        return O.LocalizationManager?.m_mapTokens?.get(jeton);
+      } catch (e) {
+        return void 0;
+      }
+    },
+    jeuxMasques: () => {
+      try {
+        return O.collectionStore?.GetCollection?.("hidden")?.allApps?.length ?? null;
+      } catch (e) {
+        return null;
+      }
+    },
+    ouvrirJeuxMasques: () => {
+      try {
+        navigator_()?.Collection("hidden");
+      } catch (e) {
+      }
+    },
+    // (29/10, Paramètres lot 2) comme Steam : un réglage des contacts (Format 24 heures) ; la bulle d'une notification (bit 8
+    // de ses cibles, la colonne « bulle de notification ») ; un bouton « Gérer » du Magasin (ses préférences, à une ancre) ;
+    // « Ajouter un jeu » (la fenêtre du code produit)
+    reglageAmi: (nom) => {
+      try {
+        return globalStore("settingsStore")?.friendSettings?.[nom];
+      } catch (e) {
+        return void 0;
+      }
+    },
+    ecrireReglageAmi: (nom, v) => {
+      try {
+        globalStore("settingsStore")?.UpdateFriendSetting(nom, v);
+      } catch (e) {
+      }
+    },
+    notifBulle: (type) => {
+      try {
+        return !!(globalStore("settingsStore")?.notificationPreferences?.find((x) => x.notification_type === type)?.notification_targets & 8);
+      } catch (e) {
+        return false;
+      }
+    },
+    basculerNotifBulle: (type) => {
+      try {
+        globalStore("settingsStore")?.ToggleNotificationPreference(type, 8);
+      } catch (e) {
+      }
+    },
+    ouvrirPrefsMagasin: (ancre) => {
+      try {
+        navigator_()?.SteamWeb(O.urlStore.ResolveURL("SteamPreferences") + "#" + ancre);
+      } catch (e) {
+      }
+    },
+    activerProduit: () => {
+      try {
+        findModule("activer", "#Settings_Library_ProdKey_Info_Title", (f) => typeof f === "function" && /^function\b/.test(String(f)) && String(f).length < 120)?.(window);
+      } catch (e) {
+      }
+    },
+    // (29/10) l'aperçu de l'écran de veille choisi : ce que fait le bouton « Prévisualiser » de Steam (Personnalisation)
+    apercuVeille: () => {
+      try {
+        findModule("veille", "ForceScreensaver", (v) => typeof v?.ForceScreensaver === "function")?.ForceScreensaver({ enabled: true });
+      } catch (e) {
+      }
+    },
     controllerConfig: (appid) => {
       try {
         navigator_()?.ControllerConfigurator?.Main(appid);
@@ -406,7 +787,17 @@ window.__pcvBridge = (() => {
       }
     },
     // simple connectivity (the Wi-Fi network LIST/scan/connect stays direct in acces-rapide.js : a much bigger surface)
-    network: () => ({ connected: !!globalStore("SystemNetworkStore")?.hasNetworkConnection }),
+    // filaire : la connexion qui porte la route par défaut est un appareil câblé (etype 1 ; 2 = Wi-Fi, 3 = boucle locale ;
+    // estate 5 = connecté), lu dans la liste des points d'accès de Steam, en lecture seule
+    network: () => {
+      const S = globalStore("SystemNetworkStore");
+      let filaire = false;
+      try {
+        filaire = [...S.m_mapNetworkAccessPoints.values()].some(({ m_DeviceInfo: d }) => d?.etype === 1 && d.estate === 5 && d.ip4?.is_default_route);
+      } catch (e) {
+      }
+      return { connected: !!S?.hasNetworkConnection, filaire, wifi: S?.accessPoints?.find((a) => a.type === 2 && a.isConnected)?.displayName || "" };
+    },
     bluetooth: {
       state: async () => {
         const S = bt();
@@ -445,15 +836,340 @@ window.__pcvBridge = (() => {
         }
       }
     },
+    // ── un jeu, pour le panneau et la page du jeu de la bibliothèque (bibliotheque.js). Les fonctions qui MODIFIENT
+    // (⚠) ne sont appelées qu'après une confirmation à l'écran ; jamais en essai sur le compte de l'auteur ──
+    // (développeurs, éditeurs, résumé : ceux que Steam montre dans sa bibliothèque ; demandés au premier appel, vides
+    // jusqu'à leur arrivée)
+    infosJeu: (appid) => {
+      try {
+        const S = O.appDetailsStore, a = S?.GetAssociations?.(appid), d = S?.GetDescriptions?.(appid), n = (l) => (l || []).map((x) => x?.strName).filter(Boolean);
+        return { dev: n(a?.rgDevelopers), editeur: n(a?.rgPublishers), resume: d?.strSnippet || "", pret: !!a };
+      } catch (e) {
+        return { dev: [], editeur: [], resume: "", pret: true };
+      }
+    },
+    // la commande d'un raccourci (exécutable et options), et les options de lancement d'un jeu Steam
+    commande: (appid) => {
+      try {
+        const d = O.appDetailsStore.GetAppDetails(appid);
+        return { exe: d?.strShortcutExe || "", options: d?.strShortcutLaunchOptions || "", lancement: d?.strLaunchOptions || "" };
+      } catch (e) {
+        return { exe: "", options: "", lancement: "" };
+      }
+    },
+    pageBoutique: (appid) => {
+      try {
+        O.SteamClient.Apps.ShowStore(appid);
+      } catch (e) {
+      }
+    },
+    proprietesSteam: (appid) => {
+      try {
+        O.SteamClient.Apps.OpenAppSettingsDialog(appid, "");
+      } catch (e) {
+      }
+    },
+    // (la fenêtre de Steam : chaque changement s'y fait chez elle)
+    estFavori: (appid) => {
+      try {
+        return !!O.collectionStore.BIsFavorite(appid);
+      } catch (e) {
+        return false;
+      }
+    },
+    estMasque: (appid) => {
+      try {
+        return !!O.collectionStore.BIsHidden(appid);
+      } catch (e) {
+        return false;
+      }
+    },
+    verifier: (appid) => {
+      try {
+        O.SteamClient.Apps.VerifyApp(appid);
+      } catch (e) {
+      }
+    },
+    // ⚠
+    favori: (appid, oui) => {
+      try {
+        O.collectionStore.SetAppsAsFavorite([appid], !!oui);
+      } catch (e) {
+      }
+    },
+    // ⚠ compte
+    masquer: (appid, oui) => {
+      try {
+        O.collectionStore.SetAppsAsHidden([appid], !!oui);
+      } catch (e) {
+      }
+    },
+    // ⚠ compte
+    desinstaller: (appid) => {
+      try {
+        O.SteamClient.URL.ExecuteSteamURL("steam://uninstall/" + appid);
+      } catch (e) {
+      }
+    },
+    // ⚠ (Steam demande encore)
+    retirerRaccourci: (appid) => {
+      try {
+        O.SteamClient.Apps.RemoveShortcut(appid);
+      } catch (e) {
+      }
+    },
+    // ⚠ compte
+    // les autres PC du foyer où le jeu est installé (Remote Play) : [{ clientid, nom }] ; diffuser() y lance le jeu en
+    // streaming, comme le bouton de Steam (Apps.StreamGame(appid, clientid, -1))
+    autresPC: (appid) => {
+      try {
+        return (O.appStore.GetAppOverviewByAppID(appid)?.per_client_data || []).filter((p) => p.clientid !== "0" && p.installed).map((p) => ({ clientid: p.clientid, nom: p.client_name || "" }));
+      } catch (e) {
+        return [];
+      }
+    },
+    diffuser: (appid, clientid) => {
+      try {
+        O.SteamClient.Apps.StreamGame(appid, clientid, -1);
+      } catch (e) {
+      }
+    },
+    // les succès du joueur : [{ strName, strDescription, strImage, bAchieved, rtUnlocked, bHidden… }] (vide si aucun)
+    succes: async (appid) => {
+      try {
+        const r = await O.SteamClient.Apps.GetMyAchievementsForApp(String(appid));
+        return (typeof r === "string" ? JSON.parse(r) : r)?.data?.rgAchievements || [];
+      } catch (e) {
+        return [];
+      }
+    },
+    // (22/10) les succès d'un ami dans un jeu que le joueur possède (même forme que succes ; vide si Steam refuse :
+    // jeu non possédé, profil privé). Lecture seule.
+    succesAmi: async (appid, id) => {
+      try {
+        const r = await O.SteamClient.Apps.GetFriendAchievementsForApp(String(appid), String(id));
+        const j = typeof r === "string" ? JSON.parse(r) : r;
+        return j?.result === 1 ? j.data?.rgAchievements || [] : [];
+      } catch (e) {
+        return [];
+      }
+    },
+    // (22/10) ses amis, pour les bulles de la place : [{ id, nom, enLigne, appid, jeu, presence, avatar }] (appid 0 hors jeu ;
+    // presence : le texte que Steam montre sous son nom, « En mission », vide sans). Rien n'est rangé.
+    amis: () => {
+      try {
+        return [...O.g_FriendsUIApp.FriendStore.all_friends].filter((f) => f.persona).map((f) => {
+          const p = f.persona, a = p.m_unGamePlayedAppID || 0;
+          return {
+            id: p.m_steamid?.ConvertTo64BitString?.() || "",
+            nom: f.display_name || p.m_strPlayerName || "",
+            enLigne: p.m_ePersonaState > 0,
+            appid: a,
+            jeu: a ? f.current_game_name || "" : "",
+            presence: a ? String(f.current_game_rich_presence || p.m_strGameExtraInfo || "") : "",
+            avatar: p.avatar_url_medium || ""
+          };
+        });
+      } catch (e) {
+        return [];
+      }
+    },
+    // ── les téléchargements de CETTE console (page Téléchargements, tuiles de l'accueil : telechargements.js) ──
+    // Le client « 0 » de downloadsStore seulement : la file des autres PC du compte (Steam la montre aussi) n'est jamais
+    // lue ni touchée. file() → { cours: { appid, pct, reste (s, -1 inconnu), pause, maj, fait, total (octets), vitesse (o/s) } | null,
+    // suivants: [{ appid, etat: "file" | "pause" | "prevu", maj, quand (prévu : l'heure de Steam, en s) }], termines: [appid…] } ; abonner(cb) : cb à chaque
+    // changement, par les abonnements de Steam (aucune minuterie) → { unregister }. Les actions sont celles des boutons de
+    // la page de Steam (mêmes appels, même client « 0 »). Banc : window.__pcvTelechBanc (même forme) remplace Steam.
+    telech: /* @__PURE__ */ (() => {
+      const D = () => O.SteamClient.Downloads, S = () => O.downloadsStore, BANC = () => window.__pcvTelechBanc;
+      const pctDe = (x) => x.update_type_info?.find((u) => u.has_update)?.overall_percent_complete || 0;
+      const ETAPE = () => findModule("etapeTelech", "k_EAppUpdateProgress_Download", (v) => typeof v?.k_EAppUpdateProgress_Download === "number")?.k_EAppUpdateProgress_Download;
+      const octets = (progress) => {
+        const p = progress?.[ETAPE()];
+        return p ? [+p.bytes_in_progress || 0, +p.bytes_total || 0] : [0, 0];
+      };
+      const reprendre = (x) => {
+        if (x?.queue_index === 0 && S().LocalDownloadOverview?.paused) D().EnableAllDownloads(true, "0");
+      };
+      return {
+        file: () => {
+          if (BANC()) return BANC().file();
+          try {
+            const s = S(), l = s.m_DownloadItems?.get("0") || [], ov = s.LocalDownloadOverview || {}, maj = (x) => !!x.buildid;
+            const file = l.filter((x) => x.queue_index !== -1 && !x.deferred_time && !x.completed).sort((a, b) => a.queue_index - b.queue_index);
+            const c = l.find((x) => x.appid === ov.update_appid) || (ov.paused ? file[0] : null);
+            const cours = c ? {
+              appid: c.appid,
+              pct: c.appid === ov.update_appid ? ov.overall_percent_complete : pctDe(c),
+              reste: c.appid === ov.update_appid ? ov.overall_estimated_time_remaining_sec : -1,
+              pause: !!ov.paused,
+              maj: maj(c),
+              vitesse: c.appid === ov.update_appid ? +ov.update_network_bytes_per_second || 0 : 0
+            } : null;
+            if (cours) [cours.fait, cours.total] = octets(c.appid === ov.update_appid ? ov.progress : c.update_type_info?.find((u) => u.has_update)?.progress);
+            const suivants = [
+              ...file.map((x) => ({ x, etat: "file" })),
+              ...l.filter((x) => !x.active && !x.completed && x.queue_index === -1 && !x.deferred_time).map((x) => ({ x, etat: "pause" })),
+              ...l.filter((x) => x.queue_index === -1 && x.deferred_time && !x.completed).sort((a, b) => a.deferred_time - b.deferred_time).map((x) => ({ x, etat: "prevu" }))
+            ].filter(({ x }) => x.appid !== cours?.appid).map(({ x, etat }) => ({ appid: x.appid, etat, maj: maj(x), ...etat === "prevu" ? { quand: +x.deferred_time || 0 } : {} }));
+            const termines = [...new Set([...l.filter((x) => x.completed).sort((a, b) => b.completed_time - a.completed_time), ...s.RecentlyCompleted || []].map((x) => x.appid))].slice(0, 12);
+            return { cours, suivants, termines };
+          } catch (e) {
+            return null;
+          }
+        },
+        abonner: (cb) => {
+          if (BANC()) return BANC().abonner(cb);
+          const a = [];
+          try {
+            a.push(D().RegisterForDownloadOverview(() => cb()));
+          } catch (e) {
+          }
+          try {
+            a.push(S().RegisterForDownloadItemsUpdate(() => cb()));
+          } catch (e) {
+          }
+          return { unregister: () => a.forEach((x) => {
+            try {
+              x?.unregister ? x.unregister() : x?.Unregister?.();
+            } catch (e) {
+            }
+          }) };
+        },
+        // pause de toute la file (le bouton Pause de Steam), reprise
+        pause: (oui) => {
+          if (BANC()) return BANC().pause(oui);
+          try {
+            D().EnableAllDownloads(!oui, "0");
+          } catch (e) {
+          }
+        },
+        // en tête de file (le glisser de Steam vers la première place), et la file relancée si elle était en pause
+        premier: (appid) => {
+          if (BANC()) return BANC().premier(appid);
+          try {
+            D().SetQueueIndex(appid, 0, "0");
+            if (S().LocalDownloadOverview?.paused) D().EnableAllDownloads(true, "0");
+          } catch (e) {
+          }
+        },
+        // retiré de la file (le X de Steam : les fichiers déjà téléchargés restent, Steam les reprend plus tard)
+        retirer: (appid) => {
+          if (BANC()) return BANC().retirer(appid);
+          try {
+            const x = S().m_DownloadItems?.get("0")?.find((y) => y.appid === appid);
+            D().RemoveFromDownloadList(appid, "0");
+            reprendre(x);
+          } catch (e) {
+          }
+        },
+        // les réglages des téléchargements de Steam (le même lien que sa page Téléchargements)
+        reglages: () => {
+          try {
+            O.SteamClient.URL.ExecuteSteamURL("steam://settings/downloads");
+          } catch (e) {
+          }
+        }
+      };
+    })(),
     // a Decky plugin method (loader/call_plugin_method) : pluginName defaults to SteamU's own greffon
     callPlugin: (pluginName, method, ...args) => O.DeckyBackend?.call("loader/call_plugin_method", pluginName, method, ...args) ?? Promise.reject(new Error("Decky absent"))
   };
 })();
-window.__pcvClonePile = (s) => {
-  const c = s.cloneNode(true);
-  c.querySelectorAll("*").forEach((x) => {
-    if (!x.children.length && /%/.test(x.textContent)) x.remove();
-  });
-  for (const n of c.querySelectorAll("[class]")) if (!n.matches("{{BatteryIcon@LegacySizing}}")) n.removeAttribute("class");
-  return c;
+window.__pcvEtat = {
+  html: (cl = "", style = "") => `<div class="pilule verre etat ${cl}"${style ? ` style="${style}"` : ""}>${window.__pcvIcones.svg("wifi", { classe: "ico" })}<span class="pile" hidden></span><span class="heure"></span></div>`,
+  // (22/10, l'auteur : « une seule batterie ») la pile d'une manette = le MÊME dessin que la pile du système, déjà posée
+  // par peindre() dans racine, remplie à pct % ; null tant qu'elle n'y est pas (machine sans batterie, avant peindre())
+  // (tout l'élément de la pile, pas seulement son svg : son dessin est celui du thème, theme-wiiu.src.css, .pcv-pile-manette)
+  pileA: (racine, pct) => {
+    const m = racine.querySelector(".pilule.etat .pile > *");
+    if (!m?.querySelector("svg svg rect")) return null;
+    const c = m.cloneNode(true);
+    c.querySelectorAll(".pcv-pct, .pcv-eclair").forEach((x) => x.remove());
+    c.querySelector("svg svg rect").setAttribute("width", Math.max(0, Math.min(100, pct)) + "%");
+    return `<span class="pile pcv-pile-manette">${c.outerHTML}</span>`;
+  },
+  peindre: (racine, s) => {
+    const B = window.__pcvBridge, d = racine.ownerDocument;
+    try {
+      const n = B.network(), f = n.filaire ? "filaire" : "wifi";
+      racine.querySelectorAll(".pilule.etat .ico").forEach((i) => {
+        if (i.dataset.ico !== f) {
+          i.insertAdjacentHTML("beforebegin", window.__pcvIcones.svg(f, { classe: "ico" }));
+          const j = i.previousElementSibling;
+          i.remove();
+          i = j;
+        }
+        i.classList.toggle("coupe", !n.connected);
+      });
+    } catch (e) {
+    }
+    const cloner = () => {
+      const c = s.cloneNode(true);
+      c.querySelectorAll("*").forEach((x) => {
+        if (!x.children.length && /%/.test(x.textContent)) x.remove();
+      });
+      for (const n of c.querySelectorAll("[class]")) if (!n.matches("{{BatteryIcon@LegacySizing}}")) n.removeAttribute("class");
+      return c;
+    };
+    const sig = s ? s.outerHTML : "";
+    racine.querySelectorAll(".pile").forEach((p) => {
+      if (p.__pcvSrc === sig) return;
+      p.__pcvSrc = sig;
+      p.replaceChildren(...s ? [cloner()] : []);
+    });
+    try {
+      const b = B.battery(), charge = b?.present && b.charging;
+      racine.querySelectorAll(".pilule.etat > .pile").forEach((p) => {
+        p.hidden = b?.present !== true;
+      });
+      for (const svg of racine.querySelectorAll('.pile svg:is([viewBox="0 0 48 36"], [viewBox="0 0 42 36"])')) {
+        const r = svg.parentElement, e = r.querySelector(".pcv-eclair");
+        if (charge && !e) r.appendChild(Object.assign(d.createElement("div"), { className: "pcv-eclair" }));
+        else if (!charge && e) e.remove();
+      }
+      for (const r of racine.querySelectorAll(".pilule.etat .pile > *")) {
+        let p = r.querySelector(":scope > .pcv-pct");
+        if (!b?.present) p?.remove();
+        else {
+          if (!p) r.prepend(p = Object.assign(d.createElement("div"), { className: "pcv-pct" }));
+          const t = Math.round(b.percent * 100) + "%";
+          if (p.textContent !== t) p.textContent = t;
+        }
+      }
+    } catch (e) {
+    }
+    window.__pcvEtat.heure(racine);
+  },
+  // (l'heure au format de Steam : « 8:04 », pas « 08:04 » ; seule, à l'ouverture d'un menu préparé, menus-commun.js)
+  heure: (racine) => {
+    const t = (/* @__PURE__ */ new Date()).toTimeString().slice(0, 5).replace(/^0/, "");
+    racine.querySelectorAll(".pilule.etat .heure").forEach((e) => {
+      if (e.textContent !== t) e.textContent = t;
+    });
+  },
+  // (26/10) les trois pastilles (accueil, menu HOME, réglages rapides) relisent la même source, au même instant : à chaque
+  // seconde pile de l'horloge, l'heure, et la batterie de Steam (SystemPowerStore, B.battery) ; pourcentage ou charge
+  // changés : peindreTout() (le dessin de la pile est recloné). Avant, chacune se repeignait à son rythme (abonnement de
+  // Steam espacé, 30 s, ouverture du menu) : 27 % ici, 28 % là. Rend de quoi arrêter.
+  suivre: (racine, peindreTout) => {
+    let t = 0, vu = "";
+    const tic = () => {
+      window.__pcvEtat.heure(racine);
+      try {
+        const b = window.__pcvBridge.battery(), k = b ? Math.round(b.percent * 100) + ":" + !!b.charging + ":" + b.present : "";
+        if (k !== vu) {
+          if (vu) peindreTout();
+          vu = k;
+        }
+      } catch (e) {
+      }
+      t = setTimeout(tic, 1e3 - Date.now() % 1e3 + 20);
+    };
+    tic();
+    return Object.assign(() => clearTimeout(t), { maintenant: () => {
+      clearTimeout(t);
+      tic();
+    } });
+  }
 };

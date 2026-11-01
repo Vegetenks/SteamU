@@ -1,19 +1,40 @@
 {
- "version": "0.1.10",
- "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.1.10.zip",
- "sha256": "37e4b2c8e5467b536cf086f9a2756ee9ef19cd55e05044b95ebee6d4eb32f266",
+ "version": "0.2.0",
+ "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.2.0.zip",
+ "sha256": "a1351773055474a9cdc111a7998ca0ec813cf41c255e12d1b6e16d6d84a3aa6b",
  "notes": {
-  "en": [
-   "Home screen: Xbox Cloud Gaming games from Unifideck now appear as playable, with a small cloud showing they are streamed. Thanks @lieserlV (#10).",
-   "Home screen: Unifideck games whose status is unknown (for example a GameVault server that is offline) are no longer shown as installed. Thanks @lieserlV (#10)."
-  ],
+  "en": [],
   "fr": [
-   "Accueil : les jeux Xbox Cloud Gaming d'Unifideck apparaissent comme jouables, avec un petit nuage qui indique qu'ils sont en streaming. Merci à @lieserlV (#10).",
-   "Accueil : les jeux d'Unifideck dont l'état est inconnu (par exemple un serveur GameVault éteint) ne sont plus affichés comme installés. Merci à @lieserlV (#10)."
-  ],
-  "es": [
-   "Inicio: los juegos de Xbox Cloud Gaming de Unifideck aparecen como jugables, con una pequeña nube que indica que se juegan en streaming. Gracias a @lieserlV (#10).",
-   "Inicio: los juegos de Unifideck con estado desconocido (por ejemplo, un servidor GameVault apagado) ya no se muestran como instalados. Gracias a @lieserlV (#10)."
+   "Les Paramètres : tous les réglages de la console, dans une page propre à SteamU. La rangée de tuiles du haut reste, LB et RB changent de rubrique, et SteamU est une rubrique comme les autres.",
+   "Le Stockage : une page repensée. Tes disques, tous tes jeux, faire de la place, en choisir plusieurs d'un coup. Quand tu désinstalles un jeu, tu vois où ça en est.",
+   "Les Manettes : une page des manettes repensée.",
+   "La boutique toute neuve : une boutique propre à SteamU, avec tout le catalogue de Steam. L'achat se fait toujours sur la page de Steam.",
+   "Ta liste de souhaits : la vraie liste de ton compte, dans la boutique.",
+   "Plugins et thèmes : eux aussi ont leur boutique, juste à côté des jeux. Les plugins hors du Decky Store restent visibles, mais leur installation est coupée par défaut.",
+   "Le SpotPass des Mii : ton Mii part en voyage et d'autres Mii viennent te dire bonjour. Il est coupé tant que tu ne l'actives pas. Seule ta carte part (ton Mii, un pseudo que tu choisis, une phrase, ta région), jamais ton compte Steam, tes amis ni tes jeux. Tu peux retirer ou signaler un Mii rencontré.",
+   "Le Mii Maker fait peau neuve : une interface plus simple et plus rapide, avec une recherche dans tes Mii.",
+   "Une place plus vivante : de nouvelles icônes, des Mii qui s'animent, un nouveau sol, des crans de zoom plus proches et plus loin, et la roue qui tourne au doigt.",
+   "La bibliothèque : tes jeux rangés sur des étagères. Tu peux créer, remplir, renommer et supprimer tes collections.",
+   "Aux couleurs de ton thème : les fenêtres, les questions et même les lumières des sticks prennent ta couleur. Dans une appli, ses fenêtres prennent la couleur de l'appli.",
+   "Plus fluide : les menus s'ouvrent plus vite et restent fluides, même à faible puissance.",
+   "Un démarrage à nous : une courte vidéo du logo SteamU, claire, grise ou noire selon ton apparence, à la place de l'accueil de Steam.",
+   "Notre page de jeu partout : la page de jeu de Steam est remplacée, même quand un lancement échoue.",
+   "Menu HOME en jeu : la reprise du jeu est plus rapide, sans passer par un autre plugin.",
+   "Importer tes fichiers : les bruitages du système se prennent aussi dans les banques de sons d'une copie de ta propre console. Les archives tar.bz2 et tar.xz s'ouvrent, et une archive qu'on ne sait pas lire est signalée.",
+   "L'accueil retient l'ordre de tes jeux : un jeu en streaming qui part ne laisse plus de trou, il reprend sa place en revenant (#9).",
+   "Les raccourcis hors de Steam n'apparaissent plus en tuiles vides : leur nom d'abord, puis leur icône.",
+   "Une case vide ajoutée par erreur se retire.",
+   "Écran de compte : un seul appui sur A choisit le profil, et l'avatar ne disparaît plus après un redémarrage.",
+   "Le volume et la luminosité ont leur indicateur, aussi dans le menu HOME ; celui de Steam ne se montre plus en double.",
+   "Un lancement de jeu affiche « Lancement… ».",
+   "Les sons s'importent sur SteamOS sans rien installer : l'outil qui manquait est maintenant fourni (#11).",
+   "Un thème téléchargé ne revient plus au thème de départ, et SteamU te dit si un thème a vraiment une image de fond.",
+   "Une seule musique à la fois, même au redémarrage et sur la page de bienvenue.",
+   "Quitter une appli la ferme vraiment : rouverte, elle repart de son début.",
+   "Au doigt, le bord d'un bouton répond aussi, et un appui long n'ouvre plus le menu du navigateur.",
+   "Un toucher ne lance plus la recherche par erreur (« 1 » ou « 2 » tapés tout seuls).",
+   "Unifideck : les jeux Xbox Cloud ont leur petit nuage, et un jeu dont l'état est inconnu n'est plus montré comme installé. Merci @lieserlV (#10).",
+   "Sans aucun fichier importé, tout reste propre : ce qui en a besoin t'envoie vers l'Importation."
   ]
  }
 }

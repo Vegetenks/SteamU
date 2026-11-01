@@ -51,19 +51,33 @@
   let batterie = "";
   let abonnement = null;
   let dernier = null, pileVue = null;
-  const poserEclair = (s) => {
+  let repereVu = null;
+  const reperes = () => {
+    if (repereVu?.isConnected) return [repereVu];
+    repereVu = null;
+    const l = [];
     for (const svg of document.getElementById("header")?.querySelectorAll('svg:is([viewBox="0 0 48 36"], [viewBox="0 0 42 36"])') || []) {
       if (![...svg.querySelectorAll("path")].some((p) => /^M(39 6H0V30H39V22H42V14H39V6|0 6H39V14H42V22H39V30H0V6)/.test(p.getAttribute("d") || ""))) continue;
       const carte = svg.parentElement?.parentElement;
-      if (!carte || getComputedStyle(carte).getPropertyValue("--pcv-marque-bat").trim() !== "1") continue;
-      const repere = svg.parentElement;
+      if (carte && getComputedStyle(carte).getPropertyValue("--pcv-marque-bat").trim() === "1") l.push(svg.parentElement);
+    }
+    if (l.length === 1) repereVu = l[0];
+    return l;
+  };
+  const poserEclair = (s) => {
+    for (const repere of reperes()) {
+      const carte = repere.parentElement;
       let eclair = repere.querySelector(".pcv-eclair");
       const charge = !!s?.bHasBattery && s.eACState === 2;
       if (charge && !eclair) {
         eclair = document.createElement("div");
         eclair.className = "pcv-eclair";
         repere.appendChild(eclair);
-      } else if (!charge && eclair) eclair.remove();
+        window.__pcvApparition(eclair);
+      } else if (!charge && eclair) {
+        window.__pcvApparition(eclair, true);
+        eclair.remove();
+      }
       const pile = carte.parentElement;
       pileVue = pile;
       let pct = pile.querySelector(":scope > .pcv-pct");
@@ -73,8 +87,10 @@
           pct = document.createElement("div");
           pct.className = "pcv-pct";
           pile.prepend(pct);
+          window.__pcvApparition(pct);
         }
-        pct.textContent = Math.round((s.flLevel || 0) * 100) + "%";
+        const t = Math.round((s.flLevel || 0) * 100) + "%";
+        if (pct.textContent !== t) pct.textContent = t;
       }
     }
   };

@@ -67,10 +67,29 @@ STEAM_JS = r"""(async () => { const r = {}; try { const s = await SteamClient.Sy
   catch (e) { r.bibliotheque = { erreur: String(e) }; }
   return r; })()"""
 FENETRE_JS = r"""(async (mesurer) => { const r = { erreurs: (window.__pcvErreurs || []).slice(-200), scripts: window.__pcvScripts || null,
-  ecran: [screen.width, screen.height, devicePixelRatio, Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)], theme: !!document.getElementById("theme-clair") };
+  ecran: [screen.width, screen.height, devicePixelRatio, Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)], theme: !!document.getElementById("theme-clair"),
+  connexion: window.__pcvConnexionDiagnostic || null,
+  // (25/10) rangées réellement dessinées et --r tel que le document le voit (une seule rangée chez un testeur Steam Deck)
+  grille: window.__pcvGrilleDiagnostic ? { ...window.__pcvGrilleDiagnostic, zoom: window.__pcvGrille?.zoom?.(), css: (() => { const g = window.__pcvGrille?.grille?.(); if (!g) return null;
+    const s = getComputedStyle(g); return { rangees: s.gridTemplateRows, var_r: s.getPropertyValue("--r") }; })() } : null,
+  // (lot 12) les voies de la manette qui arrivent à la place (place.js, compte de __pcvPlaceCommandes) : état brut, axes,
+  // défilement 47, navigation ; seulement des compteurs et des valeurs d'axes
+  place: (() => { try { return window.__pcvPlace?.etat?.().commandes ?? null; } catch (e) { return { erreur: String(e) }; } })() };
   // (18/10, issue #1) comment Steam dessine : la carte graphique, ou le processeur (rendu logiciel : llvmpipe, SwiftShader…)
   if (mesurer) try { const g = document.createElement("canvas").getContext("webgl"), x = g && g.getExtension("WEBGL_debug_renderer_info");
-    r.rendu = g ? String(x ? g.getParameter(x.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER)) : "pas de WebGL"; r.rendu_logiciel = window.__pcvRenduLogiciel ?? null; } catch (e) { r.rendu = "erreur"; }
+    r.rendu = g ? String(x ? g.getParameter(x.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER)) : "pas de WebGL"; r.rendu_logiciel = window.__pcvRenduLogiciel ?? null;
+    r.webgl_extensions = g ? g.getSupportedExtensions() : null; } catch (e) { r.rendu = "erreur"; }
+  // (01/11, place 3D : sur la console, toutes les applis prenaient l'icône d'Amis, la VM non) le Chromium de Steam, l'apparence
+  // et le thème, et deux petites images SVG (rouge, puis bleue ; simple, puis en foreignObject) dessinées sur une toile :
+  // lisible (pas de taint) et chaque image bien la sienne (« memes » : la 2e a rendu la 1re)
+  if (mesurer) { r.chromium = (navigator.userAgent.match(/(?:Chrome|Valve Steam [A-Za-z]+)\/[\d.]+/g) || []).join(" ");
+    r.apparence = document.documentElement.dataset.pcvApparence || "clair"; try { r.theme = window.__pcvThemes?.actuel?.() ?? null; } catch (e) { r.theme = { erreur: String(e) }; }
+    const essai = async (fo) => { const res = []; for (const c of ["#ff0000", "#0000ff"]) { const corps = `<rect width="16" height="16" fill="${c}"/>`;
+        const u = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">${fo ? `<foreignObject width="16" height="16"><div xmlns="http://www.w3.org/1999/xhtml" style="width:16px;height:16px;background:${c}"></div></foreignObject>` : corps}</svg>`);
+        try { const im = new Image(); im.src = u; await im.decode(); const t = document.createElement("canvas"); t.width = t.height = 16; const x = t.getContext("2d"); x.drawImage(im, 0, 0);
+          res.push([...x.getImageData(8, 8, 1, 1).data].join(",")); } catch (e) { res.push(e.name || String(e)); } }
+      return { pixels: res, memes: res[0] === res[1], attendu: ["255,0,0,255", "0,0,255,255"] }; };
+    try { r.essai_svg = { simple: await essai(false), foreign_object: await essai(true) }; } catch (e) { r.essai_svg = { erreur: String(e) }; } }
   // l'accueil : ses cases, ses tuiles de jeu, et ce que la voie des images en tient (console.js, mémoire __pcvTuiles-…)
   if (mesurer) try { const d = document, M = Object.keys(window).filter((k) => k.startsWith("__pcvTuiles-")).map((k) => window[k])[0];
     r.accueil = { cases: d.querySelectorAll("#pcv-console .cel").length, tuiles_jeux: d.querySelectorAll("#pcv-console .cel.jeu").length,

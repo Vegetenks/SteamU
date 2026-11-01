@@ -137,7 +137,7 @@ window.__pcvPE = (() => {
   };
   const FLOU_MAQUETTE = 12, LARGEUR_FOND = 480;
   const photo = () => Promise.race([
-    O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "instantane") ?? Promise.reject(),
+    O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "instantane", { appid: window.__pcvBridge?.runningApp()?.appid || O.__pcvBridge?.runningApp()?.appid || 0 }) ?? Promise.reject(),
     new Promise((_, non) => setTimeout(non, 6e3))
   ]).then((u) => {
     if (!u) throw 0;
@@ -192,7 +192,7 @@ window.__pcvPE = (() => {
   const ico = (n) => I.svg(n, { classe: "ico" });
   const pastille = (n, c) => `<span class="pastille"${c ? ` style="color:${c}"` : ""}>${ico(n)}</span>`;
   const pile = (cl = "", cachee = false) => `<span class="pile ${cl}" id="header"${cachee ? " hidden" : ""}></span>`;
-  const etat = () => `<div class="pilule verre etat entre" style="--d:.15s">${ico("wifi")}<span class="sep"></span>${pile("", true)}<span class="heure"></span></div>`;
+  const etat = () => window.__pcvEtat.html("entre", "--d:.15s");
   const bouton = (a, cl, dl, c, p, texte) => `<div class="bouton verre ${cl} entre" style="--d:${dl}s" data-a="${a}">${pastille(p, c)}${texte}</div>`;
   const liste = (e, cfg) => {
     const racine = e.racine, id = "liste-" + cfg.cle, depuis = e.focus();
@@ -201,7 +201,7 @@ window.__pcvPE = (() => {
       v = d.createElement("div");
       v.className = "voile liste";
       v.dataset.liste = id;
-      v.innerHTML = `<div class="fenetre-liste verre"><div class="entete-liste">${pastille(cfg.p, cfg.c)}<span>${esc(cfg.titre)}</span></div><div class="liste-panneau defile"></div></div>`;
+      v.innerHTML = `<div class="fenetre-liste verre pcv-fenetre"><div class="entete-liste">${pastille(cfg.p, cfg.c)}<span>${esc(cfg.titre)}</span></div><div class="liste-panneau defile"></div></div>`;
       racine.appendChild(v);
     }
     const actuelle = cfg.lire();
@@ -219,33 +219,89 @@ window.__pcvPE = (() => {
     } catch (x) {
     }
     const depuis = v.__pcvDepuis;
-    v.hidden = true;
+    e.fermerVoile(v);
     if ([...e.racine.querySelectorAll(".voile:not([hidden])")].length) return e.premier();
     if (depuis?.isConnected && depuis.getBoundingClientRect().width) e.poser(depuis);
     else e.premier();
   };
   const ecran = (o) => {
+    const VERROU_MAX_MS = 2500;
+    const SORTIE_MAX_MS = 400;
     let termine = false;
     const racine = d.createElement("div");
     racine.id = o.id;
     racine.className = "pcv-pe";
     racine.hidden = true;
-    racine.innerHTML = `<div class="fond"></div><div class="nacre"></div>${o.html}<div class="legende entre" style="--d:.46s"><div class="pilule verre" data-a="retour"><span class="touche b">B</span><span class="retour"></span></div><div class="pilule verre y-leg" data-a="y"><span class="touche y">Y</span><span class="y-txt">${T("menus.reglages") || "R\xE9glages"}</span></div><div class="pilule verre epaules-leg"><span class="touche epaule">LB</span><span class="touche epaule">RB</span>${T("menus.morceau") || "Morceau"}</div><div class="pilule verre epaules-leg"><span class="touche epaule">LT</span><span class="touche epaule">RT</span>${T("menus.lecteur") || "Lecteur"}</div><div class="pilule verre x-leg" data-a="x"><span class="touche x">X</span><span class="x-txt">${T("acces.pause_legende") || "Pause"}</span></div><div class="pilule verre"><span class="touche a">A</span>OK</div></div>`;
+    const t = (k) => `<span class="tch" data-t="${k}"></span>`;
+    racine.innerHTML = `<div class="fond"></div><div class="nacre"></div>${o.html}<div class="legende entre" style="--d:.46s"><div class="pilule verre epaules-leg">${t(5)}${t(6)}${T("menus.morceau") || "Morceau"}</div><div class="pilule verre epaules-leg">${t(7)}${t(8)}${T("menus.lecteur") || "Lecteur"}</div><div class="pilule verre y-leg" data-a="y">${t(3)}<span class="y-txt">${T("touche.options")}</span></div><div class="pilule verre x-leg" data-a="x">${t(3)}<span class="x-txt">${T("acces.pause_legende") || "Pause"}</span></div><div class="pilule verre" data-a="retour">${t(2)}<span class="retour"></span></div><div class="pilule verre">${t(1)}<span class="a-txt"></span></div></div>`;
     d.body.appendChild(racine);
+    const mien = o.id === "pcv-home" ? 1 : 2;
+    let fermetureEnAttente = null, delaiVerrou = 0;
+    const verrou = (oui) => {
+      let ms;
+      try {
+        ms = principale().MenuStore;
+      } catch (e) {
+        return;
+      }
+      (ms.__pcvVerrou ||= {})[mien] = oui;
+      clearTimeout(delaiVerrou);
+      if (oui) {
+        delaiVerrou = setTimeout(() => verrou(false), VERROU_MAX_MS);
+        return;
+      }
+      const f = fermetureEnAttente;
+      fermetureEnAttente = null;
+      if (f) return ms.__pcvVideurs?.[mien]?.(f);
+      if (ms.__pcvEnAttente != null && !Object.values(ms.__pcvVerrou).some(Boolean)) {
+        const n = ms.__pcvEnAttente;
+        ms.__pcvEnAttente = null;
+        setTimeout(() => {
+          try {
+            ms.ToggleSideMenu(n);
+          } catch (e) {
+          }
+        });
+      }
+    };
     try {
-      const ms = principale().MenuStore, mien = o.id === "pcv-home" ? 1 : 2, v = ms.__pcvVideurs ||= {};
+      const ms = principale().MenuStore, v = ms.__pcvVideurs ||= {};
       v[mien] = (suite) => {
         if (racine.hidden || d.visibilityState !== "visible") return suite();
-        racine.classList.add("attente");
+        if (ms.__pcvVerrou?.[mien] && !racine.classList.contains("attente")) {
+          fermetureEnAttente = suite;
+          return;
+        }
+        verrou(true);
+        cancelAnimationFrame(depart);
         let fait = false;
         const go = () => {
-          if (!fait) {
-            fait = true;
-            suite();
+          if (fait) return;
+          fait = true;
+          suite();
+          if (ouvertPourMoi() && montre) montre = false;
+          tour();
+          verrou(false);
+        };
+        const vider = () => {
+          racine.classList.add("attente");
+          racine.classList.remove("fermeture");
+          requestAnimationFrame(() => requestAnimationFrame(go));
+          setTimeout(go, 120);
+        };
+        if (racine.classList.contains("glisse") || racine.classList.contains("attente")) return vider();
+        racine.classList.remove("anim", "masque-ouverture");
+        racine.classList.add("fermeture");
+        const sorties = racine.getAnimations({ subtree: true }).filter((a) => /^pcv-pe-sort/.test(a.animationName));
+        let vide = false;
+        const fin2 = () => {
+          if (!vide) {
+            vide = true;
+            vider();
           }
         };
-        requestAnimationFrame(() => requestAnimationFrame(go));
-        setTimeout(go, 120);
+        Promise.allSettled(sorties.map((a) => a.finished)).then(fin2);
+        setTimeout(fin2, SORTIE_MAX_MS);
       };
       if (!ms.__pcvOrig) {
         const orig = ms.__pcvOrig = { CloseSideMenus: ms.CloseSideMenus, ToggleSideMenu: ms.ToggleSideMenu, OpenSideMenu: ms.OpenSideMenu };
@@ -284,45 +340,17 @@ window.__pcvPE = (() => {
         h.classList.toggle("pcv-bat-bas", D.documentElement.classList.contains("pcv-bat-bas"));
         h.dataset.pcvApparence = D.documentElement.dataset.pcvApparence || "clair";
         const cs = getComputedStyle(D.documentElement);
-        for (const v of ["--pcv-accent", "--pcv-accent2", "--pcv-cyan", "--pcv-cyan-plein"]) {
+        for (const v of ["--pcv-accent", "--pcv-accent2", "--pcv-cyan", "--pcv-cyan-plein", "--pcv-verre", "--pcv-fenetre-fond", "--pcv-fenetre-texte", "--pcv-fenetre-texte2", "--pcv-fenetre-texte3", "--pcv-fenetre-verre", "--pcv-fenetre-carte", "--pcv-fenetre-creux"]) {
           const ac = cs.getPropertyValue(v).trim();
-          if (ac) racine.style.setProperty(v, ac);
-          else racine.style.removeProperty(v);
+          for (const r of [racine, document.documentElement]) if (ac) r.style.setProperty(v, ac);
+          else r.style.removeProperty(v);
         }
         const bac = getComputedStyle(D.documentElement).getPropertyValue("--pcv-bat-accent").trim();
         if (bac) racine.style.setProperty("--pcv-bat-accent", bac);
         else racine.style.removeProperty("--pcv-bat-accent");
-        racine.querySelectorAll(".pile").forEach((p) => p.replaceChildren(...s ? [window.__pcvClonePile(s)] : []));
+        window.__pcvEtat.peindre(racine, s);
       } catch (e) {
       }
-      try {
-        const B = window.__pcvBridge.battery(), charge = B?.present && B.charging;
-        racine.querySelectorAll(".etat > .pile").forEach((p) => {
-          p.hidden = B?.present !== true;
-        });
-        for (const svg of racine.querySelectorAll('.pile svg:is([viewBox="0 0 48 36"], [viewBox="0 0 42 36"])')) {
-          const r = svg.parentElement, e = r.querySelector(".pcv-eclair");
-          if (charge && !e) r.appendChild(Object.assign(d.createElement("div"), { className: "pcv-eclair" }));
-          else if (!charge && e) e.remove();
-        }
-        for (const r of racine.querySelectorAll(".etat .pile > *")) {
-          let p = r.querySelector(":scope > .pcv-pct");
-          if (!B?.present) p?.remove();
-          else {
-            if (!p) r.prepend(p = Object.assign(d.createElement("div"), { className: "pcv-pct" }));
-            p.textContent = Math.round(B.percent * 100) + "%";
-          }
-        }
-      } catch (e) {
-      }
-      try {
-        const co = window.__pcvBridge.network().connected;
-        racine.querySelectorAll(".etat .ico").forEach((i) => i.classList.toggle("coupe", !co));
-      } catch (e) {
-      }
-      racine.querySelectorAll(".heure").forEach((e) => {
-        e.textContent = (/* @__PURE__ */ new Date()).toTimeString().slice(0, 5).replace(/^0/, "");
-      });
       try {
         const pers = window.__pcvBridge.compteCourant();
         racine.querySelectorAll(".pseudo").forEach((e) => {
@@ -336,11 +364,19 @@ window.__pcvPE = (() => {
     let focus = null;
     const zone = () => voile() || racine;
     const visible = (e) => e.getBoundingClientRect().width > 0;
+    let famille = "";
     const legende = () => {
-      $(".retour").textContent = !voile() && o.legende?.() || T("menus.retour") || "Retour";
+      $(".retour").textContent = !voile() && o.legende?.() || T("touche.retour");
       const y = focus?.dataset.y;
-      $(".y-leg").classList.toggle("montre", !!y && !voile());
+      $(".y-leg").classList.toggle("montre", !!y);
       if (y) $(".y-txt").textContent = focus.dataset.yNom || T("menus.reglages") || "R\xE9glages";
+      $(".a-txt").textContent = focus?.closest(".confirme") ? focus.textContent.trim() : T("touche.choisir");
+      const f = JSON.stringify(window.__pcvIcones?.touche?.(1) || "");
+      if (f === famille) return;
+      famille = f;
+      racine.querySelectorAll(".legende [data-t]").forEach((x) => {
+        x.innerHTML = window.__pcvIcones?.touche?.(+x.dataset.t) || "";
+      });
     };
     let doigt = false;
     const poser = (el) => {
@@ -356,10 +392,19 @@ window.__pcvPE = (() => {
       o.focus?.(focus);
     };
     const premier = () => poser([...zone().querySelectorAll(voile() ? ".premier" : o.premier)].find(visible));
+    const son = (g) => {
+      try {
+        principale().m_BrowserWindow.__pcvSon?.(g);
+      } catch (e) {
+      }
+    };
     const bouger = ([dx, dy]) => {
       if (!focus || !zone().contains(focus) || !visible(focus)) return premier();
       const impose = o.voisin?.(focus, dx, dy);
-      if (impose !== void 0) return impose && poser(impose);
+      if (impose !== void 0) {
+        son(impose ? "bouge" : "bord");
+        return impose && poser(impose);
+      }
       const a = focus.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2;
       let mieux = null, score = Infinity;
       for (const e of zone().querySelectorAll("[data-a]")) {
@@ -373,6 +418,7 @@ window.__pcvPE = (() => {
           mieux = e;
         }
       }
+      son(mieux ? "bouge" : "bord");
       if (mieux) poser(mieux);
     };
     const agir = (el) => {
@@ -388,28 +434,28 @@ window.__pcvPE = (() => {
     const ouvrirVoile = (v) => {
       if (!voile()) avant = focus;
       v.hidden = false;
+      window.__pcvApparition(v, false, ".fenetre, .fenetre-liste");
       premier();
+    };
+    const fermerVoile = (v) => {
+      window.__pcvApparition(v, true, ".fenetre, .fenetre-liste");
+      v.hidden = true;
     };
     const retour = () => {
       if (o.avantRetour?.()) return;
       if (voile()) {
-        voile().hidden = true;
+        fermerVoile(voile());
         if (!voile() && avant && visible(avant)) return poser(avant);
         return premier();
       }
       o.retour();
     };
     let long = 0, annule = false, x0 = 0, y0 = 0;
-    const appuyer = (el) => el?.animate?.(
-      [{ transform: "scale(1)" }, { transform: "scale(.93)", offset: 0.35 }, { transform: "scale(1.03)", offset: 0.7 }, { transform: "scale(1)" }],
-      { duration: 260, easing: "ease-out", composite: "add" }
-    );
     racine.addEventListener("pointerdown", (ev) => {
       if (!doigt) {
         doigt = true;
         focus?.classList.remove("f");
       }
-      appuyer(ev.target.closest("[data-a]"));
       const el = ev.target.closest("[data-y]");
       clearTimeout(long);
       annule = false;
@@ -467,16 +513,25 @@ window.__pcvPE = (() => {
         if (DIRS[b]) return;
       }
       if ((b === 11 || b === 12) && focus && o.pas?.(focus, b === 12 ? 1 : -1)) return;
+      if (b !== 1) window.__pcvAuRelacher?.(null);
       if (DIRS[b]) bouger(DIRS[b]);
       else if (b === 1) {
-        appuyer(focus);
-        agir(focus);
+        const f = focus;
+        window.__pcvAuRelacher(() => agir(f), f);
       } else if (b === 2) retour();
-      else if (b === 4 && focus?.dataset.y) o.y?.(focus);
+      else if (b === 3 && focus?.dataset.y) o.y?.(focus);
       else o.touche?.(b, focus);
     };
     window.addEventListener("vgp_onbuttondown", touche, true);
-    let minute = 0, vider = 0;
+    let minute = 0, veille = 0, pret = false, depart = 0, apresEntree = null;
+    const ouvertPourMoi = () => {
+      try {
+        return principale().MenuStore.m_eOpenSideMenu === mien;
+      } catch (e) {
+        return false;
+      }
+    };
+    let montre = null;
     let sonne = false;
     const sonMenu = (vu) => {
       if (vu === sonne) return;
@@ -486,25 +541,35 @@ window.__pcvPE = (() => {
       } catch (e) {
       }
     };
+    const finHeure = window.__pcvEtat.suivre(racine, () => {
+      peindreEtat();
+      if (!racine.hidden) o.batterie?.();
+    });
     const tour = () => {
       if (termine) return;
-      const vu = d.visibilityState === "visible";
+      const vu = d.visibilityState === "visible" && ouvertPourMoi();
+      if (vu === montre) return;
+      const avant2 = montre;
+      montre = vu;
       sonMenu(vu);
       try {
-        principale().m_BrowserWindow.document.documentElement.classList.toggle("pcv-ouvert-" + o.id.slice(4), vu);
+        principale().m_BrowserWindow.document.body.classList.toggle("pcv-ouvert-" + o.id.slice(4), vu);
       } catch (e) {
       }
       delete h.dataset.pcvPeSous;
       if (!vu) flouter(o.id, false);
       if (!vu) {
-        clearInterval(vider);
+        o.avantFermer?.();
+        verrou(false);
+        racine.classList.remove("fermeture");
         racine.classList.add("attente");
         racine.hidden = true;
-        delete h.dataset.pcvPe;
         racine.classList.remove("anim", "masque-ouverture");
         fermerVoiles();
         clearInterval(minute);
         o.fermer?.();
+        pret = false;
+        cancelAnimationFrame(depart);
         clearTimeout(apres);
         apres = setTimeout(() => {
           let m = 1;
@@ -512,55 +577,65 @@ window.__pcvPE = (() => {
             m = principale().MenuStore.m_eOpenSideMenu;
           } catch (e) {
           }
-          if (d.visibilityState !== "visible" && !m) fondJeu();
+          if (montre) return;
+          if (!m) fondJeu();
+          premier();
+          pret = avant2 === true;
         }, 400);
         return;
       }
       let dv = false;
+      const vite = pret && !!o.differer?.();
+      pret = false;
+      const repeindre = () => {
+        try {
+          o.ouvrir?.();
+        } catch (e) {
+          console.error("pcv", o.id, e);
+        }
+        peindreEtat();
+        echelle();
+      };
       try {
         dv = devant();
         racine.classList.toggle("devant", dv);
         racine.classList.remove("photo");
-        photos++;
-        o.ouvrir?.();
       } catch (e) {
-        console.error("pcv", o.id, e);
       }
-      peindreEtat();
-      echelle();
+      if (vite) finHeure.maintenant();
+      else repeindre();
       fermerVoiles();
       doigt = Date.now() - (window.__pcvParDoigt || 0) < 1500;
       window.__pcvParDoigt = 0;
-      if (!doigt) racine.classList.add("masque-ouverture");
-      racine.classList.remove("anim");
+      racine.classList.remove("anim", "fermeture");
+      cancelAnimationFrame(depart);
+      if (!doigt) {
+        racine.classList.add("masque-ouverture");
+        verrou(true);
+      }
       racine.hidden = false;
       h.dataset.pcvPe = "";
       entre = false;
-      premier();
+      if (vite) focus?.classList.toggle("f", !doigt);
+      else premier();
       clearInterval(minute);
       minute = setInterval(() => {
         o.minute?.();
         peindreEtat();
       }, 3e4);
-      clearInterval(vider);
-      vider = setInterval(() => {
-        let m = 0;
-        try {
-          m = principale().MenuStore.m_eOpenSideMenu;
-        } catch (e) {
-        }
-        if (m !== (o.id === "pcv-home" ? 1 : 2)) {
-          clearInterval(vider);
-          racine.classList.add("attente");
-          o.avantFermer?.();
-        }
-      }, 50);
       racine.classList.toggle("attente", !!o.attendre?.());
       if (!racine.classList.contains("attente")) entrer(dv);
+      apresEntree = vite ? repeindre : null;
+      if (vite && !racine.classList.contains("attente") && doigt) {
+        apresEntree = null;
+        setTimeout(() => {
+          if (!termine && montre) repeindre();
+        });
+      }
     };
     let entre = false;
     const entrer = (dv = devant()) => {
-      if (termine || entre || d.visibilityState !== "visible") return;
+      if (termine || entre || !montre) return;
       entre = true;
       racine.classList.remove("attente");
       try {
@@ -570,12 +645,31 @@ window.__pcvPE = (() => {
         fondJeu(false, true);
       } catch (e) {
       }
-      if (!doigt) {
-        racine.classList.remove("anim");
-        void racine.offsetWidth;
-        racine.classList.add("anim");
+      if (doigt) {
+        racine.classList.remove("masque-ouverture");
+        return;
       }
-      racine.classList.remove("masque-ouverture");
+      cancelAnimationFrame(depart);
+      depart = requestAnimationFrame(() => {
+        depart = requestAnimationFrame(() => {
+          depart = 0;
+          if (termine || !montre) return;
+          racine.classList.add("anim");
+          racine.classList.remove("masque-ouverture");
+          const f = apresEntree;
+          apresEntree = null;
+          Promise.allSettled(racine.getAnimations({ subtree: true }).filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished)).then(() => {
+            if (termine || !montre) return;
+            let attendu = !!fermetureEnAttente;
+            try {
+              attendu ||= principale().MenuStore.__pcvEnAttente != null;
+            } catch (e) {
+            }
+            if (f && !attendu) f();
+            verrou(false);
+          });
+        });
+      });
     };
     const poserPhoto = (p) => {
       racine.style.setProperty("--pcv-jeu-flou", `url(${JSON.stringify(p.flou)})`);
@@ -586,9 +680,10 @@ window.__pcvPE = (() => {
     const appid = () => window.__pcvBridge.runningApp()?.appid || 0;
     const enData = async (u) => {
       const b = await (await fetch(u)).blob();
-      return new Promise((ok) => {
+      return new Promise((ok, non) => {
         const f = new FileReader();
         f.onload = () => ok(f.result);
+        f.onerror = () => non(f.error);
         f.readAsDataURL(b);
       });
     };
@@ -601,24 +696,31 @@ window.__pcvPE = (() => {
         racine.classList.remove("photo", "bandes");
         return Promise.resolve(null);
       }
-      if (!a && O.__pcvPhotoJeu?.appid) delete O.__pcvPhotoJeu;
       if (vieille) poserPhoto(vieille);
-      else racine.classList.remove("photo");
+      else {
+        racine.style.setProperty("--pcv-jeu-flou", "linear-gradient(var(--pcv-creux), var(--pcv-creux))");
+        racine.classList.add("photo");
+        racine.classList.remove("bandes");
+      }
       if (garder || !devant()) return Promise.resolve(vieille);
       if (enCours) return enCours;
       const n = ++photos;
-      return enCours = photo().then(async (p) => {
-        if (termine || n !== photos) return null;
+      return enCours = (sansFlou ? flouCoupe().then(photo).finally(flouCoupeFin) : photo()).then(async (p) => {
+        if (termine || n !== photos || appid() !== a) return null;
         if (!(p.bande === 0 && vieille?.bande > 0)) try {
           const flou2 = await enData(p.flou), net = sansFlou ? await enData(p.net) : vieille?.net;
-          if (termine || n !== photos) return null;
+          if (termine || n !== photos || appid() !== a) return null;
           O.__pcvPhotoJeu = { appid: a, bande: p.bande, flou: flou2, net };
         } catch (e) {
+          console.error("pcv", "Enregistrement de la photo du jeu", e);
         }
-        if (termine || n !== photos) return null;
+        if (termine || n !== photos || appid() !== a) return null;
         poserPhoto(p);
         return p;
-      }, () => null).finally(() => {
+      }, (e) => {
+        console.error("pcv", "Capture de la photo du jeu", e);
+        return vieille;
+      }).finally(() => {
         enCours = null;
       });
     };
@@ -636,12 +738,19 @@ window.__pcvPE = (() => {
       removeEventListener("resize", echelle);
       window.removeEventListener("vgp_onbuttondown", touche, true);
       clearInterval(minute);
-      clearInterval(vider);
+      clearInterval(veille);
       clearTimeout(apres);
       clearTimeout(long);
       clearTimeout(tb);
       try {
         pileAbo?.unregister();
+      } catch (e) {
+      }
+      finHeure();
+      verrou(false);
+      try {
+        const PW = principale().m_BrowserWindow;
+        for (const t2 of ["pcv-apparence", "pcv-theme"]) PW.removeEventListener(t2, surTheme);
       } catch (e) {
       }
       flouter(o.id, false);
@@ -651,19 +760,26 @@ window.__pcvPE = (() => {
     };
     d.addEventListener("visibilitychange", tour);
     addEventListener("resize", echelle);
+    veille = setInterval(() => {
+      if (d.visibilityState === "visible" && ouvertPourMoi() !== montre) tour();
+    }, 50);
+    const surTheme = () => peindreEtat();
+    try {
+      const PW = principale().m_BrowserWindow;
+      for (const t2 of ["pcv-apparence", "pcv-theme"]) PW.addEventListener(t2, surTheme);
+    } catch (e) {
+    }
     let pileAbo = null;
     try {
       pileAbo = window.__pcvBridge.onBattery(() => {
-        if (!racine.hidden) {
-          peindreEtat();
-          o.batterie?.();
-        }
+        peindreEtat();
+        if (!racine.hidden) o.batterie?.();
       });
     } catch (e) {
     }
     let tb = 0;
     const bulle = (texte) => {
-      let b = $(".bulle");
+      let b = $(":scope > .bulle");
       if (!b) {
         b = d.createElement("div");
         b.className = "bulle";
@@ -674,7 +790,7 @@ window.__pcvPE = (() => {
       clearTimeout(tb);
       tb = setTimeout(() => b.classList.remove("vue"), 2600);
     };
-    return { racine, $, voile, ouvrirVoile, fermerVoiles, premier, poser, legende, bulle, focus: () => focus, auDoigt: () => doigt, sous, fin, demarrer: tour, entrer, fondJeu, versScene };
+    return { racine, $, voile, ouvrirVoile, fermerVoile, fermerVoiles, premier, poser, legende, bulle, focus: () => focus, auDoigt: () => doigt, sous, fin, demarrer: tour, entrer, fondJeu, versScene };
   };
   return { O, principale, devant, esc, req, module, magasin, flou, flouSuspendre, flouCoupe, flouCoupeFin, photo, ico, pastille, pile, etat, bouton, liste, listeChoisir, ecran };
 })();

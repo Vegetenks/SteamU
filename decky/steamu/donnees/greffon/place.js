@@ -1,4 +1,214 @@
 (() => {
+  window.__pcvPlace?.liberer?.();
+  window.__pcvPlaceCommandes = (maximum, minimum = 1) => {
+    const VITESSE = 0.85;
+    const DIRECTIONS = { 20: [0, -1], 21: [0, 1], 22: [-1, 0], 23: [1, 0], 4: [0, -1], 6: [0, 1], 7: [-1, 0], 5: [1, 0] };
+    let inscription = null, etats = null, messages = null, manette = null, repos = null, vx = 0, vy = 0, ex = 0, ey = 0, defile = 0, relache = null, essai = -1e9;
+    const navigateurs = [window.navigator, window.opener?.navigator], prec = /* @__PURE__ */ new Map(), directs = /* @__PURE__ */ new Set(), vue2 = { x: 0, y: 0, zoom: 1, maximum };
+    const compte = {
+      echantillon: [],
+      manette: false,
+      axes: 0,
+      repos: null,
+      analogiques: {},
+      dernier: {},
+      navigation: 0,
+      boutons: {},
+      inscrit: false,
+      brut: { inscrit: false, recus: 0, axes: [0, 0, 0, 0] },
+      directs: 0,
+      // état brut : inscription, états reçus, derniers sLeftStickX/Y, sRightStickX/Y
+      get preneurs() {
+        return window.__pcvPreneurs;
+      }
+    }, tenus = /* @__PURE__ */ new Set();
+    const tenu = (a, b) => (tenus.has(b) ? 1 : 0) - (tenus.has(a) ? 1 : 0);
+    const courbe = (v) => Math.abs(v) < 0.18 ? 0 : Math.sign(v) * (Math.abs(v) - 0.18) / 0.82;
+    const axe = (i) => {
+      const v = manette?.axes[i] || 0;
+      if (repos && !repos.bouge[i] && Math.abs(v - repos[i]) > 0.18) repos.bouge[i] = true;
+      return repos?.bouge[i] ? courbe(v) : 0;
+    };
+    const brut = (i) => compte.brut.axes[i] / 32767 * (i & 1 ? -1 : 1);
+    const brutPris = () => Math.hypot(brut(0), brut(1)) > 0.05;
+    const NOMS_BRUTS = ["sLeftStickX", "sLeftStickY", "sRightStickX", "sRightStickY"];
+    const lireManette = () => {
+      manette = null;
+      for (const nav of navigateurs) {
+        try {
+          const l = nav?.getGamepads?.();
+          if (l) {
+            for (const p of l) if (p?.connected && p.mapping === "standard") {
+              manette = p;
+              return;
+            }
+          }
+        } catch (e) {
+        }
+      }
+    };
+    const borner = () => {
+      const d = Math.hypot(vue2.x, vue2.y);
+      if (d > 1) {
+        vue2.x /= d;
+        vue2.y /= d;
+      }
+      vue2.zoom = Math.max(minimum, Math.min(maximum, vue2.zoom));
+    };
+    const arreter = () => {
+      vx = vy = ex = ey = defile = 0;
+      tenus.clear();
+    };
+    const avancer = (dt, permis) => {
+      lireManette();
+      compte.manette = !!manette;
+      if (manette && !repos) compte.repos = repos = Object.assign([...manette.axes], { bouge: [] });
+      if (relache && (!inscription || !etats || !messages) && performance.now() - essai > 2e3) inscrire();
+      if (!permis) {
+        arreter();
+        return false;
+      }
+      const x0 = vue2.x, y0 = vue2.y, z0 = vue2.zoom, gx = axe(0), gy = axe(1), gz = axe(3), pris = brutPris(), az = courbe(brut(3)) || gz;
+      if (gx || gy || gz) compte.axes++;
+      const ax = pris ? courbe(brut(0)) : gx, ay = pris ? courbe(brut(1)) : gy, axes = pris || ax || ay;
+      let dx = 0, dy = 0;
+      for (const d of directs) {
+        dx += DIRECTIONS[d][0];
+        dy += DIRECTIONS[d][1];
+      }
+      dx = Math.sign(dx);
+      dy = Math.sign(dy);
+      const n = dx && dy ? Math.SQRT1_2 : 1;
+      const k = 1 - Math.exp(-dt * 9), x = axes ? ax : compte.directs ? dx * n : tenu(11, 12), y = axes ? ay : compte.directs ? dy * n : tenu(9, 10);
+      vx += (x - vx) * k;
+      vy += (y - vy) * k;
+      if (!x && Math.abs(vx) < 1e-4) vx = 0;
+      if (!y && Math.abs(vy) < 1e-4) vy = 0;
+      vue2.x += vx * dt * VITESSE / vue2.zoom;
+      vue2.y += vy * dt * VITESSE / vue2.zoom;
+      if (ex || ey) {
+        vue2.x += ex * dt;
+        vue2.y += ey * dt;
+        const f = Math.exp(-dt * 5);
+        ex *= f;
+        ey *= f;
+        if (Math.hypot(ex, ey) < 5e-3) ex = ey = 0;
+      }
+      vue2.zoom *= Math.exp(az ? -az * dt : defile + tenu(5, 6) * dt);
+      defile = 0;
+      borner();
+      return x0 !== vue2.x || y0 !== vue2.y || z0 !== vue2.zoom;
+    };
+    const inscrire = () => {
+      essai = performance.now();
+      const I = (window.SteamClient || window.opener?.SteamClient)?.Input;
+      if (!inscription) try {
+        I.EnableControllerAnalogInputMessages?.(true);
+        inscription = I.RegisterForControllerAnalogInputMessages((...m) => {
+          if (compte.echantillon.length < 8) compte.echantillon.push(JSON.stringify(m).slice(0, 300));
+          const [i, src, , x, y] = m;
+          compte.analogiques[src] = (compte.analogiques[src] || 0) + 1;
+          compte.dernier[src] = [x, y];
+          if (src !== 47) return;
+          const p = prec.get(i);
+          if (p) {
+            defile -= (y - p.y) * 25e-5;
+            p.y = y;
+            vue2.reveil?.();
+          } else prec.set(i, { y });
+        }) || {};
+        compte.inscrit = true;
+      } catch (e) {
+        compte.inscrit = String(e?.message || e);
+        if (I && typeof I.RegisterForControllerAnalogInputMessages !== "function") inscription = {};
+      }
+      if (!messages) try {
+        messages = I.RegisterForControllerInputMessages((...m) => {
+          const [, src, bas] = m;
+          if (!DIRECTIONS[src]) return;
+          compte.directs++;
+          if (bas) directs.add(src);
+          else directs.delete(src);
+          vue2.reveil?.();
+        }) || {};
+      } catch (e) {
+        if (I && typeof I.RegisterForControllerInputMessages !== "function") messages = {};
+      }
+      if (!etats) try {
+        etats = I.RegisterForControllerStateChanges((l) => {
+          const s = Array.isArray(l) ? l[l.length - 1] : l;
+          if (!s) return;
+          compte.brut.recus++;
+          NOMS_BRUTS.forEach((n, j) => {
+            if (typeof s[n] === "number") compte.brut.axes[j] = s[n];
+          });
+          if (brutPris() || courbe(brut(3))) vue2.reveil?.();
+        }) || {};
+        compte.brut.inscrit = true;
+      } catch (e) {
+        compte.brut.inscrit = String(e?.message || e);
+        if (I && typeof I.RegisterForControllerStateChanges !== "function") etats = {};
+      }
+    };
+    const activer = (oui) => {
+      for (const r of [inscription, etats, messages]) try {
+        r?.unregister?.();
+      } catch (e) {
+      }
+      if (inscription) try {
+        (window.SteamClient || window.opener?.SteamClient)?.Input?.EnableControllerAnalogInputMessages?.(false);
+      } catch (e) {
+      }
+      inscription = etats = messages = repos = null;
+      compte.brut.axes = [0, 0, 0, 0];
+      prec.clear();
+      directs.clear();
+      arreter();
+      if (relache) {
+        window.removeEventListener("vgp_onbuttonup", relache, true);
+        relache = null;
+      }
+      if (!oui) return;
+      window.addEventListener("vgp_onbuttonup", relache = (e) => tenus.delete(e.detail?.button), true);
+      inscrire();
+    };
+    const tenir = (b) => {
+      if (!(b >= 9 && b <= 12) && !(b >= 5 && b <= 8)) return false;
+      compte.boutons[b] = (compte.boutons[b] || 0) + 1;
+      if (b >= 9) compte.navigation++;
+      tenus.add(b);
+      tenus.delete(b & 1 ? b + 1 : b - 1);
+      vue2.reveil?.();
+      return true;
+    };
+    return Object.assign(vue2, {
+      avancer,
+      activer,
+      arreter,
+      tenir,
+      compte,
+      gauche: () => {
+        lireManette();
+        return !!(brutPris() || axe(0) || axe(1) || [20, 21, 22, 23].some((d) => directs.has(d)));
+      },
+      tourne: () => tenu(7, 8),
+      elan: (x, y) => {
+        ex = x;
+        ey = y;
+        vue2.reveil?.();
+      },
+      // (vitesse du doigt au lâcher, en unités de vue par seconde)   // LT RT tenus (la roue de la place 3D) : -1, 0 ou 1
+      zoomer: (d) => {
+        vue2.zoom *= Math.exp(d * 0.3);
+        borner();
+      },
+      reinitialiser: () => {
+        vue2.x = vue2.y = 0;
+        vue2.zoom = 1;
+        arreter();
+      }
+    });
+  };
   document.getElementById("pcv-place")?.remove();
   document.getElementById("pcv-bascule")?.remove();
   if (window.__pcvToucheY) window.removeEventListener("keydown", window.__pcvToucheY, true);
@@ -52,7 +262,7 @@
   const ICONES = [];
   const APPS = [
     ["amis", "#2fbf71", "amis", T("spaces.amis.nom"), "#2fbf71"],
-    ["boutique", "#ff8a1f", "magasin", T("spaces.boutique.nom"), "#ff8a1f"],
+    ["boutique", "#ff8a1f", "eshop", T("spaces.boutique.nom"), "#ff8a1f"],
     ["medias", "#2a8cff", "medias", T("place.mediatheque"), "#2a8cff"],
     ["reglages", "#8b9098", "parametres", T("spaces.parametres.nom"), "#8b9098"]
   ];
@@ -69,16 +279,15 @@
   const elements = [];
   ICONES.forEach((ic, k) => {
     const [x, y, prof] = position(k), t = 92 + 46 * prof;
-    ic.pos = [x, y - 60];
-    elements.push([y + t * 0.1, `<button class="ico" data-k="${k}" data-action="${ic.action}" style="left:${u(x - t / 2)};top:${u(y - t - 30)};width:${u(t)};height:${u(t)};--t:${u(t)}">
-      <span class="cadre">${ic.contenu}</span><span class="nom">${echap(ic.nom)}</span></button>`]);
+    elements.push([y + t * 0.1, `<button class="ico" aria-label="${echap(ic.nom)}" data-action="${ic.action}" style="left:${u(x - t / 2)};top:${u(y - t - 30)};width:${u(t)};height:${u(t)};--t:${u(t)}">
+      <span class="cadre">${ic.contenu}</span></button>`]);
   });
   elements.sort((a, b) => a[0] - b[0]);
   const dock = [
     ["amis", "#2fbf71", "amis", T("spaces.amis.nom")],
-    ["boutique", "#ff8a1f", "magasin", T("spaces.boutique.nom")],
+    ["boutique", "#ff8a1f", "eshop", T("spaces.boutique.nom")],
     ["globe", "#2a6fe0", "magasin", T("place.internet")],
-    ["bulle", "#19b8d6", "amis", T("place.discussions")],
+    ["bulle", "#19b8d6", "discussions", T("place.discussions")],
     ["medias", "#2a8cff", "medias", T("place.mediatheque")],
     ["telech", "#8a63ff", "telechargements", T("barre.telechargements")],
     ["reglages", "#8b9098", "parametres", T("spaces.parametres.nom")]
@@ -101,45 +310,39 @@
     #pcv-place[hidden] { display: none; }
     @keyframes pcvEntree { from { opacity: 0; transform: scale(.97) } to { opacity: 1; transform: none } }
     #pcv-place button { all: unset; cursor: pointer; box-sizing: border-box; }
-    #pcv-place .monde { position: absolute; left: 0; top: 0; width: ${u(1280)}; height: ${u(800)}; transform-origin: 0 0; transition: transform .7s cubic-bezier(.25,.8,.25,1); }
+    #pcv-place .monde { position: absolute; left: 0; top: 0; width: ${u(1280)}; height: ${u(800)}; transform-origin: 0 0; }
     #pcv-place .sol { position: absolute; left: ${u(-900)}; right: ${u(-900)}; top: ${u(250)}; height: ${u(1400)}; transform: perspective(${u(800)}) rotateX(64deg); transform-origin: top center;
       background: repeating-linear-gradient(90deg, var(--pcv-filet) 0 2px, transparent 2px ${u(70)}), repeating-linear-gradient(0deg, var(--pcv-filet) 0 2px, transparent 2px ${u(70)});
       -webkit-mask: linear-gradient(180deg, transparent, #000 25%); }
     #pcv-place .anneau { position: absolute; left: ${u(170)}; top: ${u(280)}; width: ${u(940)}; height: ${u(350)}; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--pcv-anneau-c) 70%, transparent), transparent); }
-    #pcv-place .ico { position: absolute; border-radius: calc(var(--t) * .24); background: linear-gradient(160deg, color-mix(in srgb, var(--pcv-carte) 95%, transparent), color-mix(in srgb, var(--pcv-creux) 85%, transparent));
+    #pcv-place .monde .ico { position: absolute; border-radius: calc(var(--t) * .24); background: linear-gradient(160deg, color-mix(in srgb, var(--pcv-carte) 95%, transparent), color-mix(in srgb, var(--pcv-creux) 85%, transparent));
       box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), inset 0 -4px 8px rgba(150,170,195,.35), 0 calc(var(--t) * .16) calc(var(--t) * .22) rgba(70,95,130,.22); transition: box-shadow .12s, transform .12s; }
     #pcv-place .cadre { position: absolute; inset: calc(var(--t) * .07); border-radius: calc(var(--t) * .18); overflow: hidden; }
     #pcv-place .cadre::after { content: ""; position: absolute; inset: 0 0 55% 0; background: linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0)); }
     #pcv-place .jaq { display: block; width: 100%; height: 100%; background: var(--pcv-creux) center 15% / cover; }
     #pcv-place .appli { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; background: var(--pcv-carte); }
-    #pcv-place .ico.sel { z-index: 50; transform: translateY(${u(-4)}); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} color-mix(in srgb, var(--pcv-cyan-plein) 20%, transparent), 0 ${u(16)} ${u(30)} color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent); }
-    #pcv-place .ico .nom { position: absolute; left: 50%; top: calc(100% + ${u(14)}); transform: translateX(-50%); padding: ${u(5)} ${u(14)}; border-radius: ${u(14)};
-      background: var(--pcv-bulle); color: var(--pcv-sur-accent); font-size: ${u(15)}; font-weight: 900; white-space: nowrap; opacity: 0; transition: opacity .15s; pointer-events: none; }
-    #pcv-place .ico .nom::before { content: ""; position: absolute; left: 50%; top: ${u(-6)}; margin-left: ${u(-6)}; border: ${u(6)} solid transparent; border-top: 0; border-bottom-color: var(--pcv-bulle); }
-    #pcv-place .ico.sel .nom { opacity: 1; }
-    #pcv-place .v { position: absolute; background: linear-gradient(180deg,var(--pcv-carte),var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), inset 0 0 0 1px var(--pcv-bord), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); }
+    #pcv-place .v { position: absolute; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre);    }
     #pcv-place .haut-avatar { left: ${u(24)}; top: ${u(20)}; width: ${u(56)}; height: ${u(56)}; border-radius: 50%; padding: ${u(6)}; }
     #pcv-place .haut-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
     #pcv-place .retour { left: 50%; top: ${u(20)}; transform: translateX(-50%); height: ${u(52)}; border-radius: ${u(26)}; padding: 0 ${u(10)} 0 ${u(6)}; display: flex; align-items: center; gap: ${u(12)}; font-weight: 900; font-size: ${u(17)}; }
-    #pcv-place .retour .p { width: ${u(40)}; height: ${u(40)}; border-radius: 50%; background: var(--pcv-carte); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.12); }
+    #pcv-place .retour .p { width: ${u(40)}; height: ${u(40)}; border-radius: 50%; background: var(--pcv-pastille); display: flex; align-items: center; justify-content: center; box-shadow: var(--pcv-pastille-ombre); }
     #pcv-place .gl { width: ${u(30)}; height: ${u(30)}; border-radius: 50%; background: var(--pcv-carte); display: flex; align-items: center; justify-content: center; font-size: ${u(15)}; box-shadow: inset 0 -2px 0 rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.15); }
     #pcv-place .etat { right: ${u(24)}; top: ${u(20)}; height: ${u(52)}; border-radius: ${u(26)}; padding: 0 ${u(20)}; display: flex; align-items: center; gap: ${u(14)}; font-weight: 900; font-size: ${u(16)}; }
     #pcv-place .zoom { left: ${u(24)}; bottom: ${u(22)}; display: flex; align-items: center; gap: ${u(10)}; padding: ${u(8)} ${u(12)}; border-radius: ${u(26)}; z-index: 5; }
     #pcv-place .zoom button { width: ${u(38)}; height: ${u(38)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: ${u(22)}; font-weight: 900; color: var(--pcv-texte2);
-      background: linear-gradient(180deg,var(--pcv-carte),var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 2px 6px rgb(from var(--pcv-ombre-c) r g b / .18); }
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 2px 6px rgb(from var(--pcv-ombre-c) r g b / .18); }
     #pcv-place .zoom .pt { width: ${u(12)}; height: ${u(12)}; border-radius: 50%; background: var(--pcv-creux); transition: background .2s, box-shadow .2s; }
     #pcv-place .zoom .pt.on { background: var(--pcv-cyan-plein); box-shadow: 0 0 0 ${u(3)} color-mix(in srgb, var(--pcv-cyan-plein) 25%, transparent); }
-    #pcv-place .dock { left: 50%; transform: translateX(-50%); bottom: ${u(20)}; padding: ${u(10)} ${u(14)}; border-radius: ${u(28)}; display: flex; gap: ${u(12)}; z-index: 5;
-      background: color-mix(in srgb, var(--pcv-carte) 65%, transparent); backdrop-filter: blur(12px); }
+    #pcv-place .dock { left: 50%; transform: translateX(-50%); bottom: ${u(20)}; padding: ${u(10)} ${u(14)}; border-radius: ${u(28)}; display: flex; gap: ${u(12)}; z-index: 5; }
     #pcv-place .dock-btn { width: ${u(60)}; height: ${u(60)}; border-radius: ${u(18)}; display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(180deg, var(--pcv-carte), var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), inset 0 -3px 0 rgba(150,170,195,.3), 0 ${u(6)} ${u(14)} rgba(70,95,130,.18); }
+      background: var(--pcv-verre); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), inset 0 -3px 0 var(--pcv-reflet-bas), 0 ${u(6)} ${u(14)} rgb(from var(--pcv-ombre-c) r g b / .18); }
     #pcv-place .voile { position: absolute; inset: 0; background: var(--pcv-voile); backdrop-filter: blur(3px); z-index: 8; }
     #pcv-place .carte { left: 50%; top: 50%; transform: translate(-50%,-50%); width: ${u(640)}; border-radius: ${u(34)}; padding: ${u(26)} ${u(28)}; box-sizing: border-box; z-index: 9; display: flex; flex-direction: column; gap: ${u(18)}; }
     #pcv-place .carte .msg { border-radius: ${u(24)}; padding: ${u(16)}; display: flex; align-items: center; gap: ${u(16)}; font-size: ${u(20)}; font-weight: 800; line-height: 1.3; }
     #pcv-place .carte .msg img { width: ${u(76)}; height: ${u(76)}; border-radius: ${u(18)}; box-shadow: 0 0 0 ${u(4)} var(--pcv-lisere), 0 4px 10px rgba(0,0,0,.15); object-fit: cover; }
     #pcv-place .carte .actions { display: flex; gap: ${u(12)}; }
     #pcv-place .carte .actions button { flex: 1; text-align: center; padding: ${u(14)} 0; border-radius: ${u(24)}; font-size: ${u(17)}; font-weight: 900;
-      background: linear-gradient(180deg,var(--pcv-carte),var(--pcv-creux)); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 ${u(4)} ${u(12)} rgb(from var(--pcv-ombre-c) r g b / .15); }
+      background: var(--pcv-verre); box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 ${u(4)} ${u(12)} rgb(from var(--pcv-ombre-c) r g b / .15); }
     #pcv-place .carte .actions button.cyan { background: var(--pcv-cyan); color: var(--pcv-sur-accent);
       box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 ${u(8)} ${u(20)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-bascule { all: unset; position: fixed; z-index: 9050; top: ${u(20)}; left: ${u(222)}; width: ${u(56)}; height: ${u(56)}; border-radius: 50%; cursor: pointer;
@@ -147,16 +350,17 @@
       box-shadow: var(--pcv-reflet), var(--pcv-ombre); }   
     #pcv-bascule i { width: ${u(40)}; height: ${u(40)}; border-radius: 50%; background: var(--pcv-pastille, #fff); box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; }
     #pcv-bascule[hidden] { display: none; }
+    #pcv-place .legende { position: absolute; left: ${u(24)}; right: ${u(24)}; bottom: ${u(112)}; z-index: 10; }
     #pcv-place .sans-mii { right: ${u(24)}; bottom: ${u(22)}; max-width: ${u(300)}; padding: ${u(10)} ${u(16)}; border-radius: ${u(20)}; z-index: 5;
       font-size: ${u(13)}; font-weight: 800; line-height: 1.3; color: var(--pcv-texte2); }
   </style>
   <div class="monde"><div class="sol"></div><div class="anneau"></div>${elements.map((e) => e[1]).join("")}</div>
   <div class="v haut-avatar"><img data-pcv-avatar src="${urlSure(avatar)}" alt=""></div>
   <button class="v retour" data-pcv-nom="${T("place.revenir_accueil")}"><span class="p">${svg("accueil", "55%", "#1a9ae6")}</span>${T("spaces.accueil.nom")}<span class="gl" style="background:${glc};color:var(--pcv-sur-accent)">${gl}</span></button>
-  <div class="v etat"><svg style="width:${u(20)};height:${u(20)}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M2.5 8.5a14 14 0 0 1 19 0"/><path d="M5.5 12a9.5 9.5 0 0 1 13 0"/><path d="M8.7 15.4a5 5 0 0 1 6.6 0"/><circle cx="12" cy="19" r="1"/></svg><span class="heure"></span></div>
+  ${window.__pcvEtat.html()}
   <div class="v zoom"><button class="moins" data-pcv-nom="${T("place.eloigner")}">\u2212</button><i class="pt"></i><i class="pt"></i><i class="pt"></i><i class="pt"></i><button class="plus" data-pcv-nom="${T("place.rapprocher")}">+</button></div>
   ${SANS_MII ? `<div class="v sans-mii">${T("place.sans_mii", "Mii non import\xE9s : la place est vide. Des personnages originaux arrivent bient\xF4t.")}</div>` : ""}
-  <div class="v dock">${dock}</div>
+  <div class="v dock">${dock}</div><div class="legende pcv-legende"></div>
   <div class="carte-zone"></div>`;
   document.body.appendChild(racine);
   const bascule = document.createElement("button");
@@ -165,22 +369,27 @@
   bascule.setAttribute("aria-label", T("spaces.place.nom"));
   bascule.innerHTML = "<i></i>";
   document.body.appendChild(bascule);
-  const ZOOMS = [1, 1.4, 1.9, 2.5];
-  let sel = 0, zoom = 0;
-  const monde = racine.querySelector(".monde"), icos = [...racine.querySelectorAll(".ico")], pts = [...racine.querySelectorAll(".zoom .pt")];
-  const camera = () => {
-    const z = ZOOMS[zoom], p = ICONES[sel].pos, tx = zoom ? 640 - p[0] * z : 0, ty = zoom ? 430 - p[1] * z : 0;
-    monde.style.transform = `translate(${u(tx)}, ${u(ty)}) scale(${z})`;
-    icos.forEach((b) => b.classList.toggle("sel", +b.dataset.k === sel));
-    pts.forEach((p2, i) => p2.classList.toggle("on", i <= zoom));
+  const vue = window.__pcvPlaceCommandes(2.5);
+  const monde = racine.querySelector(".monde"), pts = [...racine.querySelectorAll(".zoom .pt")];
+  const legende = () => window.__pcvIcones.poser(racine.querySelector(".legende"), window.__pcvLegendeDe([
+    ["stick-gauche", T("place.deplacer")],
+    [["stick-droit", 5, 6], T("place.zoom")],
+    [4, T("spaces.accueil.nom")],
+    [2, T("touche.retour")]
+  ]));
+  (window.__pcvLegendes ||= {}).place = () => {
+    if (!racine.hidden) legende();
   };
-  const choisir = (k) => {
-    sel = (k + ICONES.length) % ICONES.length;
-    camera();
+  const camera = () => {
+    const z = vue.zoom, tx = CX * (1 - z) - vue.x * RX * z, ty = CY * (1 - z) - vue.y * RY * z;
+    const transform = `translate(${u(+tx.toFixed(2))}, ${u(+ty.toFixed(2))}) scale(${z})`;
+    if (monde.style.transform !== transform) monde.style.transform = transform;
+    for (let i = 0; i < pts.length; i++) pts[i].classList.toggle("on", i <= (z - 1) / (vue.maximum - 1) * (pts.length - 1));
   };
   const zoomer = (d) => {
-    zoom = Math.max(0, Math.min(3, zoom + d));
+    vue.zoomer(d);
     camera();
+    window.__pcvSon?.(d > 0 ? "zoom+" : "zoom-");
   };
   racine.querySelector(".moins").onclick = (e) => {
     e.stopPropagation();
@@ -190,25 +399,56 @@
     e.stopPropagation();
     zoomer(1);
   };
+  let raf = 0, attente = 0, dernier = 0;
+  const tour = (t = performance.now()) => {
+    raf = attente = 0;
+    const dt = Math.max(0, Math.min(0.1, (t - dernier) / 1e3));
+    dernier = t;
+    if (vue.avancer(dt, !document.hidden && !window.__pcvSteamDessus?.(250) && !document.body.classList.contains("pcv-barre-main"))) {
+      camera();
+      raf = requestAnimationFrame(tour);
+    } else attente = setTimeout(tour, 50);
+  };
+  vue.reveil = () => {
+    if (attente) {
+      clearTimeout(attente);
+      attente = 0;
+      raf = requestAnimationFrame(tour);
+    }
+  };
+  const liberer = () => {
+    cancelAnimationFrame(raf);
+    clearTimeout(attente);
+    raf = attente = 0;
+    vue.activer(false);
+  };
+  window.__pcvPlace = { liberer, etat: () => ({ ouvert: !racine.hidden, zoom: vue.zoom, vue: [vue.x, vue.y], commandes: vue.compte }), choisirPoint: (x, y) => choisirPoint(x, y) };
   camera();
   const ACTIONS = {
     amis: () => window.__pcvAmisMontrer?.(true),
+    discussions: () => window.__pcvAmisDiscussion?.(),
     magasin: () => O.__pcvAller?.(3),
-    medias: () => O.__pcvAller?.(5),
+    eshop: () => window.__pcvLancement?.ouvrirAppli?.("eshop") || (window.__pcvBoutique ? window.__pcvBoutique.ouvrir() : O.__pcvAller?.(3)),
+    medias: () => {
+      const m = window.__pcvMediatheque || O.__pcvMediatheque;
+      if (m) m.ouvrir();
+      else O.__pcvAller?.(5);
+    },
+    /* (ouvrir() ne renvoie rien : pas de ??) */
     telechargements: () => O.__pcvAller?.(6),
     parametres: () => O.__pcvAller?.(7)
   };
   const ouvrir = (a) => {
+    window.__pcvSon?.("choisir");
     montrer(false);
-    if (a.startsWith("jeu:")) O.SteamClient.URL.ExecuteSteamURL(`steam://nav/games/details/${a.slice(4)}`);
+    if (a.startsWith("jeu:")) window.__pcvPageJeu?.(a.slice(4), null, "place") || O.SteamClient.URL.ExecuteSteamURL(`steam://nav/games/details/${a.slice(4)}`);
     else ACTIONS[a]?.();
   };
-  const heure = () => {
-    racine.querySelector(".heure").textContent = (/* @__PURE__ */ new Date()).toLocaleTimeString(window.__pcvLocale?.() || "fr-FR", { hour: "2-digit", minute: "2-digit" });
-  };
-  heure();
+  const peindreEtat = () => window.__pcvEtat.peindre(racine, [...document.querySelectorAll("{{HeaderItem@Header}}{{BatteryIcon@HeaderItem}}")].find((x) => !x.closest(".pile")));
+  let tours = 0;
+  peindreEtat();
   window.__pcvPlaceHeure = setInterval(() => {
-    heure();
+    if (++tours % 10 === 0) peindreEtat();
     const a = avatarDe();
     if (a) racine.querySelectorAll("[data-pcv-avatar]").forEach((i) => {
       if (i.src !== a) i.src = a;
@@ -224,22 +464,25 @@
     bascule.hidden = oui;
     if (oui) {
       majTouche();
+      vue.reinitialiser();
+      legende();
       camera();
-    }
+      vue.activer(true);
+      if (!raf && !attente) {
+        dernier = performance.now();
+        raf = requestAnimationFrame(tour);
+      }
+    } else liberer();
   };
   window.__pcvPlaceMontrer = montrer;
+  const choisirPoint = (x, y) => {
+    const ico = document.elementFromPoint(x, y)?.closest("#pcv-place .monde .ico");
+    if (!ico || racine.hidden) return false;
+    ouvrir(ico.dataset.action);
+    return true;
+  };
   racine.addEventListener("click", (e) => {
-    const ico = e.target.closest(".ico");
-    if (ico) {
-      const k = +ico.dataset.k;
-      if (k === sel && zoom) ouvrir(ico.dataset.action);
-      else {
-        sel = k;
-        zoom = Math.max(1, zoom);
-        camera();
-      }
-      return;
-    }
+    if (choisirPoint(e.clientX, e.clientY)) return;
     const b = e.target.closest(".dock-btn");
     if (b) ouvrir(b.dataset.action);
   });
@@ -255,11 +498,8 @@
       if (racine.hidden && !/^\/routes\/library\/home/.test(O.location.pathname)) return;
       montrer(racine.hidden);
     } else if (racine.hidden) return;
-    else if (k === "ArrowLeft") choisir(sel + 1);
-    else if (k === "ArrowRight") choisir(sel - 1);
     else if (k === "-" || k === "PageUp") zoomer(-1);
     else if (k === "+" || k === "=" || k === "PageDown") zoomer(1);
-    else if (k === "Enter") ouvrir(ICONES[sel].action);
     else if (k === "Escape") {
       const z = racine.querySelector(".carte-zone");
       if (z.innerHTML) z.innerHTML = "";
@@ -271,23 +511,17 @@
   (window.__pcvManette ||= {}).place = (b) => {
     if (b === 4) {
       if (racine.hidden && !/^\/routes\/library\/home/.test(O.location.pathname)) return false;
+      window.__pcvSon?.("home");
       montrer(racine.hidden);
       return true;
     }
     if (racine.hidden) return false;
     const z = racine.querySelector(".carte-zone");
-    if (b === 11) choisir(sel + 1);
-    else if (b === 12) choisir(sel - 1);
-    else if (b === 5 || b === 7) zoomer(-1);
-    else if (b === 6 || b === 8) zoomer(1);
-    else if (b === 1) {
-      if (z.innerHTML) z.querySelector("[data-fiche]")?.click();
-      else if (zoom) ouvrir(ICONES[sel].action);
-      else zoomer(1);
-    } else if (b === 2) {
+    if (b === 2) {
+      window.__pcvSon?.("retour");
       if (z.innerHTML) z.innerHTML = "";
       else montrer(false);
-    }
+    } else if (!z.innerHTML) vue.tenir(b);
     return true;
   };
   window.__pcvPlaceSuivi = setInterval(() => {

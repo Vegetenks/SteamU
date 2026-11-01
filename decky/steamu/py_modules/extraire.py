@@ -45,12 +45,12 @@ def badge_arcade(lot, sortie):
     entrees = json.loads(_lire(os.path.join(lot, "lot.json")))
     romfs_dir = os.path.join(sortie, "romfs", "region_common", "model")
     os.makedirs(romfs_dir, exist_ok=True)
-    modeles, layouts, bcsar_ = set(), {}, None
+    modeles, layouts, csars = set(), {}, []
     for e in entrees:
         if not NOM_SUR.fullmatch(e["fichier"]): continue
         d = _lire(os.path.join(lot, e["fichier"]))
         try:
-            if d[:4] == b"CSAR": bcsar_ = bcsar_ or d; continue
+            if d[:4] == b"CSAR": csars.append(e["fichier"]); continue
             c = ctr.yaz0(d)
             if c[:4] == b"BCH\0":
                 for m in bch.lire_bch(c)["modeles"]:
@@ -78,8 +78,13 @@ def badge_arcade(lot, sortie):
                 fichiers.append({"de": f"interface/{arch}/{tex}.png", "vers": f"badge-arcade/romfs-eur/layout-png/{arch}/{tex}.png"})
             except Exception as x:
                 print("texture", arch, tex, type(x).__name__, file=sys.stderr)
-    if bcsar_:
-        C = bcsar.lire_csar(bcsar_)
+    C = None
+    for f in csars:
+        try: C = bcsar.lire_csar(_lire(os.path.join(lot, f)))
+        except Exception as x: print("bcsar illisible", f, type(x).__name__, file=sys.stderr); continue
+        if any(str(s.get("nom") or "").startswith("SE_CRANE") for s in C["sons"]): break
+        C = None
+    if C:
         cache, banques = {}, {}
         for s in C["sons"]:
             nom = s.get("nom") or ""
@@ -103,6 +108,23 @@ def badge_arcade(lot, sortie):
             except Exception as x:
                 print("bruitage", nom, type(x).__name__, file=sys.stderr)
     return {"fichiers": fichiers, "notes": notes}
+
+def banque(lot, ondes_max, octets_max, sortie):
+    import bcsar, themeplaza
+    fichiers, n, total = [], 0, 0
+    for e in json.loads(_lire(os.path.join(lot, "lot.json"))):
+        if not NOM_SUR.fullmatch(e["fichier"]): continue
+        try: ondes = bcsar.ondes_banque(_lire(os.path.join(lot, e["fichier"])), int(ondes_max) - n)
+        except Exception as x: print("banque illisible", e["fichier"], type(x).__name__, file=sys.stderr); continue
+        for k, o in enumerate(ondes):
+            try: w = themeplaza.wav(*themeplaza.lire_bcwav(o)[:2])
+            except themeplaza.Refus: continue                   
+            total += len(w)
+            if total > int(octets_max): return {"fichiers": fichiers, "notes": {"ondes": n, "trop": True}}
+            n += 1; de = "%06d" % n
+            _ecrire(os.path.join(sortie, de), w)
+            fichiers.append({"de": de, "nom": f"{e.get('nom', '')[-60:]} #{k + 1}"})
+    return {"fichiers": fichiers, "notes": {"ondes": n}}
 
 def boss(lot, boot9, index, sortie):
     import ctr, boss_extraire, bornes_preparer, badges_extraire
@@ -205,7 +227,7 @@ def luigi(nds, mpds_, glb_existant, sortie):
     return {"fichiers": fichiers, "notes": notes}
 
 COMMANDES = {"romfs": (romfs, 5), "badge-arcade": (badge_arcade, 2), "boss": (boss, 4), "collection": (collection, 2),
-             "machine-hall": (machine_hall, 2), "tenue-dae": (tenue_dae, 3), "luigi": (luigi, 4)}
+             "machine-hall": (machine_hall, 2), "tenue-dae": (tenue_dae, 3), "luigi": (luigi, 4), "banque": (banque, 4)}
 
 if __name__ == "__main__":
     import resource

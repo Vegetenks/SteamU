@@ -2,12 +2,12 @@
   window.__pcvIconesFin?.();
   const O = window.opener || window;
   const P = (d) => `<g fill="currentColor" stroke="none">${d}</g>`;
-  const WIFI_EP = 5, WIFI_POINT = 4;
+  const WIFI_EP = 3.6, WIFI_POINT = 3.3, WIFI_ANGLE = 43 * Math.PI / 180;
   const arcWifi = (r) => {
-    const k = Math.SQRT1_2, ri = r - WIFI_EP, x = (v) => v.toFixed(2);
-    return `M${x(18 - r * k)} ${x(28.5 - r * k)} A${r} ${r} 0 0 1 ${x(18 + r * k)} ${x(28.5 - r * k)} L${x(18 + ri * k)} ${x(28.5 - ri * k)} A${ri} ${ri} 0 0 0 ${x(18 - ri * k)} ${x(28.5 - ri * k)} Z`;
+    const h = WIFI_EP / 2, x = (v) => v.toFixed(2), P2 = (rr, a) => `${x(18 + rr * Math.sin(a))} ${x(28.5 - rr * Math.cos(a))}`;
+    return `M${P2(r + h, -WIFI_ANGLE)} A${r + h} ${r + h} 0 0 1 ${P2(r + h, WIFI_ANGLE)} A${h} ${h} 0 0 1 ${P2(r - h, WIFI_ANGLE)} A${r - h} ${r - h} 0 0 0 ${P2(r - h, -WIFI_ANGLE)} A${h} ${h} 0 0 1 ${P2(r + h, -WIFI_ANGLE)} Z`;
   };
-  const WIFI = [`M${18 - WIFI_POINT} 28.5a${WIFI_POINT} ${WIFI_POINT} 0 1 0 ${2 * WIFI_POINT} 0a${WIFI_POINT} ${WIFI_POINT} 0 1 0 ${-2 * WIFI_POINT} 0Z`, arcWifi(11), arcWifi(18), arcWifi(25)];
+  const WIFI = [`M${18 - WIFI_POINT} 28.5a${WIFI_POINT} ${WIFI_POINT} 0 1 0 ${2 * WIFI_POINT} 0a${WIFI_POINT} ${WIFI_POINT} 0 1 0 ${-2 * WIFI_POINT} 0Z`, arcWifi(7.5), arcWifi(14.25), arcWifi(21)];
   WIFI.forEach((d, i) => document.documentElement.style.setProperty("--pcv-wifi-d" + i, `path("${d}")`));
   const KENNEY = "matrix(.46 0 0 .46 -2.72 -2.72)";
   const kenney = (...d) => P(d.map((x) => `<path fill-rule="evenodd" transform="${KENNEY}" d="${x}"/>`).join(""));
@@ -77,9 +77,24 @@
     const corps = l.map((x) => x[0]), cmd = l.flatMap((x) => x.slice(1));
     return portable(corps, ...cmd);
   };
+  const stickDessus = (l) => `<circle cx="12" cy="12" r="10.4"/><circle cx="12" cy="12" r="7.2" fill="currentColor" fill-opacity=".22" stroke="none"/><text x="12" y="12" dy=".36em" text-anchor="middle" font-size="11" font-weight="900" fill="currentColor" stroke="none">${l}</text>`;
   const D = {
+    // Les pictogrammes des tuiles de Paramètres, pour le composant en relief.
+    accessib: '<circle cx="12" cy="4.5" r="1.8"/><path d="M5 8l7 1.5L19 8M12 9.5V14l-3 6M12 14l3 6"/>',
+    famille: '<circle cx="8" cy="8" r="3"/><circle cx="16.5" cy="9.5" r="2.2"/><path d="M3 20c0-3 2.2-5.5 5-5.5s5 2.5 5 5.5"/>',
+    couches: '<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 12.5 9 5 9-5"/><path d="m3 17 9 5 9-5"/>',
+    code: '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>',
+    "stick-gauche": stickDessus("L"),
+    "stick-droit": stickDessus("R"),
     accueil: P('<path d="M12 3.2 2.7 10.5c-.6.5-.3 1.5.5 1.5H5v8a1 1 0 0 0 1 1h4.2v-6h3.6v6H18a1 1 0 0 0 1-1v-8h1.8c.8 0 1.1-1 .5-1.5z"/>'),
     bibliotheque: P('<rect x="3.5" y="3.5" width="7.6" height="7.6" rx="2"/><rect x="12.9" y="3.5" width="7.6" height="7.6" rx="2"/><rect x="3.5" y="12.9" width="7.6" height="7.6" rx="2"/><rect x="12.9" y="12.9" width="7.6" height="7.6" rx="2"/>'),
+    coche: '<path d="m5 12 4 4L19 6"/>',
+    // (31/10, l'auteur) le logo SteamU, relief("logo-u", "cyan-plein") : le U de l'ancien logo B, exactement, tiré de
+    // la couleur du carré ; sans id de dégradé (copies et rangées cachées des Paramètres) : sa forme et son dégradé sont
+    // dans theme-wiiu.src.css (.pcv-logo-u)
+    "logo-u": '<foreignObject width="24" height="24"><div class="pcv-logo-u"></div></foreignObject>',
+    // (31/10, l'auteur) deux arcs du même cercle, chaque pointe posée au bout de son arc, dans l'axe de sa course
+    "mise-a-jour": '<path d="M4.5 12a7.5 7.5 0 0 1 14-3.75M15.4 7.4l3.1.85.85-3.1M19.5 12a7.5 7.5 0 0 1-14 3.75M8.6 16.6l-3.1-.85-.85 3.1"/>',
     boutique: P('<path fill-rule="evenodd" d="M8 7.5a4 4 0 0 1 8 0h2.3c.5 0 .9.4 1 .9l1 11.5c0 .6-.4 1.1-1 1.1H4.7c-.6 0-1-.5-1-1.1l1-11.5c.1-.5.5-.9 1-.9zm2 0a2 2 0 0 1 4 0z"/>'),
     amis: P('<circle cx="9" cy="7.8" r="3.7"/><path d="M2.4 20.2a6.6 6.6 0 0 1 13.2 0z"/><circle cx="17.2" cy="8.8" r="2.9"/><path d="M15.6 13.8a5.6 5.6 0 0 1 6 6.4h-4.3a8.3 8.3 0 0 0-1.7-6.4z"/>'),
     notifications: P('<path d="M12 2.3c.9 0 1.6.7 1.6 1.6v.6a6.6 6.6 0 0 1 5 6.4v4.6l1.8 2.3c.4.5 0 1.3-.6 1.3H4.2c-.6 0-1-.8-.6-1.3l1.8-2.3v-4.6a6.6 6.6 0 0 1 5-6.4v-.6c0-.9.7-1.6 1.6-1.6z"/><path d="M9.4 20.3h5.2a2.6 2.6 0 0 1-5.2 0z"/>'),
@@ -91,6 +106,8 @@
     // le casino : une pièce dorée à « L » vert, comme celles du casino de Luigi (aplats seulement : un dégradé SVG nommé,
     // répété dans chaque tuile, disparaît quand sa première copie est cachée)
     casino: '<circle cx="12" cy="12" r="9.2" fill="#e9b52f" stroke="#fff" stroke-width="1.6"/><circle cx="11" cy="10.6" r="6.6" fill="#f6d466" stroke="none"/><path d="M10 7.2v9.3h5" fill="none" stroke="#2ea84a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    // Dé neutre de l'essai Émail, sans changer la pièce du menu HOME.
+    de: '<rect x="4" y="4" width="16" height="16" rx="4" stroke-width="2"/><g fill="currentColor" stroke="none"><circle cx="8" cy="8" r="1.4"/><circle cx="16" cy="8" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="8" cy="16" r="1.4"/><circle cx="16" cy="16" r="1.4"/></g>',
     alimentation: '<path d="M12 3v9"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/>',
     manette: '<path d="M7 8h10a5 5 0 0 1 4.8 6.3l-.8 3a2.5 2.5 0 0 1-4.3 1L15 16H9l-1.7 2.3a2.5 2.5 0 0 1-4.3-1l-.8-3A5 5 0 0 1 7 8z"/><path d="M8 11v3M6.5 12.5h3"/>',
     // les vraies manettes (16/10) : silhouettes de Kenney (CC0)
@@ -175,7 +192,16 @@
     ),
     "portable-ayaneo": portable(boite(0.3, 6.9, 23.7, 17.1, 3.2), ["r", 6.2, 7.6, 17.8, 16.4, 0.35], ["s", 3.2, 9.5], ["c", 3.2, 13.4], ["b", 20.8, 9.4], ["s", 20.8, 13.4]),
     // taille d'un jeu (fiche d'un raccourci Switch, greffon/fiche.js) : un disque
-    disque: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7 15h.01M11 15h6"/>',
+    disque: '<rect x="3.5" y="3" width="17" height="18" rx="3"/><circle cx="12" cy="10.5" r="4.5"/><circle cx="12" cy="10.5" r=".8"/><path d="M15.2 13.7 17 17M7 17.5h.01"/>',
+    // (31/10, l'auteur : « un disque, qui fait stockage ») le disque dur : plateau, axe, bras de lecture
+    // (29/10, page Stockage, tracés de banc/maquette-stockage) la carte SD, faire de la place, trier, un outil, cocher, la page d'un jeu, une liste déroulante
+    "carte-sd": '<path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M9.5 6.5v2.5M12 6.5v2.5M14.5 7.5v1.5"/>',
+    balai: '<path d="M14 3l-3.5 8M6 12h9l2 9H4z"/><path d="M8 16v3M11.5 16v3"/>',
+    trier: '<path d="M4 6h16M4 12h11M4 18h6"/>',
+    outil: '<path d="M14.5 5.5a4 4 0 0 0-5.3 5.3L4 16v4h4l5.2-5.2a4 4 0 0 0 5.3-5.3l-2.5 2.5-2.8-.7-.7-2.8z"/>',
+    cocher: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 12.5l2.8 2.8L16 9.5"/>',
+    page: '<path d="M4 5h16v14H4z"/><path d="M4 9h16"/>',
+    deroulant: '<path d="M6 9l6 6 6-6"/>',
     // date de sortie (fiche d'un raccourci Switch) : un calendrier
     calendrier: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
     // genre (fiche d'un raccourci Switch) : une étiquette
@@ -212,7 +238,17 @@
     // Wi-Fi (règle de l'auteur) : un éventail de trois arcs et un point, rempli selon la force du signal (niveau 0 à 3 :
     // les arcs au-delà restent pâles) ; jamais des barres de réseau mobile
     wifi: (niveau = 3) => '<g fill="currentColor" stroke="none" transform="scale(.6667)">' + WIFI.map((d, i) => `<path d="${d}"${i > niveau ? ' opacity=".28"' : ""}/>`).join("") + "</g>",
+    // le réseau filaire (pastille d'état, connexion par câble) : une prise Ethernet pleine, ses trois contacts et son câble,
+    // plein comme l'éventail du Wi-Fi
+    filaire: '<g fill="currentColor" stroke="none" fill-rule="evenodd"><path d="M6.5 2.5h11A1.5 1.5 0 0 1 19 4v8.5a1.5 1.5 0 0 1-1.5 1.5h-3v2.5h-5V14h-3A1.5 1.5 0 0 1 5 12.5V4a1.5 1.5 0 0 1 1.5-1.5ZM8.5 4.5h1.4V8H8.5ZM11.3 4.5h1.4V8h-1.4ZM14.1 4.5h1.4V8h-1.4Z"/><path d="M11 16.5h2v5h-2Z"/></g>',
     bluetooth: '<path d="M7 7l10 10-5 4V3l5 4L7 17"/>',
+    // (29/10) le SpotPass des Mii : l'antenne de la 3DS, ses deux ondes
+    antenne: '<circle cx="12" cy="9.5" r="1.8"/><path d="M12 11.3V21"/><path d="M8.2 13.3a5.4 5.4 0 0 1 0-7.6M15.8 13.3a5.4 5.4 0 0 0 0-7.6"/><path d="M5.4 16.1a9.4 9.4 0 0 1 0-13.2M18.6 16.1a9.4 9.4 0 0 0 0-13.2"/>',
+    // (30/10, l'auteur) le rond SpotPass de la barre du haut : un Mii et deux ondes, en bleu SpotPass (la diode de la 3DS),
+    // ce qui le sépare du rond Amis (vert) ; planche banc/pictogramme-spotpass/planche-formes.jpg
+    spotpass: P('<circle cx="8.6" cy="9.4" r="3.9"/><path d="M1.6 21.6a7 7 0 0 1 14 0z"/>') + '<path d="M14.6 4.9a6.4 6.4 0 0 1 0 9M17.9 2.2a10.6 10.6 0 0 1 0 14.4"/>',
+    // (30/10) la place d'un Mii qui n'existe pas encore (fenêtre SpotPass sans Mii principal)
+    silhouette: P('<circle cx="12" cy="8" r="4.6"/><path d="M3.5 22a8.5 8.5 0 0 1 17 0z"/>'),
     // la pile d'une manette (barre des joueurs du menu HOME) : quatre barres, remplies selon sa charge (niveau 0 à 3 : une à
     // quatre barres ; les autres restent pâles)
     "pile-manette": (niveau = 3) => '<rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10.5v3"/>' + [0, 1, 2, 3].map((i) => `<rect x="${4.2 + i * 3.6}" y="9.2" width="2.6" height="5.6" rx=".6" fill="currentColor" stroke="none"${i > niveau ? ' opacity=".25"' : ""}/>`).join(""),
@@ -228,7 +264,17 @@
     clavier: '<rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6 10h1M9.5 10h1M13 10h1M16.5 10h1M7 14h10"/>',
     aide: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><circle cx="12" cy="17" r=".9"/>',
     prise: '<path d="M9 3v5M15 3v5"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v4"/>',
+    // Silhouettes de la maquette eShop : écrans et coques, sans logo ni ressource constructeur.
+    "3ds": '<g stroke="var(--pcv-lisere)" stroke-width="1.1"><rect x="4.8" y="3" width="14.4" height="8.5" rx="1" fill="var(--pcv-relief-ecran, var(--pcv-creux))"/><rect x="3" y="13.5" width="18" height="7.5" rx="1.7" fill="var(--pcv-relief-ecran, var(--pcv-creux))"/></g><g fill="currentColor" stroke="none"><rect x="10" y="5.5" width="4" height="4" rx="1.3"/><rect x="9.8" y="15.5" width="4.4" height="3.4" rx="1.2" opacity=".55"/></g>',
+    wiiu: '<g stroke="var(--pcv-lisere)" stroke-width="1.1"><rect x="1.8" y="3.2" width="20.4" height="11.2" rx=".7" fill="var(--pcv-relief-ecran, var(--pcv-creux))"/><rect x="4.7" y="13.2" width="14.6" height="7.4" rx="2.3" fill="var(--pcv-relief-ecran, var(--pcv-creux))"/></g><g fill="currentColor" stroke="none"><rect x="10" y="6.5" width="4" height="4" rx="1.3"/><rect x="10.4" y="15" width="3.2" height="3.2" rx="1"/></g>',
+    switch: '<rect x="1" y="6" width="22" height="12" rx="2.5" fill="var(--pcv-lisere)" stroke="none"/><path d="M4.2 7.2h15.6v9.6H4.2z" fill="var(--pcv-relief-ecran, var(--pcv-creux))" stroke="none"/><g fill="currentColor" stroke="none"><rect x="10" y="10" width="4" height="4" rx="1.3"/><circle cx="2.8" cy="10" r=".5"/><circle cx="21.2" cy="14.5" r=".5"/></g>',
+    nuancier: '<g stroke="var(--pcv-lisere)" stroke-width=".5"><rect x="2" y="7" width="5.5" height="12" rx="2.3" transform="rotate(-8 4.75 13)" fill="var(--pcv-orange)"/><rect x="9" y="4" width="5.5" height="16" rx="2.3" fill="var(--pcv-c-telech)"/><rect x="16" y="6" width="5.5" height="12.5" rx="2.3" transform="rotate(12 18.75 12.25)" fill="var(--pcv-vert)"/></g>',
     epingle: '<path d="M9 3h6l-1 6 3.5 3.5V14h-11v-1.5L10 9z"/><path d="M12 14v7"/>',
+    // (21/10, page du jeu, banc/maquette-detail-et-page-jeu) le trophée des succès, le nuage de la diffusion (celui de
+    // l'accueil, console.js NUAGE, en trait), l'œil barré de « Masquer »
+    trophee: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>',
+    nuage: '<path d="M7.2 19h10.3a4.3 4.3 0 0 0 .8-8.5 6 6 0 0 0-11.5 1.4A3.6 3.6 0 0 0 7.2 19z"/>',
+    masquer: '<path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.6"/><path d="M4 20 20 4"/>',
     // poubelle (en-tête d'un dossier ouvert, console.js : Supprimer) — même langage que crayon/sortie/epingle, jamais un
     // simple caractère Unicode (revue de propreté du 15/10, point 2/10 : les quatre boutons de l'en-tête doivent se
     // ressembler, sans reprendre un badge de touche déjà montré dans la légende du bas)
@@ -238,7 +284,16 @@
     dispositions: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6.5" y="7.5" width="4" height="4" rx="1"/><rect x="13.5" y="7.5" width="4" height="4" rx="1"/><rect x="6.5" y="13" width="4" height="4" rx="1"/>',
     enregistrer: '<path d="M12 3.5v10M7.5 9.5L12 14l4.5-4.5"/><path d="M4 15.5v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
     vue: '<rect x="3.5" y="3.5" width="11" height="11" rx="2.2"/><path d="M9.5 17.5v1a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1"/>',
-    creer: '<path d="M12 3.5v4M6 5.5l2.4 2.6M18 5.5l-2.4 2.6"/><rect x="5" y="12" width="14" height="8" rx="4"/>'
+    creer: '<path d="M12 3.5v4M6 5.5l2.4 2.6M18 5.5l-2.4 2.6"/><rect x="5" y="12" width="14" height="8" rx="4"/>',
+    // (29/10) le casino de Luigi : ses jeux (rangée du bas), le ticket des parties, la pièce (coloriée, comme casino)
+    pince: '<path d="M12 2v6"/><path d="M8 8h8"/><path d="M9 8l-3 6 3 3"/><path d="M15 8l3 6-3 3"/><circle cx="12" cy="19" r="2"/>',
+    cartes: '<rect x="3" y="5" width="11" height="15" rx="2" transform="rotate(-10 8.5 12.5)"/><rect x="10" y="4" width="11" height="15" rx="2"/><path d="M15.5 9l1.3 2.2 2.4.4-1.7 1.7.4 2.4-2.4-1.1-2.3 1.1.4-2.4-1.7-1.7 2.4-.4z"/>',
+    "grande-table": '<path d="M8 4h8l5 5v6l-5 5H8l-5-5V9z"/><circle cx="12" cy="12" r="2.6"/>',
+    roulette: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6M5.6 5.6l4.3 4.3M14.1 14.1l4.3 4.3M18.4 5.6l-4.3 4.3M9.9 14.1l-4.3 4.3"/>',
+    "machine-a-sous": '<rect x="3" y="4" width="15" height="17" rx="3"/><path d="M6 9h9v5H6z"/><path d="M10.5 9v5"/><path d="M21 7v6h-3"/><circle cx="21" cy="6" r="1.5"/>',
+    guichet: '<path d="M3 10l9-6 9 6"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/><path d="M3 20h18"/>',
+    ticket: '<path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/><path d="M14 7v10" stroke-dasharray="2 2"/>',
+    piece: '<g transform="scale(.375)" stroke="none"><circle cx="32" cy="32" r="29" fill="#f2b632"/><circle cx="32" cy="32" r="29" fill="none" stroke="#a8700f" stroke-width="3"/><circle cx="32" cy="32" r="21" fill="#ffd45a"/><path d="M32 17l4.3 9.2 10 1.2-7.4 6.8 2 9.9L32 39l-8.9 5.1 2-9.9-7.4-6.8 10-1.2z" fill="#f2b632" stroke="#a8700f" stroke-width="2" stroke-linejoin="round"/><path d="M14 22a20 20 0 0 1 14-10" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity=".7"/></g>'
   };
   const trace = (n, niveau) => typeof D[n] === "function" ? D[n](Number.isInteger(+niveau) && niveau !== "" && niveau != null ? Math.max(0, Math.min(3, +niveau)) : void 0) : D[n] || "";
   const image = (n) => {
@@ -250,6 +305,7 @@
     const t = image(n);
     return `<svg${o.classe ? ` class="${o.classe}"` : ""} viewBox="0 0 24 24" data-ico="${n}"${o.niveau != null ? ` data-niveau="${+o.niveau | 0}"` : ""}${o.attrs ? " " + o.attrs : ""}${t ? ` style='${habit(t)}'` : ""}>${t ? "" : trace(n, o.niveau)}</svg>`;
   };
+  const relief = (n, couleur) => `<span class="pcv-marque-relief" style="--pcv-relief-couleur:${/[#(]/.test(couleur) ? couleur : `var(--pcv-${couleur})`}" aria-hidden="true"><i></i>${svg(n)}</span>`;
   const masque = (n, ep = 2.4) => {
     const t = image(n);
     if (t) return `url("${t.url}")`;
@@ -336,10 +392,41 @@
     }
   };
   const touche = (code) => {
+    if (code === "stick-gauche" || code === "stick-droit") return `<u class="pcv-touche" style="background:var(--pcv-touche-neutre)">${svg(code, { attrs: 'fill="none" stroke="currentColor" stroke-width="1.7"' })}</u>`;
     const [t, c, h] = toucheDe(code) || [DEF_TOUCHES[code] || "?", "var(--pcv-touche-neutre)"];
     return `<u class="pcv-touche" style="background:${c}">${h || echapL(t)}</u>`;
   };
-  const legende = (liste) => liste.map(([code, mot]) => `<span>${touche(code)}${echapL(mot)}</span>`).join("");
-  window.__pcvIcones = { svg, trace, masque, rafraichir, theme, existe: (n) => !!D[n], legende, touche };
+  const RANG = { 5: 1, 6: 1, 7: 2, 8: 2, 13: 3, 4: 4, 3: 5, 2: 6, 1: 7 }, rang = ([c]) => RANG[[].concat(c)[0]] || 0;
+  const ordre = (liste) => liste.filter(Boolean).sort((a, b) => rang(a) - rang(b));
+  const legende = (liste) => ordre(liste).map(([code, mot]) => `<span${typeof [].concat(code)[0] === "number" ? ` data-b="${[].concat(code).at(-1)}"` : ""}>${[].concat(code).map(touche).join("")}${echapL(mot)}</span>`).join("");
+  const poser = (el, liste) => {
+    const l = ordre(liste), cle = l.map(([c]) => [].concat(c).map(touche).join("")).join("|");
+    if (el.__pcvCle !== cle) {
+      el.innerHTML = legende(l);
+      el.__pcvCle = cle;
+      return;
+    }
+    l.forEach(([, mot], i) => {
+      const s = el.children[i], t = s?.lastChild, m = String(mot);
+      if (t?.nodeType === 3) {
+        if (t.data !== m) t.data = m;
+      } else if (s && m) s.append(m);
+    });
+  };
+  const zoom = (n, ici, touches) => touches.map((c, k) => {
+    const [t, f, h] = toucheDe(c) || [DEF_TOUCHES[c] || "?", "var(--pcv-touche-neutre)"];
+    return `<b data-z="${k ? 1 : -1}" data-touche="${c}" style="background:${f}">${h || echapL(t)}</b>`;
+  }).join(`<span class="pic">${svg("tuiles-grandes")}</span>` + Array.from({ length: n }, (_, k) => `<i${k === ici ? ' class="on"' : ""}></i>`).join("") + `<span class="pic">${svg("tuiles-petites")}</span>`);
+  const CONTENU = [["accueil", "album"], ["place", "amis"], ["musique", "musique"]];
+  const contenu = (c, mots = false) => {
+    const l = CONTENU.filter(([k]) => typeof c?.[k] === "boolean");
+    if (!l.length) return "";
+    return `<span class="pcv-contenu${mots ? " mots" : ""}">${l.map(([k, n]) => {
+      const m = echapL(window.__pcvT?.(`themes.contenu.${k}_${c[k] ? "oui" : "non"}`) || k);
+      return `<span${c[k] ? "" : ' class="non"'}${mots ? "" : ` title="${m}" aria-label="${m}"`}><i>${svg(n, { attrs: 'fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"' })}</i>${mots ? m : ""}</span>`;
+    }).join("")}</span>`;
+  };
+  const email = (n, haut, bas) => `<span class="pcv-icone-email"${haut ? ` style="--pcv-email-haut:${haut};--pcv-email-bas:${bas}"` : ""}>${svg(n, { attrs: 'color="var(--pcv-sur-accent)" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"' })}</span>`;
+  window.__pcvIcones = { svg, email, relief, trace, masque, rafraichir, theme, existe: (n) => !!D[n], legende, poser, touche, zoom, ordre, contenu };
   rafraichir(document);
 })();

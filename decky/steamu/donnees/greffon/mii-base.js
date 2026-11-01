@@ -141,6 +141,8 @@
     return {
       nom: texte(d, 26),
       sexe: v & 1,
+      mois: v >> 1 & 15,
+      jour: v >> 5 & 31,
       couleur: v >> 10 & 15,
       special: !(id >>> 31),
       createur: texte(d, 72),
@@ -203,6 +205,7 @@
       nom: l.nom,
       sexe: l.sexe,
       couleur: l.couleur,
+      anniversaire: l.mois && l.jour ? { mois: l.mois, jour: l.jour } : null,
       donnees: e.donnees,
       moi: e.id === b.moi,
       origine: e.origine || "cree",

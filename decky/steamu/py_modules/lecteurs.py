@@ -287,6 +287,7 @@ def lister():
                 "vitesse": l.get("Rate", 1.0), "piste": m.get("mpris:trackid") or "/org/mpris/MediaPlayer2/TrackList/NoTrack",
                 "precedent": bool(l.get("CanGoPrevious")), "suivant": bool(l.get("CanGoNext")), "lire": bool(l.get("CanPlay", True)),
                 "chercher": bool(l.get("CanSeek")), "pochette": pochette, "jeu": _jeu_steam(pid), "pid": pid,
+                "bpm": m.get("xesam:audioBPM") or 0,  
                 "video": _video_probable(app, page, album, artiste, duree, dims)})
         return sortie
     finally:

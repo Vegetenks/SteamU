@@ -1,5 +1,5 @@
 import base64, io, json, os, pathlib, re, shutil, struct, tempfile, threading, time, unicodedata, urllib.parse
-import urllib.request, wave, zipfile, zlib
+import urllib.request, wave, zipfile, zlib, sys
 from array import array
 
 HOTE = "themeplaza.art"
@@ -146,6 +146,25 @@ def _devalue(donnees):
         return x
     return v(0)
 
+GARDE_JOUR, GARDE_PAGES, GARDE_APERCUS = 24 * 3600, 300, 600
+
+def _garde(sorte, nom):
+    base = os.environ.get("DECKY_PLUGIN_RUNTIME_DIR")
+    return pathlib.Path(base) / "cache" / "themeplaza" / sorte / nom if base else None
+
+def _garder(f, octets, maximum):
+    if not f:
+        return
+    try:
+        f.parent.mkdir(parents=True, exist_ok=True)
+        tmp = f.with_suffix(".tmp")
+        tmp.write_bytes(octets)
+        tmp.replace(f)
+        for vieux in sorted(f.parent.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[maximum:]:
+            vieux.unlink(missing_ok=True)
+    except OSError:
+        pass
+
 def recherche(texte="", page=1, tri="recents", musique=False):
     texte = _texte(texte, 60)
     page = max(1, min(int(page) if isinstance(page, (int, float)) else 1, 999))
@@ -157,7 +176,23 @@ def recherche(texte="", page=1, tri="recents", musique=False):
     cle = json.dumps(params, sort_keys=True)
     if cle in _cache_pages and time.monotonic() - _cache_pages[cle][0] < 600:
         return _cache_pages[cle][1]
-    brut = json.loads(_obtenir("/themes/__data.json", params, MAX_PAGE, ("application/json",)))
+    gardee = _garde("pages", __import__("hashlib").sha1(cle.encode()).hexdigest() + ".json")
+    try:
+        ancienne = json.loads(gardee.read_text(encoding="utf-8")) if gardee and gardee.exists() else None
+    except (OSError, ValueError):
+        ancienne = None
+    if ancienne and time.time() - gardee.stat().st_mtime < GARDE_JOUR:
+        for t in ancienne["themes"]:
+            VUS[t["id"]] = {"titre": t["titre"], "auteur": t["auteur"]}
+        return ancienne
+    try:
+        brut = json.loads(_obtenir("/themes/__data.json", params, MAX_PAGE, ("application/json",)))
+    except Exception:
+        if not ancienne:
+            raise
+        for t in ancienne["themes"]:
+            VUS[t["id"]] = {"titre": t["titre"], "auteur": t["auteur"]}
+        return {**ancienne, "ancien": True}   
     res = None
     for n in brut.get("nodes") or []:
         if isinstance(n, dict) and isinstance(n.get("data"), list):
@@ -182,6 +217,7 @@ def recherche(texte="", page=1, tri="recents", musique=False):
         VUS[num] = {"titre": t["titre"], "auteur": t["auteur"]}
         themes.append(t)
     sortie = {"page": page, "pages": _entier(res.get("totalPages")), "total": _entier(res.get("total")), "themes": themes}
+    _garder(gardee, json.dumps(sortie, ensure_ascii=False).encode(), GARDE_PAGES)
     if len(_cache_pages) > 60:
         _cache_pages.clear()
     _cache_pages[cle] = (time.monotonic(), sortie)
@@ -189,6 +225,9 @@ def recherche(texte="", page=1, tri="recents", musique=False):
 
 def apercu(numero):
     num = _numero(numero)
+    gardee = _garde("apercus", num + ".png")
+    if num not in _cache_apercus and gardee and gardee.exists():
+        _cache_apercus[num] = base64.b64encode(gardee.read_bytes()).decode()
     if num not in _cache_apercus:
         png = _obtenir("/download/%s/preview" % num, None, MAX_APERCU, ("image/png",))
         if not png.startswith(b"\x89PNG\r\n\x1a\n"):
@@ -196,6 +235,7 @@ def apercu(numero):
         if len(_cache_apercus) > 120:
             _cache_apercus.pop(next(iter(_cache_apercus)))
         _cache_apercus[num] = base64.b64encode(png).decode()
+        _garder(gardee, png, GARDE_APERCUS)
     return _cache_apercus[num]
 
 def lire_archive(octets):
@@ -343,54 +383,93 @@ def decoder_dsp(donnees, nb, coefs, h1=0, h2=0):
         p += 8
     return sortie
 
-def lire_bcstm(d):
+def lire_bcstm(d, arreter_boucle=True):
     try:
-        if len(d) < 0x40 or d[:4] != b"CSTM" or struct.unpack_from("<H", d, 4)[0] != 0xFEFF:
-            raise Refus("bgm.bcstm illisible")
-        blocs = {}
-        for i in range(min(struct.unpack_from("<H", d, 0x10)[0], 8)):
-            genre, _, decalage, _ = struct.unpack_from("<HHII", d, 0x14 + 12 * i)
-            blocs[genre] = decalage
-        if 0x4000 not in blocs or 0x4002 not in blocs:
-            raise Refus("bgm.bcstm sans INFO ni DATA")
-        ref = lambda o: struct.unpack_from("<HHi", d, o)[2]
-        base = blocs[0x4000] + 8
-        o_flux, o_canaux = ref(base), ref(base + 16)
-        (codage, boucle, nc, _, freq, debut_b, fin_b, nb_blocs, taille_bloc, ech_bloc, taille_dernier,
-         ech_dernier, taille_dernier_rempli) = struct.unpack_from("<BBBBIIIIIIIII", d, base + o_flux)
-        debut_donnees = blocs[0x4002] + 8 + ref(base + o_flux + 0x30)
-        total = (nb_blocs - 1) * ech_bloc + ech_dernier if nb_blocs else 0
-        if not 0 < nc <= 16 or not 8000 <= freq <= 96000 or not 0 < total <= freq * 600 or codage not in (1, 2):
-            raise Refus("bgm.bcstm : format non géré")
-        fin = fin_b if 0 < fin_b <= total else total
-        table = base + o_canaux
+        if len(d) < 0x40 or d[:4] not in (b"CSTM", b"FSTM", b"RSTM") or d[4:6] not in (b"\xff\xfe", b"\xfe\xff"):
+            raise Refus("flux Nintendo illisible")
+        ordre = "<" if d[4:6] == b"\xff\xfe" else ">"
+        lire = lambda fmt, o: struct.unpack_from(ordre + fmt, d, o)
+        if d[:4] == b"RSTM":
+            head, data = lire("I", 0x10)[0], lire("I", 0x20)[0]
+            base = head + 8
+            flux, table = base + lire("I", base + 4)[0], base + lire("I", base + 20)[0]
+            codage, boucle, nc, _, freq, _ = lire("BBBBHH", flux)
+            (debut_b, total, debut_donnees, nb_blocs, taille_bloc, ech_bloc, taille_dernier,
+             ech_dernier, taille_dernier_rempli) = lire("9I", flux + 8)
+            fin_b = total
+            infos = []
+            for c in range(min(nc, 2)):
+                canal = base + lire("I", table + 8 + 8 * c)[0]
+                infos.append(base + lire("I", canal + 4)[0])
+        else:
+            blocs = {}
+            for i in range(min(lire("H", 0x10)[0], 8)):
+                genre, _, decalage, _ = lire("HHII", 0x14 + 12 * i)
+                blocs[genre] = decalage
+            base = blocs[0x4000] + 8
+            ref = lambda o: lire("HHi", o)[2]
+            flux, table = base + ref(base), base + ref(base + 16)
+            (codage, boucle, nc, _, freq, debut_b, fin_b, nb_blocs, taille_bloc, ech_bloc, taille_dernier,
+             ech_dernier, taille_dernier_rempli) = lire("BBBBIIIIIIIII", flux)
+            debut_donnees = blocs[0x4002] + 8 + ref(flux + 0x30)
+            total = (nb_blocs - 1) * ech_bloc + ech_dernier if nb_blocs else 0
+            infos = []
+            for c in range(min(nc, 2)):
+                canal = table + ref(table + 4 + 8 * c)
+                infos.append(canal + ref(canal))
+        if (not 0 < nc <= 16 or not 8000 <= freq <= 96000 or not 0 < total <= freq * 600
+                or codage not in (0, 1, 2) or not 0 < nb_blocs <= len(d) or taille_bloc > len(d)
+                or not 0 <= debut_donnees < len(d)):
+            raise Refus("flux Nintendo : format non géré")
+        total = fin_b if arreter_boucle and 0 < fin_b <= total else total
         canaux = []
-        for c in range(min(nc, 2)):
-            canal = table + ref(table + 4 + 8 * c)
-            coefs, ctx = None, (0, 0)
-            if codage == 2:
-                o = canal + ref(canal)
-                coefs = struct.unpack_from("<16h", d, o)
-                ctx = struct.unpack_from("<hh", d, o + 34)
+        for c, info in enumerate(infos):
+            coefs, ctx = (lire("16h", info), lire("hh", info + (36 if d[:4] == b"RSTM" else 34))) if codage == 2 else (None, (0, 0))   
             morceaux = []
             for b in range(nb_blocs):
                 if b < nb_blocs - 1:
                     o, n = debut_donnees + (b * nc + c) * taille_bloc, taille_bloc
                 else:
-                    o, n = debut_donnees + (nb_blocs - 1) * nc * taille_bloc + c * taille_dernier_rempli, taille_dernier
+                    o, n = debut_donnees + (nb_blocs - 1) * nc * taille_bloc + c * taille_dernier_rempli, taille_dernier_rempli   
+                if o < 0 or o + n > len(d): raise Refus("flux Nintendo tronqué")
                 morceaux.append(d[o:o + n])
-            brut = b"".join(morceaux)
-            if codage == 2:
-                if len(brut) < (fin + 13) // 14 * 8:
-                    raise Refus("bgm.bcstm tronqué")
-                canaux.append(decoder_dsp(brut, fin, coefs, *ctx))
-            else:
-                if len(brut) < 2 * fin:
-                    raise Refus("bgm.bcstm tronqué")
-                a = array("h"); a.frombytes(brut[:2 * fin]); canaux.append(a)
-        return canaux, freq, (debut_b if boucle and debut_b < fin else None), fin
-    except (struct.error, IndexError):
-        raise Refus("bgm.bcstm corrompu")
+            canaux.append(_pcm_nintendo(b"".join(morceaux), codage, total, ordre, coefs, ctx))
+        return canaux, freq, (debut_b if boucle and debut_b < total else None), total
+    except (struct.error, IndexError, KeyError, OverflowError):
+        raise Refus("flux Nintendo corrompu")
+
+def _pcm_nintendo(brut, codage, fin, ordre, coefs=None, ctx=(0, 0)):
+    taille = (fin + 13) // 14 * 8 if codage == 2 else fin * (2 if codage == 1 else 1)
+    if len(brut) < taille: raise Refus("son Nintendo tronqué")
+    if codage == 2: return decoder_dsp(brut, fin, coefs, *ctx)
+    if codage == 0: return array("h", (((v ^ 128) - 128) * 256 for v in brut[:fin]))
+    a = array("h"); a.frombytes(brut[:2 * fin])
+    if (ordre == "<") != (sys.byteorder == "little"): a.byteswap()
+    return a
+
+def lire_bcwav(d):
+    try:
+        if len(d) < 0x40 or d[:4] not in (b"CWAV", b"FWAV") or d[4:6] not in (b"\xff\xfe", b"\xfe\xff"):
+            raise Refus("onde Nintendo illisible")
+        ordre = "<" if d[4:6] == b"\xff\xfe" else ">"
+        lire = lambda fmt, o: struct.unpack_from(ordre + fmt, d, o)
+        info, data = lire("I", 0x18)[0], lire("I", 0x24)[0]
+        codage, boucle, freq, debut, fin = lire("BB2xIII", info + 8)
+        table = info + 0x1c
+        nc = lire("I", table)[0]
+        if not 0 < nc <= 16 or not 8000 <= freq <= 96000 or not 0 < fin <= freq * 600 or codage not in (0, 1, 2):
+            raise Refus("onde Nintendo : format non géré")
+        canaux = []
+        for c in range(min(nc, 2)):
+            canal = table + lire("i", table + 8 + 8 * c)[0]
+            debut_pcm = data + 8 + lire("i", canal + 4)[0]
+            adpcm = canal + lire("i", canal + 12)[0]
+            coefs, ctx = (lire("16h", adpcm), lire("hh", adpcm + 34)) if codage == 2 else (None, (0, 0))
+            if not 0 <= debut_pcm < len(d): raise Refus("onde Nintendo tronquée")
+            canaux.append(_pcm_nintendo(d[debut_pcm:], codage, fin, ordre, coefs, ctx))
+        return canaux, freq, debut if boucle and debut < fin else None, fin
+    except (struct.error, IndexError, OverflowError):
+        raise Refus("onde Nintendo corrompue")
 
 def wav(canaux, freq):
     if len(canaux) == 2:

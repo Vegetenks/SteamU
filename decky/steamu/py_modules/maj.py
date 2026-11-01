@@ -5,7 +5,7 @@ DELAI = 8
 TAILLE_MAX = 64 * 1024
 
 def _nombres(v):
-    return tuple(int(n) for n in re.findall(r"\d+", str(v))[:3])
+    return tuple(int(n) for n in re.findall(r"\d+", str(v))[:4])
 
 def plus_recente(annoncee, installee):
     return _nombres(annoncee) > _nombres(installee)

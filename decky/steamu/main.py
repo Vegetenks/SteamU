@@ -7,29 +7,46 @@ os.environ.setdefault("PCV_DOSSIER", str(ICI / "donnees"))
 TRANCHE_MAX = 4 * 1024 * 1024       
 RESSOURCE_MAX = 32 * 1024 * 1024    
 IMPORT = threading.Lock()           
+FILM_VERROU = threading.Lock()      
 PACK = "@steamu/"                   
 VISITEURS = "@visiteurs/"           
+BIENVENUE = "@bienvenue/"           
 MII_DEFAUT = "@mii-defaut/"         
 MOTEUR = "mii/moteur/"               
-FILM = "steamu.webm"                
 DISPOSITIONS_MAX = 8 * 1024 * 1024  
 LARGEUR_VIGNETTE = 728              
+
+def pid_reaper(appid, proc="/proc"):
+    trouves = []
+    for d in os.listdir(proc):
+        if not d.isdigit(): continue
+        try:
+            a = pathlib.Path(f"{proc}/{d}/cmdline").read_bytes().split(b"\0")
+            debut = int(pathlib.Path(f"{proc}/{d}/stat").read_text().rsplit(")", 1)[1].split()[19])
+        except Exception: continue
+        if a[0].endswith(b"/reaper") and b"SteamLaunch" in a[:3] and f"AppId={appid}".encode() in a[:4]: trouves.append((debut, int(d)))
+    return max(trouves)[1] if trouves else 0
 
 class Plugin:
     async def _main(self):
         import asyncio, moteur, reprise
+        import paquet
+        try: decky.logger.info("SteamU : entrée Decky " + json.dumps(paquet.verifier(ICI)))
+        except ValueError as e: decky.logger.error("SteamU : " + str(e))
         try: await asyncio.get_running_loop().run_in_executor(None, lambda: reprise.reprendre(
                 decky.DECKY_HOME, moteur.ANCIEN_DOSSIER, pathlib.Path(decky.DECKY_PLUGIN_DIR).name, decky.logger.info))
         except Exception as e: decky.logger.warning(f"reprise de l'ancien greffon manquée : {type(e).__name__}")
         moteur.secours = moteur.Secours(pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "secours.json")
         if moteur.secours.pause: decky.logger.warning(f"{moteur.NOM} : en pause ({moteur.secours.pause}), rien n'est posé")
         moteur.secours.au_plantage = lambda: threading.Thread(target=self._rapport_plantage, name="pcv-plantage", daemon=True).start()
-        try:
-            films = pathlib.Path(decky.DECKY_USER_HOME) / ".steam/steam/config/uioverrides/movies"
-            films.mkdir(parents=True, exist_ok=True)
-            shutil.copy(ICI / "donnees" / FILM, films / FILM)
-        except Exception as e:
-            decky.logger.warning(f"vidéo de démarrage non copiée : {e}")
+        f = ICI / "donnees" / "outils" / "ffmpeg"
+        if f.exists() and not shutil.which("ffmpeg"):
+            try: f.chmod(0o755); os.environ["PATH"] = f"{os.environ.get('PATH', '/usr/bin:/bin')}:{f.parent}"
+            except Exception as e: decky.logger.warning(f"ffmpeg embarqué inutilisable : {e}")
+        import film_demarrage
+        threading.Thread(target=self._poser_film, args=(self._film_apparence.read_text() if self._film_apparence.exists() else "clair",),
+                         name="pcv-film", daemon=True).start()
+        moteur.GREFFON_JS += ";window.__pcvGreffon.film = " + json.dumps(film_demarrage.NOTRE) + ";window.__pcvGreffon.image = " + json.dumps(film_demarrage.NOTRE_IMAGE)
         self.fil = threading.Thread(target=moteur.boucle, args=(pathlib.Path(os.environ["PCV_DOSSIER"]), decky.logger.info), daemon=True)
         self.fil.start()
         decky.logger.info(f"{moteur.NOM} : moteur lancé")
@@ -43,6 +60,34 @@ class Plugin:
             f.write_text(json.dumps({"version_vue": v}))
         except Exception as e:
             self.conflit_nouveau = False; decky.logger.warning(f"avis de conflit : version non suivie ({type(e).__name__})")
+
+    @property
+    def _film_apparence(self): return pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "film-apparence.txt"
+
+    def _poser_film(self, choix):
+        import film_demarrage
+        apparence, _, haut = choix.partition(" ")
+        try: film_demarrage.poser(ICI / "donnees", pathlib.Path(decky.DECKY_USER_HOME) / ".steam/steam/config/uioverrides/movies", apparence,
+                                  pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "prive/sons/wiiu/demarrage/demarrage.ogg",
+                                  int(haut) if haut.isdigit() else film_demarrage.DEFAUT)
+        except Exception as e: decky.logger.warning(f"vidéo de démarrage non copiée : {e}")
+
+    async def film_apparence(self, apparence, largeur=None, hauteur=None):
+        import asyncio, film_demarrage
+        apparence = apparence if apparence in film_demarrage.APPARENCES else "clair"
+        choix = f"{apparence} {film_demarrage.hauteur(largeur, hauteur)}"
+        if self._film_apparence.exists() and self._film_apparence.read_text() == choix: return False
+        self._film_apparence.write_text(choix)
+        await asyncio.get_running_loop().run_in_executor(None, self._poser_film, choix)
+        return True
+
+    async def film_demarrage(self, actif):
+        import asyncio, film_demarrage
+        f = pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "film-demarrage.json"
+        def un():
+            with FILM_VERROU: return film_demarrage.appliquer(f, bool(actif))
+        try: return await asyncio.get_running_loop().run_in_executor(None, un)
+        except Exception as e: decky.logger.warning(f"vidéo de démarrage non choisie : {type(e).__name__} {e}"); return None
 
     async def ancien(self):
         import moteur
@@ -67,6 +112,7 @@ class Plugin:
         prive = pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "prive"
         if chemin.startswith(PACK): racine, chemin = ICI / "donnees/sons-steamu", chemin[len(PACK):]
         elif chemin.startswith(VISITEURS): racine, chemin = ICI / "donnees/visiteurs", chemin[len(VISITEURS):]
+        elif chemin.startswith(BIENVENUE): racine, chemin = ICI / "donnees/bienvenue", chemin[len(BIENVENUE):]
         elif chemin.startswith(MII_DEFAUT): racine, chemin = ICI / "donnees/mii-defaut", chemin[len(MII_DEFAUT):]
         elif chemin.startswith(MOTEUR) and not (prive / chemin).is_file(): racine, chemin = ICI / "donnees/mii-moteur", chemin[len(MOTEUR):]
         else: racine = prive
@@ -84,7 +130,9 @@ class Plugin:
         def plein(chemin):   
             d = self._dedans(chemin)
             return bool(d and importer.plein(d))
-        return {appli: [d for d in dossiers if not plein(d)] for appli, dossiers in importer.EXIGE.items()}
+        r = {appli: importer.manquants(appli, plein) for appli in importer.EXIGE}
+        if IMPORT.locked(): r["_import"] = True
+        return r
 
     async def import_depart(self):
         media = pathlib.Path("/run/media")
@@ -161,6 +209,17 @@ class Plugin:
         import asyncio, lecteurs
         return await asyncio.get_running_loop().run_in_executor(None, lambda: lecteurs.commander(nom, action, position, piste))
 
+    async def spotpass(self, action, *args):
+        import asyncio, spotpass
+        f = {"envoyer": spotpass.envoyer, "lot": spotpass.lot, "signaler": spotpass.signaler, "effacer": spotpass.effacer}.get(action)
+        if f is None:
+            return {"erreur": "action"}
+        try:
+            return await asyncio.get_running_loop().run_in_executor(None, f, decky.DECKY_PLUGIN_SETTINGS_DIR, *args)
+        except Exception as e:
+            decky.logger.warning(f"spotpass {action} : {e}")
+            return {"erreur": "console"}
+
     async def paroles(self, artiste, titre, album="", duree=0):
         import asyncio, paroles
         dossier = pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "paroles"
@@ -196,10 +255,11 @@ class Plugin:
         try: return pathlib.Path("/sys/firmware/acpi/platform_profile").read_text().strip() == "low-power"
         except Exception: return None
 
-    async def instantane(self):
+    async def instantane(self, appid=0):
         import asyncio, shutil, subprocess, time
         def prendre():
-            f, env = pathlib.Path("/tmp/gamescope.png"), {**os.environ, "DISPLAY": ":0", "LD_LIBRARY_PATH": ""}
+            from session_x import environnement
+            f, env = pathlib.Path("/tmp/gamescope.png"), environnement()
             try:
                 f.unlink(missing_ok=True)
                 subprocess.run(["xprop", "-root", "-f", "GAMESCOPECTRL_DEBUG_REQUEST_SCREENSHOT", "32c", "-set", "GAMESCOPECTRL_DEBUG_REQUEST_SCREENSHOT", "1"],
@@ -209,8 +269,18 @@ class Plugin:
                     n = f.stat().st_size if f.exists() else 0
                     if n and n == avant: break
                     avant = n; time.sleep(.03)
-                jpg = subprocess.run(["magick", str(f), "-sample", f"{LARGEUR_VIGNETTE}x", "-quality", "82", "jpg:-"], env=env, timeout=3, capture_output=True).stdout if shutil.which("magick") else b""
-                jpg = jpg or subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(f), "-vf", f"scale={LARGEUR_VIGNETTE}:-2", "-q:v", "4", "-f", "image2pipe", "-vcodec", "mjpeg", "-"],
+                if not f.exists() and appid:
+                    from apercu import _fenetre
+                    cible = _fenetre(int(appid))
+                    if not cible:
+                        return None
+                    affichage, fenetre = cible
+                    jpg = subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "x11grab", "-draw_mouse", "0", "-window_id", str(fenetre), "-i", affichage,
+                                          "-frames:v", "1", "-q:v", "3", "-f", "image2pipe", "-vcodec", "mjpeg", "-"],
+                                         env=env, timeout=3, capture_output=True).stdout
+                    return "data:image/jpeg;base64," + base64.b64encode(jpg).decode() if jpg else None
+                jpg = subprocess.run(["magick", str(f), "-quality", "85", "jpg:-"], env=env, timeout=3, capture_output=True).stdout if shutil.which("magick") else b""
+                jpg = jpg or subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(f), "-q:v", "3", "-f", "image2pipe", "-vcodec", "mjpeg", "-"],
                                      env=env, timeout=3, capture_output=True).stdout
                 return "data:image/jpeg;base64," + base64.b64encode(jpg).decode() if jpg else None
             except Exception:
@@ -218,6 +288,24 @@ class Plugin:
             finally:
                 f.unlink(missing_ok=True)
         return await asyncio.get_running_loop().run_in_executor(None, prendre)
+
+    async def pid_jeu(self, appid):
+        return pid_reaper(int(appid))
+
+    async def reprendre_jeu(self, pid):
+        import os, signal
+        enfants = {}
+        for d in os.listdir("/proc"):
+            if d.isdigit():
+                try: enfants.setdefault(int(open(f"/proc/{d}/stat").read().rsplit(")", 1)[1].split()[1]), []).append(int(d))
+                except Exception: pass   
+        file, repris = [int(pid)], 0
+        while file:
+            for e in enfants.get(file.pop(), []):
+                file.append(e)
+                try: os.kill(e, signal.SIGCONT); repris += 1
+                except Exception: pass
+        return repris > 0
 
     async def apercu(self, appid, ips):
         import asyncio, apercu
@@ -365,7 +453,7 @@ class Plugin:
     async def infinimii_qr(self, ident):
         return await self._infinimii("qr", ident)
 
-    SCRIPTS_A_LA_DEMANDE = {"jsqr": "vendor/jsqr.js"}
+    SCRIPTS_A_LA_DEMANDE = {"jsqr": "vendor/jsqr.js", "shaka": "vendor/shaka-player.compiled.js"}
 
     async def script_greffon(self, nom):
         c = self.SCRIPTS_A_LA_DEMANDE.get(nom) if isinstance(nom, str) else None
@@ -402,6 +490,45 @@ class Plugin:
         except Exception as e:
             decky.logger.warning(f"Art auto : {type(e).__name__} {str(e)[:160]}")
             return {"trouve": False}
+
+    async def fiche_boutique(self, appid, langue="fr"):
+        import asyncio, art_auto
+        try:
+            return await asyncio.get_running_loop().run_in_executor(None, art_auto.fiche_boutique, int(appid), str(langue)[:2])
+        except Exception as e:
+            decky.logger.warning(f"Fiche boutique : {type(e).__name__} {str(e)[:160]}")
+            return {}
+
+    async def eshop_catalogues(self):
+        import asyncio, eshop
+        return await asyncio.to_thread(eshop.catalogues, pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "cache")
+
+    async def eshop_jeux(self, action, pays, langue, appid=0, terme="", start=0):
+        import asyncio, eshop_jeux
+        try:
+            return await asyncio.to_thread(eshop_jeux.lire,
+                pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "cache", action, pays, langue, appid, terme, start)
+        except Exception:
+            return {"erreur": True}
+
+    async def eshop_image(self, url):
+        import asyncio, eshop
+        try:
+            return await asyncio.to_thread(eshop.image, str(url)[:2048])
+        except Exception:
+            return {}
+
+    async def eshop_github(self, source):
+        import asyncio, eshop
+        try:
+            return await asyncio.to_thread(eshop.github, str(source)[:400])
+        except Exception as e:
+            decky.logger.warning(f"eShop GitHub : {type(e).__name__} {str(e)[:160]}")
+            return {}
+
+    async def eshop_installes(self):
+        import asyncio, eshop
+        return await asyncio.to_thread(eshop.installes, decky.DECKY_PLUGIN_DIR)
 
     async def dispositions_lire(self):
         f = pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "dispositions.json"
@@ -490,8 +617,10 @@ class Plugin:
         return r
 
     async def _uninstall(self):
-        f = pathlib.Path(decky.DECKY_USER_HOME) / ".steam/steam/config/uioverrides/movies" / FILM
-        try: f.unlink(missing_ok=True); decky.logger.info("SteamU : vidéo de démarrage retirée")
+        await self.film_demarrage(False)   
+        import film_demarrage
+        f = pathlib.Path(decky.DECKY_USER_HOME) / ".steam/steam/config/uioverrides/movies" / film_demarrage.FILM
+        try: f.unlink(missing_ok=True); f.with_name(film_demarrage.IMAGE).unlink(missing_ok=True); decky.logger.info("SteamU : vidéo de démarrage retirée")
         except Exception as e: decky.logger.warning(f"vidéo de démarrage non retirée : {e}")
 
     async def _unload(self):

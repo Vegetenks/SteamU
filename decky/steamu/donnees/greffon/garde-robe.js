@@ -48,8 +48,8 @@
     });
   };
   let catalogue = null, lus = null, sansIndex = 0;
-  const modeles = avant?.modeles instanceof Map ? avant.modeles : /* @__PURE__ */ new Map();
-  const prets = avant?.prets instanceof Map ? avant.prets : /* @__PURE__ */ new Map();
+  const modeles = /* @__PURE__ */ new Map();
+  const prets = /* @__PURE__ */ new Map();
   const liste = (o = {}) => {
     if (o.relire) {
       catalogue = lus = null;
@@ -82,7 +82,7 @@
       throw e;
     });
   };
-  const horsCatalogue = avant?.horsCatalogue instanceof Map ? avant.horsCatalogue : /* @__PURE__ */ new Map();
+  const horsCatalogue = /* @__PURE__ */ new Map();
   const inscrire = async (dossier, ids = []) => {
     if (typeof dossier !== "string" || !/^@?\w[\w-]*\/$/.test(dossier)) throw new Error("garde-robe : dossier invalide");
     const ok = await Promise.all(ids.filter((id) => typeof id === "string" && ID.test(id)).map(async (id) => {

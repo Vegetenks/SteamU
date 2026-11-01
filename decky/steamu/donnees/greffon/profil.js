@@ -3,8 +3,7 @@
   clearInterval(window.__pcvProfilSuivi);
   window.__pcvProfilMiiFin?.();
   const O = window.opener;
-  const IMG = (id, f) => `https://steamloopback.host/assets/${id}/${f}`;
-  const CDN = (id, f) => `https://shared.steamstatic.com/store_item_assets/steam/apps/${id}/${f}`;
+  const TUILE = 96;
   const u = (n) => `calc(var(--u) * ${n})`;
   const persona = () => {
     try {
@@ -24,6 +23,7 @@
   const ICO = {
     amis: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.9.2 5 2.6 5 5.8"/>',
     reglages: window.__pcvIcones?.trace("parametres") || "",
+    manette: window.__pcvIcones?.trace("manette") || "",
     chevron: '<path d="M9 5l7 7-7 7"/>',
     visage: '<circle cx="12" cy="12" r="9"/><path d="M9 10v1M15 10v1M8.5 15c1.9 1.6 5.1 1.6 7 0"/>'
   };
@@ -34,9 +34,8 @@
   racine.innerHTML = `<style>
     #pcv-profil { position: fixed; inset: ${u(96)} 0 0 0;   
       box-shadow: 0 ${u(-96)} 0 0 var(--pcv-creux); z-index: 8600; font-family: var(--pcv-police); color: var(--pcv-texte);
-      background: var(--pcv-fond-page); animation: pcvProfilEntree .3s cubic-bezier(.2,.8,.2,1); }
+      background: var(--pcv-fond-page); }
     #pcv-profil[hidden] { display: none; }
-    @keyframes pcvProfilEntree { from { opacity: 0; transform: translateY(${u(10)}) } to { opacity: 1; transform: none } }
     #pcv-profil * { box-sizing: border-box; }
     #pcv-profil button { all: unset; cursor: pointer; box-sizing: border-box; }
     #pcv-profil .v { position: absolute; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); border-radius: ${u(34)}; }
@@ -58,31 +57,55 @@
       box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.12); }
     #pcv-profil .action b { display: block; font-size: ${u(16)}; font-weight: 900; }
     #pcv-profil .action .t { flex: 1; }
-    body:not(.pcv-barre-nav) #pcv-profil :is(.action, .jeu):is(:focus-visible, .sel) { box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(8)} var(--pcv-cyan-plein), 0 ${u(12)} ${u(26)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
+    body:not(.pcv-barre-main) #pcv-profil :is(.action, .jeu):is(:focus-visible, .sel) { box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(8)} var(--pcv-cyan-plein), 0 ${u(12)} ${u(26)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-profil .bloc { left: ${u(448)}; right: ${u(24)}; padding: ${u(22)} ${u(26)}; }
     #pcv-profil .bloc h3 { margin: 0; font-size: ${u(20)}; font-weight: 900; }
     #pcv-profil .rangee { display: flex; gap: ${u(26)}; margin-top: ${u(16)}; }
     #pcv-profil .jeu { display: flex; flex-direction: column; align-items: center; gap: ${u(8)}; width: ${u(116)}; border-radius: ${u(18)}; }
-    #pcv-profil .jeu i { width: ${u(96)}; height: ${u(144)}; border-radius: ${u(18)}; background: var(--pcv-creux) center / cover; box-shadow: 0 0 0 ${u(4)} var(--pcv-lisere), 0 ${u(10)} ${u(22)} rgba(0,0,0,.3); }
+    #pcv-profil .jeu i { width: ${u(TUILE)}; height: ${u(TUILE)}; border-radius: calc(var(--u) * var(--arr, 18)); background: var(--pcv-creux) center / cover; box-shadow: 0 0 0 ${u(4)} var(--pcv-lisere), 0 ${u(10)} ${u(22)} rgba(0,0,0,.3); }
     #pcv-profil .jeu b { font-size: ${u(13)}; font-weight: 900; text-align: center; line-height: 1.2; }
     #pcv-profil .jeu small { font-size: ${u(12)}; font-weight: 800; color: var(--pcv-texte2); }
+    #pcv-profil .maintenant { display: flex; align-items: center; gap: ${u(26)}; margin-top: ${u(16)}; }
+    #pcv-profil .maintenant i { width: ${u(330)}; height: ${u(154)}; border-radius: ${u(18)}; flex: none; background: var(--pcv-creux) center / cover; box-shadow: 0 0 0 ${u(4)} var(--pcv-lisere), 0 ${u(10)} ${u(22)} rgba(0,0,0,.3); }
+    #pcv-profil .maintenant b { display: block; font-size: ${u(28)}; font-weight: 900; margin-bottom: ${u(10)}; }
+    #pcv-profil .maintenant small { display: block; font-size: ${u(16)}; font-weight: 800; color: var(--pcv-texte2); line-height: 1.4; }
+    #pcv-profil .maintenant .ouverte { color: var(--pcv-vert); }
+    #pcv-profil .action .cap { width: ${u(60)}; height: ${u(34)}; border-radius: ${u(8)}; background: var(--pcv-creux) center / cover; flex: none; }
   </style>
   <div class="v gauche">
     <img class="grand steam" alt="">
     <canvas class="grand mii-vivant" hidden aria-hidden="true"></canvas>
     <span class="pseudo"></span>
     <span class="v-in etat"></span>
-    <div class="chiffres"><div class="v-in chiffre"><b class="nb" style="color:#1a9ae6"></b><span>${T("profil.jeux")}</span></div><div class="v-in chiffre"><b class="heures" style="color:#ff8a1f"></b><span>${T("profil.heures_total")}</span></div></div>
+    <div class="chiffres"><div class="v-in chiffre"><b class="nb" style="color:#1a9ae6"></b><span class="l1"></span></div><div class="v-in chiffre"><b class="heures" style="color:#ff8a1f"></b><span class="l2"></span></div></div>
     <div class="actions">
       <button class="v-in action" data-aller="profil"><span class="p">${svg("amis", u(20), "var(--pcv-vert)")}</span><span class="t"><b>${T("profil.steam")}</b><small>${T("profil.steam_sous")}</small></span>${svg("chevron", u(18), "#66758a")}</button>
       <button class="v-in action" data-aller="compte"><span class="p">${svg("reglages", u(20), "#8b9098")}</span><span class="t"><b>${T("profil.compte")}</b><small>${T("profil.compte_sous")}</small></span>${svg("chevron", u(18), "#66758a")}</button>
       <button class="v-in action" data-image><span class="p">${svg("visage", u(20), "var(--pcv-cyan-plein)")}</span><span class="t"><b>${T("profil.image")}</b><small class="image-profil"></small></span>${svg("chevron", u(18), "#66758a")}</button>
     </div>
   </div>
-  <div class="v bloc" style="top:0;height:${u(300)}"><h3>${T("profil.recents")}</h3><div class="rangee recents"></div></div>
-  <div class="v bloc" style="top:${u(322)};bottom:${u(24)}"><h3>${T("profil.longues")}</h3><div class="rangee longues"></div></div>`;
+  <div class="v bloc" style="top:0;height:${u(300)}"><h3 class="t1"></h3><div class="rangee recents"></div></div>
+  <div class="v bloc" style="top:${u(322)};bottom:${u(24)}"><h3 class="t2"></h3><div class="rangee longues"></div></div>`;
   document.body.appendChild(racine);
   window.__pcvFond?.(racine);
+  const legende = document.createElement("div");
+  legende.id = "pcv-profil-legende";
+  legende.className = "pcv-legende";
+  racine.appendChild(legende);
+  const appDe = (e) => {
+    try {
+      return e?.dataset.app && O.appStore.GetAppOverviewByAppID(+e.dataset.app);
+    } catch (x) {
+      return null;
+    }
+  };
+  const ecrireLegende = () => {
+    const e = elems()[sel], a = appDe(e);
+    legende.innerHTML = window.__pcvIcones.legende(window.__pcvLegendeDe(ami ? [[3, T("ficheami.profil_steam")], [2, T("touche.retour")], e && [1, a ? T(inviter ? "social.inviter" : window.__pcvJeux?.installe?.(a) ? "accueil.jouer" : "biblio.installer") : e.querySelector("b")?.textContent || T("console.ouvrir")]] : a ? [[1, T(window.__pcvJeux?.installe?.(a) ? "accueil.jouer" : "biblio.installer")], [3, T("console.page_jeu")], [2, T("touche.retour")]] : [e && [1, T("console.ouvrir")], [2, T("touche.retour")]]));
+  };
+  (window.__pcvLegendes ||= {}).profil = () => {
+    if (!racine.hidden) ecrireLegende();
+  };
   const imageProfil = () => {
     let v = "mii";
     try {
@@ -191,7 +214,58 @@
       racine.querySelector(".steam").src = avatarDe();
     }
   };
+  let ami = null, inviter = false, jeton = 0;
+  const ACTIONS_MOI = racine.querySelector(".actions").innerHTML;
+  const action = (k, ico, titre, sous) => `<button class="v-in action" data-ami="${k}">${ico.startsWith("<i") ? ico : `<span class="p">${ico}</span>`}<span class="t"><b>${titre}</b><small>${echap(sous)}</small></span>${svg("chevron", u(18), "#66758a")}</button>`;
+  const remplirAmi = () => {
+    const S = window.__pcvSocial, f = ami, p = f.persona, g = p.m_unGamePlayedAppID, moi = ++jeton;
+    MV.arreter();
+    racine.querySelector(".mii-vivant").hidden = true;
+    const im = racine.querySelector(".steam");
+    im.hidden = false;
+    im.src = S.urlSure(p.avatar_url_full || p.avatar_url_medium);
+    racine.querySelector(".pseudo").textContent = p.m_strPlayerName || "";
+    const e = racine.querySelector(".etat");
+    e.textContent = "\u25CF " + S.ligne(p);
+    e.style.color = S.COULEUR(p);
+    racine.querySelector(".l1").textContent = T("ficheami.communs");
+    racine.querySelector(".l2").textContent = T("ficheami.ensemble_recemment");
+    racine.querySelector(".nb").textContent = racine.querySelector(".heures").textContent = "\u2026";
+    const chat = S.chat(f.accountid);
+    racine.querySelector(".actions").innerHTML = (S.peutRejoindre(p) ? action("rejoindre", `<i class="cap" data-jeu="${+g}" style="background-image:${S.capsule(g)}"></i>`, T("ficheami.rejoindre_partie"), T("ficheami.partie_ouverte", { jeu: S.jeuNom(g, p) })) : "") + (S.peutEcrire(chat) ? action("discuter", svg("amis", u(20), "var(--pcv-vert)"), T("ficheami.discuter"), chat?.GetLastMessage?.() ? S.texte(chat.GetLastMessage()) : T("ficheami.discuter_sous")) : "") + (S.peutInviter() ? action("inviter", svg("manette", u(20), "var(--pcv-vert)"), T("ficheami.inviter"), T("ficheami.inviter_sous")) : "");
+    racine.querySelector(".t1").textContent = T("ficheami.maintenant");
+    racine.querySelector(".recents").innerHTML = `<div class="maintenant">${g ? `<i data-jeu="${+g}" style="background-image:${S.capsule(g)}"></i>` : ""}<span><b>${echap(g ? S.jeuNom(g, p) : S.ligne(p))}</b>${g && p.GetCurrentGameStatus?.() ? `<small>${echap(p.GetCurrentGameStatus())}</small>` : ""}${g ? `<small class="${S.rejoignable(p) ? "ouverte" : ""}">${T(S.rejoignable(p) ? "ficheami.ouverte_long" : "social.prive")}</small>` : ""}</span></div>`;
+    S.peindre(racine);
+    racine.querySelector(".t2").textContent = T(inviter ? "ficheami.choisir_jeu" : "ficheami.communs_titre");
+    racine.querySelector(".longues").innerHTML = "";
+    const mes = (O.appStore.allApps || []).filter((a) => a.app_type === 1 && a.minutes_playtime_forever > 0);
+    const qui = (a) => O.SteamClient?.Apps?.GetFriendsWhoPlay ? O.SteamClient.Apps.GetFriendsWhoPlay(a.appid).catch(() => []) : Promise.resolve([]);
+    Promise.all([Promise.all(mes.map(qui)), Promise.resolve(O.SteamClient?.Friends?.GetCoplayData?.()).catch(() => null)]).then(([joueurs, co]) => {
+      if (moi !== jeton || ami !== f) return;
+      const ensemble = /* @__PURE__ */ new Map();
+      for (const c of [...co?.recentUsers || [], ...co?.currentUsers || []]) if (c.accountid === f.accountid) ensemble.set(c.appid, c.rtTimePlayed ?? 0);
+      const communs = mes.filter((a, i) => (joueurs[i] || []).includes(f.steamid64)).sort((a, b) => ensemble.has(b.appid) - ensemble.has(a.appid) || (b.rt_last_time_played || 0) - (a.rt_last_time_played || 0));
+      racine.querySelector(".nb").textContent = communs.length;
+      racine.querySelector(".heures").textContent = ensemble.size;
+      const bas = (a) => !ensemble.has(a.appid) ? "" : !ensemble.get(a.appid) ? T("ficheami.ensemble_maintenant") : ((q) => T(/\d/.test(q) ? "ficheami.ensemble_le" : "ficheami.ensemble_jour", { quand: q.toLocaleLowerCase(L()) }))(jour(ensemble.get(a.appid)));
+      const l = communs.length ? communs : inviter ? [...mes].sort((a, b) => (b.rt_last_time_played || 0) - (a.rt_last_time_played || 0)) : [];
+      racine.querySelector(".longues").innerHTML = l.slice(0, 6).map((a) => tuile(a, communs.length ? bas(a) : jour(a.rt_last_time_played))).join("");
+      peindreTuiles();
+      if (inviter) poser(Math.max(0, elems().findIndex((x) => x.matches(".jeu"))));
+      else ecrireLegende();
+    });
+  };
   const remplir = () => {
+    if (ami) {
+      remplirAmi();
+      return;
+    }
+    const ac = racine.querySelector(".actions");
+    if (ac.innerHTML !== ACTIONS_MOI) ac.innerHTML = ACTIONS_MOI;
+    racine.querySelector(".l1").textContent = T("profil.jeux");
+    racine.querySelector(".l2").textContent = T("profil.heures_total");
+    racine.querySelector(".t1").textContent = T("profil.recents");
+    racine.querySelector(".t2").textContent = T("profil.longues");
     ecrireImage();
     appliquerAvatar();
     const p = persona(), jeux = (O.appStore.allApps || []).filter((a) => a.app_type === 1);
@@ -200,38 +274,100 @@
     const e = racine.querySelector(".etat");
     e.textContent = "\u25CF " + libelle;
     e.style.color = couleur;
-    racine.querySelector(".nb").textContent = (() => {
-      try {
-        return O.collectionStore?.collectionsFromStorage ? O.collectionStore.allGamesCollection.visibleApps.length : 0;
-      } catch (e2) {
-        return jeux.length;
-      }
-    })();
+    racine.querySelector(".nb").textContent = window.__pcvBridge?.resumeBibliotheque?.().nombreJeux ?? jeux.length;
     racine.querySelector(".heures").textContent = Math.round(jeux.reduce((s, a) => s + (a.minutes_playtime_forever || 0), 0) / 60).toLocaleString(L()) + " h";
-    const tuile = (a, bas) => `<button class="jeu" data-app="${echap(a.appid)}"><i style="background-image:${echap([IMG(a.appid, "library_600x900.jpg"), (() => {
-      try {
-        return O.appStore.GetVerticalCapsuleURLForApp(a) || "";
-      } catch (e2) {
-        return "";
-      }
-    })(), CDN(a.appid, "library_600x900.jpg")].filter(Boolean).map((x) => `url('${String(x).replace(/['\\\n\r]/g, (c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))}')`).join(","))}"></i><b>${echap(a.display_name)}</b><small>${echap(bas)}</small></button>`;
     racine.querySelector(".recents").innerHTML = jeux.filter((a) => a.rt_last_time_played).sort((a, b) => b.rt_last_time_played - a.rt_last_time_played).slice(0, 6).map((a) => tuile(a, jour(a.rt_last_time_played))).join("");
     racine.querySelector(".longues").innerHTML = [...jeux].sort((a, b) => (b.minutes_playtime_forever || 0) - (a.minutes_playtime_forever || 0)).slice(0, 6).map((a) => tuile(a, Math.round(a.minutes_playtime_forever / 60) + " h")).join("");
+    peindreTuiles();
   };
-  const montrer = (oui) => {
-    if (oui) remplir();
-    else MV.arreter();
+  const tuile = (a, bas) => `<button class="jeu" data-app="${echap(a.appid)}"><i></i><b>${echap(a.display_name)}</b><small>${echap(bas)}</small></button>`;
+  const peindreTuiles = () => {
+    const J = window.__pcvJeux;
+    if (!J?.peindre) return;
+    racine.style.setProperty("--arr", J.cotes(TUILE, 0).arr);
+    racine.querySelectorAll(".jeu i").forEach((i) => {
+      const a = appDe(i.parentNode);
+      if (a) J.peindre(i, a, TUILE);
+    });
+  };
+  const montrer = (oui, f = null, mode) => {
+    if (oui) {
+      ami = f;
+      inviter = !!f && mode === "inviter";
+      remplir();
+    } else MV.arreter();
+    const entre = oui && racine.hidden;
+    if (!oui && !racine.hidden) window.__pcvApparition(racine, true);
     racine.hidden = !oui;
+    if (entre) window.__pcvApparition(racine);
     if (oui) {
       window.__pcvBarreQuitter?.();
       requestAnimationFrame(() => window.__pcvProfilPremier?.());
     }
   };
+  const activerJeu = (el, page = false) => {
+    const a = appDe(el);
+    if (!a) return;
+    if (ami && inviter && !page) {
+      if (window.__pcvSocial.inviter(ami, a.appid)) {
+        window.__pcvSon?.("choisir");
+        el.querySelector("small").textContent = T("ficheami.invitation_envoyee");
+        inviter = false;
+        racine.querySelector(".t2").textContent = T("ficheami.communs_titre");
+        ecrireLegende();
+      } else window.__pcvSon?.("bord");
+      return;
+    }
+    montrer(false);
+    if (page) window.__pcvPageJeu?.(el.dataset.app);
+    else window.__pcvJeux?.jouer(a, el);
+  };
+  let appui = null;
+  const annulerAppui = () => {
+    clearTimeout(appui?.minute);
+  };
+  racine.addEventListener("pointerdown", (e) => {
+    annulerAppui();
+    const el = e.target.closest("[data-app]");
+    appui = { x: e.clientX, y: e.clientY, bloque: false };
+    if (el) {
+      el.setPointerCapture?.(e.pointerId);
+      appui.minute = setTimeout(() => {
+        appui.bloque = true;
+        activerJeu(el, true);
+      }, 500);
+    }
+  });
+  racine.addEventListener("pointermove", (e) => {
+    if (appui && Math.hypot(e.clientX - appui.x, e.clientY - appui.y) > 12 * innerHeight / 800) {
+      annulerAppui();
+      appui.bloque = true;
+    }
+  });
+  racine.addEventListener("pointercancel", () => {
+    annulerAppui();
+    if (appui) appui.bloque = true;
+  });
+  racine.addEventListener("pointerup", annulerAppui);
   racine.addEventListener("click", (e) => {
     const j = e.target.closest("[data-app]");
     if (j) {
+      annulerAppui();
+      if (!appui?.bloque || e.detail === 0) activerJeu(j);
+      appui = null;
+      return;
+    }
+    const k = e.target.closest("[data-ami]")?.dataset.ami;
+    if (k === "inviter") {
+      inviter = true;
+      remplir();
+      return;
+    }
+    if (k) {
+      const f = ami;
       montrer(false);
-      O.SteamClient.URL.ExecuteSteamURL(`steam://nav/games/details/${j.dataset.app}`);
+      if (k === "rejoindre") window.__pcvSocial.rejoindre(f.persona);
+      else window.__pcvAmisDiscussion?.(f.accountid);
       return;
     }
     if (e.target.closest("[data-image]")) {
@@ -282,12 +418,21 @@
       e.classList.add("sel");
       e.scrollIntoView?.({ block: "nearest", inline: "nearest" });
     }
+    ecrireLegende();
   };
   window.__pcvProfilPremier = () => poser(0);
   (window.__pcvManette ||= {}).profil = (b) => {
-    if (racine.hidden || document.body.classList.contains("pcv-barre-nav")) return false;
+    if (racine.hidden) return false;
     if (b === 2) {
+      const f = ami;
       montrer(false);
+      if (f) window.__pcvAmisMontrer?.(true, "retour");
+      return true;
+    }
+    if (b === 3 && ami) {
+      const f = ami;
+      montrer(false);
+      window.__pcvSocial.profilSteam(f.persona);
       return true;
     }
     const l = elems();
@@ -296,8 +441,17 @@
       poser(0);
       return true;
     }
+    const jeu = appDe(l[sel]);
+    if ((b === 1 || b === 3) && jeu) {
+      activerJeu(l[sel], b === 3);
+      return true;
+    }
     if (b === 1) {
       l[sel].click();
+      return true;
+    }
+    if (b === 3) {
+      window.__pcvSon?.("bord");
       return true;
     }
     if (b < 9 || b > 12) return true;
@@ -317,10 +471,7 @@
     if (m >= 0) {
       poser(m);
       window.__pcvSon?.("bouge");
-    } else if (b === 9) {
-      poser(-1);
-      window.__pcvBarreEntrer?.("profil");
-    }
+    } else if (b === 9) window.__pcvBarreEntrer?.(ecrireLegende);
     return true;
   };
   return "profil pr\xEAt";

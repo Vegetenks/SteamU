@@ -563,39 +563,28 @@
       arrivee?.(i);
     });
   })));
-  const TEINTES = { or: ["#fff3a0", "#ffc21a", "#f08a00"], bleu: ["#d6caff", "#7b62e8", "#4a33b8"], vert: ["#d8ffc8", "#5fd05a", "#249a3a"] };
-  const bandeau = (parent, pos, largeur) => {
-    const { x, tex } = toile(1024, 200), s = new T.Sprite(garder(new T.SpriteMaterial({ map: tex, transparent: true, depthTest: false })));
-    s.position.set(...pos);
-    s.renderOrder = 10;
-    s.visible = false;
-    parent.add(s);
+  const RESULTAT_S = 3.2;
+  const echapT = (t) => String(t).replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";");
+  const bandeau = () => {
+    let e = null;
+    const cacher = () => {
+      e?.remove();
+      e = null;
+    };
     return {
-      montrer(texte, teinte = "or") {
-        x.clearRect(0, 0, 1024, 200);
-        const gr = x.createLinearGradient(0, 40, 0, 160);
-        TEINTES[teinte].forEach((c, i) => gr.addColorStop(i / 2, c));
-        x.font = `900 128px ${POLICE}`;
-        const w = x.measureText(texte).width;
-        if (w > 960) x.font = `900 ${Math.floor(128 * 960 / w)}px ${POLICE}`;
-        x.textAlign = "center";
-        x.textBaseline = "middle";
-        x.lineJoin = "round";
-        x.lineWidth = 30;
-        x.strokeStyle = "rgba(0,0,0,.3)";
-        x.strokeText(texte, 512, 110);
-        x.lineWidth = 20;
-        x.strokeStyle = "#fff";
-        x.strokeText(texte, 512, 100);
-        x.fillStyle = gr;
-        x.fillText(texte, 512, 100);
-        tex.needsUpdate = true;
-        s.visible = true;
-        return anim(0.5, (k) => s.scale.set(largeur * Math.max(0.01, k), largeur * 0.195 * Math.max(0.01, k), 1), ressort);
+      montrer(titre, ton = "or", n = null, detail = "") {
+        cacher();
+        if (!racine) return;
+        const piece2 = window.__pcvIcones?.svg?.("piece") || "";
+        e = ton === "or" ? el("div", "pcvj-ruban", `<h1>${echapT(titre)}</h1>${n != null ? `<div class="gain">${piece2}+${n}</div>` : ""}${detail ? `<small>${echapT(detail)}</small>` : ""}`) : el("div", "pcvj-avis verre2", `${piece2}<span>${echapT(titre)}${n ? ` <b>\u2212${n}</b>` : ""}</span>`);
+        racine.appendChild(e);
+        const ici = e;
+        attendre(RESULTAT_S * 1e3).then(() => {
+          if (e === ici) cacher();
+        });
+        if (ton === "bleu") annoncer(Tr("casino.prochaine_bonne"), RESULTAT_S * 1e3);
       },
-      cacher() {
-        s.visible = false;
-      }
+      cacher
     };
   };
   const etiquette = (parent, pos, l) => {
@@ -624,27 +613,29 @@
   };
   const STYLE = css(`
   .pcvj { position: absolute; inset: 0; font-family: var(--pcv-police, Nunito, sans-serif); color: #fff; user-select: none; -webkit-user-select: none; touch-action: none; }
-  .pcvj-aide { position: absolute; left: 0; right: 0; bottom: 14u; display: flex; justify-content: center; gap: 10u; font-size: 17u; font-weight: 800; }
-  .pcvj-aide span { display: flex; align-items: center; gap: 8u; padding: 5u 14u 5u 6u; border-radius: 20u; background: rgba(8,10,26,.55); cursor: pointer; }
-  .pcvj-g { display: inline-grid; place-items: center; min-width: 26u; height: 26u; padding: 0 5u; border-radius: 13u; background: #5b6676; color: #fff; font-size: 14u; font-weight: 900; }
-  .pcvj-bourse { position: absolute; right: 22u; bottom: 14u; display: flex; align-items: center; gap: 7u; padding: 5u 14u 5u 7u; border-radius: 20u;
-    background: rgba(8,10,26,.55); font-size: 20u; font-weight: 900; font-variant-numeric: tabular-nums; }
-  .pcvj-bourse i { width: 24u; height: 24u; border-radius: 50%; background: radial-gradient(circle, #ffd84a 0 56%, #e3a200 60%); box-shadow: inset 0 0 0 2u #b07800; }
-  .pcvj-annonce { position: absolute; left: 50%; bottom: 60u; transform: translate(-50%, 8u); opacity: 0; padding: 9u 20u; border-radius: 16u; background: rgba(255,255,255,.95);
-    color: #27313a; font-size: 19u; font-weight: 800; transition: opacity .25s, transform .25s; pointer-events: none; white-space: nowrap; }
-  .pcvj-annonce.vue { opacity: 1; transform: translate(-50%, 0); }
-  .pcvj-annonce b { color: #2ea43c; }
-  .pcvj-bourse { transition: transform .15s; } .pcvj-bourse.monte { transform: scale(1.18); background: rgba(40,120,30,.8); }
-  .pcvj-plus { position: absolute; right: 30u; bottom: 54u; font-size: 46u; font-weight: 900; color: #ffe46b; pointer-events: none;
+  
+  .pcvj-annonce { --qy: .32; }
+  .pcvj-annonce b { color: var(--h2-or, #ffd45a); font-weight: 900; }
+  
+  .pcvj-ruban { position: absolute; left: 0; right: 0; top: 273.3u; height: 153.3u; display: flex; align-items: center; justify-content: center; gap: 26.7u; color: #3b2300; pointer-events: none;
+    background: linear-gradient(180deg, #ffe58a, #f2b93b 55%, #d08a1a); box-shadow: 0 0 0 4u rgba(255,255,255,.6), 0 13.3u 26.7u rgba(0,0,0,.4); animation: pcvj-entre .3s ease-out; }
+  .pcvj-ruban h1 { margin: 0; font-size: 69.3u; font-weight: 900; }
+  .pcvj-ruban .gain { display: flex; align-items: center; gap: 10.7u; font-size: 56u; font-weight: 900; }
+  .pcvj-ruban small { font-size: 24u; font-weight: 900; }
+  .pcvj-avis { position: absolute; left: 50%; top: 21.3u; transform: translateX(-50%); height: 64u; border-radius: 28u; display: flex; align-items: center; gap: 14.7u; padding: 0 26.7u 0 10.7u;
+    font-size: 25.3u; font-weight: 900; white-space: nowrap; pointer-events: none; animation: pcvj-entre .3s ease-out; }
+  .pcvj-avis b { color: var(--h2-or, #ffd45a); }
+  :is(.pcvj-ruban, .pcvj-avis) svg { width: 41.3u; height: 41.3u; flex: none; }
+  @keyframes pcvj-entre { from { opacity: 0; scale: .9; } }
+  .pcvj-plus { position: absolute; font-size: 46u; font-weight: 900; color: #ffe46b; pointer-events: none;
     text-shadow: 0 3u 0 #b06a00, 0 0 12u rgba(0,0,0,.6); transform-origin: 70% 80%; opacity: 0; }
   .pcvj-vole { position: absolute; left: 0; top: 0; margin: -13u 0 0 -13u; width: 26u; height: 26u; border-radius: 50%; pointer-events: none; opacity: 0;
     background: radial-gradient(circle at 40% 35%, #fff2a0 0 18%, #ffd84a 22% 56%, #e3a200 60%); box-shadow: inset 0 0 0 2u #b07800, 0 2u 6u rgba(0,0,0,.4); }
-  .pcvj-gains { position: absolute; left: 24u; top: 24u; padding: 14u 18u; border-radius: 18u; background: rgba(42,22,11,.94); box-shadow: 0 0 0 3u #d9b45a inset, 0 8u 30u rgba(0,0,0,.5);
+  .pcvj-gains { position: absolute; left: 37.3u; top: 96u; padding: 14u 18u; border-radius: 18u; background: rgba(42,22,11,.94); box-shadow: 0 0 0 3u #d9b45a inset, 0 8u 30u rgba(0,0,0,.5);
     color: #f6efd9; font-size: 19u; font-weight: 800; display: none; } .pcvj-gains.vue { display: block; }
   .pcvj-gains h3 { margin: 0 0 8u; font-size: 20u; color: #ffd84a; }
   .pcvj-gains table { border-collapse: collapse; } .pcvj-gains td { padding: 3u 10u 3u 0; white-space: nowrap; } .pcvj-gains td:last-child { text-align: right; color: #ffe46b; font-size: 22u; }
   .pcvj-gains tr.vue td { color: #fff; background: rgba(255,216,74,.25); } .pcvj-gains p { margin: 8u 0 0; font-size: 16u; color: #d9c79a; max-width: 380u; white-space: normal; }
-  .pcvj-bourse.essai::before { content: "ESSAI"; position: absolute; right: 8u; top: -20u; padding: 1u 7u; border-radius: 8u; background: #e5484d; color: #fff; font-size: 12u; letter-spacing: 1u; }
   .pcvj-vente { position: absolute; left: 50%; top: 22u; bottom: 58u; width: 660u; max-width: calc(100% - 32u); transform: translateX(-50%); display: flex; flex-direction: column;
     padding: 14u 16u; border-radius: 20u; background: rgba(42,22,11,.95); box-shadow: 0 0 0 3u #d9b45a inset, 0 10u 34u rgba(0,0,0,.55); color: #f6efd9; font-weight: 800; }
   .pcvj-vente h3 { margin: 0 0 10u; display: flex; align-items: center; gap: 10u; font-size: 22u; color: #ffd84a; }
@@ -670,13 +661,12 @@
   let racine = null, jeu = null, session = null, minuterieAnnonce = 0, finSeance = null;
   let montre = 0, roule = 0, attente = false;
   const ecrireBourse = () => {
-    const e = racine?.querySelector(".pcvj-bourse span");
+    const e = opts.compteur;
     if (e) e.textContent = illimite() ? "\u221E" : Math.round(montre);
   };
   const majBourse = () => {
     if (!racine) return;
     const n = pieces();
-    racine.querySelector(".pcvj-bourse")?.classList.toggle("essai", illimite());
     if (!(roule || attente) || n < montre) {
       montre = n;
       roule = 0;
@@ -693,7 +683,7 @@
       montre = n;
       roule = 0;
       attente = false;
-      racine.querySelector(".pcvj-bourse")?.classList.remove("monte");
+      opts.compteur?.classList.remove("monte");
     }
     const r = Math.round(montre);
     if (r !== animerBourse.vu) {
@@ -704,11 +694,13 @@
   };
   const feter = (n, de) => {
     if (!racine || n <= 0) return;
-    const b = racine.querySelector(".pcvj-bourse"), rb = racine.getBoundingClientRect(), r = b.getBoundingClientRect();
+    const b = opts.compteur, rb = racine.getBoundingClientRect(), r = (b?.parentElement || racine).getBoundingClientRect();
     montre = pieces();
     attente = true;
-    b.classList.add("monte");
+    b?.classList.add("monte");
     const plus = el("div", "pcvj-plus", "+" + n);
+    plus.style.left = r.right - rb.left + 10 + "px";
+    plus.style.top = r.top - rb.top + "px";
     racine.appendChild(plus);
     let tp = 0;
     const fp = (dt) => {
@@ -734,7 +726,7 @@
       }
     } catch (e) {
     }
-    const x1 = r.left - rb.left + 18, y1 = r.top - rb.top + r.height / 2;
+    const x1 = r.left - rb.left + r.height / 2, y1 = r.top - rb.top + r.height / 2;
     const k = Math.min(n, 14);
     for (let i = 0; i < k; i++) {
       const p = el("i", "pcvj-vole");
@@ -764,22 +756,16 @@
     if (!racine) return;
     const a = racine.querySelector(".pcvj-annonce");
     a.innerHTML = texte;
-    a.classList.add("vue");
+    a.classList.add("on");
     clearTimeout(minuterieAnnonce);
-    minuterieAnnonce = setTimeout(() => a.classList.remove("vue"), ms * vitesse);
+    minuterieAnnonce = setTimeout(() => a.classList.remove("on"), ms * vitesse);
   };
-  const glyphe = (g) => {
-    const [t, c, h] = window.__pcvTouche?.(CODES[g]) || ["?", "#5b6676"], e = el("b", "pcvj-g");
-    if (h) e.innerHTML = h;
-    else e.textContent = t;
-    e.style.background = c;
-    return e.outerHTML;
-  };
+  const glyphe = (g) => window.__pcvIcones?.touche?.(CODES[g]) || g;
   const touches = (liste) => {
     const a = racine?.querySelector(".pcvj-aide");
     liste = [...liste, liste.length > 0 && ["LB", gainsVus ? Tr("casino.cacher_gains") : Tr("casino.gains")]];
     majGains();
-    if (a) a.innerHTML = liste.filter(Boolean).map(([g, t]) => `<span data-b="${CODES[g]}">${glyphe(g)}${t}</span>`).join("");
+    if (a) window.__pcvIcones?.poser?.(a, liste.filter(Boolean).map(([g, t]) => [CODES[g], t]));
   };
   const assurer = (n) => {
     if (pieces() >= n || pieces() > 0) return true;
@@ -813,7 +799,7 @@
   });
   const aideVente = (l) => {
     const a = racine?.querySelector(".pcvj-aide");
-    if (a) a.innerHTML = l.filter(Boolean).map(([g, t]) => `<span data-b="${CODES[g]}">${glyphe(g)}${t}</span>`).join("");
+    if (a) window.__pcvIcones?.poser?.(a, l.filter(Boolean).map(([g, t]) => [CODES[g], t]));
   };
   const ouvrirVente = async () => {
     const v = racine && el("div", "pcvj-vente", `<h3><i></i>${Tr("casino.luigi_rachete_titre")}</h3><div class="l"></div><p class="dit"></p>`);
@@ -963,7 +949,7 @@
     return true;
   };
   const toucher = (e) => {
-    if (!A?.camera || !monde || e.target.closest?.(".pcvj-aide")) return;
+    if (!A?.camera || !monde || e.target.closest?.(".pcvj-aide, .pcvj-ruban, .pcvj-avis")) return;
     const b = racine.getBoundingClientRect();
     const r = new T.Raycaster();
     r.setFromCamera(new T.Vector2((e.clientX - b.left) / b.width * 2 - 1, -(e.clientY - b.top) / b.height * 2 + 1), A.camera);
@@ -1374,7 +1360,7 @@
     };
     const mise = chiffrer(table ? tas(g, G.miseJoueur, G.echPile) : pile(g, TABLE.mise));
     const miseL = table ? null : chiffrer(pile(g, MISES.miseLuigi));
-    const nomL = table ? null : etiquette(g, [0, 2e-3, -0.1], 0.3), nomJ = etiquetteFlottante(g, [0, 0.1, 0.13], 0.26), ban = bandeau(g, [0, 0.19, -0.12], 0.46);
+    const nomL = table ? null : etiquette(g, [0, 2e-3, -0.1], 0.3), nomJ = etiquetteFlottante(g, [0, 0.1, 0.13], 0.26), ban = bandeau();
     const sieges = (table || []).map((j, k) => {
       const [dx, dz] = j.dir, s = new T.Group();
       s.name = "si\xE8ge " + (j.nom || k);
@@ -1804,7 +1790,7 @@
       if (d.res > 0) {
         P.dernier = cj.rang;
         dessinerPlaque(cj.rang);
-        ban.montrer(Tr("casino.gagne_plus", { n: d.retour }), "or");
+        ban.montrer(Tr("casino.gagne"), "or", d.retour, FIGURES[cj.rang].nom);
         son("gagne");
         geste("battu");
         const n0 = 2 * d.mise;
@@ -1819,7 +1805,7 @@
       } else if (d.res < 0) {
         regler();
         majEtoiles(false);
-        ban.montrer(d.mise > 1 ? Tr("casino.dommage_moins", { n: d.mise }) : Tr("casino.dommage"), "bleu");
+        ban.montrer(Tr("casino.dommage"), "bleu", d.mise > 1 ? d.mise : null);
         son("rate");
         geste(cj.rang === cl.rang ? "presque" : "triomphe");
         const banque = TABLE.banque.map((v, i) => i === 1 ? 0 : v);
@@ -1871,7 +1857,7 @@
       if (d.res > 0) {
         P.dernier = cj.rang;
         dessinerPlaque(cj.rang);
-        ban.montrer(Tr("casino.gagne_plus", { n: d.retour }), "or");
+        ban.montrer(Tr("casino.gagne"), "or", d.retour, FIGURES[cj.rang].nom);
         son("gagne");
         geste("gagne");
       } else if (d.res === 0) {
@@ -2068,7 +2054,7 @@
     const yBouton = bouton.position.y, appuyer = () => anim(0.22, (k) => {
       bouton.position.y = yBouton - 0.12 * Math.sin(Math.PI * k);
     }, lineaire);
-    const ban = bandeau(g, [0, MACH.y + 1.25, zAvant + 0.8], 3.4);
+    const ban = bandeau();
     const cur = curseur(cadre(MACH.large, 1.5, 0.06));
     g.add(cur);
     const R = rouleaux.map((r, i) => ({ phi: i * 5 % N * PAS, v: 0, arret: false, fini: true }));
@@ -2144,7 +2130,7 @@
         son("gagne");
         matLigne.color.set(16765471);
         dessinerPlaque(p.cle);
-        ban.montrer(Tr("casino.gagne_plus", { n: p.mult }), "or");
+        ban.montrer(Tr("casino.gagne"), "or", p.mult);
         geste(p.mult >= 10 ? "bravo" : "gagne");
       } else {
         son("rate", 0.6);
@@ -2448,7 +2434,7 @@
       }
       maj();
     };
-    const ban = bandeau(g, [C.x, DESSUS + 2.6, C.z], 5);
+    const ban = bandeau();
     const lancer = async () => {
       if (RO.phase === "fin") {
         remiser();
@@ -2505,7 +2491,7 @@
       }
       RO.phase = "fin";
       if (gain) {
-        ban.montrer(Tr("casino.gagne_plus", { n: gain }), "or");
+        ban.montrer(Tr("casino.gagne"), "or", gain);
         son("gagne");
         geste(gain >= 12 ? "bravo" : "gagne");
         RO.dernier = gain;
@@ -2674,7 +2660,7 @@
     o.ancre.add(monde);
     monde.updateMatrixWorld(true);
     Object.assign(PIECE, { r: 0.016, ep: 34e-4, cloche: 0.09 });
-    racine = el("div", "pcvj", `<style>${STYLE}</style><div class="pcvj-aide"></div><div class="pcvj-bourse"><i></i><span></span></div><div class="pcvj-annonce"></div><div class="pcvj-gains"></div>`);
+    racine = el("div", "pcvj", `<style>${STYLE}</style><div class="pcvj-aide pcv-legende leg"></div><div class="pcvj-annonce bulle verre2" data-qui="Luigi"></div><div class="pcvj-gains"></div>`);
     conteneur.appendChild(racine);
     racine.addEventListener("pointerdown", toucher);
     racine.addEventListener("click", (e) => {

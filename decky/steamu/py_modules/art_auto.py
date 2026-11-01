@@ -127,3 +127,26 @@ def preparer(nom):
     if not images:
         return {"trouve": False}
     return {"trouve": True, "appid": c["id"], "nom": c["nom"], "images": images}
+
+MAX_FICHE = 2 * 1024 * 1024
+LANGUES = {"fr": "french", "es": "spanish"}
+_CAPTURE = re.compile(r"^https://[a-z0-9.-]*steamstatic\.com/(store_item_assets/steam/apps/\d+/[A-Za-z0-9_.]+\.jpg)(?:\?[A-Za-z0-9=&]*)?$")
+
+def _capture_sure(url):
+    m = _CAPTURE.match(str(url or ""))
+    return "https://shared.steamstatic.com/" + m.group(1) if m else ""
+
+def fiche_boutique(appid, langue="fr"):
+    appid = int(appid)
+    if not 0 < appid < 2 ** 31:
+        return {}
+    url = "https://store.steampowered.com/api/appdetails?" + urllib.parse.urlencode({"appids": appid, "l": LANGUES.get(langue, "english")})
+    d = (json.loads(_obtenir(url, MAX_FICHE, ("application/json",))).get(str(appid)) or {})
+    if not d.get("success"):
+        return {}
+    d = d.get("data") or {}
+    captures = [c for c in (_capture_sure((s or {}).get("path_thumbnail")) for s in d.get("screenshots") or []) if c]
+    banniere = _capture_sure(((d.get("screenshots") or [{}])[0] or {}).get("path_full")) or ""
+    langues = [x for x in re.sub(r"<[^>]*>|\*", "", str(d.get("supported_languages") or "")).split(",") if x.strip()]
+    return {"captures": captures[:4], "banniere": banniere, "genres": [str(g.get("description", ""))[:40] for g in (d.get("genres") or [])[:3] if g.get("description")],
+            "langues": len(langues), "manette": d.get("controller_support") if d.get("controller_support") in ("full", "partial") else ""}

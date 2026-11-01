@@ -12861,8 +12861,8 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     const rep = vraies.repli || [];
     if (m.forceVraie && vraies.machines[m.forceVraie]) return { nom: m.forceVraie, ...vraies.machines[m.forceVraie] };
     const joue = (n) => vraies.machines[n] && TYPES_JOUES.has(vraies.machines[n].type) && (vraies.machines[n].type !== "bombe" || bombeGltf);
-    const l = m.entrainement ? [vraies.entrainement] : [].concat(vraies.series?.[m.cle] || []).filter(joue), choix = l.length ? l : rep.filter(joue);
-    const nom = choix.length ? choix[graine("machine " + jourDe() + " " + m.cle)() * choix.length | 0] : null, v = nom && vraies.machines[nom];
+    const l = m.entrainement ? [vraies.entrainement] : [].concat(vraies.series?.[m.cle] || []).filter(joue), choix2 = l.length ? l : rep.filter(joue);
+    const nom = choix2.length ? choix2[graine("machine " + jourDe() + " " + m.cle)() * choix2.length | 0] : null, v = nom && vraies.machines[nom];
     return v ? { nom, ...v } : null;
   };
   const estBombe = (m) => m?.vraie?.type === "bombe" && !!bombeGltf;
@@ -13874,7 +13874,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     setTimeout(ok, FONDU_CASINO * 1e3);
   });
   const musique = (cle) => {
-    const silence = lire(MUSIQUE_CLE, true) === false || lire("pcv-musique", false) === false;
+    const silence = lire(MUSIQUE_CLE, true) === false || lire("pcv-musique", true) === false;
     const p = silence ? false : cle === "salle" ? musiqueSalle : cle === "cartes" ? musiqueCartes || musiqueSalle : MUSIQUE[cle] || null;
     if (p === musiqueVoulue) return;
     musiqueVoulue = p;
@@ -17796,7 +17796,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     gain2: "MgCrEftGetPrize/MgCrGetPrize2.png",
     gain3: "MgCrEftGetPrize/MgCrGetPrize3.png",
     gain4: "MgCrEftGetPrize/MgCrGetPrize4Over.png",
-    bouton: "MgCrBtnPlay/MgCrPlayBtn02.png",
     parties: "MgCrBtnPlay/MgCrPlayTextLeft.png",
     chiffres: "MgCrBtnPlay/MgCrPlayTextNo.png",
     touchez: "MgCrRsltSignD/MgCrRsltBadgeTouch.png"
@@ -17815,7 +17814,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     for (const [k, f] of Object.entries(IU_FICHIERS)) if (!IU[k]) imagePrivee(PRIVE_BA.partie + f, (im) => {
       if (!im) return;
       IU[k] = im;
-      if (k === "bouton") dessinerBoutonA();
       if (k === "parties" || k === "chiffres") bornes.forEach((bo) => {
         if (bo.meuble?.compteur) bo.meuble.compteur.userData.n = void 0;
       });
@@ -18599,7 +18597,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       if (c != null) chance = +c;
     } catch (e) {
     }
-    if (window.__pcvVraisMii && Math.random() < chance) try {
+    const enMii = async () => {
       const l = await fabriquerLuigiMii(luigiObj);
       if (!ouvert) {
         l.liberer();
@@ -18610,6 +18608,9 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       scene.attach(luigiOmbre);
       luigiOmbre.userData.garder = true;
       return l;
+    };
+    if (window.__pcvVraisMii && Math.random() < chance) try {
+      return await enMii();
     } catch (e) {
       console.warn("casino : le Luigi en Mii n'a pas pu venir", e);
     }
@@ -18647,6 +18648,11 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       } catch (e) {
         console.warn("casino : un mod\xE8le de Luigi manque", e);
       }
+    }
+    if (window.__pcvVraisMii) try {
+      return await enMii();
+    } catch (e) {
+      console.warn("casino : ni croupier de la DS ni Luigi en Mii", e);
     }
     luigiObj.removeFromParent();
     luigiObj = null;
@@ -19241,32 +19247,57 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     return Math.max(min, eta(luigiObj.position, ch) - 0.3);
   };
   const POLICE = "Nunito, 'Arial Rounded MT Bold', sans-serif";
-  const COULEUR_PIECE = ["#f8d858", "#f0b050", "#e0a048", "#c88038", "#f8f888"];
   const CSS = css(`
     .pcvc { position: absolute; inset: 0; overflow: hidden; background: #000; user-select: none; -webkit-user-select: none; font-family: ${POLICE}; container-type: size; }
     .pcvc > canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-    .pcvc svg.hud { position: absolute; overflow: visible; pointer-events: none; }
-    .pcvc .pieces { left: 1.6cqh; bottom: 1.9cqh; height: 8.2cqh; transition: opacity .25s; }
-    .pcvc > canvas.hud { position: absolute; display: block; inset: auto; width: auto; }
-    .pcvc > canvas.boutonA { right: 2.4cqh; bottom: 1.4cqh; height: 15cqh; pointer-events: auto !important; cursor: pointer; transition: opacity .25s, transform .12s, filter .12s; }
-    .pcvc > canvas.boutonA.pret { animation: pcvc-respire 1.2s ease-in-out infinite; }
-    .pcvc > canvas.boutonA.tenu { transform: scale(.9); filter: brightness(1.3); }
-    @keyframes pcvc-respire { 50% { transform: scale(1.05); filter: brightness(1.12); } }
-    .pcvc .action { right: 2.4cqh; bottom: 1.9cqh; height: 8.2cqh; pointer-events: auto !important; cursor: pointer; transition: opacity .25s; }
-    .pcvc .plaque { left: 41%; bottom: 2.6cqh; height: 10.5cqh; transform: translateX(-50%);    transition: opacity .3s, transform .3s; }
     .pcvc .cache { opacity: 0; pointer-events: none !important; }
     
-    .pcvc .nav { position: absolute; left: 50%; bottom: 2.2cqh; transform: translateX(-50%); display: flex; align-items: center; gap: 1.6cqh; max-width: 62%;
-      padding: 1cqh 2.4cqh; border-radius: 99px; background: color-mix(in srgb, var(--pcv-carte) 20%, transparent); border: 1px solid rgba(255,255,255,.45); box-shadow: 0 .6cqh 2cqh rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.5);
-      backdrop-filter: blur(10px) saturate(1.3); color: var(--pcv-sur-accent); font: 700 2.5cqh/1.2 Nunito, "Nunito Sans", sans-serif; text-shadow: 0 1px 2px rgba(0,0,0,.6); white-space: nowrap; transition: opacity .25s; }
-    .pcvc .nav b { font-size: 3cqh; font-weight: 900; overflow: hidden; text-overflow: ellipsis; }
-    .pcvc .nav span { opacity: .82; overflow: hidden; text-overflow: ellipsis; }
-    .pcvc .nav span.vide { visibility: hidden; }
-    .pcvc .nav i { font-style: normal; display: inline-block; min-width: 2.6cqh; padding: 0 .6cqh; margin: 0 .5cqh; border-radius: .8cqh; background: rgba(0,0,0,.35); font-size: 2cqh; text-align: center; }
-    .pcvc .plaque.cache { transform: translateX(-50%) translateY(2cqh); }
-    .pcvc > .essai { position: absolute; left: 1.6cqh; bottom: 10.6cqh; padding: .2cqh 1cqh; border-radius: 1cqh; background: var(--pcv-rouge); color: var(--pcv-sur-accent); font: 900 1.9cqh/1.3 var(--pcv-police, Nunito, sans-serif); letter-spacing: .2cqh; pointer-events: none; }
-    .pcvc .pieces.secoue { animation: pcvc-secoue .4s; }
+    .pcvc { --h2-verre: linear-gradient(180deg, rgba(40,30,52,.86), rgba(20,14,30,.86)); --h2-fond: rgba(20,14,30,.86); --h2-or: #ffd45a; --h2-marge: 37.3u; --h2-bas: 26.7u;
+      --h2-reflet: inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 1u rgba(255,214,120,.28), 0 8u 20u rgba(0,0,0,.35); --h2-acc: var(--pcv-cyan-plein, #2fb8ff); }
+    .pcvc .verre2 { background: var(--h2-verre); box-shadow: var(--h2-reflet); color: #fff; }
+    .pcvc .pastille2 { flex: none; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,.12); box-shadow: inset 0 0 0 1u rgba(255,255,255,.15); }
+    .pcvc svg[data-ico] { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+    .pcvc .cpt, .pcvc .tuiles, .pcvc .leg, .pcvc .points, .pcvc .gros-a, .pcvc .plaque { position: absolute; z-index: 12; transition: opacity .25s; white-space: nowrap; }
+    .pcvc .cpt { left: var(--h2-marge); top: 21.3u; height: 56u; border-radius: 28u; padding: 0 20u 0 7.3u; display: flex; align-items: center; font-size: 26.7u; font-weight: 900; pointer-events: none; }
+    .pcvc .cpt.bas { top: auto; bottom: var(--h2-bas); }
+    .pcvc .cpt > svg { font-size: 41.3u; }
+    .pcvc .cpt b { color: var(--h2-or); } .pcvc .cpt .p { margin-left: 9.3u; display: inline-block; transition: transform .15s; } .pcvc .cpt .p.monte { transform: scale(1.18); }
+    .pcvc .cpt small { font-size: 17.3u; font-weight: 800; margin-left: 6.7u; opacity: .7; }
+    .pcvc .cpt i { width: 1.3u; height: 33.3u; background: rgba(255,255,255,.2); margin: 0 12u 0 16u; }
+    .pcvc .cpt .pastille2 { width: 41.3u; height: 41.3u; font-size: 24u; color: #2a8cff; margin-right: 9.3u; }
+    .pcvc .cpt .essai { position: absolute; left: 20u; top: -10u; padding: .2cqh 1cqh; border-radius: 1cqh; background: var(--pcv-rouge, #e5484d); color: #fff; font: normal 900 1.9cqh/1.3 var(--pcv-police, Nunito, sans-serif); letter-spacing: .2cqh; }
+    .pcvc .cpt.secoue { animation: pcvc-secoue .4s; }
     @keyframes pcvc-secoue { 20%, 60% { transform: translateX(-1.2cqh); } 40%, 80% { transform: translateX(1.2cqh); } }
+    
+    .pcvc .tuiles { left: var(--h2-marge); bottom: var(--h2-bas); display: flex; gap: 14.7u; align-items: flex-end; }
+    .pcvc .tuile { width: 106.7u; height: 112u; border-radius: 22.7u; padding: 0 5.3u; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6.7u;
+      font-size: 14u; font-weight: 900; text-align: center; line-height: 1.1; white-space: normal; cursor: pointer; }
+    .pcvc .tuile .pastille2 { width: 48u; height: 48u; font-size: 28u; color: var(--h2-or); }
+    .pcvc .tuile.choisie { width: 133.3u; height: 140u; font-size: 16u; box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 0 0 3.3u #fff, 0 0 0 6.7u var(--h2-acc), 0 10.7u 22.7u rgba(0,0,0,.45); }
+    .pcvc .tuile.choisie .pastille2 { width: 60u; height: 60u; font-size: 34.7u; }
+    
+    .pcvc .leg { right: var(--h2-marge); bottom: var(--h2-bas); gap: 14.7u; }
+    .pcvc .leg.borne { right: 193.3u; }
+    .pcvc .pcv-legende > span { height: 48u; padding: 0 20u 0 8u; gap: 9.3u; border-radius: 24u; font-size: 20u; font-weight: 900; color: #fff; background: var(--h2-verre); box-shadow: var(--h2-reflet); cursor: pointer; }
+    .pcvc :is(.pcv-legende, .points) .pcv-touche { --taille: 33.3u; width: auto; min-width: var(--taille); padding: 0 .3em; box-sizing: border-box; border-radius: calc(var(--taille) / 2); font-size: calc(var(--taille) * .54); box-shadow: var(--pcv-bombe); }
+    .pcvc .pcv-legende .pcv-touche + .pcv-touche { margin-left: 2.7u; }
+    
+    .pcvc .points { left: 50%; top: 21.3u; transform: translateX(-50%); height: 56u; border-radius: 28u; padding: 0 9.3u; display: flex; align-items: center; gap: 10.7u; font-size: 22.7u; font-weight: 900; pointer-events: none; }
+    .pcvc .points i { width: 12u; height: 12u; border-radius: 50%; background: rgba(255,255,255,.3); }
+    .pcvc .points i.ici { width: 17.3u; height: 17.3u; background: var(--h2-acc); box-shadow: 0 0 0 2.7u color-mix(in srgb, var(--h2-acc) 30%, transparent); }
+    .pcvc .points b { padding: 0 6.7u; }
+    
+    .pcvc .gros-a { right: 42.7u; bottom: 100u; width: 113.3u; height: 113.3u; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 64u; font-weight: 900; text-decoration: none; cursor: pointer;
+      background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--c) 65%, #fff), var(--c) 60%, color-mix(in srgb, var(--c) 80%, #000));
+      box-shadow: inset 0 -6.7u 0 rgba(0,0,0,.2), inset 0 5.3u 9.3u rgba(255,255,255,.4), 0 9.3u 20u rgba(0,0,0,.4); transition: opacity .25s, transform .12s, filter .12s; }
+    .pcvc .gros-a > svg { width: 55%; height: 55%; }
+    .pcvc .gros-a.pret { animation: pcvc-respire 1.2s ease-in-out infinite; }
+    .pcvc .gros-a.tenu { transform: scale(.9); filter: brightness(1.3); }
+    @keyframes pcvc-respire { 50% { transform: scale(1.05); filter: brightness(1.12); } }
+    .pcvc .gros-a small { position: absolute; right: -6.7u; bottom: calc(100% + 10.7u); font-size: 20u; font-weight: 900; background: rgba(20,14,30,.78); padding: 8u 16u; border-radius: 20u; }
+    
+    .pcvc .plaque { left: 50%; bottom: var(--h2-bas); transform: translateX(-50%); height: 56u; border-radius: 28u; padding: 0 26.7u; display: flex; align-items: center; font-size: 24u; font-weight: 900; color: var(--h2-or); pointer-events: none; transition: opacity .3s, transform .3s; }
+    .pcvc .plaque.cache { transform: translateX(-50%) translateY(2cqh); }
     .pcvc .voile { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .28s; z-index: 30; }
     .pcvc .voile.noir { opacity: 1; }
     
@@ -19306,194 +19337,126 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     .pcvc .bas-boite .total { padding: 4u 22u; border-radius: 6u; background: #fff6ec; color: #4a3a32; font-weight: 700; font-size: 20u; min-width: 320u; display: flex; justify-content: space-between; gap: 30u; }
     .pcvc .bas-boite .poser { padding: 4u 16u; border-radius: 18u; background: #fffaf0; color: #e14b45; font-weight: 800; font-size: 19u; display: flex; gap: 8u; align-items: center; }
     
-    .pcvc .bulle { position: absolute; left: 4cqw; right: 4cqw; top: 3.2cqh; min-height: 15cqh; box-sizing: border-box; z-index: 12; padding: 2.6cqh 9cqh 2.8cqh 4cqh;
-      background: #fff; border-radius: 4.4cqh; box-shadow: 0 .5cqh 0 rgba(0,0,0,.16), 0 0 0 .35cqh rgba(0,0,0,.08); color: #3c3c3c; font-weight: 800; font-size: 4.1cqh; line-height: 1.32;
+    .pcvc .bulle { --bx: clamp(var(--h2-marge), calc(var(--qx, .5) * 100cqw - 175u), calc(100cqw - 373.3u - var(--h2-marge)));
+      position: absolute; left: var(--bx); width: 373.3u; bottom: clamp(26.7u, calc((1 - var(--qy, .45)) * 100cqh + 46.7u), 70cqh); box-sizing: border-box; z-index: 13;
+      padding: 16u 48u 17.3u 22.7u; border-radius: 24u; font-weight: 800; font-size: 22.7u; line-height: 1.3; text-align: left;
       opacity: 0; transform: translateY(-1.2cqh) scale(.98); transition: opacity .16s, transform .16s; pointer-events: none; }
     .pcvc .bulle.on { opacity: 1; transform: none; }
-    .pcvc .bulle::after { content: ""; position: absolute; left: var(--queue, 82%); bottom: -2.4cqh; width: 3.6cqh; height: 3.2cqh; margin-left: -1.8cqh; background: #fff;
-      clip-path: polygon(0 0, 100% 0, var(--pointe, 70%) 100%); }
-    
-    .pcvc .bulle.bas { top: auto; bottom: 2.4cqh; left: 3cqw; right: auto; max-width: 54cqw; min-height: 0; padding: 1.6cqh 3cqh; font-size: 4.4cqh; border-radius: 3cqh; text-align: left; }
+    .pcvc .bulle::before { content: attr(data-qui); position: absolute; left: 18.7u; top: -14.7u; padding: 4u 12u; border-radius: 12u; background: #2fae4c; color: #fff; font-size: 14.7u; font-weight: 900; line-height: 1.2; box-shadow: var(--pcv-bombe); }
+    .pcvc .bulle::after { content: ""; position: absolute; left: clamp(16u, calc(var(--qx, .5) * 100cqw - var(--bx) - 14.7u), calc(100% - 45.3u)); bottom: -16u; width: 29.3u; height: 20u; background: var(--h2-fond); clip-path: polygon(0 0, 100% 0, 30% 100%); }
+    .pcvc .bulle.bas { left: var(--h2-marge); bottom: calc(var(--h2-bas) + 72u); width: auto; max-width: 54cqw; padding-right: 22.7u; }
     .pcvc .bulle.bas::after { display: none; }
-    .pcvc .bulle .rouge { color: #e8322c; } .pcvc .bulle .bleu { color: #2a6fe0; }
+    .pcvc .bulle .rouge { color: var(--h2-or); } .pcvc .bulle .bleu { color: #8fd0ff; }
     .pcvc .bulle .cache-l { visibility: hidden; }
-    .pcvc .bulle .suite { position: absolute; right: 2.6cqh; top: 2.2cqh; width: 4.6cqh; height: 4.6cqh; border-radius: 50%; box-sizing: border-box; border: .45cqh solid #d8d8d8; }
-    .pcvc .bulle.fin .suite { border-color: #e8322c; background: #fff; display: flex; align-items: center; justify-content: center; animation: pcvc-suite .9s ease-in-out infinite; }
-    .pcvc .bulle.fin .suite::before { content: attr(data-a); color: #e8322c; font-size: 2.9cqh; font-weight: 900; }
+    .pcvc .bulle .suite { position: absolute; right: 12u; bottom: 10.7u; display: none; }
+    .pcvc .bulle .suite .pcv-touche { --taille: 26.7u; box-shadow: var(--pcv-bombe); }
+    .pcvc .bulle.fin .suite { display: block; animation: pcvc-suite .9s ease-in-out infinite; }
     .pcvc .bulle.bas .suite, .pcvc .bulle.seule .suite { display: none; }
     @keyframes pcvc-suite { 50% { transform: translateY(.5cqh); } }
-    .pcvc .bulle .choix { display: none; margin-top: 1.4cqh; padding-left: 2cqh; font-size: 3.7cqh; }
+    .pcvc .bulle .choix { display: none; margin-top: 1.4cqh; padding-left: 2cqh; font-size: 20u; }
     .pcvc .bulle .choix.on { display: block; }
-    .pcvc .bulle .choix div { position: relative; padding-left: 3.4cqh; color: #8a8a8a; }
-    .pcvc .bulle .choix div.sel { color: #3c3c3c; }
+    .pcvc .bulle .choix div { position: relative; padding-left: 3.4cqh; color: rgba(255,255,255,.55); }
+    .pcvc .bulle .choix div.sel { color: #fff; }
+    .pcvc .bulle .choix div.sel::before { content: ""; position: absolute; left: .4cqh; top: 50%; width: 1.6cqh; height: 1.6cqh; margin-top: -.8cqh; border-radius: 50%; background: var(--h2-or); }
+    .pcvc .bulle.guichet { left: auto; right: var(--h2-marge); width: 40cqw; bottom: var(--h2-bas); }
+    .pcvc .bulle.guichet::after { left: 18%; bottom: auto; top: -16u; transform: scaleY(-1); }
     
-    .pcvc .bulle.guichet { left: auto; right: 3cqw; width: 40cqw; top: auto; bottom: 4cqh; font-size: 3.4cqh; --queue: 18%; --pointe: 30%; }
-    .pcvc .bulle.guichet::after { bottom: auto; top: -2.4cqh; transform: scaleY(-1); }
-    .pcvc .bulle.guichet .choix { font-size: 3.1cqh; }
-    .pcvc .bulle .choix div.sel::before { content: ""; position: absolute; left: .4cqh; top: 50%; width: 1.6cqh; height: 1.6cqh; margin-top: -.8cqh; border-radius: 50%; background: #e8322c; }`);
-  const mesure = (() => {
-    const c = document.createElement("canvas").getContext("2d");
-    return (texte, px) => {
-      c.font = `900 ${px}px ${POLICE}`;
-      return c.measureText(texte).width;
-    };
-  })();
-  const DEGRADE = `<linearGradient id="pcvc-jaune" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8f8f8"/><stop offset=".22" stop-color="#f0f080"/><stop offset=".45" stop-color="#f8f830"/><stop offset=".8" stop-color="#e0e018"/><stop offset="1" stop-color="#d0c800"/></linearGradient>`;
-  const texteCerne = (x, y, texte, taille, remplissage, ancre2 = "start") => `<text x="${x}" y="${y}" font-size="${taille}" font-weight="900" text-anchor="${ancre2}" fill="${remplissage}" stroke="#000" stroke-width="${taille * 0.2}" stroke-linejoin="round" paint-order="stroke">${echap(texte)}</text>`;
-  const boutonA = (cx, cy) => `<circle cx="${cx}" cy="${cy}" r="7.4" fill="#000"/><circle cx="${cx}" cy="${cy}" r="6.4" fill="#d00000"/>
-    <path d="M${cx - 6.4} ${cy} a6.4 6.4 0 0 1 12.8 0 z" fill="#f86058"/><ellipse cx="${cx - 2}" cy="${cy - 3.6}" rx="2.6" ry="1.4" fill="#f8b8b8"/>
-    ${texteCerne(cx, cy + 4.6, valider(), 12.5, "#f8f800", "middle")}`;
+    .pcvc .pcvj-annonce .pcv-touche { --taille: 26.7u; vertical-align: middle; box-shadow: var(--pcv-bombe); }
+`);
   const valider = () => (window.__pcvTouche?.(1) || ["?"])[0];
-  const svgPieces = (n) => {
-    const t = String(n), l = mesure(t, 15), P = COULEUR_PIECE;
-    return `<svg class="hud pieces" viewBox="0 0 ${22 + l + 4} 20">
-    <ellipse cx="9" cy="10" rx="7.6" ry="8.8" fill="#000"/><ellipse cx="9" cy="10" rx="6.6" ry="7.8" fill="${P[3]}"/>
-    <ellipse cx="8.6" cy="9.6" rx="5.9" ry="7" fill="${P[1]}"/><ellipse cx="8.1" cy="9" rx="4" ry="4.9" fill="${P[0]}"/>
-    <path d="M8.6 5.2 l1.1 2.6 2.8.2 -2.1 1.8.7 2.7 -2.5-1.5 -2.4 1.5.7-2.7 -2.1-1.8 2.8-.2z" fill="${P[2]}" opacity=".85"/>
-    <ellipse cx="5.6" cy="5.8" rx="1" ry="1.7" transform="rotate(30 5.6 5.8)" fill="${P[4]}"/>
-    ${texteCerne(21, 15.6, t, 15, "#f8f830")}</svg>`;
-  };
-  const svgAction = (texte) => {
-    const l = mesure(texte, 15);
-    return `<svg class="hud action" viewBox="0 0 ${22 + l + 3} 20"><defs>${DEGRADE}</defs>${boutonA(9, 10)}${texteCerne(20, 15.6, texte, 15, "url(#pcvc-jaune)")}</svg>`;
-  };
-  const svgPlaque = (texte) => {
-    const l = Math.max(110, mesure(texte, 15) + 40), h = 30;
-    return `<svg class="hud plaque" viewBox="0 0 ${l} ${h}" shape-rendering="crispEdges">
-      <rect x="0" y="0" width="${l}" height="${h}" fill="#000"/><rect x="1" y="1" width="${l - 2}" height="${h - 2}" fill="#f8f8f8"/>
-      <rect x="3" y="3" width="${l - 4}" height="${h - 4}" fill="#d8a830"/><rect x="3" y="3" width="${l - 7}" height="${h - 8}" fill="#f8f8b0"/>
-      <path d="M${l - 5} 2 l2 2 -2 2 -2 -2z M4 ${h - 6} l2 2 -2 2 -2 -2z" fill="#f8f800"/>
-      <g shape-rendering="geometricPrecision">${texteCerne(l / 2, 20.5, texte, 15, "#a8e048", "middle")}</g></svg>`;
-  };
+  const ico = (n) => window.__pcvIcones?.svg?.(n) || "", rond = (b) => window.__pcvIcones?.touche?.(b) || "";
   const nomMachine = (m) => !m ? Tr("casino.machine") : machines.some((x) => x !== m && x.nom === m.nom) && m.sous ? `${m.nom} : ${m.sous}` : m.nom;
   let hud = null, gain = null, tenuHud = false;
-  const BOUTON_A = { centre: [85, 54], r: 17, jaune: "#f2ec12", socle: "#2c3140", police: "900 25px Nunito, sans-serif" };
-  let boutonADessine = null;
-  const dessinerBoutonA = () => {
-    const c = hud?.boutonA, im = IU.bouton;
-    if (!c || !im) return;
-    const [lbl] = window.__pcvTouche?.(1) || ["A"];
-    if (boutonADessine === lbl) return;
-    boutonADessine = lbl;
-    const x = c.getContext("2d"), B_ = BOUTON_A;
-    x.clearRect(0, 0, c.width, c.height);
-    x.fillStyle = B_.socle;
-    x.beginPath();
-    x.ellipse(c.width / 2, c.height / 2 + 2, c.width / 2 - 6, c.height / 2 - 5, 0, 0, Math.PI * 2);
-    x.fill();
-    x.drawImage(im, 0, 0, c.width, c.height);
-    if (String(lbl).toUpperCase() !== "A") {
-      const [cx, cy] = B_.centre;
-      x.fillStyle = B_.jaune;
-      x.beginPath();
-      x.arc(cx, cy, B_.r, 0, Math.PI * 2);
-      x.fill();
-      x.fillStyle = B_.socle;
-      x.font = B_.police;
-      x.textAlign = "center";
-      x.textBaseline = "middle";
-      x.fillText(lbl, cx, cy + 1);
-    }
-  };
-  const remplacer = (cle, html) => {
-    hud[cle].outerHTML = html;
-    hud[cle] = racine.querySelector("." + cle);
-  };
-  const majHud = () => {
+  const majHud = (vite) => {
     if (!hud) return;
-    const n = totalParties(), m = machines[sel], etat = mJeu?.jeu?.etat;
-    let action = boiteOuverte || jeuOuvert || bulle?.bloque ? null : coffre ? actionCoffre() : vue === "jeu" ? window.__pcvCasinoJeux?.ouvrir ? { cartes: Tr("casino.action_cartes"), table: Tr("casino.action_sasseoir"), roulette: Tr("casino.action_roulette"), machines: Tr("casino.action_jouer") }[JEUX[jeu].nom] : null : vue === "guichet" ? Tr("casino.action_guichet") : vue === "salle" ? JEU_COMPTOIR >= 0 && window.__pcvCasinoJeux?.ouvrir ? Tr("casino.action_poker") : Tr("casino.action_jouer") : vue === "rangee" ? nomMachine(m) : gain ? null : vue === "machine" && etat === "attente" ? Tr("casino.action_maintenir") : vue === "machine" && etat === "deplacement" ? Tr("casino.action_lacher") : null;
-    const bA = !!IU.bouton && vue === "machine" && !gain && !finSeance && !boiteOuverte && !coffre && !bulle?.bloque && (etat === "attente" || etat === "deplacement");
-    if (hud.boutonA) {
-      if (bA) dessinerBoutonA();
-      hud.boutonA.classList.toggle("cache", !bA);
-      hud.boutonA.classList.toggle("pret", bA && etat === "attente");
-      hud.boutonA.classList.toggle("tenu", bA && etat === "deplacement");
+    const etat = mJeu?.jeu?.etat, cle = [vue, sel, jeu, choix, jeuOuvert, coffre && [coffre.phase, coffre.k, coffre.badge], !!boiteOuverte, bulle?.bloque, !!guide, gain?.nom, !!finSeance, etat, valider(), rond(5), JEUX[0].nom, machines.length].join("|");
+    if (vite && cle === hud.cle) return;
+    hud.cle = cle;
+    const zone = ["salle", "rangee", "jeu", "guichet"].includes(vue), libre = !jeuOuvert && !coffre && !boiteOuverte && !bulle?.bloque && !guide;
+    const pc = window.__pcvCasinoJeux?.guichet?.pieces?.() ?? 0, n = totalParties(), [up, un] = hud.cpt.querySelectorAll("small");
+    if (!jeuOuvert) hud.p.textContent = essai() ? "\u221E" : pc;
+    up.textContent = Tr("casino.unite_pieces", { s: pc > 1 || essai() ? "s" : "" });
+    hud.n.textContent = n;
+    un.textContent = Tr("casino.unite_parties", { s: n > 1 ? "s" : "" });
+    hud.essai.hidden = !essai();
+    hud.cpt.classList.toggle("cache", !!boiteOuverte || !!coffre);
+    hud.cpt.classList.toggle("bas", vue === "machine");
+    if (!(zone && libre)) choix = null;
+    const T_ = tuiles(), k = choix ?? tuileIci(), ct = T_.map((t) => t.nom).join() + k;
+    hud.tuiles.classList.toggle("cache", !(zone && libre));
+    if (hud.tuiles.dataset.cle !== ct) {
+      hud.tuiles.dataset.cle = ct;
+      hud.tuiles.innerHTML = T_.map((t, i) => `<div class="tuile verre2${i === k ? " choisie" : ""}" data-i="${i}"><span class="pastille2">${ico(t.ico)}</span><span>${echap(t.nom)}</span></div>`).join("");
     }
-    if (bA || finSeance) action = null;
-    if (hud.n !== n) {
-      hud.n = n;
-      remplacer("pieces", svgPieces(n));
+    const borne = vue === "machine" && !boiteOuverte && !coffre && !finSeance;
+    const bA = borne && !gain && !bulle?.bloque && (etat === "attente" || etat === "deplacement");
+    hud.grosA.classList.toggle("cache", !bA);
+    hud.grosA.classList.toggle("pret", bA && etat === "attente");
+    hud.grosA.classList.toggle("tenu", bA && etat === "deplacement");
+    if (bA) {
+      const [, c, h] = window.__pcvTouche?.(1) || ["A", "#2fbf4a", "A"];
+      hud.grosA.style.setProperty("--c", c);
+      hud.grosA.innerHTML = `${h}<small>${Tr(etat === "attente" ? "casino.tenir_pour_avancer" : "casino.lacher_pour_descendre")}</small>`;
     }
-    racine.querySelector(".essai")?.toggleAttribute("hidden", !essai() || !!jeuOuvert);
-    hud.pieces.classList.toggle("cache", vue === "machine" || !!boiteOuverte || !!coffre || !!jeuOuvert);
-    if (action && hud.texte !== action + valider()) {
-      hud.texte = action + valider();
-      remplacer("action", svgAction(action));
-      hud.action.addEventListener("pointerdown", (e) => {
-        e.stopPropagation();
-        touche(1);
-        if (mJeu?.jeu?.etat === "deplacement") {
-          tenuHud = true;
-          try {
-            hud.action.setPointerCapture(e.pointerId);
-          } catch (x) {
-          }
-        }
-      });
-    }
-    hud.action.classList.toggle("cache", !action);
+    hud.points.classList.toggle("cache", !borne || !!gain);
+    if (borne) hud.points.innerHTML = `${rond(5)}${machines.map((_, i) => `<i${i === sel ? ' class="ici"' : ""}></i>`).join("")}<b>${echap(nomMachine(machines[sel]))}</b>${rond(6)}`;
+    const a = coffre && !bulle?.bloque ? actionCoffre() : null;
+    const leg = zone && libre ? [[2, Tr(vue === "salle" ? "casino.quitter" : "casino.retour")], [1, Tr("touche.choisir")]] : bA ? [[[5, 6], Tr("casino.autre_borne")], [2, Tr("casino.liste")]] : a ? [[1, a]] : null;
+    hud.leg.classList.toggle("cache", !leg);
+    hud.leg.classList.toggle("borne", bA);
+    if (leg) window.__pcvIcones?.poser?.(hud.leg, leg);
     hud.plaque.classList.toggle("cache", !gain?.nom && !(coffre?.phase === "fiche" && coffre.nom));
-    majNav();
     majAnneau();
   };
+  let choix = null;
   const NOMS_JEUX = { cartes: Tr("casino.table_poker"), table: Tr("casino.grande_table"), roulette: Tr("casino.roulette"), machines: Tr("casino.machines_a_sous") };
-  let ordreZones = null;
-  const zones = () => {
-    const cle = machines.length + (meuble ? "m" : "") + JEUX[0].nom;
-    if (ordreZones && ordreZones.cle === cle) return ordreZones.l;
-    const P_2 = PLANS.salle(), avant = P_2.cible.clone().sub(P_2.pos).setY(0).normalize(), droite = vec(-avant.z, 0, avant.x);
-    const ecranX = (v) => {
-      const d = v.clone().sub(P_2.pos).setY(0);
-      return Math.atan2(d.dot(droite), d.dot(avant));
-    }, ou = (o) => o.getWorldPosition(new T.Vector3());
-    const l = machines.map((m, i) => ({ type: "borne", i, nom: nomMachine(m), x: bornes[i] ? ecranX(ou(bornes[i].groupe)) : -9 + i * 0.01 }));
-    l.push({ type: "comptoir", nom: Tr("casino.comptoir_luigi"), x: ecranX(LUIGI.pos) });
-    JEUX.forEach((J, k) => {
-      if (!J.cle) l.push({ type: "jeu", k, nom: NOMS_JEUX[J.nom], x: ecranX(J.cible) });
-    });
-    l.push({ type: "guichet", nom: Tr("casino.jeu_guichet_titre"), x: ecranX(guichetEn(0, GUICHET.avance)) });
-    l.sort((a, b) => a.x - b.x);
-    ordreZones = { cle, l };
-    return l;
-  };
-  const zoneIci = () => zones().findIndex((z) => vue === "jeu" && JEUX[jeu].cle !== "comptoir" ? z.type === "jeu" && z.k === jeu : vue === "guichet" || vue === "coffre" ? z.type === "guichet" : vue === "salle" || vue === "jeu" ? z.type === "comptoir" : z.type === "borne" && z.i === sel);
-  const naviguer = (d) => {
-    if (!["salle", "rangee", "jeu", "guichet"].includes(vue) || jeuOuvert || bulle?.bloque) return;
-    const Z2 = zones(), k = zoneIci(), z = Z2[k + d];
-    if (k < 0 || !z) return son("refus", 0.5);
-    if (z.type === "borne") {
-      if (vue === "rangee") choisir(z.i);
-      else {
-        sel = z.i;
-        if (vue === "jeu" || vue === "guichet") {
-          vue = "salle";
-        }
-        versRangee();
-      }
-    } else if (z.type === "comptoir") {
+  const ICONES_JEUX = { cartes: "grande-table", table: "grande-table", roulette: "roulette", machines: "machine-a-sous" };
+  const tuiles = () => [
+    machines.length && { type: "bornes", ico: "pince", nom: Tr("casino.bornes_a_badges") },
+    JEU_COMPTOIR >= 0 && { type: "comptoir", ico: "cartes", nom: Tr("casino.poker_en_images") },
+    ...JEUX.map((J, k) => !J.cle && { type: "jeu", k, ico: ICONES_JEUX[J.nom], nom: NOMS_JEUX[J.nom] }),
+    { type: "guichet", ico: "guichet", nom: Tr("casino.jeu_guichet_titre") }
+  ].filter(Boolean);
+  const tuileIci = () => tuiles().findIndex((t) => vue === "rangee" ? t.type === "bornes" : vue === "guichet" || vue === "coffre" ? t.type === "guichet" : vue === "jeu" && JEUX[jeu].cle !== "comptoir" ? t.type === "jeu" && t.k === jeu : t.type === "comptoir");
+  const allerTuile = (t) => {
+    if (!t || !["salle", "rangee", "jeu", "guichet"].includes(vue) || jeuOuvert || bulle?.bloque) return;
+    if (t.type === "bornes") {
+      if (vue === "jeu" || vue === "guichet") vue = "salle";
+      versRangee();
+    } else if (t.type === "comptoir") {
       if (vue === "rangee" || vue === "guichet") revenir();
       else if (vue === "jeu") quitterJeu();
-    } else if (z.type === "guichet") versGuichet();
-    else versJeu(z.k);
+    } else if (t.type === "guichet") versGuichet();
+    else versJeu(t.k);
     majHud();
   };
-  const majNav = () => {
-    const n = hud?.nav;
-    if (!n) return;
-    const montre = ["salle", "rangee", "jeu", "guichet"].includes(vue) && !jeuOuvert && !coffre && !boiteOuverte && !bulle?.bloque && !guide;
-    n.classList.toggle("cache", !montre);
-    if (!montre) return;
-    const Z2 = zones(), k = zoneIci(), g = Z2[k - 1], d = Z2[k + 1];
-    const t = (b2, s) => (window.__pcvTouche?.(b2) || [s])[0], cle = [k, g?.nom, d?.nom, t(5, "L"), t(6, "R")].join("|");
-    if (n.dataset.cle === cle) return;
-    n.dataset.cle = cle;
-    const [sg, b, sd] = n.children;
-    sg.innerHTML = g ? `<i>${t(5, "L")}</i>\u25C0 ${g.nom}` : "";
-    sd.innerHTML = d ? `${d.nom} \u25B6<i>${t(6, "R")}</i>` : "";
-    sg.classList.toggle("vide", !g);
-    sd.classList.toggle("vide", !d);
-    b.textContent = Z2[k]?.nom || "";
+  const naviguer = (d) => {
+    if (jeuOuvert || bulle?.bloque) return;
+    const k = choix ?? tuileIci();
+    if (k < 0 || !tuiles()[k + d]) return son("refus", 0.5);
+    choix = k + d;
+    son("bouge", 0.7);
+    majHud();
+  };
+  const entrerIci = () => {
+    const t = tuiles()[tuileIci()];
+    if (!t) return;
+    if (t.type === "bornes") approcher();
+    else if (t.type === "comptoir") {
+      versJeu(JEU_COMPTOIR);
+      ouvrirJeu();
+    } else if (t.type === "guichet") menuGuichet();
+    else ouvrirJeu();
+  };
+  const validerTuile = () => {
+    const i = choix ?? tuileIci(), t = tuiles()[i];
+    choix = null;
+    if (!t) return;
+    if (i === tuileIci()) return entrerIci();
+    allerTuile(t);
+    if (plan && t.type !== "guichet") plan.fin = () => {
+      if (tuileIci() === i && !jeuOuvert && !bulle?.bloque && !choix) entrerIci();
+    };
   };
   const balises = (t) => echap(t).replace(/\*([^*]+)\*/g, '<span class="rouge">$1</span>').replace(/_([^_]+)_/g, '<span class="bleu">$1</span>');
   const enLettres = (html) => {
@@ -19502,18 +19465,20 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     return { html: sortie, n };
   };
   let bulle = null;
-  const elBulle = () => racine?.querySelector(".bulle");
+  const elBulle = () => racine?.querySelector(":scope > .bulle");
   const majQueue = () => {
     const el = elBulle();
     if (!el || !bulle || el.classList.contains("bas") || el.classList.contains("guichet")) return;
-    let x = 0.82;
+    let x = 0.5, y = 0.45;
     if (luigiObj?.visible && camera) {
       const v = luigiObj.position.clone().add(vec(0, LUIGI.taille * 0.9, 0)).project(camera);
-      if (v.z < 1 && Math.abs(v.x) < 1.1) x = (v.x + 1) / 2;
+      if (v.z < 1 && Math.abs(v.x) < 1.1) {
+        x = (v.x + 1) / 2;
+        y = (1 - v.y) / 2;
+      }
     }
-    x = clamp(x, 0.1, 0.9);
-    el.style.setProperty("--queue", (x * 100).toFixed(1) + "%");
-    el.style.setProperty("--pointe", x < 0.5 ? "30%" : "70%");
+    el.style.setProperty("--qx", clamp(x, 0.1, 0.9).toFixed(3));
+    el.style.setProperty("--qy", clamp(y, 0.15, 0.9).toFixed(3));
   };
   const montrerLigne = () => {
     const el = elBulle(), L = bulle.lignes[bulle.i];
@@ -19527,7 +19492,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     const ch = el.querySelector(".choix");
     ch.classList.remove("on");
     ch.innerHTML = (L.choix || []).map((c, k) => `<div class="${k ? "" : "sel"}">${balises(c)}</div>`).join("");
-    el.querySelector(".suite").dataset.a = valider();
+    el.querySelector(".suite").innerHTML = rond(1);
     el.classList.remove("fin");
     el.classList.toggle("bas", !!bulle.bas);
     el.classList.toggle("guichet", !!bulle.guichet);
@@ -19742,9 +19707,9 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
   };
   const refus = () => {
     son("refus");
-    hud.pieces.classList.remove("cache", "secoue");
-    void hud.pieces.getBoundingClientRect();
-    hud.pieces.classList.add("secoue");
+    hud.cpt.classList.remove("cache", "secoue");
+    void hud.cpt.getBoundingClientRect();
+    hud.cpt.classList.add("secoue");
     setTimeout(majHud, 900);
   };
   let boiteOuverte = null;
@@ -20108,7 +20073,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     window.__pcvLed?.(n >= 3 ? "casino-gain-triple" : n === 2 ? "casino-gain-double" : "casino-gain");
     montrerTableau(bo, g.slice(-4), texte, !m.entrainement && !complete ? IU["gain" + Math.min(4, n)] : null);
     if (!m.entrainement) (session.corps ||= []).push(c);
-    if (gain.nom) remplacer("plaque", svgPlaque(gain.nom));
+    if (gain.nom) hud.plaque.textContent = gain.nom;
     sonPince("gain" + Math.min(4, n), "gagne");
     if (complete) jingle("jingle-serie-complete");
     else if (n === 1 && !tampons["ba:" + SONS_BA.gain1]) jingle("jingle-fin");
@@ -20657,7 +20622,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     c.phase = "fiche";
     son("piece");
     c.nom = nomComplet(id);
-    if (c.nom) remplacer("plaque", svgPlaque(c.nom));
+    if (c.nom) hud.plaque.textContent = c.nom;
     matAutocollant(id, false, (e) => {
       if (coffre !== c || c.phase !== "fiche") return;
       const o = c.ouverte, [tl, th] = tailleDe(id), cote = o.l / PLANCHE.cols * 2.2 / (1 - 2 * e.marge), k = cote / Math.max(tl, th);
@@ -20841,6 +20806,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       camera,
       ancre: a,
       cadrer,
+      compteur: hud.p,
       rendu: (f) => {
         parImage.add(f);
         return () => parImage.delete(f);
@@ -21003,6 +20969,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       scene,
       camera,
       ancre: a,
+      compteur: hud.p,
       cadrer: () => Promise.resolve(),
       rendu: (f) => {
         parImage.add(f);
@@ -21031,9 +20998,9 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     if (hud) {
       majHud();
       if (!jeuOuvert) {
-        hud.pieces.classList.remove("cache", "secoue");
-        void hud.pieces.getBoundingClientRect();
-        hud.pieces.classList.add("secoue");
+        hud.cpt.classList.remove("cache", "secoue");
+        void hud.cpt.getBoundingClientRect();
+        hud.cpt.classList.add("secoue");
       }
     }
     window.dispatchEvent(new CustomEvent("pcv-casino-credit", { detail: { n, raison, total: totalParties() } }));
@@ -21068,9 +21035,11 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     if (coffre) return toucheCoffre(b);
     if (jeuOuvert) return !!window.__pcvCasinoJeux?.touche?.(b) || b !== 2;
     if (vue === "jeu") {
-      if (b === 1) ouvrirJeu();
-      else if (b === 2) quitterJeu();
-      else if (b === 5 || b === 6 || b === 11 || b === 12) naviguer(b === 6 || b === 12 ? 1 : -1);
+      if (b === 1) validerTuile();
+      else if (b === 2) {
+        choix = null;
+        quitterJeu();
+      } else if (b === 5 || b === 6 || b === 11 || b === 12) naviguer(b === 6 || b === 12 ? 1 : -1);
       return true;
     }
     if (gain) return true;
@@ -21086,22 +21055,25 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       if (!meuble || !luigiObj || !ouvrirCoffre()) ouvrirBoite();
       return true;
     }
-    if (b === 2) return revenir();
+    if (b === 2) {
+      choix = null;
+      return revenir();
+    }
     if (vue === "guichet") {
-      if (b === 1) menuGuichet();
+      if (b === 1) validerTuile();
       else if (b === 5 || b === 6 || b === 11 || b === 12) naviguer(b === 6 || b === 12 ? 1 : -1);
       return true;
     }
     if (vue === "salle") {
       if (b === 1) {
-        if (JEU_COMPTOIR >= 0 && window.__pcvCasinoJeux?.ouvrir) versJeu(JEU_COMPTOIR);
+        if (JEU_COMPTOIR >= 0 && window.__pcvCasinoJeux?.ouvrir) validerTuile();
         else versRangee();
       } else if (b === 5 || b === 6 || b === 11 || b === 12) naviguer(b === 6 || b === 12 ? 1 : -1);
       return true;
     }
     if (vue === "rangee") {
       if (b === 11 || b === 12 || b === 5 || b === 6) naviguer(b === 12 || b === 6 ? 1 : -1);
-      else if (b === 1) approcher();
+      else if (b === 1) validerTuile();
       return true;
     }
     if (vue === "machine") {
@@ -21415,7 +21387,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     bornes.forEach((bo, i) => {
       if (bo.interieur && machines[i]) majInterieur(bo, machines[i]);
     });
-    majNav();
+    majHud(true);
     if (gain && horloge >= gain.fin) finirGain();
     if (finSeance && horloge >= finSeance.fin) finirSeance();
     sonsPince(dt);
@@ -21552,11 +21524,12 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     document.documentElement.classList.add("pcv-appli-plein");
     racine = document.createElement("div");
     racine.className = "pcvc" + (pilote ? " pilote" : "");
-    racine.innerHTML = `<style>${CSS}${CSS_SOUS}</style><canvas></canvas><svg class="hud pieces"></svg><div class="essai" hidden>ESSAI</div><svg class="hud action cache"></svg><svg class="hud plaque cache"></svg><canvas class="hud boutonA cache" width="172" height="118"></canvas><div class="nav cache"><span class="g"></span><b></b><span class="d"></span></div>
+    racine.innerHTML = `<style>${CSS}${CSS_SOUS}</style><canvas></canvas><div class="cpt verre2">${ico("piece")}<b class="p"></b><small></small><i></i><span class="pastille2">${ico("ticket")}</span><b class="n"></b><small></small><em class="essai" hidden>ESSAI</em></div>
+      <div class="tuiles cache"></div><div class="pcv-legende leg cache"></div><div class="points verre2 cache"></div><div class="gros-a cache"></div><div class="plaque verre2 cache"></div>
       <div class="boite"><div class="cadre-or"><div class="tableau-serie"></div></div>
         <div class="pupitre-boite"><div class="fiche"><b></b><hr><span></span></div><div class="carrousel"></div>
           <div class="bas-boite"><span class="retour" data-acte="b"><span class="bt" data-touche="2"></span>${Tr("casino.retour")}</span><span class="poser"><span class="bt" data-touche="1"></span>${Tr("casino.poser_sur_accueil")}</span><span class="total"><span>${Tr("casino.serie_complete")} :</span><b></b></span></div></div></div>
-      <div class="bulle"><div class="texte"></div><div class="choix"></div><span class="suite"></span></div>
+      <div class="bulle verre2" data-qui="Luigi"><div class="texte"></div><div class="choix"></div><span class="suite"></span></div>
       <div class="voile noir"><div class="chargement"><i>\u2605</i>${Tr("casino.chargement")}</div></div>`;
     conteneur.appendChild(racine);
     toileGL = racine.querySelector("canvas");
@@ -21572,26 +21545,30 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       if (ouvert) ouvrir(conteneur, o);
     });
     racine.querySelector(".retour").addEventListener("click", () => touche(2));
-    hud = { pieces: racine.querySelector(".pieces"), action: racine.querySelector(".action"), plaque: racine.querySelector(".plaque"), boutonA: racine.querySelector(".boutonA"), nav: racine.querySelector(".nav") };
-    hud.nav.addEventListener("pointerdown", (e) => {
+    const q = (c) => racine.querySelector(c);
+    hud = { cpt: q(".cpt"), p: q(".cpt .p"), n: q(".cpt .n"), essai: q(".cpt .essai"), tuiles: q(".tuiles"), leg: q(".leg"), points: q(".points"), grosA: q(".gros-a"), plaque: q(".plaque") };
+    hud.tuiles.addEventListener("pointerdown", (e) => {
       e.stopPropagation();
-      const r = hud.nav.getBoundingClientRect(), x = (e.clientX - r.left) / r.width;
-      if (x < 0.3) naviguer(-1);
-      else if (x > 0.7) naviguer(1);
+      const i = +e.target.closest(".tuile")?.dataset.i;
+      if (Number.isNaN(i)) return;
+      if (i === (choix ?? tuileIci())) touche(1);
+      else {
+        choix = i;
+        son("bouge", 0.7);
+        majHud();
+      }
     });
-    hud.boutonA.addEventListener("pointerdown", (e) => {
+    hud.grosA.addEventListener("pointerdown", (e) => {
       e.stopPropagation();
       touche(1);
       if (mJeu?.jeu?.etat === "deplacement") {
         tenuHud = true;
         try {
-          hud.boutonA.setPointerCapture(e.pointerId);
+          hud.grosA.setPointerCapture(e.pointerId);
         } catch (x) {
         }
       }
     });
-    boutonADessine = null;
-    dessinerBoutonA();
     rendu = new T.WebGLRenderer({ canvas: toileGL, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: pilote });
     qualite = qualiteNeuve();
     rendu.setPixelRatio(qualite.r);
@@ -21648,9 +21625,8 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       if (o.fusion !== false) fusionnerRangee();
       figerBornes();
     } catch (e) {
-      console.warn("casino : d\xE9cor ou borne absents, la salle 2D prend le relais", e);
+      console.warn("casino : d\xE9cor ou borne absents, le panneau se referme", e);
       fermer();
-      if (window.__pcvArcade) window.__pcvArcade.ouvrir(conteneur);
       return false;
     }
     luigiPret = poserLuigi();
@@ -22046,7 +22022,8 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         return miiTable;
       },
       venueDesMii,
-      zones: () => zones().map((z) => z.nom),
+      tuiles: () => tuiles().map((t) => t.nom),
+      choix: () => choix ?? tuileIci(),
       // diagnostics (skill threejs-debug-profiler) : compteurs de la dernière image dessinée
       ST: (s_, t, y = 0) => ST(s_, t, y).toArray(),
       // profilage (skill threejs-debug-profiler : couper un poste à la fois) : rendu final, anticrénelage, ombre, lumières

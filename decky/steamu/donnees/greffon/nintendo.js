@@ -11,7 +11,16 @@
     }
   };
   const libre = (m, appli) => Array.isArray(m?.[appli]) && !m[appli].length;
-  const sonder = () => manques().then((m) => ({ mii: libre(m, "mii"), casino: libre(m, "casino"), badges: libre(m, "badges"), sons: libre(m, "sons"), repondu: !!m }));
+  const drapeaux = (m) => ({ mii: libre(m, "mii"), casino: libre(m, "casino"), badges: libre(m, "badges"), sons: libre(m, "sons") });
+  const sonder = () => manques().then((m) => ({ ...drapeaux(m), repondu: !!m }));
+  const appliquer = (m) => {
+    if (!m) return;
+    const F = drapeaux(m), N = window.__pcvNintendo;
+    if (Object.keys(F).some((k) => N[k] !== F[k])) {
+      Object.assign(N, F);
+      window.dispatchEvent(new Event("pcv-nintendo"));
+    }
+  };
   const jeton = window.__pcvNintendoJeton = /* @__PURE__ */ Symbol("nintendo");
   const essayer = async (n) => {
     const F = await sonder();
@@ -36,14 +45,14 @@
   const versGreffon = () => {
     fermer();
     window.__pcvSon?.("choisir");
-    window.__pcvSteamU?.ouvrir?.();
+    window.__pcvSteamU?.ouvrir?.("import");
   };
   const revenir = () => {
     fermer();
     window.__pcvSon?.("retour");
     if (!/^\/routes\/library\/home/.test(O?.location?.pathname || "")) O?.__pcvAller?.(1);
   };
-  const montrer = (manque) => {
+  const montrer = (manque, importEnCours) => {
     window.__pcvEcran?.fermer?.();
     window.__pcvLancement?.fermer?.();
     if (!ecran) {
@@ -81,10 +90,11 @@
         text-decoration: none; font-size: calc(var(--u) * 22); font-weight: 800; box-shadow: 0 0 0 calc(var(--u) * 3) var(--pcv-lisere); }
       #pcv-verrou u svg { width: 60%; height: 60%; }
     </style><div class="carte"><svg class="cad" viewBox="0 0 24 24" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2.6"/><path d="M8 11V7.6a4 4 0 0 1 8 0V11"/></svg>
-      <h1>${T("verrou.titre")}</h1><p>${T("verrou.texte")}</p><ul>${textes.map((t) => `<li>${t}</li>`).join("")}</ul>
+      <h1>${T("verrou.titre")}</h1><p>${T("verrou.texte")}</p><ul>${textes.map((t) => `<li>${t}</li>`).join("")}</ul>${importEnCours ? `<p class="aide">${T("verrou.import_en_cours")}</p>` : ""}
       <button class="ajouter">${touche(1)}${T("verrou.bouton")}</button><p class="aide">${T("verrou.aide")}</p></div>
-      <button class="revenir">${touche(2)}${T("verrou.retour")}</button>`;
+      <button class="revenir">${touche(2)}${T("touche.retour")}</button>`;
     ecran.hidden = false;
+    window.__pcvFond?.(ecran);
     window.__pcvSon?.("rate");
     const o = window.__pcvOrdre;
     if (Array.isArray(o) && !o.includes("verrou")) o.unshift("verrou");
@@ -105,8 +115,9 @@
   }, true);
   const exiger = async (appli) => {
     const m = await manques(), manque = Array.isArray(m?.[appli]) ? m[appli] : ["inconnu"];
+    appliquer(m);
     if (!manque.length) return true;
-    montrer(manque);
+    montrer(manque, !!m?._import);
     return false;
   };
   const PRET = essayer(0).then(({ repondu, ...F }) => {
@@ -115,6 +126,6 @@
     window.dispatchEvent(new Event("pcv-nintendo"));
     return window.__pcvNintendo;
   });
-  window.__pcvNintendo = Object.assign(window.__pcvNintendo || {}, { mii: false, casino: false, badges: false, sons: false, pret: PRET, exiger, fermer, ouvert: () => !!ecran && !ecran.hidden });
+  window.__pcvNintendo = Object.assign(window.__pcvNintendo || {}, { mii: false, casino: false, badges: false, sons: false, pret: PRET, exiger, appliquer, fermer, ouvert: () => !!ecran && !ecran.hidden });
   return "verrou Nintendo : v\xE9rification en cours";
 })();

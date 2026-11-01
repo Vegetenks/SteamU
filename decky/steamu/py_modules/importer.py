@@ -1,4 +1,4 @@
-import hashlib, json, os, pathlib, re, shutil, stat, struct, subprocess, tarfile, tempfile, time, unicodedata, zipfile
+import hashlib, json, os, pathlib, re, shutil, stat, struct, subprocess, sys, tarfile, tempfile, time, unicodedata, zipfile
 import mii, badges, mii_moteur, moteur_ffl
 
 ICI = pathlib.Path(__file__).resolve().parent
@@ -7,7 +7,7 @@ RENOMMAGE_WIIU = ICI.parent / "donnees" / "sons-empreintes-wiiu.json"
 CONNUS = ICI.parent / "donnees" / "fichiers-connus.json"        
 ANALYSE = ICI / "empreinte_son.py"
 EXTRAIRE = ICI / "extraire.py"
-PYTHON = "/usr/bin/python3"          
+PYTHON = "/usr/bin/python3" if os.path.isfile("/usr/bin/python3") else sys.executable          
 TEMP = None                          
 TRAVAIL = "steamu-import-"
 _travail = None                      
@@ -27,13 +27,22 @@ DELAI_ANALYSE = 90
 DELAI_CONVERSION = 120               
 DELAI_EXTRACTION = 900               
 SON_DUREE_MAX = 600                  
+ONDE_MAX = 64 * 1024 * 1024          
+BANQUE_MAX = 256 * 1024 * 1024       
+ONDES_MAX = 4000                     
 NOM_MAX, NOMS_MAX = 80, 10           
 TETE = 0x200                         
 SAUTES = {"Nintendo 3DS"}            
 CHEMIN_SUR = re.compile(r"(?:[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}/){0,6}[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}")
 EXIGE = {"mii": ["mii/moteur/ffl-emscripten.js", "mii/AFLResHigh_2_3.dat"], "casino": ["luigi", "casino-luigi/sons"], "badges": ["badges"], "sons": ["sons"]}
 MANQUE = {"mii/moteur/ffl-emscripten.js": "moteur-mii", "mii/AFLResHigh_2_3.dat": "visages", "luigi": "sm64ds",
-          "casino-luigi/sons": "sm64ds", "badges": "badges", "sons": "sons"}
+          "casino-luigi/sons": "sm64ds", "badges": "badges", "sons": "sons", "casino": "sm64ds-ou-badges"}
+OU = {"casino": ["badges"]}
+
+def manquants(appli, plein):
+    m = [d for d in EXIGE[appli] if not plein(d)]
+    if m and appli in OU: return [] if all(plein(d) for d in OU[appli]) else [appli]
+    return m
 PERMIS = {"badge-arcade": ("badge-arcade/modeles/romfs/", "badge-arcade/romfs-eur/layout-png/", "sons/badge-arcade/romfs/"),
           "boss": ("badge-arcade/bornes/", "badges/"), "collection": ("badges/",), "machine-hall": ("badge-arcade/machine-hall.glb",),
           "luigi": ("luigi/luigi-croupier.glb", "casino-luigi/sons/", "casino-luigi/voix/"), "tenue-dae": ("visiteurs/",)}
@@ -230,6 +239,7 @@ def _format_audio(tete):
     if tete[:4] == b"FORM" and tete[8:12] in (b"AIFF", b"AIFC"): return "aiff"
     if tete[:4] in (b"FSTM", b"CSTM"): return "bfstm"         
     if tete[:4] == b"RSTM": return "brstm"
+    if tete[:4] in (b"CWAV", b"FWAV"): return "bcwav"
     if tete[:3] == b"ID3": return "mp3"
     if len(tete) > 1 and tete[0] == 0xFF and tete[1] & 0xF6 == 0xF0: return "aac"     
     if len(tete) > 2 and tete[0] == 0xFF and tete[1] & 0xE0 == 0xE0 and tete[1] & 0x06 and (tete[2] >> 4) not in (0, 15): return "mp3"
@@ -284,14 +294,30 @@ def _ranger_boss(chemin, nom, x):
     if g: x["lot"]["boss"].append((g, _nom(nom)))
 
 def _veut_ba(tete, taille, nom):
-    return tete[:4] in (b"Yaz0", b"CSAR") and taille <= 64 * 1024 * 1024
+    return tete[:4] == b"Yaz0" and taille <= 64 * 1024 * 1024
 
 def _ranger_ba(chemin, nom, x):
     g = _garder(chemin, x)
     if g: x["lot"]["ba"].append((g, "".join(c for c in str(nom) if c.isprintable())[-200:]))
 
+def _veut_banque(tete, taille, nom):
+    return tete[:4] in (b"CSAR", b"FSAR", b"CWAR", b"FWAR") and taille <= BANQUE_MAX
+
+def _ranger_banque(chemin, nom, x):
+    g = _garder(chemin, x)
+    if not g: return
+    x["lot"]["banques"].append((g, _nom(nom)))
+    with open(g, "rb") as o:
+        if o.read(4) == b"CSAR": x["lot"]["ba"].append((g, _nom(nom)))
+
 def _veut_zip(tete, taille, nom): return tete[:4] in (b"PK\x03\x04", b"PK\x05\x06")
-def _veut_tar(tete, taille, nom): return tete[257:262] == b"ustar" or tete[:2] == b"\x1f\x8b"
+def _veut_tar(tete, taille, nom): return tete[257:262] == b"ustar" or tete[:2] == b"\x1f\x8b" or tete[:3] == b"BZh" or tete[:6] == b"\xfd7zXZ\x00"   
+
+def _ferme(tete):
+    if tete[:6] == b"7z\xbc\xaf\x27\x1c" or tete[:7] == b"Rar!\x1a\x07\x00" or tete[:8] == b"Rar!\x1a\x07\x01\x00": return "archives_fermees"
+    if tete[:4] == b"\0\x01\0\x04" and tete[0x140:0x150] == b"Root-CA00000003-" and tete[0x14F:0x152] == b"-CP" \
+            and tete[0x18C:0x18E] == b"\0\x05": return "wiiu_chiffre"
+    return None
 
 RECONNAISSEURS = [
     (_veut_connu, _ranger_connu),
@@ -303,6 +329,7 @@ RECONNAISSEURS = [
     (_veut_nds, _ranger_nds),
     (_veut_boss, _ranger_boss),
     (_veut_ba, _ranger_ba),
+    (_veut_banque, _ranger_banque),
     (_veut_audio, _ranger_audio),
 ]
 
@@ -326,6 +353,8 @@ def _copier_borne(flux, x):
 
 def _traiter(tete, taille, nom, flux, chemin, x, profondeur):
     r = x["r"]
+    ferme = _ferme(tete)
+    if ferme: r[ferme] += 1; return
     candidats = []
     for veut, ranger in RECONNAISSEURS:
         try:
@@ -454,6 +483,7 @@ def _lot(x, entrees):
     return d
 
 def _vers_son(source, cible, x, duree_max=None):
+    source = x.get("audio_decodees", {}).get(source, source)      
     with open(source, "rb") as o: fmt = _format_audio(o.read(TETE))
     if not fmt: return None
     mp3 = cible.suffix == ".mp3"
@@ -492,6 +522,9 @@ def _placer(x, m, sortie, permis):
             if t and os.path.exists(t): os.unlink(t)
     return n
 
+def _outils_audio_manquants():
+    return [] if shutil.which("ffmpeg") else ["ffmpeg"]
+
 def _references():
     d = _lire(EMPREINTES)
     return [p for p in (d or {}).get("pistes", []) if isinstance(p, dict) and _chemin_sur(p.get("chemin"))
@@ -501,20 +534,54 @@ def _ecouter(x):
     r, lot = x["r"], x["lot"]["audio"]
     if not lot: return
     if x["audio_impossible"]: r["audio_impossible"] = True; return
+    manquants = _outils_audio_manquants()
+    if manquants:
+        x["audio_impossible"] = r["audio_impossible"] = True
+        r["audio_outils"] = manquants
+        return
+    exactes, a_ecouter = [], []
+    tailles = {}
+    for piste in x["references"]:
+        for e in piste.get("octets", []):
+            if isinstance(e, dict): tailles.setdefault(e.get("taille"), {})[e.get("sha256")] = (piste, e)
+    for c, fmt, nom in lot:
+        candidats = tailles.get(os.path.getsize(c), {})
+        piste, e = candidats.get(_empreinte(c), (None, None)) if candidats else (None, None)
+        if piste:
+            exactes.append((c, nom, {"piste": piste["chemin"], "qualite": "bonne", "part": 1, "decalage": e.get("decalage", 0),
+                                    "echelle": e.get("echelle", 1), "duree": e.get("duree", piste.get("duree", 0))}))
+        else: a_ecouter.append((c, fmt, nom))
+    lot = a_ecouter
+    sources = x["audio_decodees"] = {}
+    import themeplaza
+    for c, fmt, nom in lot:
+        if fmt != "bcwav": continue
+        try:
+            with open(c, "rb") as o: d = o.read(ONDE_MAX + 1)
+            if len(d) > ONDE_MAX: continue
+            canaux, freq, _, _ = themeplaza.lire_bcwav(d)
+            fd, sortie = tempfile.mkstemp(dir=x["travail"], suffix=".wav")
+            with os.fdopen(fd, "wb") as o: o.write(themeplaza.wav(canaux, freq))
+            sources[c] = sortie
+        except (OSError, ValueError, themeplaza.Refus): pass
     def ecouter(part):
         try:
-            p = subprocess.run([PYTHON, "-I", str(ANALYSE), "--lot", str(EMPREINTES)], input="".join(f"{c}\t{f}\n" for c, f, _ in part).encode(),
+            p = subprocess.run([PYTHON, "-I", str(ANALYSE), "--lot", str(EMPREINTES)],
+                               input="".join(f"{sources.get(c, c)}\t{'wav' if c in sources else f}\n" for c, f, _ in part).encode(),
                                capture_output=True, timeout=DELAI_ANALYSE * len(part), env=_env())
             return [json.loads(l) for l in p.stdout[:1 << 20].decode("utf-8", "replace").splitlines()[:len(part)]]
         except (OSError, ValueError, subprocess.TimeoutExpired):
             return []
-    lots = [lot[k:k + LOT_AUDIO] for k in range(0, len(lot), LOT_AUDIO)]
-    if not ecouter(lots[0][:1]):   
-        x["audio_impossible"] = r["audio_impossible"] = True; return
+    lots = []
+    for voie in range(ECOUTES):
+        part = lot[voie::ECOUTES]
+        lots.extend(part[k:k + LOT_AUDIO] for k in range(0, len(part), LOT_AUDIO))
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(ECOUTES) as f: resultats = list(f.map(ecouter, lots))     
-    entendus = [(c, nom, res_ if isinstance(res_, dict) else {}) for part, res in zip(lots, resultats)
-                for (c, fmt, nom), res_ in zip(part, res + [{}] * (len(part) - len(res)))]
+    if lots and not any(resultats):
+        r["audio_impossible"] = True; r["audio_erreur"] = "analyse"
+    entendus = exactes + [(c, nom, res_ if isinstance(res_, dict) else {}) for part, res in zip(lots, resultats)
+                for (c, fmt, nom), res_ in zip(part, res + [{"illisible": True}] * (len(part) - len(res)))]
     def score(e):
         v = e[2].get("part") or e[2].get("correlation") or 0
         return float(v) if isinstance(v, (int, float)) else 0.0
@@ -534,10 +601,14 @@ def _convertir_tous(travaux, x):
     with ThreadPoolExecutor(ECOUTES) as f: return dict(zip(travaux, f.map(lambda t: _vers_son(t[0], t[1], x), travaux)))
 
 def _prevoir_son(chemin, nom, res, x, prevues):
-    r = x["r"]
-    if res.get("illisible"): _abime(r, nom); return None
+    r, banque = x["r"], chemin in x["ondes"]
+    if res.get("illisible"):
+        if not banque: _abime(r, nom)
+        return None
     piste = next((p for p in x["references"] if p["chemin"] == res.get("piste")), None)
-    if not piste: r["pas_wiiu"] += 1; return None             
+    if not piste:
+        if not banque: r["pas_wiiu"] += 1
+        return None             
     if res.get("qualite") == "mauvaise":
         r["mauvaise_n"] += 1
         if len(r["mauvaise"]) < NOMS_MAX: r["mauvaise"].append(_nom(nom))
@@ -588,6 +659,20 @@ def _cle(x):
     k = x["prive"] / "cles" / CLE_3DS[0]
     return str(k) if k.is_file() and k.stat().st_size == CLE_3DS[1] else "-"
 
+def _ouvrir_banques(x):
+    m, sortie = _extraire(x, "banque", _lot(x, x["lot"]["banques"]), ONDES_MAX, max(0, TAILLE_TOTALE_MAX - x["decompresse"]))
+    if m.get("erreur"): _abime(x["r"], "banque de sons"); return
+    if (m.get("notes") or {}).get("trop"): x["r"]["trop"] += 1
+    racine = os.path.realpath(sortie)
+    for f in m.get("fichiers", []) if isinstance(m.get("fichiers"), list) else []:
+        de = f.get("de") if isinstance(f, dict) else None
+        if not (isinstance(de, str) and de.isdigit() and len(de) <= 8): continue
+        p = os.path.join(racine, de)
+        if os.path.islink(p) or not os.path.isfile(p): continue
+        x["decompresse"] += os.path.getsize(p)
+        x["lot"]["audio"].append((p, "wav", _nom(str(f.get("nom", "")))))
+        x["ondes"].add(p)
+
 def _ouvrir_3ds(x):
     r, cle = x["r"], _cle(x)
     for g, nom in x["lot"]["ctr"]:
@@ -620,6 +705,7 @@ def _clips(glb):
 def _finir(x):
     r, lot, prive = x["r"], x["lot"], x["prive"]
     if lot["ctr"]: _ouvrir_3ds(x)
+    if lot["banques"] and not x["audio_impossible"]: _ouvrir_banques(x)
     _ecouter(x)
     _renommer_echantillons_wiiu(x)
     if lot["ba"]:
@@ -712,8 +798,8 @@ def etat(prive, references=None):
     wiiu = [p for p in refs if p.get("emplacement") and (p.get("famille") or "wiiu") == "wiiu" and str(p.get("emplacement")).startswith("musiques.")]
     manquent = [p["emplacement"] for p in wiiu if not (prive / "sons" / p["chemin"]).is_file()]
     applis = {}
-    for appli, dossiers in EXIGE.items():
-        manque = list(dict.fromkeys(MANQUE[d] for d in dossiers if not _plein(prive, d)))
+    for appli in EXIGE:
+        manque = list(dict.fromkeys(MANQUE[d] for d in manquants(appli, lambda d: _plein(prive, d))))
         applis[appli] = {"pret": not manque, "manque": manque, "conseils": []}
     c = applis["casino"]["conseils"]
     if (prive / LUIGI).is_file() and not any(n.startswith("mp_") for n in _clips(prive / LUIGI)): c.append("mpds")
@@ -758,7 +844,7 @@ def importer(source, prive):
     r = {"mii": 0, "mii_autres": 0, "visages": 0, "cle3ds": 0, "musiques": 0, "sons": {}, "connus": 0, "badge_arcade": 0, "themes": 0,
          "badges": 0, "luigi": 0, "luigi_mp": False, "casino": 0, "romfs": 0, "deja": 0, "abimes": [], "abimes_n": 0,
          "mauvaise": [], "mauvaise_n": 0, "pas_wiiu": 0, "verrouilles": 0, "autrement": 0, "autre_rom": [], "mpds_seul": False,
-         "sans_semaine": False, "inconnus": 0, "trop": 0, "refuses": 0, "audio_impossible": False, "vide": True}
+         "sans_semaine": False, "archives_fermees": 0, "wiiu_chiffre": 0, "inconnus": 0, "trop": 0, "refuses": 0, "audio_impossible": False, "vide": True}
     if not os.path.exists(source): return {"erreur": "introuvable"}
     global _travail
     racine = TEMP or os.path.dirname(os.path.realpath(prive))
@@ -767,8 +853,8 @@ def importer(source, prive):
     travail = _travail = tempfile.mkdtemp(prefix=TRAVAIL, dir=racine)    
     references = _references()
     x = {"prive": prive, "r": r, "travail": travail, "references": references, "lus": 0, "entrees": 0,
-         "audio_impossible": not references, "decompresse": 0, "n_extraits": 0, "n_gardes": 0, "garde_robe": False,
-         "lot": {"audio": [], "ctr": [], "ba": [], "boss": [], "nds": {}, "roles": {}, "noms": {}, "entrees": {}}}
+         "audio_impossible": not references, "decompresse": 0, "ondes": set(), "n_extraits": 0, "n_gardes": 0, "garde_robe": False,
+         "lot": {"audio": [], "banques": [], "ctr": [], "ba": [], "boss": [], "nds": {}, "roles": {}, "noms": {}, "entrees": {}}}
     try:
         _parcourir(source, x)
         _finir(x)

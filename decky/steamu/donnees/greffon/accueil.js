@@ -63,8 +63,8 @@
       font-size: calc(var(--u) * 18); font-weight: 900; line-height: calc(var(--u) * 52);
       box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 calc(var(--u) * 8) calc(var(--u) * 20) color-mix(in srgb, var(--pcv-cyan-plein) 45%, transparent); }
     #pcv-accueil .meta { font-size: calc(var(--u) * 15); font-weight: 800; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
-    #pcv-accueil .cartes { position: absolute; left: calc(var(--u) * 24); right: calc(var(--u) * 24); top: calc(var(--u) * 486); display: flex; gap: calc(var(--u) * 16); }
-    #pcv-accueil .carte { position: relative; flex: 1; height: calc(var(--u) * 170); border-radius: calc(var(--u) * 30); overflow: hidden; background: var(--pcv-verre);
+    #pcv-accueil .cartes { position: absolute; left: calc(var(--u) * 24); right: calc(var(--u) * 24); top: calc(var(--u) * 486); display: flex; gap: calc(var(--u) * 16); }   
+    #pcv-accueil .carte { position: relative; flex: 1; height: calc(var(--u) * 140); border-radius: calc(var(--u) * 30); overflow: hidden; background: var(--pcv-verre);
       box-shadow: var(--pcv-reflet), var(--pcv-ombre); display: flex; align-items: center; gap: calc(var(--u) * 16); padding: 0 calc(var(--u) * 22); cursor: pointer;
       animation: pcvPose .25s ease-out both; }
     #pcv-accueil .carte.image { padding: 0; background: #222 70% 40% / cover; }
@@ -78,7 +78,10 @@
     #pcv-accueil .piste i { display: block; height: 100%; background: var(--pcv-cyan-plein); }
   </style><div class="rang"></div><div class="zone"></div>`;
   document.body.appendChild(racine);
-  window.__pcvFond?.(racine);
+  const legendeEl = document.createElement("div");
+  legendeEl.id = "pcv-accueil-legende";
+  legendeEl.className = "pcv-legende";
+  racine.appendChild(legendeEl);
   const rang = racine.querySelector(".rang"), zone = racine.querySelector(".zone");
   const jeux = () => (O.appStore.allApps || []).filter((a) => a.app_type === 1 && a.rt_last_time_played).sort((a, b) => b.rt_last_time_played - a.rt_last_time_played).slice(0, 10);
   const succes = async (id) => {
@@ -106,7 +109,7 @@
       ${dernier ? `<div class="bulle haut" style="left:${jaq.left - 4 * u}px;top:${jaq.bottom + 18 * u - 98 * u}px"><img src="${urlSure(dernier.strImage)}" alt=""><span>${T("accueil.obtenu", { nom: echap(joli(dernier.strName)) })}<small>${ilya(dernier.rtUnlocked)}</small></span></div>` : ""}
       <div class="banniere" style="background-image:url('${IMG(app.appid, "library_hero.jpg")}'),url('${CDN(app.appid, "library_hero.jpg")}')">
         <img class="logo" src="${IMG(app.appid, "logo.png")}" alt="${echap(app.display_name)}" data-cdn="${CDN(app.appid, "logo.png")}" onerror="if(this.dataset.cdn){this.src=this.dataset.cdn;this.dataset.cdn=''}else{const d=document.createElement('div');d.className='logo-texte';d.textContent=this.alt;this.replaceWith(d)}">
-        <div class="action"><button class="jouer">${installe ? T("accueil.jouer") : T("accueil.installer")}</button>
+        <div class="action"><button class="jouer">${installe ? T("accueil.jouer") : T("biblio.installer")}</button>
           <span class="meta">${T("accueil.temps_dernier", { temps: h(app.minutes_playtime_forever), date: jour(app.rt_last_time_played) })}</span></div>
       </div>
       ${deuxSem ? `<div class="bulle gauche" style="right:calc(var(--u)*70);top:calc(var(--u)*274)"><img class="mii" src="${urlSure(avatarDe())}" alt=""><span>${T("accueil.deux_semaines", { temps: h(deuxSem) })}</span></div>` : ""}
@@ -119,7 +122,8 @@
         ${plusJoue ? `<div class="carte" data-ouvrir="${plusJoue.appid}"><img class="port" src="${IMG(plusJoue.appid, "library_600x900.jpg")}" alt="">
           <span><b>${echap(plusJoue.display_name)}</b><small>${T("accueil.temps_dernier", { temps: Math.round(plusJoue.minutes_playtime_forever / 60) + " h", date: jour(plusJoue.rt_last_time_played) })}</small></span></div>` : ""}
       </div>`;
-    zone.querySelector(".jouer").onclick = () => ouvrir(app.appid);
+    zone.querySelector(".jouer").onclick = () => jouer(app);
+    legende();
     zone.querySelectorAll("[data-ouvrir]").forEach((c) => c.onclick = () => ouvrir(c.dataset.ouvrir));
   };
   const joli = (t) => t && t === t.toUpperCase() ? t.charAt(0) + t.slice(1).toLowerCase() : t;
@@ -128,12 +132,18 @@
     const s = String(u ?? "").trim(), t = s.replace(/[\x00-\x20]/g, "");
     return echap(!/^[a-z][a-z0-9+.-]*:/i.test(t) || /^(https?:|data:image\/|blob:)/i.test(t) ? s : "");
   };
-  const ouvrir = (id) => O.SteamClient.URL.ExecuteSteamURL(`steam://nav/games/details/${id}`);
+  const ouvrir = (id) => window.__pcvPageJeu?.(id) || O.SteamClient.URL.ExecuteSteamURL(`steam://nav/games/details/${id}`);
+  const legende = () => {
+    const app = liste[choix], ici = app && (app.per_client_data?.some?.((c) => c.installed) ?? app.installed);
+    legendeEl.innerHTML = window.__pcvIcones?.legende?.(rang.querySelector(".tout.sel") ? [[1, T("spaces.bibliotheque.nom")], [2, T("touche.retour")], [4, T("spaces.place.nom")]] : [[1, ici ? T("accueil.jouer") : T("biblio.installer")], [3, T("console.page_jeu")], [2, T("touche.retour")], [4, T("spaces.place.nom")]]) || "";
+  };
+  const jouer = (app) => window.__pcvJeux?.jouer ? window.__pcvJeux.jouer(app, rang.children[choix]) : ouvrir(app.appid);
   const choisir = (i) => {
     choix = Math.max(0, Math.min(liste.length - 1, i));
     afficher();
   };
   const construire = () => {
+    window.__pcvFond?.(racine);
     liste = jeux();
     rang.innerHTML = "";
     const ordre = liste.map((_, i) => i).sort(() => Math.random() - 0.5);
@@ -166,9 +176,9 @@
   };
   (window.__pcvManette ||= {}).accueil = (b) => {
     if (racine.hidden || ouvert("pcv-place")) return false;
-    const dansBarre = !!document.querySelector("#header .gpfocus") || document.body.classList.contains("pcv-barre-nav");
+    const dansBarre = !!document.querySelector("#header .gpfocus");
     if (dansBarre) {
-      if (b === 10 && !document.body.classList.contains("pcv-barre-nav")) {
+      if (b === 10) {
         document.body.classList.add("pcv-zone-jaquettes");
         window.__pcvZone = "jaquettes";
         afficher();
@@ -181,7 +191,7 @@
       document.body.classList.add("pcv-zone-jaquettes");
       afficher();
     }
-    if (b === 9) {
+    if (b === 9 || b === 2) {
       window.__pcvZone = "barre";
       document.body.classList.remove("pcv-zone-jaquettes");
       const l = document.querySelector("#header ._17M8gvakqjyaw_cLo6ntdl, #header [class*=SearchAndTitleContainer]");
@@ -203,18 +213,24 @@
       if (choix === liste.length - 1 && tout) {
         rang.querySelectorAll(".jaq.sel").forEach((j) => j.classList.remove("sel"));
         tout.classList.add("sel");
+        legende();
       } else choisir(choix + 1);
       return true;
     }
     if (b === 1) {
       if (tout?.classList.contains("sel")) O.__pcvAller?.(2);
-      else ouvrir(liste[choix].appid);
+      else jouer(liste[choix]);
       return true;
     }
-    return false;
+    if (b === 3 && !tout?.classList.contains("sel")) {
+      ouvrir(liste[choix].appid);
+      return true;
+    }
+    window.__pcvSon?.("bord");
+    return true;
   };
   window.addEventListener("keydown", window.__pcvTouchesAccueil = (e) => {
-    if (racine.hidden || document.activeElement?.matches?.("input,textarea") || ["pcv-place", "pcv-profil", "pcv-amis", "pcv-notifs", "pcv-connexion"].some(ouvert) || document.querySelector(".pcv-panneau.on, #pcv-themes.on")) return;
+    if (racine.hidden || document.activeElement?.matches?.("input,textarea") || window.__pcvPagesDessus.some(ouvert) || document.querySelector(".pcv-panneau.on, #pcv-themes.on")) return;
     if (e.key === "ArrowRight") {
       choisir(choix + 1);
       e.stopPropagation();
@@ -235,13 +251,14 @@
       nouvelle = (JSON.parse(localStorage.getItem("pcv-interface")) ?? "nouvelle") === "nouvelle";
     } catch (e) {
     }
-    const visible = /^\/routes\/library\/home/.test(O.location.pathname) && !nouvelle;
+    const visible = window.__pcvDemarrage?.connexionPassee() !== false && /^\/routes\/library\/home/.test(O.location.pathname) && !nouvelle;
     if (racine.hidden !== !visible) racine.hidden = !visible;
     if (!visible && etaitVisible && window.__pcvZone) {
       window.__pcvZone = void 0;
       document.body.classList.remove("pcv-zone-jaquettes");
     }
     if (visible && !etaitVisible) construire();
+    if (visible) window.__pcvDemarrage?.accueilPret();
     etaitVisible = visible;
   }, 150);
   return "accueil pr\xEAt";

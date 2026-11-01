@@ -17,6 +17,7 @@
   const borne = (x) => Math.max(0, Math.min(1, x));
   const lisse = (x) => (x = borne(x)) * x * (3 - 2 * x);
   const PI2 = Math.PI * 2;
+  const FOULEE = { marcher: 0.66, courir: 1.49 };
   let { F = null, ffl = null, rendu0 = null, gabarits = null, invites = [], defauts = [] } = prec || {};
   const PANTALONS = { gris: 4212558, bleu: 2637946, rouge: 7348245, or: 12623920 };
   const couleurBrute = (x) => new T.Color().setHex(typeof x === "string" ? parseInt(x.replace("#", ""), 16) : x, T.LinearSRGBColorSpace);
@@ -508,15 +509,18 @@
     gd: 25,
     ech: 26,
     rx: 27,
-    rz: 28
+    rz: 28,
+    plat: 29
   };
-  const NC = 29, NEUTRE = new Float32Array(NC);
+  const NC = 30, NEUTRE = new Float32Array(NC);
   NEUTRE[K.ech] = 1;
   NEUTRE[K.egz] = NEUTRE[K.edz] = 0.24;
   NEUTRE[K.cg] = NEUTRE[K.cd] = 0.14;
   NEUTRE[K.egx] = NEUTRE[K.edx] = -0.04;
   NEUTRE[K.hgz] = NEUTRE[K.hdz] = 0.03;
   const BRAS_SUSP = 2.42;
+  const ASSIS_CUISSE = 1.7, ASSIS_GENOU = 0.12;
+  const pulse = (t) => Math.exp(-((t % 1 + 1) % 1) * 6);
   const accroupir = (P, a, m) => {
     const C = m.D.cuisse, Ti = m.D.tibia, b = a + Math.asin(Math.min(1, C * Math.sin(a) / Ti));
     P[K.hgx] = P[K.hdx] = -a;
@@ -527,7 +531,6 @@
   const ANIMS = {
     repos: (P, t, m) => {
       const s = Math.sin(t * 2.1 + m.ph), r = Math.sin(t * 0.43 + m.ph * 2);
-      P[K.by] = -4e-3 - 4e-3 * s;
       P[K.tx] = 0.02 * s;
       P[K.egz] = 0.24 + 0.025 * s;
       P[K.edz] = 0.24 + 0.025 * s;
@@ -552,6 +555,7 @@
       P[K.hy] = -0.07 * s;
       P[K.tx] = 0.06;
       P[K.hz] = 0.03 * s;
+      P[K.plat] = 1;
     },
     courir: (P, t, m) => {
       const c = t * PI2 * 2.6 * m.cadence + m.ph, s = Math.sin(c), co = Math.cos(c);
@@ -568,6 +572,7 @@
       P[K.tx] = 0.24;
       P[K.hx] = -0.12;
       P[K.brz] = 0.03 * s;
+      P[K.plat] = 1;
     },
     // saut : la phase (accroupi, vol, réception) est tenue par celui qui déplace le Mii, dans m.saut = { ph, q }
     sauter: (P, t, m) => {
@@ -623,7 +628,7 @@
       P[K.egx] = P[K.edx] = -1.18;
       P[K.egz] = P[K.edz] = -0.34 + 0.32 * c;
       P[K.cg] = P[K.cd] = 0.45;
-      P[K.by] = -8e-3 + 0.014 * Math.abs(Math.sin(t * PI2 * 1.55));
+      P[K.by] = Math.max(0, -8e-3 + 0.014 * Math.abs(Math.sin(t * PI2 * 1.55)));
       P[K.hx] = -0.1;
     },
     content: (P, t, m) => {
@@ -648,7 +653,6 @@
       P[K.egz] = 1.3 + 0.5 * s;
       P[K.edz] = 1.3 - 0.5 * s;
       P[K.cg] = P[K.cd] = 1.1;
-      P[K.by] = -0.012 * Math.abs(Math.cos(c));
       P[K.gg] = 0.3 * Math.max(0, s);
       P[K.gd] = 0.3 * Math.max(0, -s);
       P[K.hgx] = -0.15 * Math.max(0, s);
@@ -679,12 +683,16 @@
       P[K.tx] = -0.04 + 0.015 * Math.sin(t * 1.7);
       P[K.hy] = 0.16 * Math.sin(t * 0.5 + m.ph);
     },
-    // assis par terre, jambes allongées devant, mains posées derrière (le point d'ancrage reste au sol)
+    // assis par terre, jambes allongées devant, mains posées derrière (le point d'ancrage reste au
+    // sol) : le bassin descend de ce que les jambes perdent en hauteur (comme accroupir), les talons restent donc posés.
+    // (Avant, 21/10 : bassin fixé à 4,5 % de la hanche de l'imitation et jambes plongeant vers le sol : au banc, fesses à
+    // −3 % de la taille du Mii, talons à −10 %, tout l'assis sous le sol.)
     assisSol: (P, t, m) => {
-      P[K.by] = -(m.D.hanche - 0.045 * m.D.kh);
-      P[K.hgx] = P[K.hdx] = -1.45;
-      P[K.gg] = 0.12 + 0.08 * Math.sin(t * 1.3 + m.ph);
-      P[K.gd] = 0.18;
+      const C = m.D.cuisse, Ti = m.D.tibia, a = ASSIS_CUISSE, b = ASSIS_GENOU;
+      P[K.by] = -(C + Ti - C * Math.cos(a) - Ti * Math.cos(a - b));
+      P[K.hgx] = P[K.hdx] = -a;
+      P[K.gg] = b - 0.03 + 0.06 * Math.sin(t * 1.3 + m.ph);
+      P[K.gd] = b;
       P[K.hgz] = P[K.hdz] = 0.1;
       P[K.egx] = P[K.edx] = 0.55;
       P[K.egz] = P[K.edz] = 0.35;
@@ -1158,6 +1166,157 @@
       P[K.hx] = -0.3 * q;
       P[K.tx] = -0.1 * q;
       P[K.ech] = 1 + 0.04 * q;
+    },
+    // ---- le groupe de la page Paroles (acces-rapide.js ; Wii Music, concerts de Tomodachi Life) : t compté en temps du
+    // morceau (1 = un temps, posé par la page), m.energie : 1 en festive, moins en douce. Les objets tenus sont ceux de la
+    // page, posés sur les mains (main droite : le Mii la lève à gauche de l'écran) ----
+    // chanteur : le micro dans la main droite sous le menton, la gauche qui s'ouvre au fil de la phrase
+    chanter: (P, t, m) => {
+      const e = m.energie ?? 1, s = Math.sin(t * Math.PI / 2), k = pulse(t);
+      accroupir(P, 0.1 * e * k, m);
+      P[K.edx] = -1.6;
+      P[K.edz] = 0.3;
+      P[K.cd] = 1.4;
+      P[K.hx] = -0.1 - 0.05 * s;
+      P[K.egz] = 0.45 + 0.55 * e * (0.5 + 0.5 * s);
+      P[K.egx] = -0.55;
+      P[K.cg] = 0.45;
+      P[K.tz] = 0.05 * e * s;
+      P[K.hz] = 0.07 * e * s;
+    },
+    // guitare : la main droite gratte sur le temps (aller au temps, retour au contretemps), la gauche tient le manche
+    guitare: (P, t, m) => {
+      const e = m.energie ?? 1, g = Math.cos(t * PI2);
+      accroupir(P, 0.12 * e * pulse(t), m);
+      P[K.edx] = -0.7;
+      P[K.edz] = 0.15;
+      P[K.cd] = 0.95 + 0.3 * g;
+      P[K.ty] = 0.06 * g * e;
+      P[K.egx] = -0.75;
+      P[K.egz] = 0.95;
+      P[K.cg] = 0.45;
+      P[K.hz] = 0.08 * Math.sin(t * Math.PI / 2);
+      P[K.hx] = 0.06;
+    },
+    // tambour : les baguettes frappent à tour de rôle, la droite sur le temps, la gauche au contretemps
+    tambour: (P, t, m) => {
+      const e = m.energie ?? 1, d = pulse(t), g = pulse(t + 0.5) * e;
+      accroupir(P, 0.18 + 0.08 * e * d, m);
+      P[K.edx] = -0.85;
+      P[K.edz] = 0.3;
+      P[K.cd] = 0.55 + 0.75 * (1 - d);
+      P[K.egx] = -0.85;
+      P[K.egz] = 0.3;
+      P[K.cg] = 0.55 + 0.75 * (1 - g);
+      P[K.tx] = 0.12;
+      P[K.hx] = 0.05 * d;
+    },
+    // clavier : les deux mains sur les touches, qui vont et viennent ; le buste suit
+    clavier: (P, t, m) => {
+      const e = m.energie ?? 1, s = Math.sin(t * Math.PI / 2), a = pulse(t * 2), b = pulse(t * 2 + 0.5);
+      accroupir(P, 0.08 * e * pulse(t), m);
+      P[K.edx] = -1;
+      P[K.egx] = -1;
+      P[K.edz] = 0.2 - 0.1 * s;
+      P[K.egz] = 0.2 + 0.1 * s;
+      P[K.cd] = 0.95 + 0.12 * a;
+      P[K.cg] = 0.95 + 0.12 * b;
+      P[K.ty] = 0.1 * s;
+      P[K.tx] = 0.1;
+      P[K.hz] = 0.06 * s;
+      P[K.hx] = 0.08;
+    },
+    // maracas : une dans chaque main, secouées tour à tour, deux fois par temps
+    maracas: (P, t, m) => {
+      const e = m.energie ?? 1, a = pulse(t * 2), b = pulse(t * 2 + 0.5);
+      accroupir(P, 0.12 * e * pulse(t), m);
+      P[K.edx] = P[K.egx] = -0.75;
+      P[K.edz] = P[K.egz] = 0.95;
+      P[K.cd] = 1.05 + 0.45 * a * e;
+      P[K.cg] = 1.05 + 0.45 * b * e;
+      P[K.tz] = 0.05 * Math.sin(t * Math.PI);
+      P[K.hz] = 0.08 * Math.sin(t * Math.PI);
+    },
+    // tambourin : levé dans la main droite, secoué et frappé sur le temps, la gauche sur la hanche
+    tambourin: (P, t, m) => {
+      const e = m.energie ?? 1, k = pulse(t);
+      accroupir(P, 0.12 * e * k, m);
+      P[K.edz] = 0.85 + 0.25 * k * e;
+      P[K.edx] = -1.35 - 0.15 * k;
+      P[K.cd] = 0.6 + 0.3 * k;
+      P[K.egz] = 0.55;
+      P[K.egx] = 0.25;
+      P[K.cg] = 2;
+      P[K.tz] = 0.08 * e * Math.sin(t * Math.PI);
+      P[K.hz] = -0.08 * Math.sin(t * Math.PI);
+    },
+    // danses (Wii Music, Wii Party) : balancement, clap, bras en l'air, pas chassés, tour sur soi (le cap est tenu par la
+    // page), saut de joie
+    balancer: (P, t, m) => {
+      const e = m.energie ?? 1, s = Math.sin(t * Math.PI);
+      accroupir(P, 0.1 * pulse(t), m);
+      P[K.bx] = 0.02 * e * s;
+      P[K.brz] = -0.06 * e * s;
+      P[K.tz] = 0.1 * e * s;
+      P[K.hz] = 0.12 * s;
+      P[K.egz] = 0.95 + 0.4 * e * s;
+      P[K.edz] = 0.95 - 0.4 * e * s;
+      P[K.egx] = P[K.edx] = -0.35;
+      P[K.cg] = P[K.cd] = 0.6;
+    },
+    clap: (P, t, m) => {
+      const e = m.energie ?? 1, c = Math.abs(Math.sin(t * Math.PI)), s = Math.sin(t * Math.PI / 2);
+      accroupir(P, 0.14 * e * pulse(t), m);
+      P[K.egx] = P[K.edx] = -1.15 - 0.2 * e * Math.max(0, s);
+      P[K.egz] = P[K.edz] = -0.32 + 0.34 * c;
+      P[K.cg] = P[K.cd] = 0.45;
+      P[K.tz] = 0.06 * s;
+      P[K.hz] = 0.1 * s;
+      P[K.hx] = -0.08;
+    },
+    brasHaut: (P, t, m) => {
+      const e = m.energie ?? 1, s = Math.sin(t * Math.PI);
+      accroupir(P, 0.15 * e * pulse(t), m);
+      P[K.egz] = 2.45 + 0.2 * s;
+      P[K.edz] = 2.45 - 0.2 * s;
+      P[K.egx] = P[K.edx] = -0.25;
+      P[K.cg] = P[K.cd] = 0.3;
+      P[K.tz] = -0.12 * e * s;
+      P[K.hz] = 0.1 * s;
+      P[K.hx] = -0.12;
+    },
+    chasse: (P, t, m) => {
+      const e = m.energie ?? 1, u = t % 2, c = Math.sin(t * Math.PI), l = Math.max(0, Math.sin(u * PI2)), r = Math.max(0, -Math.sin(u * PI2));
+      P[K.bx] = 0.06 * e * c;
+      P[K.hgz] = 0.03 + 0.3 * e * l;
+      P[K.hdz] = 0.03 + 0.3 * e * r;
+      P[K.gg] = 0.2 * l;
+      P[K.gd] = 0.2 * r;
+      P[K.by] = 0.012 * e * (l + r);
+      P[K.egz] = 0.9 + 0.4 * l;
+      P[K.edz] = 0.9 + 0.4 * r;
+      P[K.egx] = P[K.edx] = -0.3;
+      P[K.cg] = P[K.cd] = 0.9;
+      P[K.tz] = -0.08 * c;
+      P[K.hz] = 0.1 * c;
+    },
+    tour: (P, t, m) => {
+      const e = m.energie ?? 1;
+      accroupir(P, 0.1 * pulse(t), m);
+      P[K.egz] = P[K.edz] = 1.35;
+      P[K.egx] = P[K.edx] = -0.15;
+      P[K.cg] = P[K.cd] = 0.35;
+      P[K.hx] = -0.1 * e;
+    },
+    sautJoie: (P, t, m) => {
+      const e = m.energie ?? 1, h = Math.sin(t % 1 * Math.PI);
+      P[K.by] = 0.07 * e * h;
+      P[K.hgx] = P[K.hdx] = -0.35 * h;
+      P[K.gg] = P[K.gd] = 0.7 * h;
+      P[K.egz] = P[K.edz] = 2.3 + 0.25 * h;
+      P[K.egx] = P[K.edx] = -0.3;
+      P[K.cg] = P[K.cd] = 0.3;
+      P[K.hx] = -0.15;
     }
   };
   const BRAS = {
@@ -1258,6 +1417,18 @@
     applaudir: "joie",
     content: "joie",
     danser: "joie",
+    chanter: "parle",
+    guitare: "joie",
+    tambour: "joie",
+    clavier: "sourire",
+    maracas: "joie",
+    tambourin: "joie",
+    balancer: "sourire",
+    clap: "joie",
+    brasHaut: "joie",
+    chasse: "joie",
+    tour: "joie",
+    sautJoie: "joie",
     tomber: "surprise",
     pousser: "effort",
     rattraper: "inquiet",
@@ -1299,33 +1470,47 @@
     etirer: "joie"
   };
   const eu = new T.Euler(), qe = new T.Quaternion();
+  const A3 = [0, 0, 0], tri = (x, y, z) => {
+    A3[0] = x;
+    A3[1] = y;
+    A3[2] = z;
+    return A3;
+  };
   const ANGLES = [
-    (P) => [P[K.brx], P[K.bry], P[K.brz]],
+    (P) => tri(P[K.brx], P[K.bry], P[K.brz]),
     null,
-    (P) => [P[K.tx], P[K.ty], P[K.tz]],
-    (P) => [P[K.hx], P[K.hy], P[K.hz]],
-    (P) => [P[K.egx], P[K.egy], P[K.egz]],
-    (P) => [-P[K.cg], 0, 0],
+    (P) => tri(P[K.tx], P[K.ty], P[K.tz]),
+    (P) => tri(P[K.hx], P[K.hy], P[K.hz]),
+    (P) => tri(P[K.egx], P[K.egy], P[K.egz]),
+    (P) => tri(-P[K.cg], 0, 0),
     null,
-    (P) => [P[K.edx], -P[K.edy], -P[K.edz]],
-    (P) => [-P[K.cd], 0, 0],
+    (P) => tri(P[K.edx], -P[K.edy], -P[K.edz]),
+    (P) => tri(-P[K.cd], 0, 0),
     null,
-    (P) => [P[K.hgx], 0, P[K.hgz]],
-    (P) => [P[K.gg], 0, 0],
-    null,
-    (P) => [P[K.hdx], 0, -P[K.hdz]],
-    (P) => [P[K.gd], 0, 0],
-    null
+    (P) => tri(P[K.hgx], 0, P[K.hgz]),
+    (P) => tri(P[K.gg], 0, 0),
+    (P) => tri(-P[K.plat] * (P[K.hgx] + P[K.gg]), 0, 0),
+    (P) => tri(P[K.hdx], 0, -P[K.hdz]),
+    (P) => tri(P[K.gd], 0, 0),
+    (P) => tri(-P[K.plat] * (P[K.hdx] + P[K.gd]), 0, 0)
   ];
   const nouvellePose = () => ({ q: OS.map(() => new T.Quaternion()), o: new T.Vector3(), r: [1, 0, 0] });
   const depuisCanaux = (P, g, U, pose) => {
     for (let i = 0; i < OS.length; i++) {
-      const a = ANGLES[i];
+      const a = ANGLES[i], zp = g.Zp[i], z = g.Z[i];
+      let ex = 0, ey = 0, ez = 0, ew = 1;
       if (a) {
-        const [x, y, z] = a(P);
-        qe.setFromEuler(eu.set(x, y, z));
-      } else qe.identity();
-      pose.q[i].copy(g.Zp[i]).multiply(qe).multiply(g.Z[i]);
+        const r = a(P);
+        euler(r[0], r[1], r[2]);
+        ex = Q4[0];
+        ey = Q4[1];
+        ez = Q4[2];
+        ew = Q4[3];
+      }
+      const ax = zp._x, ay = zp._y, az = zp._z, aw = zp._w;
+      const mx = ax * ew + aw * ex + ay * ez - az * ey, my = ay * ew + aw * ey + az * ex - ax * ez, mz = az * ew + aw * ez + ax * ey - ay * ex, mw = aw * ew - ax * ex - ay * ey - az * ez;
+      const bx = z._x, by = z._y, bz = z._z, bw = z._w;
+      pose.q[i].set(mx * bw + mw * bx + my * bz - mz * by, my * bw + mw * by + mz * bx - mx * bz, mz * bw + mw * bz + mx * by - my * bx, mw * bw - mx * bx - my * by - mz * bz);
     }
     pose.o.set(P[K.bx], P[K.by], P[K.bz]).multiplyScalar(U);
     pose.r[0] = P[K.ech];
@@ -1409,7 +1594,7 @@
       });
     };
     m.allerVers = (but, o = {}) => {
-      const v = (o.courir ? 2.4 : 1.05) * (o.vitesse || 1) * m.taille, pos = objet.position;
+      const v = FOULEE[o.courir ? "courir" : "marcher"] * (o.vitesse || 1) * m.taille, pos = objet.position;
       m.jouer(o.courir ? "courir" : "marcher");
       return lancer("aller", (dt) => {
         const dx = but.x - pos.x, dz = but.z - pos.z, d = Math.hypot(dx, dz), pas = v * dt;
@@ -1567,15 +1752,24 @@
       c.initTextures(rendu, Mat);
       return c;
     })();
+    const liberer = T.Material.prototype.dispose;
+    T.Material.prototype.dispose = function() {
+    };
     let cm;
     try {
-      cm = tete(true);
-    } catch (e) {
-      if (!(e instanceof F.FFLiVerifyReasonException)) throw e;
-      cm = tete(false);
+      try {
+        cm = tete(true);
+      } catch (e) {
+        if (!(e instanceof F.FFLiVerifyReasonException)) throw e;
+        cm = tete(false);
+      }
+    } finally {
+      T.Material.prototype.dispose = liberer;
     }
     cm.meshes.traverse((x) => {
       x.frustumCulled = false;
+      x.renderOrder /= 1 + Math.abs(x.renderOrder);
+      if (x.material) for (const mat of Array.isArray(x.material) ? x.material : [x.material]) mat.depthTest = true;
     });
     const E = window.__pcvESM, g = gabarits[cm.charInfo.gender] || gabarits[0];
     const modele = E.clone(g.gltf.scene), echelle = cm.getBodyScale();
@@ -1632,7 +1826,6 @@
       anim: "repos",
       t: 0,
       ancienne: null,
-      tAnc: 0,
       fondu: 1,
       fonduDuree: 0.25,
       vitesse: 1,
@@ -1666,7 +1859,16 @@
     poserRacine(new T.Vector3());
     recalerTete();
     objet.updateMatrixWorld(true);
-    corps.skeleton.update();
+    peaux.forEach((x) => x.skeleton.update());
+    {
+      const semelle = new T.Box3();
+      peaux.forEach((x) => semelle.expandByObject(x, true));
+      if (Number.isFinite(semelle.min.y)) {
+        racine.position.y = -semelle.min.y;
+        objet.updateMatrixWorld(true);
+        peaux.forEach((x) => x.skeleton.update());
+      }
+    }
     const ici = (b) => new T.Vector3().setFromMatrixPosition(os[I[b]].matrixWorld);
     const dist = (a, b) => ici(a).distanceTo(ici(b));
     const sommet = new T.Vector3(0, cm.boundingBox.max.y, 0).applyMatrix4(cm.meshes.matrixWorld).y;
@@ -1681,7 +1883,8 @@
       tibia: dist("foot_l2", "ankle_l"),
       hancheX: ici("foot_l1").x,
       kl: echelle.x / 0.83,
-      tete: sommet - ici("head").y
+      tete: sommet - ici("head").y,
+      cheville: ici("ankle_l").y
     };
     D.kh = D.hanche / HAUT_IMITATION;
     D.prise = D.epauleY - D.bras * Math.cos(BRAS_SUSP);
@@ -1693,9 +1896,9 @@
       }
       if (nom === m.anim && !opt.redemarrer) return m;
       const f = opt.fondu ?? 0.25;
-      if (f > 0) {
+      if (f > 0 && poseVue.vue) {
+        copier(poseDepart, poseVue);
         m.ancienne = m.anim;
-        m.tAnc = m.t;
         m.fondu = 0;
         m.fonduDuree = f;
       } else m.ancienne = null;
@@ -1719,7 +1922,7 @@
       dessous.position.y = -0.42 * D.haut;
       return m;
     };
-    const P = new Float32Array(NC), poseA = nouvellePose(), poseB = nouvellePose(), poseBras = nouvellePose();
+    const P = new Float32Array(NC), poseA = nouvellePose(), poseB = nouvellePose(), poseBras = nouvellePose(), poseVue = nouvellePose(), poseDepart = nouvellePose();
     const evaluer = (nom, t, pose) => {
       if (estClip(nom)) {
         const c = g.clips[CLIPS[nom]];
@@ -1741,15 +1944,16 @@
       m.t += dt * m.vitesse;
       evaluer(m.anim, m.t, poseB);
       if (m.ancienne) {
-        m.tAnc += dt;
         m.fondu += dt / m.fonduDuree;
         if (m.fondu >= 1) m.ancienne = null;
         else {
-          evaluer(m.ancienne, m.tAnc, poseA);
+          copier(poseA, poseDepart);
           melanger(poseA, poseB, lisse(m.fondu));
           copier(poseB, poseA);
         }
       }
+      copier(poseVue, poseB);
+      poseVue.vue = true;
       if (m.bras && BRAS[m.bras] && m.bras !== m.brasJoue) {
         if (m.brasJoue) m.kBras = 0;
         m.brasJoue = m.bras;
@@ -1772,8 +1976,11 @@
       }
       let gx = 0, gy = 0;
       if (m.regard) {
-        objet.updateMatrixWorld(true);
-        inv.copy(os[I.chest].matrixWorld).invert();
+        if (m.enFoule) inv.copy(m.torse).invert();
+        else {
+          objet.updateMatrixWorld(true);
+          inv.copy(os[I.chest].matrixWorld).invert();
+        }
         vise.copy(m.regard).applyMatrix4(inv).multiplyScalar(1 / U);
         vise.y -= D.cou - D.hanche + D.tete * 0.5;
         const yaw = Math.atan2(vise.x, vise.z);
@@ -1786,15 +1993,8 @@
       const kr = 1 - Math.exp(-dt * 7);
       m.rg.x += (gx - m.rg.x) * kr;
       m.rg.y += (gy - m.rg.y) * kr;
-      for (let i = 0; i < OS.length; i++) os[i].quaternion.copy(poseB.q[i]);
-      if (Math.abs(m.rg.x) + Math.abs(m.rg.y) > 1e-4) os[I.head].quaternion.premultiply(qRegard.setFromEuler(eu.set(m.rg.x, m.rg.y, 0)));
-      poserRacine(poseB.o);
-      const e = poseB.r[0];
-      racine.scale.set(1 / Math.sqrt(e), e, 1 / Math.sqrt(e));
-      racine.rotation.set(poseB.r[1], 0, poseB.r[2]);
       tourner(m, dt);
-      objet.rotation.set(m.inclinaison, m.cap, 0);
-      recalerTete();
+      if (!m.enFoule) ecrire();
       let ex = m.expr || (m.bras === "salut" ? "sourire" : EXPRESSIONS[m.anim]) || "neutre";
       m.cligne -= dt;
       if (m.cligne < -m.prochain) {
@@ -1820,6 +2020,22 @@
         ombre.visible = objet.visible;
       } else ombre.visible = false;
     };
+    const ecrire = () => {
+      for (let i = 0; i < OS.length; i++) os[i].quaternion.copy(poseB.q[i]);
+      if (Math.abs(m.rg.x) + Math.abs(m.rg.y) > 1e-4) os[I.head].quaternion.premultiply(qRegard.setFromEuler(eu.set(m.rg.x, m.rg.y, 0)));
+      poserRacine(poseB.o);
+      const e = poseB.r[0];
+      racine.scale.set(1 / Math.sqrt(e), e, 1 / Math.sqrt(e));
+      racine.rotation.set(poseB.r[1], 0, poseB.r[2]);
+      objet.rotation.set(m.inclinaison, m.cap, 0);
+      dessous.position.y = -0.42 * D.haut;
+      if (!salto.rotation.x && Math.abs(objet.position.y - (m.sol ?? 0)) < 1e-3) {
+        objet.updateMatrixWorld(true);
+        const bas = Math.min(objet.worldToLocal(vise.setFromMatrixPosition(os[I.ankle_l].matrixWorld)).y, objet.worldToLocal(vise.setFromMatrixPosition(os[I.ankle_r].matrixWorld)).y);
+        if (bas < D.cheville) dessous.position.y += D.cheville - bas;
+      }
+      recalerTete();
+    };
     mouvements(m);
     m.suivre = (p, dt) => {
       if (p.nJouer !== m.nSuivi) {
@@ -1828,6 +2044,8 @@
         m.jouer(p.anim, { fondu: f, redemarrer: true, vitesse: p.vitesse });
       }
       m.t = p.t - dt * m.vitesse;
+      m.ph = p.ph;
+      m.cadence = p.cadence;
       m.cap = m.capVise = p.cap;
       m.inclinaison = p.inclinaison;
       objet.position.copy(p.objet.position);
@@ -1845,9 +2063,10 @@
       m.maj(dt);
       return m;
     };
+    Object.assign(m, { ecrireOs: ecrire, pose: poseB, racine, racineRepos, versParent, tailleTete: TAILLE_TETE, torse: new T.Matrix4() });
     m.rectEcran = (cam, W, H) => {
+      if (m.enFoule) ecrire();
       objet.updateMatrixWorld(true);
-      corps.skeleton.update();
       const v = new T.Vector3(), c = new T.Vector3(), b = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 }, k = objet.scale.x;
       const voir = (x, y) => {
         b.x0 = Math.min(b.x0, x);
@@ -1895,6 +2114,688 @@
     soleil.position.set(-0.5, 1, 0.9);
     scene.add(ciel, soleil);
     return { ciel, soleil };
+  };
+  const PAR_MII = /* @__PURE__ */ new Set(["u_const1", "u_const2", "u_const3", "diffuse", "constColor1", "constColor2", "constColor3", "u_SssColor", "u_SpecularColor", "u_RimColor"]);
+  const TEXTURES_MII = /* @__PURE__ */ new Set(["s_texture", "s_Tex", "map"]);
+  const TAILLES = { float: 1, vec2: 2, vec3: 3, vec4: 4 };
+  const LIGNE = 72;
+  const ENTREE = 24, STATIQUE = 16 * 7 + 2;
+  const PASSE_OS = `
+    uniform highp sampler2D entrees, statique; int r;
+    vec4 E(int t) { return texelFetch(entrees, ivec2(t, r), 0); }
+    vec4 S(int t) { return texelFetch(statique, ivec2(t, r), 0); }
+    mat4 composer(vec3 p, vec4 q, vec3 s) { float x2 = q.x + q.x, y2 = q.y + q.y, z2 = q.z + q.z, xx = q.x * x2, xy = q.x * y2, xz = q.x * z2, yy = q.y * y2, yz = q.y * z2, zz = q.z * z2, wx = q.w * x2, wy = q.w * y2, wz = q.w * z2;
+      return mat4(vec4(1.0 - (yy + zz), xy + wz, xz - wy, 0.0) * s.x, vec4(xy - wz, 1.0 - (xx + zz), yz + wx, 0.0) * s.y, vec4(xz + wy, yz - wx, 1.0 - (xx + yy), 0.0) * s.z, vec4(p, 1.0)); }
+    int racine;
+    mat4 local(int k) { vec4 a = S(7 * k), b = S(7 * k + 1); return composer(k == racine ? E(16).xyz : a.xyz, E(k), b.xyz); }
+    int parent(int k) { return int(S(7 * k).w); }
+    // monde (sans \xE9chelle) et matrice mise \xE0 l'\xE9chelle M de l'os k, en descendant sa cha\xEEne depuis la racine
+    void chaine(int k, out mat4 W, out mat4 M) {
+      int c[8]; int n = 0; for (int j = k; j >= 0 && n < 8; j = parent(j)) c[n++] = j;
+      mat4 Wp = mat4(E(17), E(18), E(19), E(20)), Mp = Wp; int p = -1;
+      for (int i = n - 1; i >= 0; i--) { int j = c[i]; mat4 L = local(j); W = Wp * L; mat4 CW = W;
+        if (p >= 0 && p < j && S(7 * p + 1).w > 0.5) CW[3].xyz = (Mp * L)[3].xyz;
+        M = CW; if (S(7 * j + 1).w > 0.5) { vec3 e = S(7 * j + 2).xyz; M[0] *= e.x; M[1] *= e.y; M[2] *= e.z; }
+        Wp = W; Mp = M; p = j; } }
+    void main() {
+      ivec2 f = ivec2(gl_FragCoord.xy); r = f.y; int x = f.x;
+      vec4 v23 = E(23); if (v23.z < 0.5 || x > 68) { gl_FragColor = vec4(0.0); return; }
+      if (x == 68) { gl_FragColor = vec4(v23.y, 0.0, 0.0, 0.0); return; }
+      vec4 g = S(112), h = S(113); int n = int(g.x); racine = int(g.y);
+      int k = x < 64 ? x / 4 : int(g.z); if (k >= n) { gl_FragColor = vec4(0.0); return; }
+      mat4 W, M, W2, M2; chaine(k, W, M);
+      // pieds au sol : la plus basse cheville, dans le rep\xE8re de l'objet, remont\xE9e \xE0 sa hauteur de repos
+      vec3 d = vec3(0.0); vec4 pl = E(21), ax = E(22);
+      if (E(16).w > 0.5) { chaine(int(h.x), W2, M2); float b = dot(ax.xyz, W2[3].xyz - pl.xyz); chaine(int(h.y), W2, M2); b = min(b, dot(ax.xyz, W2[3].xyz - pl.xyz)) / ax.w;
+        if (b < pl.w) d = ax.xyz * (pl.w - b); }
+      M[3].xyz += d;
+      if (x < 64) { mat4 I = mat4(S(7 * k + 3), S(7 * k + 4), S(7 * k + 5), S(7 * k + 6)); gl_FragColor = (M * I)[x - 4 * k]; return; }
+      // la t\xEAte : l'os de la t\xEAte, sa rotation et sa place, \xE0 la taille propre de la t\xEAte (comme l'attache de FFL.js)
+      int c = x - 64; if (c == 3) { gl_FragColor = M[3]; return; }
+      float sg = (c == 0 && determinant(mat3(M)) < 0.0) ? -1.0 : 1.0;
+      gl_FragColor = vec4(M[c].xyz / (length(M[c].xyz) * sg) * v23.x, 0.0); }`;
+  const DECL = (n) => new RegExp(`uniform\\s+(?:(?:lowp|mediump|highp)\\s+)?(\\w+)\\s+${n}\\s*;`);
+  const MAIN = /void\s+main\s*\(\s*(?:void)?\s*\)\s*\{/;
+  const SKIN = ["skinning_pars_vertex", "skinbase_vertex", "skinning_vertex", "skinnormal_vertex"];
+  const deplies = /* @__PURE__ */ new Map(), deplier = (s) => {
+    const s0 = s;
+    if (deplies.has(s0)) return deplies.get(s0);
+    for (let k = 0; k < 4 && s.includes("#include"); k++) s = s.replace(/#include\s+<(\w+)>/g, (x, n) => T.ShaderChunk[n] ?? x);
+    deplies.set(s0, s);
+    return s;
+  };
+  const valeur = (v) => v == null ? "~" : typeof v !== "object" ? String(v) : v.isTexture ? "t" + v.id : v.toArray ? v.toArray().join(",") : Array.isArray(v) ? v.map(valeur).join(";") : "{" + Object.keys(v).map((k) => k + ":" + valeur(v[k])).join(",") + "}";
+  const foule = ({ rendu, scene, max = 256 }) => {
+    const gl = rendu.getContext(), MAX_COUCHES = gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS);
+    const texture = (l, h) => {
+      const t = new T.DataTexture(new Float32Array(l * 4 * h), l, h, T.RGBAFormat, T.FloatType);
+      t.needsUpdate = true;
+      return t;
+    };
+    const entrees = texture(ENTREE, max), statique = texture(STATIQUE, max), E_ = entrees.image.data, S_ = statique.image.data;
+    rendu.initTexture(entrees);
+    const cible = new T.WebGLRenderTarget(LIGNE, max, { type: T.FloatType, format: T.RGBAFormat, minFilter: T.NearestFilter, magFilter: T.NearestFilter, depthBuffer: false, generateMipmaps: false });
+    const tex = cible.texture;
+    const LUM_N = 8, LUM = {
+      lum_: { value: Array.from({ length: LUM_N }, () => new T.Vector3()) },
+      lumC_: { value: Array.from({ length: LUM_N }, () => new T.Color(0)) },
+      ombre_: { value: null },
+      ombreP_: { value: new T.Vector3() },
+      brume_: { value: new T.Vector3() },
+      brumeC_: { value: new T.Color() },
+      proche_: { value: new T.Vector2() }
+    };
+    const lumieres = (l) => LUM.lum_.value.forEach((v, i) => {
+      const p = l[i];
+      if (p) {
+        v.set(p.x, p.z, 1 / (p.r || 6));
+        LUM.lumC_.value[i].copy(p.c).multiplyScalar(p.f ?? 1);
+      } else LUM.lumC_.value[i].setScalar(0);
+    });
+    const ombrer = (o) => {
+      LUM.ombre_.value = o?.carte ?? null;
+      LUM.ombreP_.value.set(o ? o.echelle : 0, o?.plancher ?? 0, o?.demi ?? 1);
+      LUM.brume_.value.set(...o?.brume ?? [0, 0, 0]);
+      if (o) LUM.brumeC_.value.copy(o.couleur).convertLinearToSRGB();
+      LUM.proche_.value.set(...o?.proche ?? [0, 0]);
+    };
+    const familles = /* @__PURE__ */ new Map(), membres = /* @__PURE__ */ new Map(), libres = [], ids = /* @__PURE__ */ new Map();
+    let nCases = 1;
+    const id = (s) => {
+      let i = ids.get(s);
+      if (i === void 0) ids.set(s, i = ids.size);
+      return i;
+    };
+    const analyser = (mat) => {
+      if (!mat?.isShaderMaterial || mat.isRawShaderMaterial || !MAIN.test(mat.vertexShader)) return null;
+      const varies = [], textures = [], cle = [
+        mat.constructor.name,
+        id(mat.vertexShader),
+        id(mat.fragmentShader),
+        mat.side,
+        mat.transparent,
+        mat.depthWrite,
+        mat.depthTest,
+        mat.blending,
+        mat.blendSrc,
+        mat.blendDst,
+        mat.alphaTest,
+        mat.colorWrite,
+        mat.premultipliedAlpha,
+        mat.lights,
+        mat.fog,
+        !!mat.map,
+        JSON.stringify(mat.defines || {})
+      ];
+      const vs = deplier(mat.vertexShader), fs = deplier(mat.fragmentShader);
+      for (const k of Object.keys(mat.uniforms).sort()) {
+        const u = mat.uniforms[k], t = (DECL(k).exec(fs) || DECL(k).exec(vs))?.[1];
+        if (TEXTURES_MII.has(k) && u.value?.isTexture && t === "sampler2D") textures.push(k);
+        else if (PAR_MII.has(k) && TAILLES[t] && (typeof u.value === "number" || u.value?.toArray)) varies.push([k, t]);
+        else cle.push(k + "=" + valeur(u.value));
+      }
+      return { varies, textures, cle: cle.join("|"), prog: varies.map((x) => x[0]).join() + "/" + textures.join() };
+    };
+    const patcher = (f) => (s) => {
+      let v = s.vertexShader, fr = deplier(s.fragmentShader), debut = "";
+      let haut = "attribute float a_case;\nuniform highp sampler2D poses_;\nmat4 pose_(int k) { int r = int(a_case); return mat4(texelFetch(poses_, ivec2(k, r), 0), texelFetch(poses_, ivec2(k + 1, r), 0), texelFetch(poses_, ivec2(k + 2, r), 0), texelFetch(poses_, ivec2(k + 3, r), 0)); }\n";
+      if (f.corps) {
+        haut += "attribute vec4 skinIndex, skinWeight;\nuniform mat4 lien_;\n";
+        v = deplier(v.replace("#include <skinning_pars_vertex>", "").replace("#include <skinbase_vertex>", "mat4 boneMatX = pose_(4 * int(skinIndex.x)), boneMatY = pose_(4 * int(skinIndex.y)), boneMatZ = pose_(4 * int(skinIndex.z)), boneMatW = pose_(4 * int(skinIndex.w));").replace("#include <skinning_vertex>", "{ vec4 sv = lien_ * vec4(transformed, 1.0); transformed = (boneMatX * sv * skinWeight.x + boneMatY * sv * skinWeight.y + boneMatZ * sv * skinWeight.z + boneMatW * sv * skinWeight.w).xyz; }").replace("#include <skinnormal_vertex>", "{ mat4 sm = (skinWeight.x * boneMatX + skinWeight.y * boneMatY + skinWeight.z * boneMatZ + skinWeight.w * boneMatW) * lien_;\nobjectNormal = (sm * vec4(objectNormal, 0.0)).xyz;\n#ifdef USE_TANGENT\nobjectTangent = (sm * vec4(objectTangent, 0.0)).xyz;\n#endif\n}"));
+      } else {
+        v = deplier(v).replace(/\bmodelViewMatrix\b/g, "mv_").replace(/\bnormalMatrix\b/g, "nm_").replace(/\bmodelMatrix\b/g, "mm_");
+        haut += "mat4 mm_, mv_; mat3 nm_;\n";
+        debut = "mm_ = pose_(64); mv_ = viewMatrix * mm_; nm_ = transpose(inverse(mat3(mv_)));\n";
+      }
+      for (const [k, t] of f.varies) {
+        haut += `attribute ${t} a_${k};
+varying ${t} v_${k};
+`;
+        debut += `v_${k} = a_${k};
+`;
+        v = v.replace(DECL(k), `
+#define ${k} a_${k}
+`);
+        fr = fr.replace(DECL(k), `varying ${t} v_${k};
+#define ${k} v_${k}
+`);
+      }
+      for (const k of f.textures) {
+        haut += `attribute float a_couche_${k};
+varying float v_couche_${k};
+`;
+        debut += `v_couche_${k} = a_couche_${k}${f.dyn === k ? " + texelFetch(poses_, ivec2(68, int(a_case)), 0).x" : ""};
+`;
+        fr = fr.replace(DECL(k), `uniform highp sampler2DArray ${k}_t;
+varying float v_couche_${k};
+vec4 ${k}_lire(vec2 uv) { return texture(${k}_t, vec3(uv, v_couche_${k})); }
+`).replace(new RegExp(`texture(?:2D)?\\s*\\(\\s*${k}\\s*,`, "g"), `${k}_lire(`);
+      }
+      haut += `uniform vec3 lum_[${LUM_N}], lumC_[${LUM_N}], ombreP_;
+uniform vec3 brume_;
+uniform vec2 proche_;
+uniform sampler2D ombre_;
+varying vec3 teinte_;
+varying vec4 ombreV_;
+varying float proche_v;
+`;
+      debut += `{ vec3 q_ = texelFetch(poses_, ivec2(67, int(a_case)), 0).xyz; vec2 p_ = q_.xz; teinte_ = vec3(0.0); for (int i = 0; i < ${LUM_N}; i++) teinte_ += lumC_[i] * max(0.0, 1.0 - distance(p_, lum_[i].xy) * lum_[i].z);
+        ombreV_ = vec4(1.0, 1.0, 1.0, 0.0); if (ombreP_.x > 0.0) ombreV_.rgb = clamp(texture(ombre_, vec2(p_.x + ombreP_.z, ombreP_.z - p_.y) / (2.0 * ombreP_.z)).rgb * ombreP_.x, ombreP_.y, 1.0);
+        if (brume_.z > 0.0) ombreV_.a = smoothstep(brume_.y, brume_.z, brume_.x - p_.y); proche_v = proche_.y > 0.0 ? smoothstep(proche_.x, proche_.y, distance(cameraPosition, q_)) : 1.0; }
+`;
+      const m = MAIN.exec(fr);
+      if (m) fr = fr.slice(0, m.index) + "varying vec3 teinte_;\nvarying vec4 ombreV_;\nvarying float proche_v;\nuniform vec3 brumeC_;\n" + fr.slice(m.index).replace(
+        /gl_FragColor\s*=\s*([^;]+);/g,
+        // (fondu tramé, sans tri ni transparence : un pixel sur deux, puis aucun, selon un bruit fixe à l'écran)
+        "{ if (proche_v < 1.0 && proche_v <= fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715))))) discard; gl_FragColor = $1; gl_FragColor.rgb = mix(gl_FragColor.rgb * ombreV_.rgb + teinte_ * gl_FragColor.a, brumeC_ * gl_FragColor.a, ombreV_.a); }"
+      );
+      s.vertexShader = haut + v.replace(MAIN, (x) => x + "\n" + debut);
+      s.fragmentShader = fr;
+    };
+    const maillage = (g, src, f, extra) => {
+      const mat = new T.ShaderMaterial();
+      T.Material.prototype.copy.call(mat, src);
+      Object.assign(mat, {
+        vertexShader: src.vertexShader,
+        fragmentShader: src.fragmentShader,
+        uniforms: { ...src.uniforms, poses_: { value: tex }, ...LUM, ...extra },
+        defines: { ...src.defines },
+        extensions: { ...src.extensions },
+        lights: src.lights,
+        fog: src.fog,
+        glslVersion: src.glslVersion
+      });
+      for (const k of [...f.textures, ...f.varies.map((x) => x[0])]) delete mat.uniforms[k];
+      const prog = "foule" + (f.corps ? "C" : "T") + f.prog + "/" + f.dyn;
+      mat.onBeforeCompile = patcher(f);
+      mat.customProgramCacheKey = () => prog;
+      const m = new T.Mesh(g, mat);
+      m.frustumCulled = false;
+      m.matrixAutoUpdate = false;
+      m.raycast = () => {
+      };
+      scene.add(m);
+      return m;
+    };
+    const valeurs = (u) => typeof u.value === "number" ? [u.value] : u.value.toArray();
+    const PLAN = new T.PlaneGeometry(2, 2), CAM = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1), atelier = new T.Scene();
+    const VS_COPIE = "varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }";
+    const copie2D = new T.ShaderMaterial({
+      uniforms: { src: { value: null } },
+      vertexShader: VS_COPIE,
+      depthTest: false,
+      depthWrite: false,
+      blending: T.NoBlending,
+      fragmentShader: "uniform sampler2D src; varying vec2 vUv; void main() { gl_FragColor = texture2D(src, vUv); }"
+    });
+    const copieTab = new T.ShaderMaterial({
+      uniforms: { src: { value: null }, c: { value: 0 } },
+      vertexShader: VS_COPIE,
+      depthTest: false,
+      depthWrite: false,
+      blending: T.NoBlending,
+      fragmentShader: "uniform highp sampler2DArray src; uniform float c; varying vec2 vUv; void main() { gl_FragColor = texture(src, vec3(vUv, c)); }"
+    });
+    const plan = new T.Mesh(PLAN, copie2D);
+    plan.frustumCulled = false;
+    atelier.add(plan);
+    const copier2 = (mat, rt, couche) => {
+      plan.material = mat;
+      const avant = rendu.getRenderTarget();
+      rendu.setRenderTarget(rt, couche);
+      rendu.render(atelier, CAM);
+      rendu.setRenderTarget(avant);
+    };
+    const mips = (rt) => {
+      rendu.state.bindTexture(gl.TEXTURE_2D_ARRAY, rendu.properties.get(rt.texture).__webglTexture);
+      gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
+      rendu.state.unbindTexture();
+    };
+    const tableau = (spec, couches) => {
+      const rt = new T.WebGLArrayRenderTarget(spec.w, spec.h, couches, { depthBuffer: false });
+      Object.assign(rt.texture, { wrapS: spec.wrapS, wrapT: spec.wrapT, magFilter: spec.mag, minFilter: spec.mips ? T.LinearMipmapLinearFilter : spec.min, generateMipmaps: false });
+      return rt;
+    };
+    const familleCorps = (x, a, cle) => {
+      const g = new T.InstancedBufferGeometry();
+      g.index = x.geometry.index;
+      for (const [k, at] of Object.entries(x.geometry.attributes)) g.setAttribute(k, at);
+      const f = { corps: true, cle, ...a, dyn: null, n: 0, qui: [], attrs: {} };
+      const attr = (k, t) => {
+        const at = new T.InstancedBufferAttribute(new Float32Array(max * t), t).setUsage(T.DynamicDrawUsage);
+        g.setAttribute(k, at);
+        f.attrs[k] = at;
+      };
+      attr("a_case", 1);
+      for (const [k, t] of a.varies) attr("a_" + k, TAILLES[t]);
+      g.instanceCount = 0;
+      f.mesh = maillage(g, x.material, f, { lien_: { value: x.bindMatrix.clone() } });
+      f.mesh.renderOrder = x.renderOrder;
+      return f;
+    };
+    const ecrireCorps = (f, j, mb, x) => {
+      f.attrs.a_case.setX(j, mb.case);
+      for (const [k] of f.varies) f.attrs["a_" + k].set(valeurs(x.material.uniforms[k]), j * f.attrs["a_" + k].itemSize);
+      for (const at of Object.values(f.attrs)) at.needsUpdate = true;
+    };
+    const disposition = (g) => Object.keys(g.attributes).sort().map((k) => {
+      const a = g.attributes[k];
+      return k + a.itemSize + (a.isFloat16BufferAttribute ? "h" : (a.isInterleavedBufferAttribute ? a.data.array : a.array).constructor.name) + a.normalized;
+    }).join(",") + (g.index ? "i" : "");
+    const familleTete = (x, a, cle, specs, dyn) => {
+      const f = { corps: false, cle, ...a, dyn, specs, nv: 0, ni: 0, capV: 0, capI: 0, couches: 0, tabs: {}, plein: false, g: null };
+      f.mesh = maillage(new T.BufferGeometry(), x.material, f, {});
+      f.mesh.renderOrder = x.renderOrder;
+      f.src = Object.fromEntries(Object.entries(x.geometry.attributes).map(([k, at]) => [k, {
+        t: at.itemSize,
+        half: !!at.isFloat16BufferAttribute,
+        norm: at.normalized,
+        C: (at.isInterleavedBufferAttribute ? at.data.array : at.array).constructor
+      }]));
+      f.src.a_case = { t: 1, C: Float32Array };
+      for (const [k, t] of a.varies) f.src["a_" + k] = { t: TAILLES[t], C: Float32Array };
+      for (const k of a.textures) f.src["a_couche_" + k] = { t: 1, C: Float32Array };
+      return f;
+    };
+    const agrandirGeo = (f, nv, ni) => {
+      if (f.nv + nv <= f.capV && f.ni + ni <= f.capI) return;
+      const capV = Math.max(f.nv + nv, 2 * f.capV, 16 * nv), capI = Math.max(f.ni + ni, 2 * f.capI, 16 * ni), g = new T.BufferGeometry(), ancienne = f.g;
+      for (const [k, s] of Object.entries(f.src)) {
+        const arr = new s.C(capV * s.t);
+        if (ancienne) arr.set(ancienne.attributes[k].array.subarray(0, f.nv * s.t));
+        g.setAttribute(k, s.half ? new T.Float16BufferAttribute(arr, s.t) : new T.BufferAttribute(arr, s.t, s.norm));
+      }
+      const idx = new Uint32Array(capI);
+      if (ancienne) idx.set(ancienne.index.array.subarray(0, f.ni));
+      g.setIndex(new T.BufferAttribute(idx, 1));
+      g.setDrawRange(0, f.ni);
+      f.g = f.mesh.geometry = g;
+      f.capV = capV;
+      f.capI = capI;
+      ancienne?.dispose();
+    };
+    const marquer = (at, debut, n) => {
+      const r = at.updateRange;
+      if (r.count === -1) {
+        r.offset = debut;
+        r.count = n;
+      } else {
+        const fin = Math.max(r.offset + r.count, debut + n);
+        r.offset = Math.min(r.offset, debut);
+        r.count = fin - r.offset;
+      }
+      at.needsUpdate = true;
+    };
+    const agrandirTab = (f, k) => {
+      const cap = f.tabs[f.textures[0]]?.depth ?? 0;
+      if (f.couches + k <= cap) return true;
+      const max_ = Math.floor(MAX_COUCHES / f.specs[f.textures[0]].n) * f.specs[f.textures[0]].n;
+      if (f.couches + k > max_) return false;
+      const neuf = Math.min(max_, Math.max(f.couches + k, Math.ceil(cap * 1.25 / k) * k, 4 * k));
+      for (const t of f.textures) {
+        const ancien = f.tabs[t], rt = tableau(f.specs[t], neuf);
+        if (ancien) {
+          copieTab.uniforms.src.value = ancien.texture;
+          for (let c = 0; c < f.couches; c++) {
+            copieTab.uniforms.c.value = c;
+            copier2(copieTab, rt, c);
+          }
+          ancien.dispose();
+        }
+        f.tabs[t] = rt;
+        f.mesh.material.uniforms[t + "_t"] = { value: rt.texture };
+        if (t === "map") f.mesh.material.map = rt.texture;
+      }
+      return true;
+    };
+    const ajouterTete = (mb, x, f, sources) => {
+      x.updateMatrix();
+      const g = x.matrix.equals(IDENTITE) ? x.geometry : x.geometry.clone().applyMatrix4(x.matrix), nv = g.attributes.position.count, ni = g.index ? g.index.count : nv;
+      const k = f.textures.length ? f.specs[f.textures[0]].n : 0;
+      if (k && !agrandirTab(f, k)) return false;
+      agrandirGeo(f, nv, ni);
+      const G = f.g;
+      for (const [nom, s] of Object.entries(f.src)) {
+        if (!g.attributes[nom]) continue;
+        const at = g.attributes[nom], dst = G.attributes[nom].array, o = f.nv * s.t;
+        if (at.isInterleavedBufferAttribute) {
+          const d = at.data.array, st = at.data.stride;
+          for (let i = 0; i < nv; i++) for (let c = 0; c < s.t; c++) dst[o + i * s.t + c] = d[i * st + at.offset + c];
+        } else dst.set(at.array.subarray(0, nv * s.t), o);
+        marquer(G.attributes[nom], o, nv * s.t);
+      }
+      G.attributes.a_case.array.fill(mb.case, f.nv, f.nv + nv);
+      marquer(G.attributes.a_case, f.nv, nv);
+      for (const [u, t] of f.varies) {
+        const at = G.attributes["a_" + u], v = valeurs(x.material.uniforms[u]);
+        for (let i = 0; i < nv; i++) at.array.set(v, (f.nv + i) * TAILLES[t]);
+        marquer(at, f.nv * TAILLES[t], nv * TAILLES[t]);
+      }
+      for (const t of f.textures) {
+        const at = G.attributes["a_couche_" + t];
+        at.array.fill(f.couches, f.nv, f.nv + nv);
+        marquer(at, f.nv, nv);
+        sources[t].forEach((s, c) => {
+          copie2D.uniforms.src.value = s;
+          copier2(copie2D, f.tabs[t], f.couches + c);
+        });
+        if (f.specs[t].mips) mips(f.tabs[t]);
+      }
+      const idx = G.index.array, sens = x.matrix.determinant() < 0, src = g.index?.array;
+      for (let i = 0; i < ni; i++) {
+        const j = sens ? i - i % 3 + [0, 2, 1][i % 3] : i;
+        idx[f.ni + i] = (src ? src[j] : j) + f.nv;
+      }
+      marquer(G.index, f.ni, ni);
+      mb.tete.push({ f, v0: f.nv, nv });
+      f.nv += nv;
+      f.ni += ni;
+      f.couches += k;
+      G.setDrawRange(0, f.ni);
+      if (g !== x.geometry) g.dispose();
+      return true;
+    };
+    const famille = (cle, creer_) => {
+      let gen = 0, f;
+      while ((f = familles.get(cle + "#" + gen)) && f.plein) gen++;
+      if (!f) familles.set(cle + "#" + gen, f = creer_(cle + "#" + gen));
+      return f;
+    };
+    const ajouter = (m) => {
+      if (membres.has(m)) return true;
+      const cm = m.tete, sq = m.corps?.skeleton, peaux = [];
+      m.modele.traverse((x) => {
+        if (x.isSkinnedMesh) peaux.push(x);
+      });
+      const corps = peaux.map((x) => [x, analyser(x.material)]), pieces = cm?.meshes ? cm.meshes.children.filter((x) => x.isMesh).map((x) => [x, analyser(x.material)]) : null;
+      if (!sq || sq.bones.length > 16 || sq.bones.some((b) => !m.os.includes(b)) || !pieces || corps.some(([x, a]) => !a || a.textures.length || x.skeleton.bones.some((b, i) => b !== sq.bones[i]) || x.skeleton.boneInverses.some((b, i) => !b.equals(sq.boneInverses[i])) || !SKIN.every((c) => x.material.vertexShader.includes(`#include <${c}>`))) || pieces.some(([, a]) => !a)) return false;
+      const exprs = m.expressions.map((e) => X()[EXPR[e]]), masque = cm.getMask(cm.expression)?.texture;
+      const mb = { m, case: libres.pop() ?? nCases++, exprs, corps: [], tete: [], vide: false };
+      if (mb.case >= max) {
+        if (mb.case === nCases - 1) nCases--;
+        return false;
+      }
+      for (const [x, a] of corps) {
+        const cle = "C|" + x.geometry.uuid + "|" + a.cle + "|" + x.bindMatrix.elements.join(",") + "|" + x.renderOrder;
+        const f = famille(cle, (c) => familleCorps(x, a, c)), j = f.n++;
+        f.qui[j] = mb;
+        ecrireCorps(f, j, mb, x);
+        f.mesh.geometry.instanceCount = f.n;
+        mb.corps.push([f, x]);
+        x.removeFromParent();
+        x.material.dispose();
+      }
+      for (const [x, a] of pieces) {
+        const sources = {}, specs = {};
+        let dyn = null;
+        for (const t of a.textures) {
+          const s = x.material.uniforms[t].value;
+          sources[t] = s === masque && exprs.length ? (dyn = t, exprs.map((e) => cm.getMask(e).texture)) : [s];
+          const i = s.image;
+          specs[t] = { w: i.width, h: i.height, wrapS: s.wrapS, wrapT: s.wrapT, mag: s.magFilter, min: s.minFilter, mips: s.minFilter !== T.LinearFilter && s.minFilter !== T.NearestFilter && s.mipmaps?.length > 1, n: sources[t].length };
+        }
+        const cle = "T|" + a.cle + "|" + disposition(x.geometry) + "|" + JSON.stringify(specs) + "|" + x.renderOrder + "|" + dyn;
+        let f = famille(cle, (c) => familleTete(x, a, c, specs, dyn));
+        if (!ajouterTete(mb, x, f, sources)) {
+          f.plein = true;
+          f = famille(cle, (c) => familleTete(x, a, c, specs, dyn));
+          ajouterTete(mb, x, f, sources);
+        }
+        x.removeFromParent();
+        x.geometry.dispose();
+        x.material.dispose();
+      }
+      cm.setExpression = () => {
+      };
+      cm.disposeTargets();
+      cm._textureManager?.dispose();
+      cm._textureManager = null;
+      sq.detach?.(cm.meshes);
+      m.objet.updateMatrixWorld(true);
+      m.torse.copy(m.os[I.chest].matrixWorld);
+      const B = sq.bones, n = B.length, ordre = [];
+      while (ordre.length < n) for (let k = 0; k < n; k++) if (!ordre.includes(k) && (B.indexOf(B[k].parent) < 0 || ordre.includes(B.indexOf(B[k].parent)))) ordre.push(k);
+      mb.sq = {
+        n,
+        ordre,
+        idx: B.map((b) => m.os.indexOf(b)),
+        parent: B.map((b) => B.indexOf(b.parent)),
+        enf: B.map((b) => B.flatMap((c, k) => c.parent === b ? [k] : [])),
+        rep: Float64Array.from(B.flatMap((b) => [b.position.x, b.position.y, b.position.z, b.scale.x, b.scale.y, b.scale.z])),
+        ech: B.map((b) => b.scalling ? [b.scalling.x, b.scalling.y, b.scalling.z] : null),
+        inv: Float64Array.from(B.flatMap((b, k) => sq.boneInverses[k].elements)),
+        racine: B.indexOf(m.os[0]),
+        tete: B.indexOf(m.os[I.head]),
+        torse: B.indexOf(m.os[I.chest]),
+        chev: [B.indexOf(m.os[I.ankle_l]), B.indexOf(m.os[I.ankle_r])],
+        modele: Float64Array.from(m.modele.matrix.elements),
+        K: Float64Array.from(new T.Matrix4().copy(m.modele.matrixWorld).invert().multiply(m.os[0].parent.matrixWorld).elements),
+        c0: new Float64Array(16),
+        cle0: NaN
+      };
+      {
+        const d = mb.sq, o = mb.case * STATIQUE * 4;
+        for (let k = 0; k < n; k++) {
+          const t = o + k * 28, r = d.rep, e = d.ech[k];
+          S_.set([r[k * 6], r[k * 6 + 1], r[k * 6 + 2], d.parent[k], r[k * 6 + 3], r[k * 6 + 4], r[k * 6 + 5], e ? 1 : 0, e ? e[0] : 1, e ? e[1] : 1, e ? e[2] : 1, 0], t);
+          S_.set(d.inv.subarray(k * 16, k * 16 + 16), t + 12);
+        }
+        S_.set([n, d.racine, d.tete, 0, d.chev[0], d.chev[1], 0, 0], o + 16 * 28);
+        statique.needsUpdate = true;
+      }
+      m.enFoule = true;
+      membres.set(m, mb);
+      return true;
+    };
+    const retirer = (m) => {
+      const mb = membres.get(m);
+      if (!mb) return;
+      membres.delete(m);
+      for (const [f] of mb.corps) {
+        const j = f.qui.indexOf(mb), l = --f.n;
+        if (j !== l) {
+          const d = f.qui[l];
+          f.qui[j] = d;
+          for (const at of Object.values(f.attrs)) {
+            for (let c = 0; c < at.itemSize; c++) at.array[j * at.itemSize + c] = at.array[l * at.itemSize + c];
+            at.needsUpdate = true;
+          }
+        }
+        f.qui.length = l;
+        f.mesh.geometry.instanceCount = l;
+      }
+      for (const { f, v0, nv } of mb.tete) {
+        const at = f.g.attributes.a_case;
+        at.array.fill(0, v0, v0 + nv);
+        marquer(at, v0, nv);
+      }
+      E_.fill(0, mb.case * ENTREE * 4, (mb.case + 1) * ENTREE * 4);
+      entrees.needsUpdate = true;
+      libres.push(mb.case);
+    };
+    const O = new Float64Array(16), S = new Float64Array(16), A = new Float64Array(16), MX = new Float64Array(16), MY = new Float64Array(16), L3 = new Float64Array(48);
+    const preparer2 = (mb, o) => {
+      const m = mb.m, d = mb.sq, p = m.pose, P = m.objet.position, s = m.objet.scale.x, sal = m.salto.rotation.x, D = m.D;
+      euler(m.inclinaison, m.cap, 0);
+      composer(O, 0, P.x, P.y, P.z, Q4[0], Q4[1], Q4[2], Q4[3], s, s, s);
+      euler(sal, 0, 0);
+      composer(S, 0, 0, m.salto.position.y, 0, Q4[0], Q4[1], Q4[2], Q4[3], 1, 1, 1);
+      mul(A, 0, O, 0, S, 0);
+      const e = p.r[0], cle = e * 1e6 + p.r[1] * 1e3 + p.r[2];
+      if (cle !== d.cle0) {
+        d.cle0 = cle;
+        euler(p.r[1], 0, p.r[2]);
+        const r = Math.sqrt(e);
+        composer(MX, 0, 0, -0.42 * D.haut + m.racine.position.y, 0, Q4[0], Q4[1], Q4[2], Q4[3], 1 / r, e, 1 / r);
+        mul(MY, 0, MX, 0, d.modele, 0);
+        mul(d.c0, 0, MY, 0, d.K, 0);
+      }
+      mul(MX, 0, A, 0, d.c0, 0);
+      const rg = Math.abs(m.rg.x) + Math.abs(m.rg.y) > 1e-4;
+      if (rg) euler(m.rg.x, m.rg.y, 0);
+      for (let k = 0; k < d.n; k++) {
+        const q = p.q[d.idx[k]], t = o + k * 4;
+        let qx = q._x, qy = q._y, qz = q._z, qw = q._w;
+        if (k === d.tete && rg) {
+          const ax = Q4[0], ay = Q4[1], az = Q4[2], aw = Q4[3], bx = qx, by = qy, bz = qz, bw = qw;
+          qx = ax * bw + aw * bx + ay * bz - az * by;
+          qy = ay * bw + aw * by + az * bx - ax * bz;
+          qz = az * bw + aw * bz + ax * by - ay * bx;
+          qw = aw * bw - ax * bx - ay * by - az * bz;
+        }
+        E_[t] = qx;
+        E_[t + 1] = qy;
+        E_[t + 2] = qz;
+        E_[t + 3] = qw;
+      }
+      vR.copy(m.racineRepos).add(p.o).applyQuaternion(m.versParent);
+      E_[o + 64] = vR.x;
+      E_[o + 65] = vR.y;
+      E_[o + 66] = vR.z;
+      E_[o + 67] = !sal && Math.abs(P.y - (m.sol ?? 0)) < 1e-3 ? 1 : 0;
+      for (let i = 0; i < 16; i++) E_[o + 68 + i] = MX[i];
+      E_[o + 84] = P.x;
+      E_[o + 85] = P.y;
+      E_[o + 86] = P.z;
+      E_[o + 87] = D.cheville;
+      E_[o + 88] = O[4];
+      E_[o + 89] = O[5];
+      E_[o + 90] = O[6];
+      E_[o + 91] = s * s;
+      E_[o + 92] = m.tailleTete * s * m.unite;
+      E_[o + 93] = Math.max(0, mb.exprs.indexOf(m.exprFFL));
+      E_[o + 94] = 1;
+      E_[o + 95] = 0;
+      if (m.regard) {
+        let pere = MX, po = 0;
+        for (const k of [d.racine, d.parent[d.torse], d.torse]) {
+          const r = d.rep, b = k * 6, t = o + k * 4;
+          if (k === d.racine) composer(L3, 0, vR.x, vR.y, vR.z, E_[t], E_[t + 1], E_[t + 2], E_[t + 3], r[b + 3], r[b + 4], r[b + 5]);
+          else composer(L3, 0, r[b], r[b + 1], r[b + 2], E_[t], E_[t + 1], E_[t + 2], E_[t + 3], r[b + 3], r[b + 4], r[b + 5]);
+          mul(L3, po === 16 ? 32 : 16, pere, po, L3, 0);
+          pere = L3;
+          po = po === 16 ? 32 : 16;
+        }
+        const te = m.torse.elements;
+        for (let i = 0; i < 16; i++) te[i] = L3[po + i];
+      }
+    };
+    const passe = new T.Scene(), passeCam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    {
+      const q = new T.Mesh(new T.PlaneGeometry(2, 2), new T.ShaderMaterial({
+        uniforms: { entrees: { value: entrees }, statique: { value: statique } },
+        depthTest: false,
+        depthWrite: false,
+        blending: T.NoBlending,
+        vertexShader: "void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }",
+        fragmentShader: PASSE_OS
+      }));
+      q.frustumCulled = false;
+      passe.add(q);
+    }
+    const maj = () => {
+      for (const mb of membres.values()) {
+        const o = mb.case * ENTREE * 4;
+        if (mb.m.objet.visible && !mb.m.horsVue) preparer2(mb, o);
+        else E_[o + 94] = 0;
+      }
+      entrees.image.height = nCases;
+      entrees.needsUpdate = true;
+      const avant = rendu.getRenderTarget();
+      rendu.setRenderTarget(cible);
+      rendu.render(passe, passeCam);
+      rendu.setRenderTarget(avant);
+    };
+    const verifier = () => {
+      maj();
+      const lu = new Float32Array(LIGNE * 4 * max);
+      rendu.readRenderTargetPixels(cible, 0, 0, LIGNE, max, lu);
+      let ecart = 0;
+      const t = new T.Matrix4(), v = new T.Vector3(), q = new T.Quaternion(), sc = new T.Vector3();
+      for (const mb of membres.values()) {
+        const m = mb.m, o = mb.case * LIGNE * 4;
+        if (!m.objet.visible) continue;
+        m.ecrireOs();
+        m.objet.updateMatrixWorld(true);
+        const sq = m.corps.skeleton;
+        sq.update();
+        for (let i = 0; i < 256; i++) ecart = Math.max(ecart, Math.abs(sq.boneMatrices[i] - lu[o + i]));
+        t.fromArray(sq.boneMatrices, mb.sq.tete * 16).multiply(new T.Matrix4().fromArray(mb.sq.inv, mb.sq.tete * 16).invert()).decompose(v, q, sc);
+        t.compose(v, q, m.tete.meshes.scale);
+        for (let i = 0; i < 16; i++) ecart = Math.max(ecart, Math.abs(t.elements[i] - lu[o + 256 + i]));
+      }
+      return ecart;
+    };
+    const info = () => ({
+      mii: membres.size,
+      familles: familles.size,
+      corps: [...familles.values()].filter((f) => f.corps).length,
+      sommets: [...familles.values()].reduce((s, f) => s + (f.corps ? f.n * f.mesh.geometry.attributes.position.count : f.nv), 0),
+      tableaux: [...familles.values()].filter((f) => f.textures?.length && !f.corps).map((f) => f.textures.map((t) => `${f.specs[t].w}x${f.specs[t].h} ${f.couches}/${f.tabs[t]?.depth}${f.dyn ? " masque" : ""}`).join()),
+      couchesMo: Math.round([...familles.values()].reduce((s, f) => s + Object.entries(f.tabs || {}).reduce((t, [k, rt]) => t + f.specs[k].w * f.specs[k].h * 4 * rt.depth, 0), 0) / 1048576)
+    });
+    const liberer = () => {
+      for (const f of familles.values()) {
+        f.mesh.removeFromParent();
+        f.mesh.material.dispose();
+        const g = f.mesh.geometry;
+        if (f.corps) {
+          for (const k of Object.keys(g.attributes)) if (!f.attrs[k]) g.deleteAttribute(k);
+          g.index = null;
+        }
+        g.dispose();
+        for (const rt of Object.values(f.tabs || {})) rt.dispose();
+      }
+      familles.clear();
+      membres.clear();
+      cible.dispose();
+      entrees.dispose();
+      statique.dispose();
+      passe.children[0].geometry.dispose();
+      passe.children[0].material.dispose();
+      copie2D.dispose();
+      copieTab.dispose();
+      PLAN.dispose();
+    };
+    return { ajouter, retirer, maj, info, liberer, verifier, lumieres, ombrer };
+  };
+  const IDENTITE = new T.Matrix4(), vR = new T.Vector3();
+  const Q4 = new Float64Array(4);
+  const euler = (x, y, z) => {
+    const c1 = Math.cos(x / 2), c2 = Math.cos(y / 2), c3 = Math.cos(z / 2), s1 = Math.sin(x / 2), s2 = Math.sin(y / 2), s3 = Math.sin(z / 2);
+    Q4[0] = s1 * c2 * c3 + c1 * s2 * s3;
+    Q4[1] = c1 * s2 * c3 - s1 * c2 * s3;
+    Q4[2] = c1 * c2 * s3 + s1 * s2 * c3;
+    Q4[3] = c1 * c2 * c3 - s1 * s2 * s3;
+  };
+  const composer = (e, o, px, py, pz, x, y, z, w, sx, sy, sz) => {
+    const x2 = x + x, y2 = y + y, z2 = z + z, xx = x * x2, xy = x * y2, xz = x * z2, yy = y * y2, yz = y * z2, zz = z * z2, wx = w * x2, wy = w * y2, wz = w * z2;
+    e[o] = (1 - (yy + zz)) * sx;
+    e[o + 1] = (xy + wz) * sx;
+    e[o + 2] = (xz - wy) * sx;
+    e[o + 3] = 0;
+    e[o + 4] = (xy - wz) * sy;
+    e[o + 5] = (1 - (xx + zz)) * sy;
+    e[o + 6] = (yz + wx) * sy;
+    e[o + 7] = 0;
+    e[o + 8] = (xz + wy) * sz;
+    e[o + 9] = (yz - wx) * sz;
+    e[o + 10] = (1 - (xx + yy)) * sz;
+    e[o + 11] = 0;
+    e[o + 12] = px;
+    e[o + 13] = py;
+    e[o + 14] = pz;
+    e[o + 15] = 1;
+  };
+  const mul = (r, ro, a, ao, b, bo) => {
+    const a0 = a[ao], a1 = a[ao + 1], a2 = a[ao + 2], a4 = a[ao + 4], a5 = a[ao + 5], a6 = a[ao + 6], a8 = a[ao + 8], a9 = a[ao + 9], a10 = a[ao + 10], a12 = a[ao + 12], a13 = a[ao + 13], a14 = a[ao + 14];
+    for (let c = 0; c < 16; c += 4) {
+      const b0 = b[bo + c], b1 = b[bo + c + 1], b2 = b[bo + c + 2], b3 = c === 12 ? 1 : 0;
+      r[ro + c] = a0 * b0 + a4 * b1 + a8 * b2 + a12 * b3;
+      r[ro + c + 1] = a1 * b0 + a5 * b1 + a9 * b2 + a13 * b3;
+      r[ro + c + 2] = a2 * b0 + a6 * b1 + a10 * b2 + a14 * b3;
+      r[ro + c + 3] = b3;
+    }
   };
   const hexa = (u8) => Array.from(u8, (b) => b.toString(16).padStart(2, "0")).join("");
   const cleDe = (d) => "mii:" + hexa(d.subarray(12, 22));
@@ -1956,16 +2857,19 @@
     }
     return l.sort((a, b) => (b.m_ePersonaState > 0) - (a.m_ePersonaState > 0) || (b.m_rtLastSeenOnline || 0) - (a.m_rtLastSeenOnline || 0)).slice(0, n).map((p) => {
       const g = "ami-" + empreinte(p.m_steamid?.ConvertTo64BitString?.() || p.m_strPlayerName || "");
-      return { cle: g, graine: g, nom: p.m_strPlayerName || "", pantalon: "bleu" };
+      return { cle: g, graine: g, nom: p.m_strPlayerName || "", pantalon: "bleu", sid: p.m_steamid?.ConvertTo64BitString?.() || "" };
     });
   };
   const habitantsInvites = () => invites.map((v, i) => ({ cle: "invite:" + i, donnees: octets(v.donnees), nom: v.nom, pantalon: "gris" }));
   const habitantsDefaut = () => defauts.map((v) => ({ cle: "defaut:" + v.id, donnees: octets(v.donnees), nom: v.nom, pantalon: "gris" }));
   const hasard = (k) => ({ cle: "hasard:" + k, graine: "hasard-" + k, nom: "", pantalon: "gris" });
   const API = {
+    clips: CLIPS,
     creer,
     pantin,
+    foule,
     eclairer,
+    FOULEE,
     siens,
     amis,
     habitantsInvites,
