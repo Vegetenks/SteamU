@@ -308,6 +308,7 @@
     const jouer = (g, el) => {
       if (!g) return;
       if (g.inst) window.__pcvJeux.jouer(g.a, el);
+      else if (estUnifideck(g.id)) ouvrirPage(g, m.vue === "grille" && m.lignes?.includes(g) ? m.lignes : [g]);
       else window.__pcvJeux.installer(g.a);
     };
     const loinDe = (g) => g && !g.inst ? window.__pcvBridge?.autresPC?.(g.id)?.[0] || null : null;
@@ -495,6 +496,7 @@
     const romDe = (g) => !!g.emu || window.__pcvJeux.raccourci(g.a);
     const GRIS = "#8b94a3", COULEURS = {
       jouer: "var(--pcv-vert)",
+      unifideck: "#2a8cff",
       infos: "#1a9ae6",
       succes: "var(--pcv-orange)",
       manette: "#5b6676",
@@ -509,6 +511,7 @@
       const rom = romDe(g);
       return [
         ["jouer", loinDe(g) ? "nuage" : g.inst ? "lecture" : "telechargements"],
+        ...estUnifideck(g.id) ? [["unifideck", "boutique"]] : [],
         ...rom ? [] : [["infos", "info"]],
         // (un raccourci : Steam n'en sait rien)
         ...SUCCES.get(g.id) ? [["succes", "trophee"]] : [],
@@ -516,11 +519,12 @@
         rom ? ["emulateur", "disque"] : ["proprietes", "reglages"],
         ["ranger", "epingle"],
         ["masquer", "masquer"],
-        ...rom ? [["retirer", "supprimer"]] : g.inst ? [["desinstaller", "supprimer"]] : []
+        ...estUnifideck(g.id) ? UF.etat(g) === "inst" ? [["desinstaller", "supprimer"]] : [] : rom ? [["retirer", "supprimer"]] : g.inst ? [["desinstaller", "supprimer"]] : []
       ];
     };
     const NOMS = {
       infos: "biblio.r_infos",
+      unifideck: "uf.rubrique",
       succes: "biblio.r_succes",
       manette: "biblio.r_manette",
       proprietes: "biblio.r_proprietes",
@@ -530,9 +534,16 @@
       desinstaller: "biblio.r_desinstaller",
       retirer: "biblio.r_retirer"
     };
-    const motJouer = (g) => loinDe(g) ? T2("biblio.streaming") : motA(g);
+    const motJouer = (g) => {
+      const s = estUnifideck(g.id) ? UF.etat(g) : null;
+      return s === "dl" ? T2("uf.annuler_court") : s === "absent" ? T2("biblio.installer") : s === "inst" || s === "nuage" ? T2("biblio.jouer") : loinDe(g) ? T2("biblio.streaming") : motA(g);
+    };
     const faireJouer = () => {
-      const g = m.fiche, loin = loinDe(g);
+      const g = m.fiche, s = estUnifideck(g.id) ? UF.etat(g) : null;
+      if (s === "dl") return confirmer(T2("uf.annuler"), () => UF.annuler(g), "suppr");
+      if (s === "absent") return UF.installer(g);
+      if (s === "inst" || s === "nuage") return window.__pcvJeux.jouer(g.a, m.$(".carrousel .cel.sel"));
+      const loin = loinDe(g);
       if (loin) PB().diffuser(g.id, loin.clientid);
       else jouer(g, m.$(".carrousel .cel.sel"));
     };
@@ -595,6 +606,379 @@
       desinstaller: (g) => rg("supprimer", T2("biblio.desinstaller_t"), g.taille ? taille(g.taille) : "", val(T2("biblio.r_desinstaller")), () => confirmer(T2("biblio.r_desinstaller"), () => PB().desinstaller(g.id), "suppr")),
       retirer: (g) => rg("supprimer", T2("biblio.retirer_t"), "", val(T2("biblio.retirer_b")), () => confirmer(T2("biblio.r_retirer"), () => PB().retirerRaccourci(g.id), "suppr"))
     };
+    // ── Unifideck dans la page du jeu (la page Wii U) ──────────────────────────────────────────────────────────────
+    // Unifideck range les jeux de ses boutiques (Epic, GOG, Amazon…) dans Steam en raccourcis non Steam. Ses boutons
+    // (Installer, Annuler, Jouer, Mettre à jour, sauvegardes cloud, Désinstaller) étaient posés par lui dans la page
+    // NATIVE de Steam, que cette page recouvre : ils disparaissaient. On les refait ici en parlant à ses RPC (le même
+    // pont que unifideck.etat() : __pcvBridge.callPlugin("Unifideck", …)). Sans Unifideck, ou pour un autre jeu : rien
+    // ne change (estUnifideck() vaut false).
+    const estUnifideck = (id) => {
+      try {
+        const U = window.__pcvBridge?.unifideck;
+        if (!U || !(+id > 0)) return false;
+        return U.etat(O.appStore?.GetAppOverviewByAppID?.(+id) || { appid: +id }) != null;
+      } catch (x) {
+        return false;
+      }
+    };
+    const UF = (() => {
+      const infos = /* @__PURE__ */ new Map(), choix = /* @__PURE__ */ new Map(), notes = /* @__PURE__ */ new Map(), cloudSt = /* @__PURE__ */ new Map();
+      const st = { file: null, tFile: 0, empl: null, majs: null, tMajs: 0 };
+      const NOMS_BOUTIQUES = { epic: "Epic Games", gog: "GOG", amazon: "Amazon Games", ubisoft: "Ubisoft Connect", battlenet: "Battle.net", microsoft: "Xbox", gamevault: "GameVault" };
+      const formes = (id) => {
+        const n = Number(id);
+        return n > 2147483647 ? [n, n - 4294967296] : n < 0 ? [n, n + 4294967296] : [n];
+      };
+      const appel = (methode, ...args) => PB().callPlugin("Unifideck", methode, ...args);
+      const donnee = (r) => r && typeof r === "object" && !Array.isArray(r) && "success" in r && "data" in r ? r.data : r;
+      const reussi = (r) => !!r && r.success !== false && !r.error && !(r.data && r.data.success === false);
+      const erreurDe = (r) => String(r?.error || r?.data?.error || r?.message || "?");
+      const termine = (d) => ["complete", "failed", "cancelled"].includes(d?.status);
+      const rafraichir = () => {
+        try {
+          if (m.vue === "fiche" && m.fiche) m.rendreFiche();
+        } catch (x) {
+        }
+      };
+      const note = (g, t) => {
+        if (t) notes.set(g.id, t);
+        else notes.delete(g.id);
+      };
+      const dur = (s) => {
+        s = Math.round(s);
+        const h = Math.floor(s / 3600), mi = Math.floor(s % 3600 / 60), se = String(s % 60).padStart(2, "0");
+        return h ? `${h}:${String(mi).padStart(2, "0")}:${se}` : `${mi}:${se}`;
+      };
+      const pct = (d) => Math.max(0, Math.min(100, Math.round(+d.progress_percent || +d.progress || 0)));
+      const texteProg = (d) => [d.phase_message || "", pct(d) + " %", +d.speed_mbps > 0 ? (+d.speed_mbps).toFixed(1) + " Mo/s" : "", +d.eta_seconds > 0 ? dur(+d.eta_seconds) : ""].filter(Boolean).join(" · ");
+      // ce que Unifideck sait du jeu : sa boutique, son identifiant dans la boutique, installé ou non, jeu en streaming
+      const chargerInfo = (g, force = false) => {
+        let i = infos.get(g.id);
+        if (!i) infos.set(g.id, i = { d: null, cours: false, t: 0, fait: false });
+        if (i.cours || !force && (i.fait || Date.now() - i.t < 5e3)) return i;
+        i.cours = true;
+        i.t = Date.now();
+        (async () => {
+          let d = null;
+          for (const f of formes(g.id)) {
+            try {
+              d = donnee(await appel("get_game_info", f));
+            } catch (x) {
+              d = null;
+            }
+            if (d && typeof d === "object" && (d.store_game_id || d.id)) break;
+            d = null;
+          }
+          const avant = JSON.stringify(i.d);
+          i.d = d ? { store: String(d.store || ""), gid: String(d.store_game_id ?? d.id), inst: !!(d.installed ?? d.is_installed), cloud: (d.tags || d.store_tags || []).some((t) => String(t).toLowerCase() === "xcloud"), appId: typeof d.app_id === "number" ? d.app_id : formes(g.id)[0], titre: String(d.title || "") } : null;
+          i.cours = false;
+          i.fait = !!d;
+          if (JSON.stringify(i.d) !== avant && m.fiche === g) rafraichir();
+        })();
+        return i;
+      };
+      const lireFile = async () => {
+        try {
+          const f = donnee(await appel("get_download_queue"));
+          st.file = f && typeof f === "object" ? f : null;
+        } catch (x) {
+          st.file = null;
+        }
+        st.tFile = Date.now();
+        return st.file;
+      };
+      const enCours = (g) => {
+        const i = infos.get(g.id)?.d, f = st.file;
+        if (!i || !f) return null;
+        return [f.current, ...f.queued || [], ...f.running || []].find((x) => x && x.game_id === i.gid && x.store === i.store && !termine(x)) || null;
+      };
+      // nuage : streaming, toujours jouable ; dl : en cours de téléchargement ; inst / absent ; null : pas encore su
+      const etat = (g) => {
+        const i = chargerInfo(g).d;
+        if (!i) return null;
+        if (i.cloud) return "nuage";
+        if (enCours(g)) return "dl";
+        return i.inst ? "inst" : "absent";
+      };
+      let minuteur = 0;
+      const majProgres = (d) => {
+        const r = m.$(".uf-prog");
+        if (!r) return;
+        const s = r.querySelector("small"), b = r.querySelector(".uf-w");
+        if (s) s.textContent = texteProg(d);
+        if (b) b.style.width = pct(d) + "%";
+      };
+      // tant qu'on est sur la page d'un jeu Unifideck : on relit la file toutes les 1,5 s ; la barre bouge sur place, la page ne
+      // se refait que si l'état change (téléchargement lancé, fini, annulé)
+      const suivre = () => {
+        if (minuteur) return;
+        minuteur = setInterval(async () => {
+          const g = m.fiche;
+          if (m.vue !== "fiche" || !g || !estUnifideck(g.id) || window.__pcvJeuDevant) {
+            clearInterval(minuteur);
+            minuteur = 0;
+            return;
+          }
+          const avant = enCours(g);
+          await lireFile();
+          const apres = enCours(g);
+          if (avant && !apres) {
+            chargerInfo(g, true);
+            window.__pcvBridge?.unifideck?.charger?.(true);
+            setTimeout(rafraichir, 800);
+          } else if (!!avant !== !!apres) rafraichir();
+          else if (apres) majProgres(apres);
+        }, 1500);
+      };
+      const chargerEmpl = () => {
+        if (st.empl) return st.empl;
+        st.empl = { liste: [], def: "internal", pret: false };
+        appel("get_storage_locations").then((r) => {
+          const d = donnee(r) || {};
+          st.empl = { liste: Array.isArray(d.locations) ? d.locations.filter((x) => x && x.available !== false) : [], def: d.default || "internal", pret: true };
+          rafraichir();
+        }, () => {
+          st.empl = null;
+        });
+        return st.empl;
+      };
+      const chargerMajs = () => {
+        if (Date.now() - st.tMajs < 6e4) return st.majs;
+        st.tMajs = Date.now();
+        appel("get_available_updates").then((r) => {
+          const d = donnee(r);
+          st.majs = d && typeof d === "object" ? d : {};
+          rafraichir();
+        }, () => {
+        });
+        return st.majs;
+      };
+      const majDispo = (g) => {
+        const i = infos.get(g.id)?.d, M = chargerMajs();
+        return !!(i && M && Array.isArray(M[i.store]) && M[i.store].includes(i.gid));
+      };
+      // GOG et Epic : plusieurs langues d'installation possibles
+      const langues = (g) => {
+        const i = infos.get(g.id)?.d, c = choix.get(g.id) || {};
+        if (!i || !["gog", "epic"].includes(i.store)) return null;
+        if (!c.langues) {
+          choix.set(g.id, { ...c, langues: { liste: [], pret: false } });
+          appel(i.store === "gog" ? "get_gog_game_languages" : "get_epic_game_languages", i.gid).then((r) => {
+            const d = donnee(r) || {}, cc = choix.get(g.id) || {};
+            const liste = Array.isArray(d.languages) ? d.languages : [];
+            const pref = String(loc()).slice(0, 2).toLowerCase();
+            choix.set(g.id, { ...cc, langues: { liste, labels: d.labels || {}, pret: true }, langue: cc.langue || liste.find((l) => String(l).toLowerCase().startsWith(pref)) || liste[0] });
+            if (liste.length > 1) rafraichir();
+          }, () => {
+          });
+        }
+        return choix.get(g.id)?.langues || null;
+      };
+      // l'exécutable que le jeu lance (Unifideck : list_game_executables / set_game_executable / reset_game_executable)
+      const exes = /* @__PURE__ */ new Map();
+      const chargerExe = (g, force = false) => {
+        const i = infos.get(g.id)?.d;
+        if (!i) return null;
+        const c = exes.get(g.id);
+        if (c && (c.cours || !force && Date.now() - c.t < 15e3)) return c;
+        exes.set(g.id, { ...c, cours: true, t: Date.now() });
+        const fini = (d, err) => {
+          exes.set(g.id, { ...exes.get(g.id), cours: false, t: Date.now(), d, err });
+          rafraichir();
+        };
+        appel("list_game_executables", i.store, i.gid).then((r) => {
+          const d = donnee(r);
+          if (d && Array.isArray(d.candidates)) fini(d, "");
+          else fini(null, erreurDe(r));
+        }, (x) => fini(null, String(x?.message || x)));
+        return exes.get(g.id);
+      };
+      const choisirExe = async (g, rel) => {
+        const i = infos.get(g.id)?.d;
+        if (!i) return;
+        let r;
+        try {
+          r = await appel(rel == null ? "reset_game_executable" : "set_game_executable", i.store, i.gid, ...rel == null ? [] : [rel]);
+        } catch (x) {
+          r = { success: false, error: String(x?.message || x) };
+        }
+        note(g, reussi(r) ? T2(rel == null ? "uf.exe_reinit_ok" : "uf.exe_change") : T2("uf.echec", { e: erreurDe(r) }));
+        chargerExe(g, true);
+        rafraichir();
+      };
+      const parcourirExe = async (g) => {
+        const d = chargerExe(g)?.d, L = O?.DeckyPluginLoader || window.DeckyPluginLoader;
+        if (!d?.install_dir || !L?.openFilePicker) return note(g, T2("uf.echec", { e: "Decky" })), rafraichir();
+        let res = null;
+        try {
+          res = await L.openFilePicker(0, d.install_dir, true, true, void 0, ["exe"], false, true);
+        } catch (x) {
+        }
+        const abs = res?.realpath || res?.path;
+        if (!abs) return;
+        const base = d.install_dir.endsWith("/") ? d.install_dir : d.install_dir + "/";
+        await choisirExe(g, abs.startsWith(base) ? abs.slice(base.length) : abs);
+      };
+      const sectionExe = (g) => {
+        const E = chargerExe(g), d = E?.d;
+        if (!d) return E?.err ? rg("info", T2("uf.exe"), T2("uf.exe_indispo"), "") : "";
+        const cur = d.candidates.find((c) => c.is_current);
+        let h = rg("disque", T2("uf.exe"), cur ? cur.name : "", val(T2(E.ouvert ? "uf.fermer" : "uf.changer")), () => {
+          exes.set(g.id, { ...exes.get(g.id), ouvert: !E.ouvert });
+          rafraichir();
+        });
+        if (!E.ouvert) return h;
+        for (const c of d.candidates) h += rg("lecture", c.name + (c.is_default ? " " + T2("uf.defaut") : ""), c.rel, inter(c.is_current), () => choisirExe(g, c.rel));
+        h += rg("boutique", T2("uf.parcourir"), "", "", () => parcourirExe(g));
+        if (d.override_active) h += rg("reglages", T2("uf.exe_reinit"), "", "", () => choisirExe(g, null));
+        return h;
+      };
+      const installer = async (g) => {
+        const i = infos.get(g.id)?.d;
+        if (!i) return;
+        const c = choix.get(g.id) || {}, E = chargerEmpl(), options = { title: i.titre || g.nom };
+        const stock = c.stockage || E?.def;
+        if (stock) options.storage = stock;
+        if (c.langue && (c.langues?.liste?.length || 0) > 1) options.language = c.langue;
+        note(g, "");
+        let r;
+        try {
+          r = await appel("install_game", i.store, i.gid, options);
+        } catch (x) {
+          r = { success: false, error: String(x?.message || x) };
+        }
+        if (!reussi(r)) note(g, T2("uf.echec", { e: erreurDe(r) }));
+        await lireFile();
+        rafraichir();
+      };
+      const annuler = async (g) => {
+        const d = enCours(g);
+        if (!d) return;
+        let r;
+        try {
+          r = await appel("cancel_download", d.store, d.game_id);
+        } catch (x) {
+          r = { success: false, error: String(x?.message || x) };
+        }
+        note(g, reussi(r) ? "" : T2("uf.echec", { e: erreurDe(r) }));
+        await lireFile();
+        rafraichir();
+      };
+      const apresChangement = (g) => {
+        chargerInfo(g, true);
+        window.__pcvBridge?.unifideck?.charger?.(true);
+        setTimeout(rafraichir, 800);
+      };
+      const desinstaller = async (g) => {
+        const i = infos.get(g.id)?.d;
+        if (!i) return;
+        let r;
+        try {
+          r = await appel("uninstall_game", i.appId, false);
+        } catch (x) {
+          r = { success: false, error: String(x?.message || x) };
+        }
+        note(g, reussi(r) ? "" : T2("uf.echec", { e: erreurDe(r) }));
+        apresChangement(g);
+      };
+      const majJeu = async (g) => {
+        const i = infos.get(g.id)?.d;
+        if (!i) return;
+        let r;
+        try {
+          r = await appel("update_game", i.appId);
+        } catch (x) {
+          r = { success: false, error: String(x?.message || x) };
+        }
+        if (reussi(r) && st.majs?.[i.store]) st.majs[i.store] = st.majs[i.store].filter((x) => x !== i.gid);
+        note(g, reussi(r) ? "" : T2("uf.echec", { e: erreurDe(r) }));
+        await lireFile();
+        rafraichir();
+      };
+      // sauvegardes cloud (GOG, Epic) : « supported » vient d'Unifideck
+      const cloud = (g) => {
+        const i = infos.get(g.id)?.d;
+        if (!i || !["gog", "epic"].includes(i.store)) return null;
+        const c = cloudSt.get(g.id);
+        if (c && Date.now() - c.t < 15e3) return c.d;
+        if (c?.cours) return c.d;
+        cloudSt.set(g.id, { d: c?.d || null, t: c?.t || 0, cours: true });
+        appel("get_cloud_save_status", i.store, i.gid).then((r) => {
+          const d = donnee(r);
+          cloudSt.set(g.id, { d: d && typeof d === "object" ? d : null, t: Date.now(), cours: false });
+          rafraichir();
+        }, () => cloudSt.set(g.id, { d: null, t: Date.now(), cours: false }));
+        return c?.d || null;
+      };
+      const syncCloud = async (g, sens) => {
+        const i = infos.get(g.id)?.d;
+        if (!i) return;
+        let r;
+        try {
+          r = await appel(sens === "pull" ? "cloud_save_pull" : "cloud_save_push", i.store, i.gid);
+        } catch (x) {
+          r = { success: false, error: String(x?.message || x) };
+        }
+        note(g, reussi(r) ? T2("uf.cloud_lance") : T2("uf.echec", { e: erreurDe(r) }));
+        cloudSt.delete(g.id);
+        rafraichir();
+      };
+      // la page « Jouer » : l'avancement et Annuler (en cours), ou l'emplacement et la langue (à installer), la mise à jour
+      const bloc = (g) => {
+        chargerInfo(g);
+        suivre();
+        if (!st.tFile) lireFile().then(rafraichir);
+        const s = etat(g), n = notes.get(g.id);
+        let h = n ? rg("info", n, "", "") : "";
+        if (s === "dl") {
+          const d = enCours(g);
+          return h + `<div class="uf-prog">` + rg("telechargements", T2("uf.telecharge"), texteProg(d), "") + `<div style="height:8px;margin:4px 6px 10px;border-radius:4px;background:rgba(127,127,127,.35);overflow:hidden"><i class="uf-w" style="display:block;height:100%;width:${pct(d)}%;background:var(--pcv-vert,#2fbf71)"></i></div></div>` + rg("supprimer", T2("uf.annuler"), "", val(T2("uf.annuler_court")), () => confirmer(T2("uf.annuler"), () => annuler(g), "suppr"));
+        }
+        if (s === "absent") {
+          const E = chargerEmpl(), c = choix.get(g.id) || {}, L = langues(g);
+          const cur = E?.liste.find((x) => x.id === (c.stockage || E.def)) || E?.liste[0];
+          if (E?.pret && cur) h += rg("disque", T2("uf.emplacement"), `${cur.label || cur.id}${cur.free_space_gb != null ? " · " + T2("uf.libre", { n: Math.round(cur.free_space_gb) }) : ""}`, E.liste.length > 1 ? val(T2("uf.changer")) : "", E.liste.length > 1 ? () => {
+            const k = E.liste.indexOf(cur);
+            choix.set(g.id, { ...choix.get(g.id) || {}, stockage: E.liste[(k + 1) % E.liste.length].id });
+            rafraichir();
+          } : null);
+          if (L?.liste.length > 1) h += rg("monde", T2("uf.langue"), L.labels?.[c.langue] || c.langue || "", val(T2("uf.changer")), () => {
+            const k = L.liste.indexOf(c.langue);
+            choix.set(g.id, { ...choix.get(g.id) || {}, langue: L.liste[(k + 1) % L.liste.length] });
+            rafraichir();
+          });
+          return h;
+        }
+        if (s === "inst" && majDispo(g)) h += rg("telechargements", T2("uf.maj"), T2("uf.maj_s"), val(T2("uf.maj")), () => confirmer(T2("uf.maj"), () => majJeu(g)));
+        return h;
+      };
+      // la rubrique Unifideck : la boutique, la mise à jour, les sauvegardes cloud
+      const rubrique2 = (g) => {
+        chargerInfo(g);
+        const i = infos.get(g.id)?.d, n = notes.get(g.id);
+        if (!i) return rg("info", "Unifideck", T2("uf.indisponible"), "");
+        let h = (n ? rg("info", n, "", "") : "") + rg("boutique", T2("uf.boutique"), NOMS_BOUTIQUES[i.store] || i.store, "");
+        if (i.cloud) h += rg("nuage", T2("uf.streaming"), "", "");
+        if (i.inst && !i.cloud) {
+          h += rg("telechargements", T2("uf.maj"), majDispo(g) ? T2("uf.maj_s") : T2("uf.maj_non"), majDispo(g) ? val(T2("uf.maj")) : "", majDispo(g) ? () => confirmer(T2("uf.maj"), () => majJeu(g)) : null);
+        }
+        if (i.inst && !i.cloud) h += sectionExe(g);
+        const c = cloud(g);
+        if (c && c.supported) {
+          const sous = c.in_progress ? T2("uf.cloud_cours") : c.has_cloud_saves === false ? T2("uf.cloud_aucune") : c.has_cloud_saves ? T2("uf.cloud_presente") : "";
+          h += rg("nuage", T2("uf.cloud_recup"), sous, val(T2("uf.lancer")), () => confirmer(T2("uf.cloud_recup"), () => syncCloud(g, "pull")));
+          if (c.has_local_saves !== false) h += rg("nuage", T2("uf.cloud_envoi"), "", val(T2("uf.lancer")), () => confirmer(T2("uf.cloud_envoi"), () => syncCloud(g, "push")));
+        }
+        return h;
+      };
+      return { etat, installer, annuler, desinstaller, bloc, rubrique2 };
+    })();
+    {
+      const base = CONTENUS.jouer, desBase = CONTENUS.desinstaller;
+      CONTENUS.jouer = (g) => base(g) + (estUnifideck(g.id) ? UF.bloc(g) : "");
+      CONTENUS.desinstaller = (g) => estUnifideck(g.id) ? rg("supprimer", T2("biblio.desinstaller_t"), g.taille ? taille(g.taille) : "", val(T2("biblio.r_desinstaller")), () => confirmer(T2("biblio.r_desinstaller"), () => UF.desinstaller(g), "suppr")) : desBase(g);
+      CONTENUS.unifideck = (g) => UF.rubrique2(g);
+    }
     const RICHES = /* @__PURE__ */ new Set(["jouer", "infos", "succes"]);
     const origineDe = () => {
       const r = m.retour || {};
