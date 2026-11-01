@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.2.0 (2026-10-31)
+
+- Settings: all your console settings, in a page made for SteamU. The row of tiles at the top stays, LB and RB switch sections, and SteamU is a section like the others.
+- Storage: a redesigned page. Your drives, all your games, freeing up space, picking several games at once. When you uninstall a game, you can see how it is going.
+- Controllers: a redesigned controllers page.
+- A brand new shop: a shop made for SteamU, with the whole Steam catalogue. Buying still happens on Steam's own page.
+- Your wishlist: your account's real wishlist, in the shop.
+- Plugins and themes: they have their own shop too, right next to the games. Plugins from outside the Decky Store are still listed, but installing them is off by default.
+- Mii SpotPass: your Mii travels and other Mii come to say hello. It stays off until you turn it on. Only your card is sent (your Mii, a nickname you choose, a sentence, your region), never your Steam account, friends or games. You can remove or report a Mii you met.
+- Mii Maker makeover: a simpler, faster interface, with a search through your Mii.
+- A livelier plaza: new icons, Mii that come to life, a new floor, closer and wider zoom steps, and the wheel turns with your finger.
+- The library: your games on shelves. You can create, fill, rename and delete your collections.
+- Your theme colours: windows, questions and even stick lights use your colour. Inside an app, its windows use the app's colour.
+- Smoother: menus open faster and stay smooth, even at low power.
+- Our own startup: a short SteamU logo video, light, grey or black to match your look, instead of Steam's home screen.
+- Our game page everywhere: Steam's game page is replaced, even when a launch fails.
+- HOME Menu in game: resuming the game is faster, without going through another plugin.
+- Importing your files: system sounds can also come from the sound banks of a backup of your own console. tar.bz2 and tar.xz archives open, and an archive we cannot read is reported.
+- The home screen remembers the order of your games: a streamed game that goes away no longer leaves a hole, it takes its place back when it returns (#9).
+- Shortcuts from outside Steam no longer show as empty tiles: their name first, then their icon.
+- An empty slot added by mistake can be removed.
+- Account screen: one press of A picks the profile, and the avatar no longer disappears after a restart.
+- Volume and brightness have their own indicator, in the HOME Menu too; Steam's no longer shows up as a second one.
+- Launching a game shows "Launching…".
+- Sounds import on SteamOS with nothing to install: the missing tool is now included (#11).
+- A downloaded theme no longer falls back to the starting theme, and SteamU tells you whether a theme really has a background picture.
+- Only one music at a time, even at startup and on the welcome pages.
+- Leaving an app really closes it: open it again and it starts from the beginning.
+- With your finger, the edge of a button works too, and a long press no longer opens the browser menu.
+- A touch no longer opens the search by mistake ("1" or "2" typed on their own).
+- Unifideck: Xbox Cloud games have their small cloud, and a game whose status is unknown is no longer shown as installed.
+- With no imported file at all, everything stays tidy: what needs one sends you to Import.
+
 ## v0.1.10 (2026-10-29)
 
 - Home screen: Xbox Cloud Gaming games from Unifideck now appear as playable, with a small cloud showing they are streamed. Thanks @lieserlV (#10).
