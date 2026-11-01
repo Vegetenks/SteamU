@@ -25,6 +25,57 @@
   const TRIS = ["gros", "nom", "ancien"];
   const ORDRE = { gros: (a, b) => b.octets - a.octets, nom: (a, b) => a.nom.localeCompare(b.nom, window.__pcvLocale?.()), ancien: (a, b) => a.joue - b.joue || b.octets - a.octets };
   let disques = [], banc = false;
+  // Jeux d'Unifideck : des raccourcis non Steam, absents de GetInstallFolders(). On les lui demande (liste + taille sur disque
+  // + « internal / external »), on les range sur la console ou la carte SD et on les mêle aux jeux Steam. Pas de déplacement
+  // (Unifideck n'en a pas) ; la désinstallation passe par Unifideck.
+  let ufListe = [];
+  const ufFormes = (id) => {
+    const n = Number(id);
+    return !Number.isFinite(n) ? [] : n < 0 ? [n, n + 4294967296] : n > 2147483647 ? [n, n - 4294967296] : [n];
+  };
+  const ufAppel = (m, ...a) => window.__pcvBridge?.callPlugin?.("Unifideck", m, ...a);
+  const ufDonnee = (r) => Array.isArray(r) ? r : r && typeof r === "object" && "success" in r && "data" in r ? r.data : r;
+  let ufT = 0;
+  const lireUF = async (force = false) => {
+    if (!window.__pcvBridge?.unifideck || !O.DeckyBackend?.call) {
+      ufListe = [];
+      return;
+    }
+    if (!force && Date.now() - ufT < 3e3) return;
+    ufT = Date.now();
+    try {
+      const [gr, ir] = await Promise.all([ufAppel("get_all_unifideck_games"), ufAppel("get_installed_disk_info")]);
+      const g = ufDonnee(gr), info = ufDonnee(ir) || {};
+      ufListe = (Array.isArray(g) ? g : []).filter((x) => x && x.installed && x.app_id != null && x.store && x.store !== "steam" && !(Array.isArray(x.tags) && x.tags.some((t) => String(t).toLowerCase() === "xcloud"))).map((x) => {
+        const f = ufFormes(x.app_id), a = f.map(appDe).find(Boolean), gid = String(x.store_game_id ?? x.id), i = info[`${x.store}:${gid}`] || {};
+        return { id: a?.appid ?? f[f.length - 1], appId: x.app_id, store: x.store, gid, titre: String(x.title || x.name || ""), octets: +i.size_bytes || 0, externe: i.location === "external" };
+      });
+    } catch (e) {
+      ufListe = [];
+    }
+  };
+  const ufTous = () => ufListe.flatMap((x) => {
+    const d = x.externe ? laSD() : laConsole();
+    if (!d) return [];
+    const a = appDe(x.id);
+    return [{ id: x.id, nom: a?.display_name || x.titre || String(x.id), octets: x.octets, v: {}, d: d.nFolderIndex, outil: false, joue: a?.rt_last_time_played || 0, uf: x }];
+  });
+  const ufDesinstaller = async (j) => {
+    let r;
+    try {
+      r = await ufAppel("uninstall_game", j.uf.appId, false);
+    } catch (e) {
+      r = { success: false, error: String(e?.message || e) };
+    }
+    if (r && (r.success === false || r.error || r.data?.success === false)) {
+      S.part?.reste.delete(j.id);
+      if (S.part && !S.part.reste.size) S.part = null;
+      bulle(T("uf.echec", { e: String(r.error || r.data?.error || "?") }));
+    }
+    window.__pcvBridge?.unifideck?.charger?.(true);
+    ufT = 0;
+    lire();
+  };
   const lire = async () => {
     if (!banc) try {
       disques = await SC().InstallFolder.GetInstallFolders() || [];
@@ -32,6 +83,9 @@
       disques = [];
     }
     if (!suivreDesinstallation() && S.actif) dessiner();
+    lireUF().then(() => {
+      if (!suivreDesinstallation() && S.actif) dessiner();
+    });
   };
   const montes = () => disques.filter((d) => d.bIsMounted);
   const laConsole = () => montes().find((d) => d.bIsFixed && d.bIsDefaultFolder) || montes().find((d) => d.bIsFixed) || montes()[0];
@@ -39,7 +93,7 @@
   const tous = () => montes().flatMap((d) => (d.vecApps || []).map((v) => {
     const a = appDe(v.nAppID);
     return { id: v.nAppID, nom: a?.display_name || v.strAppName || String(v.nAppID), octets: +v.nUsedSize || 0, v, d: d.nFolderIndex, outil: a?.app_type === 4, joue: a?.rt_last_time_played || v.rtLastPlayed || 0 };
-  }));
+  })).concat(ufTous());
   const jeux = () => tous().filter((j) => !j.outil);
   const outils = () => tous().filter((j) => j.outil);
   const somme = (l) => l.reduce((s, j) => s + j.octets, 0);
@@ -51,7 +105,7 @@
   const trier = (l, tri) => [...l].sort(ORDRE[tri] || ORDRE.gros);
   const nomDisque = (d) => d.strUserLabel || (d.bIsFixed ? T("stockage.onglet.console") : T("stockage.onglet.sd"));
   const versQui = (d) => d.bIsFixed ? d.strUserLabel || T("stockage.la_console") : T("stockage.la_sd");
-  const autreDisque = (j) => montes().find((d) => d.nFolderIndex !== j.d);
+  const autreDisque = (j) => j.uf ? null : montes().find((d) => d.nFolderIndex !== j.d);
   const quand = (t) => {
     if (!t) return T("stockage.jamais");
     const d = new Date(t * 1e3), n = /* @__PURE__ */ new Date();
@@ -60,8 +114,17 @@
   };
   const CDN = "https://shared.steamstatic.com/store_item_assets/steam/apps/";
   const sources = (id) => {
-    const h = appDe(id)?.header_filename;
-    return [h && CDN + id + "/" + h, `/assets/${id}/header.jpg`, CDN + id + "/header.jpg"].filter(Boolean).map((u) => String(u).replace(/['"\\()\s<>]/g, (c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")));
+    const a = appDe(id), h = a?.header_filename;
+    // Raccourcis non Steam (dont ceux d'Unifideck) : leurs images ne sont pas sur le CDN de Steam mais dans le dossier grid/,
+    // comme une image personnalisée (Unifideck les y écrit depuis SteamGridDB). Steam les donne par ces appels.
+    const propres = a && (a.app_type === 1073741824 || ufListe.some((x) => x.id === id)) ? ["GetCustomLandcapeImageURLs", "GetCustomHeroImageURLs", "GetCustomVerticalCapsuleURLs"].flatMap((f) => {
+      try {
+        return O.appStore[f](a) || [];
+      } catch (e) {
+        return [];
+      }
+    }) : [];
+    return [...propres, h && CDN + id + "/" + h, `/assets/${id}/header.jpg`, CDN + id + "/header.jpg"].filter(Boolean).map((u) => String(u).replace(/['"\\()\s<>]/g, (c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")));
   };
   const fond = (id) => `background-image:${sources(id).map((u) => `url('${u}')`).join(",")}`;
   const vive = (d) => {
@@ -310,7 +373,7 @@
   const choisis = () => jeux().filter((j) => S.choix?.has(j.id));
   const autreChoix = (l) => {
     const ds = new Set(l.map((j) => j.d));
-    return ds.size === 1 ? montes().find((d) => !ds.has(d.nFolderIndex)) : null;
+    return ds.size === 1 && !l.some((j) => j.uf) ? montes().find((d) => !ds.has(d.nFolderIndex)) : null;
   };
   const barreChoix = () => {
     const l = choisis(), autre = autreChoix(l);
@@ -366,11 +429,13 @@
       const j = jeu(id);
       return [id, { nom: j?.nom || "", octets: j?.octets || 0 }];
     })), total: ids.length, faits: 0 };
-    try {
-      SCl.Installs.OpenUninstallWizard(ids, "0", true);
+    const dUF = ids.map(jeu).filter((j) => j?.uf), dSteam = ids.filter((id) => !dUF.some((j) => j.id === id));
+    if (dSteam.length) try {
+      SCl.Installs.OpenUninstallWizard(dSteam, "0", true);
     } catch (e) {
-      ids.forEach((id) => window.__pcvBridge?.desinstaller?.(id));
+      dSteam.forEach((id) => window.__pcvBridge?.desinstaller?.(id));
     }
+    dUF.forEach((j) => ufDesinstaller(j));
     S.choix = null;
     S.fiche = null;
     S.cur = S.retour;
