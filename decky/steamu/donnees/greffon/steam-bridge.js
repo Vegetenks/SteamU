@@ -652,25 +652,76 @@ window.__pcvBridge = (() => {
       } catch (e) {
       }
     },
-    // (Steamcord) ouvre la vue Discord de Steamcord par sa route /discord : elle revient en arrière puis ouvre la vue 100 ms
-    // plus tard. Deux échecs vus au second lancement : la route restée affichée (naviguer vers la même adresse ne fait
-    // rien), et la vue jamais ouverte (le retour démonte la route avant les 100 ms). On revient donc d'abord de /discord
-    // si elle est restée, et on retente une fois si la vue (.sc-xv-side) n'est pas apparue ; Steamcord ignore un second
-    // appel tant que sa vue est ouverte, la tentative de trop ne fait rien.
+    // (Steamcord) ouvre la vue Discord de Steamcord. Son entrée est la route /discord : son composant fait NavigateBack() tout de
+    // suite, puis ouvre la vue 100 ms plus tard (setTimeout) ; mais si le retour démonte la route avant ces 100 ms, son
+    // nettoyage annule le minuteur et la vue ne vient jamais (vu depuis l'accueil, au second lancement). On garde donc la route
+    // montée le temps que la vue s'ouvre : NavigateBack est neutralisé un instant (DFL est le même objet pour tous les
+    // plugins), puis restauré, et c'est nous qui revenons en arrière juste après. Si la version de Steamcord expose
+    // __steamcordOuvrirVue, la vue s'ouvre directement. Pas de nouvelle tentative : la vue est dans une autre fenêtre.
     ouvrirSteamcord: () => {
-      const dfl = () => O.DFL.Navigation, route = () => O.location.pathname;
-      const aller = () => {
+      const direct = typeof O.__steamcordOuvrirVue === "function";
+      console.log("[SteamU] Steamcord : ouverture " + (direct ? "directe" : "par la route /discord") + ", page " + O.location.pathname);
+      if (direct) try {
+        return void O.__steamcordOuvrirVue();
+      } catch (e) {
+        console.log("[SteamU] Steamcord : ouverture directe en erreur", e);
+      }
+      // diagnostic : la vue (.sc-xv-side) existe-t-elle, où, et qu'est-ce qui la masque ?
+      const sonder = () => {
+        const docs = [["SharedJS", O.document]];
         try {
-          dfl().Navigate("/discord");
+          docs.push(["fenetre principale", O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BrowserWindow.document]);
         } catch (e) {
         }
+        try {
+          (O.SteamUIStore.WindowStore.SteamUIWindows || []).forEach((w, i) => docs.push(["SteamUIWindows[" + i + "]", w?.BrowserWindow?.document]));
+        } catch (e) {
+        }
+        return docs.map(([nom, d]) => {
+          try {
+            if (!d) return nom + " : pas de document";
+            const lm = [...d.querySelectorAll(".FullModalOverlay, .ModalPosition")], modales = lm.length + (lm.length ? " [" + lm.map((m) => (m.className + "").slice(0, 40) + " enfants=" + m.childElementCount + " texte='" + (m.textContent || "").slice(0, 30) + "'").join(" ; ") + "]" : ""), el = d.querySelector(".sc-xv-side");
+            if (!el) return nom + " : pas de vue, modales=" + modales;
+            const r = el.getBoundingClientRect(), masque = [];
+            for (let q = el; q; q = q.parentElement) {
+              const c = d.defaultView.getComputedStyle(q);
+              if (c.display === "none" || c.visibility === "hidden" || +c.opacity === 0) masque.push((q.className || q.tagName) + "");
+            }
+            return nom + " : vue PRÉSENTE " + Math.round(r.width) + "x" + Math.round(r.height) + " en " + Math.round(r.x) + "," + Math.round(r.y) + ", masquée par : " + (masque.join(" | ") || "rien") + ", modales=" + modales;
+          } catch (e) {
+            return nom + " : erreur " + e;
+          }
+        }).join("\n  ");
       };
+      // piste : Steamcord ferme sa vue (modal.Close) dès que la fenêtre du menu Steam change de visibilité. On écoute cette fenêtre 6 s.
+      try {
+        const nav_ = O.FocusNavController, ctx = nav_?.m_ActiveContext || nav_?.m_LastActiveContext;
+        const arbre = ctx?.m_rgGamepadNavigationTrees?.find((t) => (t.m_ID || t.id) === "MainNavMenuContainer");
+        const fen = (arbre?.Root?.Element || arbre?.m_Root?.m_element)?.ownerDocument?.defaultView;
+        console.log("[SteamU] Steamcord : fenêtre du menu Steam " + (fen ? "trouvée, cachée=" + fen.document.hidden : "introuvable"));
+        if (fen) {
+          const ecoute = () => console.log("[SteamU] Steamcord : visibilitychange du menu Steam, cachée=" + fen.document.hidden);
+          fen.addEventListener("visibilitychange", ecoute);
+          setTimeout(() => fen.removeEventListener("visibilitychange", ecoute), 6000);
+        }
+      } catch (e) {
+        console.log("[SteamU] Steamcord : recherche de la fenêtre du menu en erreur", e);
+      }
+      [700, 1600].forEach((ms) => setTimeout(() => console.log("[SteamU] Steamcord : état à " + ms + " ms, page " + O.location.pathname + "\n  " + sonder()), ms));
+      let nav;
+      try {
+        nav = O.DFL.Navigation;
+      } catch (e) {
+      }
+      if (!nav) return;
       const retour = () => {
         try {
-          dfl().NavigateBack();
+          nav.NavigateBack();
         } catch (e) {
         }
       };
+      const surRoute = () => /\/discord$/.test(O.location.pathname);
+      // la vue (.sc-xv-side) est-elle affichée ? (dans la fenêtre principale : le diagnostic l'y a toujours trouvée)
       const vue = () => {
         const docs = [O.document];
         try {
@@ -679,19 +730,61 @@ window.__pcvBridge = (() => {
         }
         return docs.some((d) => !!d?.querySelector(".sc-xv-side"));
       };
-      const lancer = (essai) => {
-        aller();
-        setTimeout(() => {
-          if (vue() || essai) return;
-          if (route() === "/discord") retour();
-          setTimeout(() => lancer(1), 400);
-        }, 1200);
+      // une tentative : on navigue vers la route en gardant son composant monté (NavigateBack neutralisé) jusqu'à ce que
+      // Steamcord ait ouvert sa vue ; le traçage de showModal est conservé pour les logs. Rend de quoi tout restaurer.
+      const aller = () => {
+        const dfl = O.DFL, origine = nav.NavigateBack, origModal = dfl.showModal;
+        let garde = false, modalTrace = false;
+        try {
+          nav.NavigateBack = () => console.log("[SteamU] Steamcord : la route a appelé NavigateBack (neutralisé)");
+          garde = true;
+        } catch (e) {
+        }
+        try {
+          dfl.showModal = function (...a) {
+            console.log("[SteamU] Steamcord : showModal appelé");
+            try {
+              const r = origModal.apply(this, a);
+              console.log("[SteamU] Steamcord : showModal a rendu " + (r ? "un contrôleur" : "rien"));
+              return r;
+            } catch (e) {
+              console.log("[SteamU] Steamcord : showModal en ERREUR", e);
+              throw e;
+            }
+          };
+          modalTrace = dfl.showModal !== origModal;
+        } catch (e) {
+        }
+        console.log("[SteamU] Steamcord : NavigateBack " + (garde ? "neutralisé" : "NON neutralisable") + ", showModal " + (modalTrace ? "tracé" : "NON traçable"));
+        try {
+          nav.Navigate("/discord");
+        } catch (e) {
+        }
+        return () => {
+          try {
+            if (garde) nav.NavigateBack = origine;
+            if (modalTrace) dfl.showModal = origModal;
+          } catch (e) {
+          }
+        };
       };
-      if (route() === "/discord") {
+      // Au second lancement la vue pouvait ne pas venir sans aucune erreur : on vérifie qu'elle est là, sinon on revient de la
+      // route (l'accueil réapparaît) et on retente, trois fois au plus. Steamcord ignore un appel tant que sa vue est ouverte.
+      const essayer = (n) => {
+        const restaurer = aller();
+        setTimeout(() => {
+          const ok = vue();
+          restaurer();
+          console.log("[SteamU] Steamcord : tentative " + n + (ok ? " réussie" : " sans vue") + ", page " + O.location.pathname);
+          if (surRoute()) retour();
+          if (!ok && n < 3) setTimeout(() => essayer(n + 1), 600);
+        }, 900);
+      };
+      if (surRoute()) {
         retour();
-        return void setTimeout(() => lancer(0), 400);
+        return void setTimeout(() => essayer(1), 400);
       }
-      lancer(0);
+      essayer(1);
     },
     // a page of Steam's own Settings ("Internet", "Display", "Controller"...)
     navigate: (page) => {
