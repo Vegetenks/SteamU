@@ -3055,6 +3055,7 @@ body:is(.pcv-ouvert-home, .pcv-ouvert-ar) {{BackgroundGlass@Blur}}{{Visible@Back
 .pcv-pe .bouton small { display: block; font-size: 21px; font-weight: 800; color: var(--pcv-texte2); margin-top: 2px; }
 
 #pcv-home .icones { position: absolute; left: var(--marge); right: var(--marge); top: 806px; display: flex; justify-content: center; gap: 30px; }
+#pcv-home .icones.neuf { gap: 24px; }
 #pcv-home .icone { width: 176px; border-radius: 30px; display: flex; flex-direction: column; align-items: center; gap: 14px; font-size: 25px; font-weight: 900; white-space: nowrap; }
 #pcv-home .icone .pastille { position: relative; overflow: hidden; width: 140px; height: 140px; border-radius: 24px; color: var(--pcv-sur-accent); background: linear-gradient(160deg, var(--fond));
   box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-lisere), inset 0 -6px 11px rgba(0,0,0,.18), 0 8px 18px rgb(from var(--pcv-ombre-c) r g b / .2); }

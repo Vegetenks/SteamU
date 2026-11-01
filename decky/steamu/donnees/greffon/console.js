@@ -363,6 +363,13 @@
     return relief ? window.__pcvIcones.relief(n, bas.trim()) : window.__pcvIcones.email(n, haut, bas);
   };
   const CADENAS = `<svg class="cadenas" viewBox="0 0 24 24" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2.6"/><path d="M8 11V7.6a4 4 0 0 1 8 0V11"/></svg>`;
+  const steamcordPresent = () => {
+    try {
+      return !!O.__necroSteamMenuV1?.entries?.has("steamcord");
+    } catch (x) {
+      return false;
+    }
+  };
   const SUR_PAGE = () => !/^\/routes\/library\/home/.test(O.location.pathname);
   const APPLIS = {
     eshop: {
@@ -373,6 +380,22 @@
       pret: () => !!window.__pcvBoutique?.ouvert()
     },
     bibliotheque: { nom: T("spaces.bibliotheque.nom"), fond: "#b9a4ff, #6d4fd6", ic: "bibliotheque", ouvrir: () => O.__pcvAller?.(2), pret: SUR_PAGE },
+    // (Steamcord) la tuile du plugin Steamcord : ouvre sa vue Discord (la route /discord, la même que l'entrée du menu Steam).
+    // Couleurs écrites en dur (le bleu de Discord) : ni l'accent ni le thème de SteamU ne la repeignent. Sans Steamcord chargé
+    // (il s'inscrit dans __necroSteamMenuV1), la tuile reste à sa place dans la grille mais verrouillée.
+    steamcord: {
+      nom: "Steamcord",
+      fond: "#5865f2, #3b45c4",
+      ic: "steamcord",
+      verrouille: () => !steamcordPresent(),
+      ouvrir: () => {
+        if (!steamcordPresent()) return window.__pcvSon?.("bord");
+        try {
+          O.DFL.Navigation.Navigate("/discord");
+        } catch (x) {
+        }
+      }
+    },
     parametres: { nom: T("spaces.parametres.nom"), fond: "#9aa6b8, #5b6676", ic: "parametres", ouvrir: () => O.__pcvAller?.(7), pret: SUR_PAGE },
     album: { nom: T("spaces.medias.nom"), fond: "#5fb2ff, #2a6fe0", ic: "album", ouvrir: () => window.__pcvMediatheque.ouvrir(), pret: () => !!window.__pcvMediatheque?.ouvert() },
     // (28/10) notre Album, plus la page de Steam
