@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.1 (2026-11-02)
+
+- You can now import Badge Arcade from a .3ds or .cia file, with the aes_keys.txt file from Citra or Azahar.
+- Storage shows all your drives and lets you choose where to move your games.
+- Notifications appear one at a time, repeated controller announcements are grouped and the update notice can be dismissed.
+- Fixed bugs on the SpotPass page.
+- On Windows, SteamU shows an incompatibility message instead of a white screen.
+
 ## v0.2.0 (2026-10-31)
 
 - Settings: all your console settings, in a page made for SteamU. The row of tiles at the top stays, LB and RB switch sections, and SteamU is a section like the others.

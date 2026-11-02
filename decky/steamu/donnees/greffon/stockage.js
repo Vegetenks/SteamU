@@ -21,7 +21,12 @@
   const pl = (cle, n) => T(n === 1 ? cle + "_1" : cle, { n });
   const IDEES = 4, OUBLIE = 60 * 86400, COLONNES = 4, GROS_BARRE = 9, GROS_JAQ = 6, VISIBLES = 3;
   const TEINTE = { reste: "#a9b4c2", jeux: "#e78f25", outils: "#cfd6df", gris: "#8a96a8", sd: "#8b6cf0", page: "#ff8a1f", vert: "var(--pcv-vert, #2fbf71)" };
-  const ONGLETS = [["place", "balai", TEINTE.vert], ["jeux", "bibliotheque", TEINTE.page], ["console", "disque", "var(--pcv-cyan-plein)"], ["sd", "carte-sd", TEINTE.sd], ["outils", "outil", TEINTE.gris]];
+  const onglets = () => [
+    ["place", "balai", TEINTE.vert],
+    ["jeux", "bibliotheque", TEINTE.page],
+    ...[true, false].flatMap((fixe) => montes().filter((d) => !!d.bIsFixed === fixe).map((d) => ["disque-" + d.nFolderIndex, fixe ? "disque" : "carte-sd", fixe ? "var(--pcv-cyan-plein)" : TEINTE.sd, d])),
+    ["outils", "outil", TEINTE.gris]
+  ];
   const TRIS = ["gros", "nom", "ancien"];
   const ORDRE = { gros: (a, b) => b.octets - a.octets, nom: (a, b) => a.nom.localeCompare(b.nom, window.__pcvLocale?.()), ancien: (a, b) => a.joue - b.joue || b.octets - a.octets };
   let disques = [], banc = false;
@@ -35,7 +40,8 @@
   };
   const montes = () => disques.filter((d) => d.bIsMounted);
   const laConsole = () => montes().find((d) => d.bIsFixed && d.bIsDefaultFolder) || montes().find((d) => d.bIsFixed) || montes()[0];
-  const laSD = () => montes().find((d) => !d.bIsFixed);
+  const ensemble = () => ({ nFolderIndex: null, nCapacity: montes().reduce((n, d) => n + (+d.nCapacity || 0), 0), nFreeSpace: montes().reduce((n, d) => n + (+d.nFreeSpace || 0), 0) });
+  const surDisque = (l, d) => d.nFolderIndex == null ? l : l.filter((j) => j.d === d.nFolderIndex);
   const tous = () => montes().flatMap((d) => (d.vecApps || []).map((v) => {
     const a = appDe(v.nAppID);
     return { id: v.nAppID, nom: a?.display_name || v.strAppName || String(v.nAppID), octets: +v.nUsedSize || 0, v, d: d.nFolderIndex, outil: a?.app_type === 4, joue: a?.rt_last_time_played || v.rtLastPlayed || 0 };
@@ -44,14 +50,16 @@
   const outils = () => tous().filter((j) => j.outil);
   const somme = (l) => l.reduce((s, j) => s + j.octets, 0);
   const place = (d) => {
-    const l = tous().filter((j2) => j2.d === d.nFolderIndex), cap = +d.nCapacity || 0, libre = +d.nFreeSpace || 0, j = somme(l.filter((x) => !x.outil)), o = somme(l.filter((x) => x.outil));
+    const l = surDisque(tous(), d), cap = +d.nCapacity || 0, libre = +d.nFreeSpace || 0, j = somme(l.filter((x) => !x.outil)), o = somme(l.filter((x) => x.outil));
     return { cap, libre, jeux: j, outils: o, autres: Math.max(0, cap - libre - j - o) };
   };
   const idees = (maintenant = Date.now() / 1e3) => jeux().filter((j) => maintenant - j.joue > OUBLIE).sort(ORDRE.ancien).slice(0, IDEES);
   const trier = (l, tri) => [...l].sort(ORDRE[tri] || ORDRE.gros);
-  const nomDisque = (d) => d.strUserLabel || (d.bIsFixed ? T("stockage.onglet.console") : T("stockage.onglet.sd"));
-  const versQui = (d) => d.bIsFixed ? d.strUserLabel || T("stockage.la_console") : T("stockage.la_sd");
-  const autreDisque = (j) => montes().find((d) => d.nFolderIndex !== j.d);
+  const nomDisque = (d) => d.strUserLabel || T(d.bIsFixed ? "stockage.onglet.console" : "stockage.onglet.sd");
+  const versQui = (d) => d.strUserLabel || T(d.bIsFixed ? "stockage.la_console" : "stockage.la_sd");
+  const destinations = (l) => montes().filter((d) => l.some((j) => j.d !== d.nFolderIndex));
+  const aDeplacer = (l, d) => l.filter((j) => j.d !== d.nFolderIndex);
+  const assez = (l, d) => +d.nFreeSpace >= somme(aDeplacer(l, d));
   const quand = (t) => {
     if (!t) return T("stockage.jamais");
     const d = new Date(t * 1e3), n = /* @__PURE__ */ new Date();
@@ -131,6 +139,11 @@
     ${C} :is(.contenu, .colonne, .grille)::-webkit-scrollbar { display: none; }
     
     :is(${C}, #pcv-parametres) .f { box-shadow: var(--pcv-anneau-choisi) !important; }
+    ${C} .colonne > * { flex-shrink: 0; }
+    ${C} .colonne .groupe { margin: calc(var(--u) * 2) calc(var(--u) * 14); color: var(--t2); font-size: calc(var(--u) * 14); font-weight: 900; }
+    ${C} .colonne .onglet > span { min-width: 0; }
+    ${C} .colonne .onglet { height: auto; min-height: calc(var(--u) * 64); padding-block: calc(var(--u) * 8); }
+    ${C} .colonne .onglet b { white-space: normal; overflow-wrap: anywhere; }
     ${C} .contenu { gap: var(--pcv-ecart-choix); }
     ${C} .contenu > * { flex: none; }
     
@@ -234,7 +247,7 @@
     <span class="autres"><b>${T("stockage.autres")}</b>${go(p.autres)}</span><span class="libre"><b>${T("stockage.libre")}</b>${go(p.libre)}</span></div>`;
   const reste = (p, sous) => `<div class="reste"><small>${T("stockage.il_reste")}</small><b>${nombre(p.libre)} <span>${T("stockage.go")}</span></b><em>${sous ?? T("stockage.sur", { n: go(p.cap) })}</em></div>`;
   const morceaux = (d, n) => {
-    const p = place(d), l = trier(jeux().filter((j) => j.d === d.nFolderIndex), "gros");
+    const p = place(d), l = trier(surDisque(jeux(), d), "gros");
     return [
       ...l.slice(0, n).map((j) => ({ o: j.octets, c: couleur(j.id), j })),
       { o: somme(l.slice(n)), c: TEINTE.reste, t: T("stockage.autres_jeux", { n: l.length - n }) },
@@ -246,23 +259,14 @@
   const largeur = (o, cap) => `width:${cap ? o / cap * 100 : 0}%`;
   const barre = (d, n) => `<div class="barre">${morceaux(d, n).map((m) => `<i class="${m.cl || ""}" style="${largeur(m.o, d.nCapacity)};--c:${m.c || ""}"></i>`).join("")}</div>`;
   const barreJaq = (d) => {
-    const cap = +d.nCapacity, assez = (o) => o / cap > 0.05;
-    return `<div class="barre jaq">${morceaux(d, GROS_JAQ).map((m) => `<i class="${m.cl || ""}" style="${largeur(m.o, cap)};--c:${m.c || TEINTE.reste};${m.j ? fond(m.j.id) : ""}">${assez(m.o) ? `<span>${esc(m.j ? go(m.o) : m.t)}</span>` : ""}</i>`).join("")}</div>`;
+    const cap = +d.nCapacity, assez2 = (o) => o / cap > 0.05;
+    return `<div class="barre jaq">${morceaux(d, GROS_JAQ).map((m) => `<i class="${m.cl || ""}" style="${largeur(m.o, cap)};--c:${m.c || TEINTE.reste};${m.j ? fond(m.j.id) : ""}">${assez2(m.o) ? `<span>${esc(m.j ? go(m.o) : m.t)}</span>` : ""}</i>`).join("")}</div>`;
   };
-  const SOUS = {
-    place: () => pl("stockage.idees", idees().length),
-    jeux: () => S.part ? T("stockage.desinst_n", { n: Math.min(S.part.total, S.part.faits + 1), total: S.part.total }) : S.dep ? T("stockage.en_cours", { nom: jeu(S.dep.id)?.nom || "", p: T("stockage.pourcent", { n: Math.round(S.dep.p * 100) }) }) : pl("stockage.n_jeux", jeux().length),
-    outils: () => T("stockage.a_garder", { n: go(somme(outils())) }),
-    console: () => {
-      const d = laConsole();
-      return d ? T("stockage.libres_sur", { libre: go(d.nFreeSpace), total: nombre(d.nCapacity) }) : "";
-    },
-    sd: () => {
-      const d = laSD();
-      return d ? T("stockage.libres_sur", { libre: go(d.nFreeSpace), total: nombre(d.nCapacity) }) : T("stockage.pas_de_carte");
-    }
+  const SOUS = { place: () => pl("stockage.idees", idees().length), jeux: () => S.part ? T("stockage.desinst_n", { n: Math.min(S.part.total, S.part.faits + 1), total: S.part.total }) : S.dep ? T("stockage.en_cours", { nom: jeu(S.dep.id)?.nom || "", p: T("stockage.pourcent", { n: Math.round(S.dep.p * 100) }) }) : pl("stockage.n_jeux", jeux().length), outils: () => T("stockage.a_garder", { n: go(somme(outils())) }) };
+  const dessinerColonne = () => {
+    const groupes = [true, false].some((fixe) => montes().filter((d) => !!d.bIsFixed === fixe).length > 1);
+    return `<div class="colonne">${onglets().map(([id, n, c, d], i, l) => (groupes && d && (!l[i - 1]?.[3] || !!l[i - 1][3].bIsFixed !== !!d.bIsFixed) ? `<p class="groupe">${T(d.bIsFixed ? "stockage.internes" : "stockage.amovibles")}</p>` : "") + window.__pcvOnglet("og:" + id, S.og === id, c, ic(n), esc(d ? nomDisque(d) : T("stockage.onglet." + id)), esc(d ? T("stockage.libres_sur", { libre: go(d.nFreeSpace), total: nombre(d.nCapacity) }) : SOUS[id]()))).join("")}</div>`;
   };
-  const dessinerColonne = () => `<div class="colonne">${ONGLETS.map(([id, n, c]) => window.__pcvOnglet("og:" + id, S.og === id, c, ic(n), T("stockage.onglet." + id), esc(SOUS[id]()))).join("")}</div>`;
   const bouton = (a, n, c, texte, aide = "", cl = "", off = false) => `<button class="bouton ${cl}" data-a="${a}"${off ? " disabled" : ""}><i class="pastille" style="--c:${c}">${ic(n)}</i><span>${esc(texte)}${aide ? `<small>${esc(aide)}</small>` : ""}</span></button>`;
   const vuePlace = (d) => {
     const p = place(d), l = idees();
@@ -292,43 +296,60 @@
       <div class="actions normales">${ACTIONS_DISQUE(d).slice(0, VISIBLES).map(([a, n, c, t, aide]) => bouton(a, n, c, t, aide)).join("")}</div>`;
   };
   const vueOutils = () => `<p class="note">${T("stockage.outils_texte")}</p><div class="lignes">${trier(outils(), "gros").map((j) => `<div data-a="outil:${j.id}"><span>${esc(j.nom)}</span><small>${go(j.octets)}</small></div>`).join("")}</div>`;
-  const VUES = { place: () => vuePlace(laConsole()), jeux: () => vueJeux(laConsole()), console: () => vueDisque(laConsole(), "stockage.aucun_disque"), sd: () => vueDisque(laSD(), "stockage.pas_de_carte_texte"), outils: vueOutils };
+  const VUES = { place: () => vuePlace(ensemble()), jeux: () => vueJeux(ensemble()), outils: vueOutils };
   const vueFiche = (j) => {
-    const d = montes().find((x) => x.nFolderIndex === j.d) || laConsole(), cap = +d.nCapacity || 1, part = Math.round(j.octets / cap * 100), p = place(d), v = j.v, autre = autreDisque(j);
+    const d = montes().find((x) => x.nFolderIndex === j.d) || laConsole(), cap = +d.nCapacity || 1, part = Math.round(j.octets / cap * 100), p = place(d), v = j.v;
     const morceauxJeu = [["jeu", j.octets - (+v.nDLCSize || 0) - (+v.nWorkshopSize || 0) - (+v.nShaderSize || 0)], ["dlc", +v.nDLCSize], ["shaders", +v.nShaderSize], ["workshop", +v.nWorkshopSize]].filter(([, o]) => o > 0);
     const plusGros = trier(jeux(), "gros")[0]?.id === j.id, c = couleur(j.id);
     const pourcent = `<b>${T("stockage.pourcent", { n: part })}</b>`;
     return `<div class="colonne jeu"><div class="grande" style="${fond(j.id)}"></div>
-        <div class="part">${esc(T("stockage.part", { n: "" })).replace("", pourcent)}</div>
+        <div class="part">${esc(T(d.strUserLabel ? "stockage.part" : d.bIsFixed ? "stockage.part.console" : "stockage.part.sd", { n: "", disque: nomDisque(d) })).replace("", pourcent)}</div>
         <div class="barre"><i style="${largeur(j.octets, cap)};--c:${c}"></i><i class="autres" style="${largeur(cap - p.libre - j.octets, cap)}"></i><i class="libre"></i></div>
         ${morceauxJeu.length > 1 ? `<div class="cat">${morceauxJeu.map(([k, o]) => `<span>${T("stockage.part." + k)}</span><b>${go(o)}</b>`).join("")}</div>` : ""}</div>
       <div class="contenu"><h2>${esc(j.nom)}</h2><div class="infos"><span class="gros" style="--c:${c}">${go(j.octets)}</span>${plusGros ? `<span>${T("stockage.plus_gros")}</span>` : ""}<span class="quand">${esc(quand(j.joue))}</span></div>
         <div class="actions">${bouton("act:desinstaller", "supprimer", TEINTE.gris, T("biblio.r_desinstaller"), T("stockage.tu_gagnes", { n: go(j.octets) }), "principal")}
-          ${autre ? bouton("act:deplacer", autre.bIsFixed ? "disque" : "carte-sd", TEINTE.sd, T("stockage.deplacer_vers", { disque: versQui(autre) }), autre.nFreeSpace >= j.octets ? T("stockage.il_faut", { n: go(j.octets) }) : T("stockage.pas_assez"), "", autre.nFreeSpace < j.octets) : ""}
+          ${boutonDeplacer([j], "act:deplacer")}
           ${bouton("act:page", "page", TEINTE.page, T("stockage.voir_page"), T("stockage.voir_page_aide"))}</div></div>`;
   };
-  const choisis = () => jeux().filter((j) => S.choix?.has(j.id));
-  const autreChoix = (l) => {
-    const ds = new Set(l.map((j) => j.d));
-    return ds.size === 1 ? montes().find((d) => !ds.has(d.nFolderIndex)) : null;
+  const boutonDeplacer = (l, action) => {
+    const ds = destinations(l), d = ds[0];
+    if (!d) return "";
+    const possible = ds.some((x) => assez(l, x));
+    return bouton(
+      action,
+      ds.length === 1 && d.bIsFixed ? "disque" : "carte-sd",
+      TEINTE.sd,
+      ds.length === 1 ? T("stockage.deplacer_vers", { disque: versQui(d) }) : T("stockage.deplacer"),
+      possible ? ds.length === 1 ? T("stockage.destination_libre", { libre: go(d.nFreeSpace) }) : T("stockage.destination") : T("stockage.pas_assez"),
+      "",
+      !possible
+    );
   };
+  const choisis = () => jeux().filter((j) => S.choix?.has(j.id));
   const barreChoix = () => {
-    const l = choisis(), autre = autreChoix(l);
+    const l = choisis();
     return `<div class="actions-sel">${bouton("sel:desinstaller", "supprimer", TEINTE.gris, T("biblio.r_desinstaller"), "", "", !l.length).replace('class="bouton ', 'data-rang="fin" class="bouton ')}
-      ${autre ? bouton("sel:deplacer", autre.bIsFixed ? "disque" : "carte-sd", TEINTE.sd, T("stockage.vers", { disque: versQui(autre) }), "", "", !l.length || autre.nFreeSpace < somme(l)).replace('class="bouton ', 'data-rang="fin" class="bouton ') : ""}
+      ${boutonDeplacer(l, "sel:deplacer").replace('class="bouton ', 'data-rang="fin" class="bouton ')}
       <b>${pl("stockage.n_choisis", l.length)}</b><em>+${go(somme(l))}</em></div>`;
   };
   const jeu = (id) => tous().find((j) => j.id === +id);
   const dessiner = () => {
-    const grille = page.querySelector(".grille"), haut = grille?.scrollTop || 0, j = S.fiche && jeu(S.fiche);
+    const grille = page.querySelector(".grille"), haut = grille?.scrollTop || 0, defile = page.querySelector(".colonne")?.scrollTop || 0, j = S.fiche && jeu(S.fiche);
+    if (!onglets().some(([id]) => id === S.og)) {
+      S.og = "jeux";
+      S.zone = "colonne";
+      S.cur = null;
+    }
     if (S.fiche && !j) {
       S.fiche = null;
       S.cur = S.retour;
     }
     page.classList.toggle("choix-on", !!S.choix);
-    page.innerHTML = `<div class="panneau">${j ? vueFiche(j) : `${dessinerColonne()}<div class="contenu">${laConsole() ? VUES[S.og]() : `<p class="note">${T("stockage.aucun_disque")}</p>`}</div>`}</div>${S.choix && !j ? barreChoix() : ""}`;
+    page.innerHTML = `<div class="panneau">${j ? vueFiche(j) : `${dessinerColonne()}<div class="contenu">${laConsole() ? VUES[S.og] ? VUES[S.og]() : vueDisque(disqueVu(), "stockage.aucun_disque") : `<p class="note">${T("stockage.aucun_disque")}</p>`}</div>`}</div>${S.choix && !j ? barreChoix() : ""}`;
     const g = page.querySelector(".grille");
     if (g) g.scrollTop = haut;
+    const col = page.querySelector(".colonne");
+    if (col) col.scrollTop = defile;
     curseur();
   };
   const cibles = () => [...page.querySelectorAll(S.zone === "colonne" ? ".colonne [data-a]" : S.fiche ? ".contenu [data-a]" : ".contenu [data-a], .actions-sel [data-a]")].filter((e) => !e.disabled);
@@ -412,7 +433,7 @@
     }), BULLE_MS);
   };
   const demanderDesinstaller = (l) => {
-    const libre = (laConsole()?.nFreeSpace || 0) + somme(l), un = l.length === 1;
+    const libre = ensemble().nFreeSpace + somme(l), un = l.length === 1;
     return Q({
       ic: "suppr",
       titre: un ? T("stockage.q_desinstaller", { nom: l[0].nom }) : T("stockage.q_desinstaller_n", { n: l.length }),
@@ -444,7 +465,12 @@
     lire();
   };
   const demanderDeplacer = (l, vers) => {
-    const un = l.length === 1, d = disques.find((x) => x.nFolderIndex === vers);
+    const d = montes().find((x) => x.nFolderIndex === vers);
+    l = l.map((j) => jeu(j.id)).filter(Boolean);
+    if (!d || !assez(l, d)) return;
+    l = aDeplacer(l, d);
+    if (!l.length) return;
+    const un = l.length === 1;
     return Q({
       ic: "dossier",
       danger: false,
@@ -452,11 +478,28 @@
       texte: T("stockage.q_deplacer_texte", { n: go(somme(l)), libre: go(d.nFreeSpace) }),
       non: T("steamu.annuler"),
       oui: T("stockage.deplacer"),
-      ok: () => deplacer(l.map((j) => j.id), vers)
+      ok: () => {
+        const actuel = montes().find((x) => x.nFolderIndex === vers), presents = l.map((j) => jeu(j.id)).filter(Boolean);
+        if (actuel && assez(presents, actuel)) deplacer(aDeplacer(presents, actuel).map((j) => j.id), vers);
+      }
     });
   };
-  const disqueVu = () => S.og === "sd" ? laSD() : laConsole();
-  const options = () => !S.fiche && (S.og === "console" || S.og === "sd") && disqueVu() ? ACTIONS_DISQUE(disqueVu()).slice(VISIBLES) : [];
+  const choisirDestination = (l) => {
+    const ds = destinations(l);
+    if (!ds.length) return;
+    if (ds.length === 1) return demanderDeplacer(l, ds[0].nFolderIndex);
+    const grises = ds.flatMap((d, i) => assez(l, d) ? [] : [i]);
+    return window.__pcvDossiers?.liste?.({
+      ailleurs: true,
+      titre: T("stockage.destination"),
+      choix: ds.map((d) => `${nomDisque(d)} : ${T("stockage.destination_libre", { libre: go(d.nFreeSpace) })}${assez(l, d) ? "" : ", " + T("stockage.pas_assez")}`),
+      grises,
+      v: ds.findIndex((d) => assez(l, d)),
+      ok: (i) => ds[i] && demanderDeplacer(l, ds[i].nFolderIndex)
+    });
+  };
+  const disqueVu = () => montes().find((d) => S.og === "disque-" + d.nFolderIndex);
+  const options = () => !S.fiche && disqueVu() ? ACTIONS_DISQUE(disqueVu()).slice(VISIBLES) : [];
   const ACTION_DISQUE = {
     defaut: (d) => {
       SC().InstallFolder.SetDefaultInstallFolder(d.nFolderIndex);
@@ -556,14 +599,14 @@
     if (a === "tout") return demanderDesinstaller(idees());
     const j = S.fiche && jeu(S.fiche);
     if (a === "act:desinstaller" && j) return demanderDesinstaller([j]);
-    if (a === "act:deplacer" && j) return demanderDeplacer([j], autreDisque(j).nFolderIndex);
+    if (a === "act:deplacer" && j) return choisirDestination([j]);
     if (a === "act:page" && j) {
       son("choisir");
       if (!window.__pcvPageJeu?.(j.id)) window.__pcvBridge?.revenirA?.("/library/app/" + j.id);
       return;
     }
     if (a === "sel:desinstaller" && choisis().length) return demanderDesinstaller(choisis());
-    if (a === "sel:deplacer" && choisis().length) return demanderDeplacer(choisis(), autreChoix(choisis()).nFolderIndex);
+    if (a === "sel:deplacer" && choisis().length) return choisirDestination(choisis());
     if (k === "d" && disqueVu()) return ACTION_DISQUE[v]?.(disqueVu());
   };
   page.addEventListener("click", (e) => {
@@ -618,7 +661,7 @@
     }
     S.manette = true;
     if (S.zone === "colonne") {
-      const i = ONGLETS.findIndex(([id]) => id === S.og);
+      const liste = onglets(), i = liste.findIndex(([id]) => id === S.og);
       if (b === 2 || b === 9 && i === 0) {
         S.zone = "onglet";
         son("retour");
@@ -626,7 +669,7 @@
         return true;
       }
       if (b === 9 || b === 10) {
-        const n = ONGLETS[i + (b === 10 ? 1 : -1)];
+        const n = liste[i + (b === 10 ? 1 : -1)];
         if (n) agir("og:" + n[0]);
         else son("bord");
         return true;

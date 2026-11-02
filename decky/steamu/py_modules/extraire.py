@@ -21,8 +21,12 @@ def _boot9(arg):
 def romfs(entree, boot9, octets_max, fichiers_max, sortie):
     import ctr
     os.makedirs(sortie, exist_ok=True)
-    debut, taille = ctr.ncch_dans(entree)
-    brut = ctr.romfs_de_ncch(entree, debut, taille, _boot9(boot9), sortie)
+    aes = os.path.join(os.path.dirname(boot9), "aes_keys.txt")   
+    cles = ctr.cles_joueur(_lire(aes).decode("ascii", "replace")) if boot9 != "-" and os.path.isfile(aes) else {}
+    try: debut, taille = ctr.ncch_dans(entree)
+    except ctr.CleDuTitre as e:                         
+        entree = ctr.cia_en_clair(entree, e.infos, _boot9(boot9), cles, sortie); debut, taille = 0, os.path.getsize(entree)
+    brut = ctr.romfs_de_ncch(entree, debut, taille, _boot9(boot9), sortie, cles)
     if not brut: return {"fichiers": [], "notes": {"romfs": 0}}
     sortis, total = [], 0
     with open(brut, "rb") as f:

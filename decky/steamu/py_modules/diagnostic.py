@@ -1,4 +1,4 @@
-import datetime, json, os, pathlib, platform, pwd, re, socket, subprocess, time, urllib.request, zipfile
+import datetime, json, os, pathlib, platform, re, socket, subprocess, time, urllib.request, zipfile
 
 import websocket
 
@@ -34,7 +34,9 @@ def _lire(chemin):
 
 def secrets_locaux(maison):
     s = [maison, socket.gethostname(), _lire("/etc/hostname"), _lire("/etc/machine-id")]
-    try: s.append(pwd.getpwuid(os.stat(maison).st_uid).pw_name)
+    try:
+        import pwd
+        s.append(pwd.getpwuid(os.stat(maison).st_uid).pw_name)
     except Exception: pass
     s.append(pathlib.Path(maison).name)
     for n in ("product_serial", "board_serial", "chassis_serial", "product_uuid"):

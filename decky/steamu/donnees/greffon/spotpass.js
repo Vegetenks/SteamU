@@ -544,11 +544,13 @@
   page.id = "pcv-spotpass-page";
   page.hidden = true;
   const u = (n) => `calc(var(--u) * ${n})`;
+  const margeLegende = u(window.__pcvPresentation?.LEGENDE || 76);
   page.innerHTML = `<style>
-    #pcv-spotpass-page { position:fixed; inset:0; z-index:8600; padding:${u(96)} ${u(44)} ${u(window.__pcvPresentation?.LEGENDE || 76)}; background:var(--pcv-fond-page); color:var(--pcv-texte); font-family:var(--pcv-police); display:flex; flex-direction:column; box-sizing:border-box; }
+    #pcv-spotpass-page { position:fixed; inset:0; z-index:8600; padding:${u(96)} ${u(44)} ${margeLegende}; background:var(--pcv-fond-page); color:var(--pcv-texte); font-family:var(--pcv-police); display:flex; flex-direction:column; box-sizing:border-box; }
     #pcv-spotpass-page[hidden] { display:none; }
     #pcv-spotpass-page h2 { font-size:${u(26)}; font-weight:900; margin:${u(4)} 0 ${u(20)}; }
     #pcv-spotpass-page .corps { display:flex; gap:${u(30)}; flex:1; min-height:0; }
+    #pcv-spotpass-page .contenu { padding-bottom:${margeLegende}; scroll-padding-bottom:${margeLegende}; }
     #pcv-spotpass-page .contenu .danger-liste { flex:none; }
     #pcv-spotpass-page .pastille img { width:100%; height:100%; object-fit:contain; }
     #pcv-spotpass-page.avec-moi .contenu { padding-right:${u(250)}; }
@@ -564,6 +566,7 @@
     page.querySelectorAll(".sel").forEach((b2) => b2.classList.remove("sel"));
     const b = boutonsPage()[contenu ? selection : rubrique];
     b?.classList.add("sel");
+    b?.scrollIntoView?.({ block: "nearest" });
     const l = [[1, window.__pcvSpotPassVue.action(contenu && b?.dataset.sp)], [2, T("touche.retour")]];
     I.poser(page.querySelector(".pcv-legende"), window.__pcvLegendeDe?.(l) || l);
   };

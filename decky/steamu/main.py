@@ -29,10 +29,17 @@ def pid_reaper(appid, proc="/proc"):
 
 class Plugin:
     async def _main(self):
+        if sys.platform != "linux":
+            decky.logger.warning("SteamU : système non compatible, aucune injection")
+            return
         import asyncio, moteur, reprise
         import paquet
         try: decky.logger.info("SteamU : entrée Decky " + json.dumps(paquet.verifier(ICI)))
         except ValueError as e: decky.logger.error("SteamU : " + str(e))
+        v = ".".join(json.loads((ICI / "package.json").read_text())["version"].split(".")[:3])
+        notes = ICI / "nouveautes.json"
+        moteur.GREFFON_JS += ";window.__pcvGreffon.nouveautes = " + json.dumps({"version": v,
+            "notes": json.loads(notes.read_text(encoding="utf-8")).get(v, {}) if notes.exists() else {}})
         try: await asyncio.get_running_loop().run_in_executor(None, lambda: reprise.reprendre(
                 decky.DECKY_HOME, moteur.ANCIEN_DOSSIER, pathlib.Path(decky.DECKY_PLUGIN_DIR).name, decky.logger.info))
         except Exception as e: decky.logger.warning(f"reprise de l'ancien greffon manquée : {type(e).__name__}")
@@ -545,6 +552,9 @@ class Plugin:
             decky.logger.warning(f"SteamU : dispositions non enregistrées ({type(e).__name__})"); return False
 
     async def secours_etat(self):
+        if sys.platform != "linux":
+            import platform
+            return {"pause": "incompatible", "systeme": platform.system()}
         import moteur
         return {"pause": moteur.secours.pause}
 
@@ -617,6 +627,7 @@ class Plugin:
         return r
 
     async def _uninstall(self):
+        if sys.platform != "linux": return
         await self.film_demarrage(False)   
         import film_demarrage
         f = pathlib.Path(decky.DECKY_USER_HOME) / ".steam/steam/config/uioverrides/movies" / film_demarrage.FILM
@@ -624,6 +635,7 @@ class Plugin:
         except Exception as e: decky.logger.warning(f"vidéo de démarrage non retirée : {e}")
 
     async def _unload(self):
+        if sys.platform != "linux": return
         import moteur
         moteur.arreter = True
         import apercu; apercu.fin()

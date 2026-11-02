@@ -290,29 +290,37 @@
   };
   const notesDe = (n = {}) => n[window.__pcvLangue?.()]?.length ? n[window.__pcvLangue()] : n.en || [];
   const majNotes = () => notesDe(window.__pcvMaj?.notes);
+  const nouveautes = window.__pcvGreffon?.nouveautes;
+  const notesInstallees = () => nouveautes && /^\d+\.\d+\.[1-9]\d*$/.test(nouveautes.version) ? notesDe(nouveautes.notes) : [];
+  const nouveautesActives = () => notesInstallees().length > 0 && lireCle("pcv-maj-nouveautes") !== nouveautes.version;
   const PLANTAGE_IC = '<svg viewBox="0 0 24 24"><path d="M12 2.5 1.5 21h21zM10.8 9h2.4v6h-2.4zm0 7.6h2.4V19h-2.4z"/></svg>';
   const plantageActif = () => !!window.__pcvPlantage && lireCle("pcv-plantage-vu") !== window.__pcvPlantage;
   demander("plantage", [], (r) => {
     window.__pcvPlantage = r.fichier || null;
   });
-  const avisTextes = (n) => n.avis === "nouveautes" ? { ic: MAJ_IC, titre: T("bienvenue.notification"), ligne: T("bienvenue.revoir_aide"), voir: T("bienvenue.revoir"), masquer: T("bienvenue.plus") } : n.avis === "plantage" ? { ic: PLANTAGE_IC, titre: T("notifs.plantage_titre"), ligne: T("notifs.plantage_texte", { fichier: echappe(window.__pcvPlantage || "") }), voir: "", masquer: T("notifs.masquer") } : n.avis === "plugins" ? { ic: MAJ_IC, titre: T("notifs.plugins_titre", { n: window.__pcvMajPlugins.length }), ligne: echappe(window.__pcvMajPlugins.map((p) => p.nom).join(", ")), voir: T("notifs.voir_plus", "Voir plus"), masquer: T("notifs.plus_tard") } : n.avis === "maj" ? { ic: MAJ_IC, titre: T("notifs.maj_titre", { version: echappe(window.__pcvMaj?.version || "") }), ligne: echappe(majNotes()[0] || ""), voir: T("notifs.voir_plus", "Voir plus"), masquer: T("notifs.plus_tard") } : { ic: AVIS_IC, titre: T("notifs.avis_titre", "Importer vos Mii"), ligne: T("notifs.avis_texte", "Pour retrouver vos Mii sur la place, appuyez sur Voir plus."), voir: T("notifs.voir_plus", "Voir plus"), masquer: T("notifs.ne_plus_afficher", "Ne plus afficher") };
+  const avisTextes = (n) => n.avis === "nouveautes" ? { ic: MAJ_IC, titre: T("bienvenue.notification"), ligne: T("bienvenue.revoir_aide"), voir: T("bienvenue.revoir"), masquer: T("notifs.masquer") } : n.avis === "installee" ? { ic: MAJ_IC, titre: T("bienvenue.notification"), ligne: echappe(notesDe(nouveautes.notes)[0]), voir: T("notifs.voir_plus"), masquer: T("notifs.masquer") } : n.avis === "plantage" ? { ic: PLANTAGE_IC, titre: T("notifs.plantage_titre"), ligne: T("notifs.plantage_texte", { fichier: echappe(window.__pcvPlantage || "") }), voir: "", masquer: T("notifs.masquer") } : n.avis === "plugins" ? { ic: MAJ_IC, titre: T("notifs.plugins_titre", { n: window.__pcvMajPlugins.length }), ligne: echappe(window.__pcvMajPlugins.map((p) => p.nom).join(", ")), voir: T("notifs.voir_plus", "Voir plus"), masquer: T("notifs.plus_tard") } : n.avis === "maj" ? { ic: MAJ_IC, titre: T("notifs.maj_titre", { version: echappe(window.__pcvMaj?.version || "") }), ligne: echappe(majNotes()[0] || ""), voir: T("notifs.voir_plus", "Voir plus"), masquer: T("notifs.plus_tard") } : { ic: AVIS_IC, titre: T("notifs.avis_titre", "Importer vos Mii"), ligne: T("notifs.avis_texte", "Pour retrouver vos Mii sur la place, appuyez sur Voir plus."), voir: T("notifs.voir_plus", "Voir plus"), masquer: T("notifs.ne_plus_afficher", "Ne plus afficher") };
   const bulleUneFois = (suivi, vu, actif, n) => {
     clearInterval(window[suivi]);
-    window[suivi] = setInterval(async () => {
+    window[suivi] = setInterval(() => {
       if (window[vu] || !actif() || !window.__pcvBulleGrande) return;
       window[vu] = true;
       const a = avisTextes(n);
-      if (await window.__pcvBulleGrande({ svg: a.ic, titre: a.titre, ligne: a.ligne, agir: () => {
+      clearInterval(window[suivi]);
+      window.__pcvBulleGrande({ svg: a.ic, titre: a.titre, ligne: a.ligne, valide: () => racine.hidden && actif(), agir: () => {
         window.__pcvNotifsMontrer?.(true);
-        if (n.avis === "maj") ouvrirQuoi();
+        if (n.avis === "maj" || n.avis === "installee") ouvrirQuoi(n.avis === "installee");
         else if (n.avis === "nouveautes") window.__pcvBienvenue?.ouvrir();
-      } }, 5e3)) clearInterval(window[suivi]);
-      else window[vu] = false;
+      } }, 5e3);
     }, 5e3);
   };
   bulleUneFois("__pcvBienvenueBulle", "__pcvBienvenueBulleVue", () => !!window.__pcvBienvenue?.avis() && !window.__pcvBienvenue.ouvert() && !window.__pcvBienvenue.attendu?.() && !window.__pcvBienvenue.vueSeance?.() && document.body.dataset.pcvPage === "accueil", { avis: "nouveautes" });
   bulleUneFois("__pcvAvisSuivi", "__pcvAvisVu", avisActif, { avis: "import" });
   bulleUneFois("__pcvMajBulle", "__pcvMajVu", majActive, { avis: "maj" });
+  if (window.__pcvNouveautesVersion !== nouveautes?.version) {
+    window.__pcvNouveautesVersion = nouveautes?.version;
+    window.__pcvNouveautesVues = false;
+  }
+  bulleUneFois("__pcvNouveautesSuivi", "__pcvNouveautesVues", nouveautesActives, { avis: "installee" });
   const majPluginsActive = () => !!window.__pcvMajPlugins?.length && !window.__pcvMajPluginsPlusTard;
   const verifierPlugins = async () => {
     if (lireCle(CLE_MAJ_AUTO) === "false" || !window.__pcvSteamU?.horsStore?.()) return;
@@ -338,7 +346,7 @@
     setTimeout(() => window.__pcvBoutique?.ouvrirPlugin(p.nom), 400);
   };
   bulleUneFois("__pcvPlantageBulle", "__pcvPlantageVu", plantageActif, { avis: "plantage" });
-  let quoi = false, qAct = 0;
+  let quoi = false, qAct = 0, qLecture = null;
   const dessinerQuoi = () => {
     const q = racine.querySelector(".quoi");
     q.hidden = !quoi;
@@ -351,16 +359,29 @@
       return;
     }
     q.dataset.installation = occupe ? "oui" : "non";
-    const boutons = erreur ? [T("touche.fermer")] : [T("notifs.installer"), T("notifs.plus_tard")];
-    q.innerHTML = `<div class="carte pcv-fenetre" aria-busy="${occupe}"><h2>SteamU v${echappe(installation?.version || window.__pcvMaj?.version || "")}</h2>${installation ? `${occupe ? `<div class="attente" aria-hidden="true">${MAJ_IC}</div>` : ""}<p role="${erreur ? "alert" : "status"}">${statut}</p>` : `<ul>${majNotes().map((l) => `<li>${echappe(l)}</li>`).join("")}</ul>`}
+    const boutons = erreur || qLecture ? [T("touche.fermer")] : [T("notifs.installer"), T("notifs.plus_tard")];
+    q.innerHTML = `<div class="carte pcv-fenetre" aria-busy="${occupe}"><h2>SteamU v${echappe(installation?.version || qLecture?.version || window.__pcvMaj?.version || "")}</h2>${installation ? `${occupe ? `<div class="attente" aria-hidden="true">${MAJ_IC}</div>` : ""}<p role="${erreur ? "alert" : "status"}">${statut}</p>` : `<ul>${(qLecture ? notesDe(qLecture.notes) : majNotes()).map((l) => `<li>${echappe(l)}</li>`).join("")}</ul>`}
       <div class="boutons">${boutons.map((t, i) => `<button class="${i ? "" : "oui"}${!occupe && i === qAct ? " foc" : ""}" data-q="${i}"${occupe ? " disabled" : ""}>${t}</button>`).join("")}</div></div>`;
     legende.innerHTML = occupe ? "" : window.__pcvIcones.legende([[1, boutons[qAct] || boutons[0]], [2, T("touche.retour")]]);
   };
-  const ouvrirQuoi = () => {
+  const ouvrirQuoi = (lecture = false) => {
+    qLecture = lecture ? nouveautes : null;
     quoi = true;
     qAct = 0;
+    if (qLecture) {
+      try {
+        localStorage.setItem("pcv-maj-nouveautes", qLecture.version);
+      } catch (e) {
+      }
+      remplir();
+    }
     dessinerQuoi();
   };
+  window.__pcvQuoiDeNeuf = { notes: notesInstallees, ouvrir: () => {
+    window.__pcvSteamU?.fermer();
+    montrer(true);
+    ouvrirQuoi(true);
+  } };
   const choisirQuoi = (i) => {
     if (qInstallation && !qInstallation.erreur || window.__pcvMajInstallation) return;
     if (qInstallation?.erreur) {
@@ -368,6 +389,11 @@
       quoi = false;
       dessinerQuoi();
       remplir();
+      return;
+    }
+    if (qLecture) {
+      quoi = false;
+      dessinerQuoi();
       return;
     }
     if (i === 0) return majInstaller();
@@ -411,6 +437,7 @@
       };
     }));
     if (window.__pcvBienvenue?.avis()) items.unshift({ avis: "nouveautes" });
+    if (nouveautesActives()) items.unshift({ avis: "installee" });
     if (avisActif()) items.unshift({ avis: "import" });
     if (majActive()) items.unshift({ avis: "maj" });
     if (majPluginsActive()) items.unshift({ avis: "plugins" });
@@ -479,7 +506,8 @@
   const agir = (i, action = act) => {
     const n = items[i];
     if (!n) return;
-    if (n.avis === "nouveautes") return action === 1 ? (montrer(false), window.__pcvSteamU?.ouvrir?.("nouveautes")) : window.__pcvBienvenue.ouvrir();
+    if (n.avis === "nouveautes") return action === 1 ? supprimer(i) : window.__pcvBienvenue.ouvrir();
+    if (n.avis === "installee") return ouvrirQuoi(true);
     if (n.avis === "maj") return ouvrirQuoi();
     if (n.avis === "plugins") return ouvrirPluginMaj();
     if (n.avis === "plantage") return;
@@ -509,13 +537,13 @@
   };
   const effacer = (n) => {
     if (n.avis === "nouveautes") {
-      montrer(false);
-      window.__pcvSteamU?.ouvrir?.("nouveautes");
+      window.__pcvBienvenue?.masquer();
       return;
     }
     if (n.avis) {
       try {
-        if (n.avis === "maj") window.__pcvMajPlusTard = true;
+        if (n.avis === "installee") localStorage.setItem("pcv-maj-nouveautes", nouveautes.version);
+        else if (n.avis === "maj") window.__pcvMajPlusTard = true;
         else if (n.avis === "plugins") window.__pcvMajPluginsPlusTard = true;
         else if (n.avis === "plantage") localStorage.setItem("pcv-plantage-vu", window.__pcvPlantage);
         else localStorage.setItem(AVIS_CLE, "masque");
@@ -553,11 +581,6 @@
   const supprimer = (i) => {
     const n = items[i];
     if (!n) return;
-    if (n.avis === "nouveautes") {
-      montrer(false);
-      window.__pcvSteamU?.ouvrir?.("nouveautes");
-      return;
-    }
     if (n.avis) {
       effacer(n);
       return fini();
@@ -614,7 +637,6 @@
     if (n) agir(+n.dataset.i, 0);
   });
   window.__pcvNotifsMontrer = montrer;
-  clearInterval(window.__pcvNouveautesSuivi);
   (window.__pcvManette ||= {}).notifs = (b) => {
     if (racine.hidden) return false;
     if (quoi && (qInstallation && !qInstallation.erreur || window.__pcvMajInstallation)) return true;
@@ -624,7 +646,7 @@
     }
     if (b === 1) window.__pcvAppui(racine.querySelector(quoi ? ".quoi .foc" : ".sel .foc, .tout.sel"));
     if (quoi) {
-      if (b === 11 || b === 12) qAct = b === 12 ? 1 : 0;
+      if (b === 11 || b === 12) qAct = b === 12 && !qLecture ? 1 : 0;
       else if (b === 9 || b === 10) racine.querySelector(".quoi ul")?.scrollBy(0, b === 10 ? 120 : -120);
       else if (b === 1) return choisirQuoi(qAct), true;
       else if (b === 2) {
@@ -650,8 +672,7 @@
     } else if (b === 1) {
       if (sel === items.length) return toutEffacer(), true;
       const a = actions(items[sel])[act];
-      if (items[sel]?.avis === "nouveautes") agir(sel);
-      else if (a === "masquer" || a === "suppr") supprimer(sel);
+      if (a === "masquer" || a === "suppr") supprimer(sel);
       else agir(sel);
       return true;
     } else if (b === 2) {
@@ -757,23 +778,44 @@
     #pcv-toasts .compte { position: absolute; min-width: ${u(24)}; height: ${u(24)}; padding: 0 ${u(6)}; box-sizing: border-box; border-radius: ${u(12)};
       background: linear-gradient(180deg, #ff6b70, #e5484d); color: var(--pcv-sur-accent); font-size: ${u(13)}; font-weight: 900; line-height: ${u(24)}; text-align: center;
       box-shadow: 0 0 0 ${u(2.5)} var(--pcv-lisere), 0 ${u(2)} ${u(5)} rgba(90,0,10,.25); animation: pcvBulleNait .36s cubic-bezier(.2,.9,.3,1.3) both; }
+    #pcv-toasts .b.detail { height: auto; max-width: min(90vw, ${u(620)}); flex-wrap: wrap; }
+    #pcv-toasts .b.detail .t { flex: 1; }
+    #pcv-toasts .b.detail .t b, #pcv-toasts .b.detail .t span { white-space: normal; overflow-wrap: anywhere; }
+    #pcv-toasts .actions { display: flex; gap: ${u(10)}; width: 100%; flex-wrap: wrap; }
+    #pcv-toasts .actions button { color: var(--pcv-texte); background: var(--pcv-creux); padding: ${u(8)} ${u(14)}; border-radius: ${u(14)}; }
     #pcv-toasts .compte[hidden] { display: none; }
     #pcv-toasts .cache { position: fixed; left: -4000px; top: 0; width: 600px; visibility: hidden; }
   </style><div class="cache"></div><span class="compte" hidden></span>`;
   document.body.appendChild(racine);
   const cache = racine.querySelector(".cache"), compteur = racine.querySelector(".compte");
+  const avecContextes = (p, enfant) => {
+    for (const el of document.querySelectorAll("div")) {
+      if (el.closest('[id^="pcv-"]')) continue;
+      const cle = Object.keys(el).find((k) => k.startsWith("__reactFiber"));
+      if (!cle) continue;
+      for (let f = el[cle]; f; f = f.return) if (f.tag === 10)
+        enfant = p.React.createElement(f.type.Provider || f.type, { value: f.memoizedProps.value }, enfant);
+      break;
+    }
+    return enfant;
+  };
   const lire = (p, t) => new Promise((ok) => {
     const boite = cache.appendChild(document.createElement("div"));
+    let erreur = false;
     let r;
     try {
-      r = p.creerRacine(boite);
-      r.render(p.React.createElement(p.Contenu, { location: 1, group: { eType: t.eType, notifications: [t] }, notification: t, onDismiss: () => {
-      } }));
+      r = p.creerRacine(boite, { onUncaughtError: (e) => {
+        erreur = true;
+        console.warn("SteamU toast", t.eType, e.message);
+      } });
+      r.render(avecContextes(p, p.React.createElement(p.Contenu, { location: 1, group: { eType: t.eType, notifications: [t] }, notification: t, onDismiss: () => {
+      } })));
     } catch (e) {
       boite.remove();
       return ok(null);
     }
-    requestAnimationFrame(() => setTimeout(() => {
+    const debut = Date.now();
+    const relever = () => {
       const img = boite.querySelector("img[src]")?.getAttribute("src") || "";
       const svg = img ? "" : boite.querySelector("svg")?.outerHTML || "";
       const lignes = [];
@@ -790,11 +832,24 @@
         boite.remove();
       };
       if (!lignes.length) {
+        if (!erreur && Date.now() - debut < 1500) return setTimeout(relever, 100);
         fermer();
         return ok(null);
       }
-      ok({ img, svg, titre: lignes[0], ligne: lignes.slice(1).join(", "), agir: () => boite.querySelector('[role="button"]')?.click(), fermer });
-    }, 30));
+      const boutons = [...boite.querySelectorAll('button, [role="button"], a[href]')].filter((e) => !e.querySelector('button, [role="button"], a[href]') && e.textContent.trim());
+      const actions = boutons.length > 1 ? boutons.map((e) => ({ texte: e.textContent.trim(), agir: () => e.click() })) : [];
+      ok({
+        img,
+        svg,
+        titre: lignes[0],
+        ligne: lignes.slice(1).join(", "),
+        actions,
+        detail: true,
+        agir: () => boutons[0]?.click(),
+        fermer
+      });
+    };
+    requestAnimationFrame(() => setTimeout(relever, 30));
   });
   window.__pcvToastsLire = (t) => {
     const p = pieces();
@@ -830,14 +885,14 @@
     }
     window.__pcvLed?.("notif");
   };
-  let file = [], enCours = false, retenues = 0;
+  let file = [], enCours = false;
   const majCompteur = () => {
-    const r = retenues && clocheVue();
+    const total = file.length, r = total && clocheVue();
     if (!r) {
       compteur.hidden = true;
       return;
     }
-    const k = unite(), n = retenues > 9 ? "9+" : String(retenues);
+    const k = unite(), n = total > 9 ? "9+" : String(total);
     if (!compteur.hidden && compteur.textContent !== n) window.__pcvAppui(compteur);
     compteur.textContent = n;
     compteur.style.left = `${r.right - 18 * k}px`;
@@ -845,20 +900,41 @@
     compteur.hidden = false;
   };
   let touchesActives = null;
-  const bulle = ({ img, svg, titre, ligne, agir, grande, rond, vignette, touches }, duree, t) => new Promise((fin) => {
+  const bulle = ({ img, svg, titre, ligne, agir, grande, rond, vignette, touches, actions, detail }, duree, t) => new Promise((fin) => {
+    if (![titre, ligne].some((x) => typeof x === "string" && x.trim())) return fin(true);
     const r = clocheVue(rond);
     if (!r) return fin(false);
     const k = unite(), el = document.createElement("div");
-    el.className = grande ? "b grande" : "b";
+    el.className = (grande ? "b grande" : "b") + (detail ? " detail" : "");
     const gauche = r.left - 10 * k, pointe = r.left + r.width / 2 - gauche;
     el.style.left = `${gauche}px`;
     el.style.top = `${r.bottom + 14 * k}px`;
     el.style.setProperty("--pointe", `${pointe}px`);
-    el.innerHTML = `<i class="ic">${img ? `<img src="${echappe(img)}">` : svg || CLOCHE}</i><span class="t"><b>${echappe(titre)}</b>${ligne ? `<span>${echappe(ligne)}</span>` : ""}</span>` + (vignette ? `<i class="vignette" style="background-image:${echappe(vignette)}"></i>` : "") + (touches ? `<span class="pcv-legende">${window.__pcvIcones?.legende?.(touches) || ""}</span>` : "");
+    el.innerHTML = `<i class="ic">${img ? `<img src="${echappe(img)}">` : svg || CLOCHE}</i><span class="t"><b>${echappe(titre || "")}</b>${ligne ? `<span>${echappe(ligne)}</span>` : ""}</span>` + (vignette ? `<i class="vignette" style="background-image:${echappe(vignette)}"></i>` : "") + (touches ? `<span class="pcv-legende">${window.__pcvIcones?.legende?.(touches) || ""}</span>` : "");
     el.querySelector("img")?.addEventListener("error", (e) => {
       e.target.parentNode.innerHTML = CLOCHE;
     });
     let parti = false;
+    if (actions?.length) {
+      const liste = el.appendChild(document.createElement("span"));
+      liste.className = "actions";
+      actions.forEach((a) => {
+        const b = liste.appendChild(document.createElement("button"));
+        b.textContent = a.texte;
+        b.addEventListener("click", (e) => {
+          e.stopPropagation();
+          try {
+            a.agir();
+          } finally {
+            partir();
+          }
+        });
+      });
+      touches = actions.slice(0, 4).map((a, i) => [["a", "x", "y", "b"][i], a.texte, a.agir]);
+      const legende = el.appendChild(document.createElement("span"));
+      legende.className = "pcv-legende";
+      legende.innerHTML = window.__pcvIcones?.legende?.(touches) || "";
+    }
     const mesTouches = touches && Object.fromEntries(touches.map(([c, , f]) => [c, () => {
       try {
         f();
@@ -891,9 +967,10 @@
     });
     racine.appendChild(el);
     sonner(t, rond);
-    setTimeout(partir, duree);
+    if (!t?.fnNotificationResolved) setTimeout(partir, duree);
     const veille = setInterval(() => {
       if (!clocheVue(rond)) partir();
+      else if (t?.fnNotificationResolved?.()) partir();
     }, 400);
   });
   (window.__pcvManette ||= {}).bulle = (b) => {
@@ -902,8 +979,8 @@
     f();
     return true;
   };
-  window.__pcvBulleRond = (rond, o, duree) => bulle({ ...o, rond, grande: true }, duree);
-  window.__pcvBulleGrande = (o, duree) => bulle({ ...o, grande: true }, duree);
+  window.__pcvBulleRond = (rond, o, duree) => enfiler({ ...o, rond, grande: true }, duree);
+  window.__pcvBulleGrande = (o, duree) => enfiler({ ...o, grande: true }, duree);
   const T = window.__pcvT || ((c) => c);
   const regroupe = (n) => ({ titre: n > 1 ? T("notifs.n_notifs", { n }) : T("notifs.une_notif"), ligne: T("notifs.touche_cloche"), svg: CLOCHE });
   const retenir = () => !!window.__pcvDemarrage?.enCours() || !!document.getElementById("pcv-connexion") || document.getElementById("pcv-place")?.hidden === false || !clocheVue();
@@ -918,83 +995,89 @@
     if (enCours) return;
     enCours = true;
     while (file.length && !retenir()) {
-      if (file.length >= 3) {
-        const n = file.length;
-        file.forEach((x) => x.contenu.fermer());
-        file = [];
-        await bulle(regroupe(n), 6500);
+      const entree = file[0], { t, contenu, duree, fin } = entree;
+      if (t?.fnNotificationResolved?.() || contenu.valide && !contenu.valide()) {
+        file.shift();
+        contenu.fermer?.();
+        fin?.(true);
         continue;
       }
-      const { t, contenu } = file.shift();
-      if (!await bulle(contenu, Math.min(6e3, Math.max(3500, t.nToastDurationMS || 4500)), t)) {
-        retenues++;
+      if (!clocheVue(contenu.rond)) break;
+      file.shift();
+      if (!await bulle(contenu, duree ?? Math.min(6e3, Math.max(3500, t?.nToastDurationMS || 4500)), t)) {
+        file.unshift(entree);
+        break;
       }
-      contenu.fermer();
-    }
-    if (file.length) {
-      retenues += file.length;
-      file.forEach((x) => x.contenu.fermer());
-      file = [];
+      contenu.fermer?.();
+      fin?.(true);
     }
     enCours = false;
     majCompteur();
+  };
+  const enfiler = (contenu, duree) => new Promise((fin) => {
+    file.push({ contenu, duree, fin });
+    suivante();
+  });
+  const MANETTE = { connectee: 63, deconnectee: 64, batterie: 62 };
+  const manettesVues = /* @__PURE__ */ new Map(), MANETTE_DELAI = 5e3;
+  const manette = (t) => {
+    const d = t.data, connexion = t.eType === MANETTE.connectee, deconnexion = t.eType === MANETTE.deconnectee;
+    const batterie = t.eType === MANETTE.batterie;
+    if (!connexion && !deconnexion && !batterie) return null;
+    const magasin = O.ControllerStore, liste = magasin?.GetControllers?.() || [];
+    const c = connexion ? magasin?.GetController?.(d.controller_index()) : null;
+    const candidates = batterie ? liste.filter((x) => x.eControllerType === d.controller_type()) : [];
+    const memesPiles = candidates.filter((x) => x.ucBatteryLevel === Math.round(d.pct_remaining() * 100));
+    const noms = (memesPiles.length ? memesPiles : candidates).map((x) => x.strName).filter(Boolean);
+    const nom = (deconnexion ? d.controller_name() : connexion ? c?.strName : [...new Set(noms)].join(", ")) || d.controller_type && magasin?.GetControllerTypeString?.(d.controller_type()) || T("notifs.manette");
+    return { titre: nom, ligne: batterie ? T("notifs.manette_batterie", { n: Math.round(d.pct_remaining() * 100) }) : T(connexion ? "notifs.manette_connectee" : "notifs.manette_deconnectee"), fermer: () => {
+    } };
   };
   const invitationDejaVue = (c) => {
     const v = window.__pcvInvitationVue, x = c.titre + " " + c.ligne;
     return !!v && Date.now() - v.t < 15e3 && x.includes(v.nom) && x.includes(v.jeu);
   };
+  let lectures = Promise.resolve();
   const recevoir = (t) => {
     if (t.decky) return void 0;
-    if (enJeu() || t.__pcvPasser) return t;
-    if (retenir()) {
-      retenues++;
-      majCompteur();
-      return void 0;
-    }
-    const p = pieces();
-    if (!p) return t;
-    if (t.fnNotificationResolved) return t;
-    lire(p, t).then((contenu) => {
-      if (contenu && invitationDejaVue(contenu)) {
+    lectures = lectures.then(async () => {
+      let p;
+      while (!(p = pieces())) await new Promise((ok) => setTimeout(ok, 250));
+      const controleur = manette(t), contenu = controleur || await lire(p, t);
+      if (!contenu) return;
+      if (controleur) {
+        const maintenant = Date.now(), cle = t.eType + ":" + contenu.titre + ":" + contenu.ligne;
+        for (const [k, date] of manettesVues) if (maintenant - date >= MANETTE_DELAI) manettesVues.delete(k);
+        if (manettesVues.has(cle)) return;
+        manettesVues.set(cle, maintenant);
+      }
+      if (invitationDejaVue(contenu)) {
         contenu.fermer();
         return;
       }
-      if (contenu) {
-        file.push({ t, contenu });
-        suivante();
-        return;
-      }
-      if (retenir() && !enJeu()) {
-        retenues++;
-        majCompteur();
-        return;
-      }
-      t.__pcvPasser = true;
-      try {
-        p.file.m_rgNotificationToasts.push(t);
-        if (p.file.m_rgNotificationToasts.length === 1) p.file.DispatchNextToast();
-      } catch (e) {
-      }
-    });
+      file.push({ t, contenu });
+      suivante();
+    }).catch((e) => console.warn("SteamU notification", t.eType, e));
     return void 0;
   };
   const crocheter = () => {
     const F = chercher().file;
     if (!F) return false;
-    F.__pcvPop0 ||= F.PopNextToastNotification;
+    if (F.__pcvPop0) F.PopNextToastNotification = F.__pcvPop0;
     F.__pcvRecevoir = recevoir;
-    if (!F.__pcvCrochet) {
-      F.PopNextToastNotification = function(e) {
-        const t = F.__pcvPop0.call(this, e);
-        if (!t || e) return t;
-        try {
-          return F.__pcvRecevoir ? F.__pcvRecevoir(t) : t;
-        } catch (x) {
-          return t;
-        }
+    F.__pcvDispatch0 ||= F.DispatchNextToast;
+    if (!F.__pcvDispatchCrochet) {
+      F.DispatchNextToast = function() {
+        if (enJeu()) return F.__pcvDispatch0.call(this);
+        const aLire = this.m_rgNotificationToasts.splice(0);
+        const r = F.__pcvDispatch0.call(this);
+        aLire.forEach((t) => F.__pcvRecevoir(t));
+        return r;
       };
-      F.__pcvCrochet = true;
+      F.__pcvDispatchCrochet = true;
     }
+    F.__pcvCrochet = true;
+    F.DispatchNextToast();
     return true;
   };
   const congedies = /* @__PURE__ */ new WeakSet();
@@ -1031,9 +1114,9 @@
   const eteindreSteam = () => {
     if (enJeu()) return;
     const pr = toastAffiche();
-    if (!pr || congedies.has(pr.notification) || !retenir()) return;
+    if (!pr || congedies.has(pr.notification) || pr.notification.decky) return;
     congedies.add(pr.notification);
-    if (!pr.notification.decky) retenues++;
+    recevoir(pr.notification);
     try {
       pr.onDismiss();
     } catch (e) {
@@ -1053,31 +1136,13 @@
       libererToasts();
     }
   }, 250);
-  let annonce = 0;
   window.__pcvToastsVeille = setInterval(() => {
     eteindreSteam();
-    if (!retenues) {
-      if (!compteur.hidden) compteur.hidden = true;
-      return;
-    }
-    if (document.getElementById("pcv-notifs")?.hidden === false) {
-      retenues = 0;
-      annonce = 0;
-      compteur.hidden = true;
-      return;
-    }
+    if (file.length && !enCours && !retenir()) suivante();
     majCompteur();
-    if (annonce !== retenues && !enCours && !retenir()) {
-      annonce = retenues;
-      enCours = true;
-      bulle(regroupe(retenues), 7e3).then(() => {
-        enCours = false;
-        suivante();
-      });
-    }
   }, 1e3);
   window.__pcvToasts = {
-    etat: () => ({ pieces: !!pieces(), crochet: !!chercher().file?.__pcvCrochet, retenir: retenir(), cloche: !!clocheVue(), retenues, file: file.length, enCours, enJeu: enJeu() }),
+    etat: () => ({ pieces: !!pieces(), crochet: !!chercher().file?.__pcvCrochet, retenir: retenir(), cloche: !!clocheVue(), retenues: file.length, file: file.length, enCours, enJeu: enJeu() }),
     essai: (contenu, duree = 5e3) => bulle(contenu, duree),
     regroupe: (n) => bulle(regroupe(n), 7e3)
   };

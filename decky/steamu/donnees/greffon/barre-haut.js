@@ -1183,7 +1183,11 @@
     removeEventListener(t, window.__pcvCtrlChiffre, true);
   }
   window.__pcvCtrlChiffre = (e) => {
-    if ((e.ctrlKey || e.metaKey) && /^Digit\d$/.test(e.code) && !e.composedPath()[0]?.matches?.("input, textarea")) {
+    if (e.key === "Control") {
+      window.__pcvCtrlA = e.timeStamp;
+      return;
+    }
+    if (/^Digit\d$/.test(e.code) && (e.ctrlKey || e.metaKey || e.timeStamp - (window.__pcvCtrlA ?? -1e9) < 40)) {
       e.preventDefault();
       e.stopImmediatePropagation();
     }

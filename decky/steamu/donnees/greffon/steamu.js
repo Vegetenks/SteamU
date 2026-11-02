@@ -78,7 +78,13 @@
       "\u25B6 boot9.bin  \u2500\u2500 A \u2500\u2500\u25B6  Copy to 0:/gm9/out",
       `  SD \u25B6 gm9 \u25B6 out \u25B6 boot9.bin
            \u2193
-   [ ${imp} ]`
+   [ ${imp} ]`,
+      {
+        texte: `  Citra / Azahar \u25B6 aes_keys.txt
+           \u2193
+   [ ${imp} ]`,
+        qr: [["steamu.guide.cle3ds.qr", "https://citra.azahar-emu.org/wiki/aes-keys/"]]
+      }
     ] },
     // (page 2 : le fichier des visages à chercher, et des QR vers les PAGES des projets qui expliquent où le trouver ;
     // jamais un lien vers un fichier de Nintendo)
@@ -425,8 +431,11 @@
   };
   const version = () => (O || window).DeckyPluginLoader?.plugins?.find((p) => p.name === window.__pcvGreffon?.nom)?.version || "?";
   const bientot = (g) => g.pret ? "" : `<span class="bientot">${T("steamu.bientot")}</span>`;
-  const dessinerNouveautes = () => `<button class="bouton gros" data-a="revoir-nouveautes"><i class="pastille">${ico(ICO.etoile)}</i><span>${T("bienvenue.revoir")}<small>${T("steamu.nouveautes.aide")}</small></span></button>
-      <div class="liste">${(window.__pcvBienvenue?.cles || []).map((c) => `<button class="bouton"><i class="pastille">${ico(ICO.etoile)}</i><span class="txt"><b>${T(`bienvenue.${c}.titre`)}</b><small>${T(`bienvenue.${c}.texte`)}</small></span></button>`).join("")}</div>`;
+  const dessinerNouveautes = () => {
+    const notes = window.__pcvQuoiDeNeuf?.notes() || [];
+    return `<button class="bouton gros" data-a="revoir-nouveautes"><i class="pastille">${ico(ICO.etoile)}</i><span>${T("bienvenue.revoir")}<small>${T("steamu.nouveautes.aide")}</small></span></button>
+      <div class="liste">${notes.length ? notes.map((l) => `<div class="bouton"><span class="txt">${esc(l)}</span></div>`).join("") : (window.__pcvBienvenue?.cles || []).map((c) => `<button class="bouton"><i class="pastille">${ico(ICO.etoile)}</i><span class="txt"><b>${T(`bienvenue.${c}.titre`)}</b><small>${T(`bienvenue.${c}.texte`)}</small></span></button>`).join("")}</div>`;
+  };
   const dessinerImportListe = () => `<button class="bouton gros" data-a="importer"><i class="pastille">${ico(ICO.importer)}</i><span>${T("steamu.importer")}<small>${T("steamu.importer.aide")}</small></span></button>
       <div class="liste">${dessinerMoteur()}${GUIDES().map((g) => `<button class="bouton" data-a="g:${g.id}"><i class="pastille" style="--c:${g.c}">${ico(g.ico)}</i>
         <span class="txt"><b>${T(`steamu.guide.${g.id}.titre`)}</b><small>${T(`steamu.guide.${g.id}.sous`)}</small></span>
@@ -441,6 +450,7 @@
     const e = etatImport, m = e?.musiques_wiiu, s3 = e?.sons?.["3ds"];
     if (g.id === "wiiu" && m?.sur) return T("steamu.etat.compte", { n: m.n, sur: m.sur });
     if (g.id === "sons3ds" && s3?.sur) return T("steamu.etat.compte", { n: s3.n, sur: s3.sur });
+    if (g.id === "switch" && e?.sons?.switch?.sur) return T("steamu.etat.compte", { n: e.sons.switch.n, sur: e.sons.switch.sur });
     return g.id === "cle3ds" && e?.cle3ds || g.id === "mii" && e?.mii || g.id === "moteur" && e?.applis?.mii?.pret || g.id === "luigi" && e?.applis?.casino?.pret || g.id === "badges" && e?.badge_arcade ? T("steamu.etat.la") : "";
   };
   const codeQR = (url) => {
@@ -1323,7 +1333,7 @@
     rafraichir();
   };
   const agir = (a) => {
-    if (a === "revoir-nouveautes") return window.__pcvBienvenue?.ouvrir();
+    if (a === "revoir-nouveautes") return window.__pcvQuoiDeNeuf?.notes().length ? window.__pcvQuoiDeNeuf.ouvrir() : window.__pcvBienvenue?.ouvrir();
     if (a === "importer") return importer();
     if (a === "moteur-installer") return installerMoteur();
     if (a === "diagnostic") return diagnostiquer();

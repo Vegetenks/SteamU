@@ -164,6 +164,14 @@ def _ranger_exact(ref, cible, cle_r):
 
 _connus = None
 
+def _veut_aes(tete, taille, nom): return taille < 1 << 16 and _nom(nom).lower() == "aes_keys.txt"
+
+def _ranger_aes(chemin, nom, x):
+    with open(chemin, "rb") as f: t = f.read(1 << 16)
+    if not re.search(rb"(?im)^\s*(slot0x[0-9a-f]{2}key[xy]\w*|common\d)\s*=\s*[0-9a-f]{32}\s*$", t): return False
+    if _poser(chemin, x["prive"] / "cles" / "aes_keys.txt"): x["r"]["cle3ds"] += 1
+    else: x["r"]["deja"] += 1
+
 def _table_connus():
     global _connus
     if _connus is None:
@@ -324,6 +332,7 @@ RECONNAISSEURS = [
     (_veut_zip, "zip"), (_veut_tar, "tar"),
     (_veut_ffl, _ranger_ffl),
     (_sha_exacte(CLE_3DS), _ranger_exact(CLE_3DS, "cles", "cle3ds")),
+    (_veut_aes, _ranger_aes),
     (_veut_base, _ranger_base),
     (_veut_3ds, _ranger_3ds),
     (_veut_nds, _ranger_nds),
@@ -614,6 +623,8 @@ def _prevoir_son(chemin, nom, res, x, prevues):
         if len(r["mauvaise"]) < NOMS_MAX: r["mauvaise"].append(_nom(nom))
         return None
     cibles = [x["prive"] / "sons" / c for c in [piste["chemin"], *piste.get("aussi", [])]]
+    base = re.sub(r"-(tv|gamepad)(\.\w+)$", r"\2", piste["chemin"])
+    if base != piste["chemin"] and any(p["chemin"] == base for p in x["references"]): cibles.append(x["prive"] / "sons" / base)
     libres = [c for c in cibles if not c.exists() and c not in prevues]
     if not libres: r["deja"] += 1; return None
     prevues.update(libres)

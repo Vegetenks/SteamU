@@ -1,4 +1,4 @@
-import hashlib, os, shutil, struct, subprocess, tempfile
+import hashlib, os, re, shutil, struct, subprocess, tempfile
 
 BOOT9_COMPLET = "2f88744feed717856386400a44bba4b9ca62e76a32c715d4f309c399bf28166f"
 BOOT9_PROTEGE = "7331f7edece3dd33f2ab4bd0b3a5d607229fd19212c10b734cedcaf78c1a7b98"
@@ -16,6 +16,9 @@ class SansCle(Illisible):
 
 class AutreCle(SansCle):
     pass
+
+class CleDuTitre(AutreCle):
+    def __init__(self, infos): super().__init__("contenu chiffré par la clé du titre"); self.infos = infos
 
 def _base_boot9(boot9):
     h = hashlib.sha256(boot9).hexdigest()
@@ -37,6 +40,23 @@ def _rol(v, n):
 
 def cle_normale(x, y):
     return _rol((_rol(x, 2) ^ y) + BROUILLEUR & ((1 << 128) - 1), 87).to_bytes(16, "big")
+
+METHODES = {0x00: 0x2C, 0x01: 0x25, 0x0A: 0x18, 0x0B: 0x1B}     
+
+def cles_joueur(texte):
+    c = {}
+    for l in texte.splitlines():
+        n, _, v = l.partition("="); n, v = n.strip().lower(), v.strip()
+        if re.fullmatch(r"\w{1,24}", n) and re.fullmatch(r"[0-9A-Fa-f]{32}", v): c[n] = int(v, 16)
+    return c
+
+def _cle_x(cles, boot9, slot):
+    v = cles.get("slot0x%02xkeyx" % slot)
+    if v is None and boot9 is not None:
+        if slot == 0x2C: v = cle_x_2c(boot9)
+        elif slot == 0x3D: b = _base_boot9(boot9); v = int.from_bytes(boot9[b + 0x1B0:b + 0x1C0], "big")   
+    if v is None: raise AutreCle("KeyX 0x%02X absente : il faut aes_keys.txt" % slot)
+    return v
 
 def _ctr_cryptography(cle, iv):
     try:
@@ -106,13 +126,39 @@ def ncch_dans(chemin):
         n_contenus = struct.unpack_from(">H", m, tete + 0x9E)[0]
         if not n_contenus: raise Illisible("CIA vide")
         cid, idx, typ, tc = struct.unpack_from(">IHHQ", m, tete + 0xC4 + 0x900)
-        if typ & 1: raise AutreCle("contenu chiffré par la clé du titre")
+        if typ & 1: raise CleDuTitre({"tik": _aligner(en_tete) + _aligner(cert), "contenu": o_contenu, "taille": tc, "index": idx})
         with open(chemin, "rb") as f: f.seek(o_contenu + 0x100); mag = f.read(4)
         if mag != b"NCCH": raise Illisible("CIA sans NCCH")
         return o_contenu, tc
     raise Illisible("pas un fichier de la 3DS")
 
-def romfs_de_ncch(chemin, debut, taille, boot9, travail):
+def cia_en_clair(chemin, infos, boot9, cles, travail):
+    try: from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    except ImportError: raise AutreCle("AES-CBC indisponible")      
+    if not any(k.startswith(("common", "slot0x3dkeyy")) for k in cles): raise AutreCle("clé commune absente : il faut aes_keys.txt")
+    with open(chemin, "rb") as f: f.seek(infos["tik"]); t = f.read(0x350)
+    tete = {0x10003: 0x240, 0x10004: 0x140, 0x10005: 0x80}.get(struct.unpack_from(">I", t, 0)[0])
+    if tete is None or len(t) < tete + 0xB2: raise Illisible("ticket inconnu")
+    fermee, titre, n = t[tete + 0x7F:tete + 0x8F], t[tete + 0x9C:tete + 0xA4], t[tete + 0xB1]
+    y = cles.get("common%d" % n, cles.get("slot0x3dkeyy%d" % n))     
+    if y is None: raise AutreCle("clé commune %d absente : il faut aes_keys.txt" % n)
+    commune = int.from_bytes(cle_normale(_cle_x(cles, boot9, 0x3D), y), "big")
+    d = Cipher(algorithms.AES(commune.to_bytes(16, "big")), modes.CBC(titre + bytes(8))).decryptor()
+    cle_titre = d.update(fermee) + d.finalize()
+    d = Cipher(algorithms.AES(cle_titre), modes.CBC(struct.pack(">H", infos["index"]) + bytes(14))).decryptor()
+    cible = os.path.join(travail, "contenu.bin")
+    with open(chemin, "rb") as e, open(cible, "wb") as s:
+        e.seek(infos["contenu"]); reste = infos["taille"]
+        while reste > 0:
+            bloc = e.read(min(reste, 1 << 22))
+            if not bloc: raise Illisible("CIA tronquée")
+            s.write(d.update(bloc)); reste -= len(bloc)
+        s.write(d.finalize())
+    with open(cible, "rb") as f: f.seek(0x100); mag = f.read(4)
+    if mag != b"NCCH": raise SansCle("déchiffrement faux : ce n'est pas la bonne clé commune")
+    return cible
+
+def romfs_de_ncch(chemin, debut, taille, boot9, travail, cles=None):
     with open(chemin, "rb") as f: f.seek(debut); h = f.read(0x200)
     if h[0x100:0x104] != b"NCCH": raise Illisible("pas un NCCH")
     o_romfs, t_romfs = struct.unpack_from("<II", h, 0x1B0)
@@ -128,9 +174,10 @@ def romfs_de_ncch(chemin, debut, taille, boot9, travail):
                 if not bloc: raise Illisible("tronqué")
                 s.write(bloc); reste -= len(bloc)
         return cible
-    if drapeaux[3] != 0 or drapeaux[7] & 0x21: raise AutreCle("chiffrement du système (0x25/0x18/0x1B, clé fixe ou graine)")
-    if boot9 is None: raise SansCle("il faut la clé de la 3DS")
-    cle = cle_normale(cle_x_2c(boot9), int.from_bytes(h[:16], "big"))
+    if drapeaux[3] not in METHODES or drapeaux[7] & 0x21: raise AutreCle("clé fixe ou graine")
+    cles, slot = cles or {}, METHODES[drapeaux[3]]
+    if slot == 0x2C and boot9 is None and "slot0x2ckeyx" not in cles: raise SansCle("il faut la clé de la 3DS")
+    cle = cle_normale(_cle_x(cles, boot9, slot), int.from_bytes(h[:16], "big"))   
     version = struct.unpack_from("<H", h, 0x112)[0]
     pid = h[0x108:0x110]
     iv = (pid[::-1] + bytes([3]) + bytes(7)) if version in (0, 2) else (pid + bytes(4) + struct.pack(">I", o_romfs * MEDIA))

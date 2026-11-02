@@ -9,7 +9,7 @@
   const APPLI = { miimaker: "miimaker", bibliotheque: "bibliotheque", couleurs: "perso", eshop: "eshop", plugins: "eshop", souhaits: "eshop", parametres: "parametres", stockage: "parametres", manettes: "parametres" };
   const marque = (t) => t.replace("SteamU", '<b class="nom">Steam<i>U</i></b>');
   const couleur = (cle) => cle === "spotpass" ? "c-spotpass" : window.__pcvApplis?.[APPLI[cle]]?.fond.split(",").at(-1).trim() || "cyan-plein";
-  const VUES = "pcv-bienvenue-vues", AVIS = "pcv-bienvenue-avis";
+  const VUES = "pcv-bienvenue-vues", AVIS = "pcv-bienvenue-avis", MASQUE = "pcv-bienvenue-masque";
   const lire = (c) => {
     try {
       return localStorage.getItem(c);
@@ -32,7 +32,7 @@
     }
   };
   const version = () => O.DeckyPluginLoader?.plugins?.find((p) => p.name === window.__pcvGreffon?.nom)?.version?.match(/^\d+\.\d+\.\d+/)?.[0];
-  const notes = (v) => /^0\.2\.\d+(?:[-+].*)?$/.test(v || "");
+  const notes = (v) => /^\d+\.\d+\.0$/.test(v || "");
   const ech = P.echapper;
   let page = 0, choix = 0, ouverte = false, courante = "", vueSeance = "", retourDemande = "";
   const racine = document.createElement("div");
@@ -340,7 +340,8 @@
     },
     ouvert: () => ouverte,
     cles: CLES,
-    avis: () => lire(AVIS) === version() && notes(version()),
+    avis: () => lire(AVIS) === version() && notes(version()) && lire(MASQUE) !== version(),
+    masquer: () => ecrire(MASQUE, version()),
     liste: () => CLES.map((c) => `<li><b>${ech(T(c + ".titre"))}</b> : ${ech(T(c + ".texte"))}</li>`).join(""),
     detruire: () => {
       gestes.detruire();

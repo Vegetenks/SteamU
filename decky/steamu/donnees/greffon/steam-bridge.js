@@ -161,9 +161,18 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
 })();
 {
   let aTenue = false, tenu = null;
-  const enfoncer = (el) => {
+  const enfoncer = (el, r) => {
     if (tenu?.el === el) return tenu;
     tenu?.();
+    let zone = null;
+    if (r) {
+      zone = document.createElement("span");
+      zone.setAttribute("popover", "manual");
+      zone.setAttribute("aria-hidden", "true");
+      zone.style.cssText = `all:initial!important;position:fixed!important;opacity:0!important;left:${r.left}px!important;top:${r.top}px!important;width:${r.width}px!important;height:${r.height}px!important;`;
+      el.appendChild(zone);
+      zone.showPopover();
+    }
     const a = el.animate({ scale: [1, 0.93] }, { duration: window.__pcvRapide, easing: "ease-in", fill: "forwards", composite: "add" });
     let fait = false;
     const haut = () => {
@@ -171,7 +180,10 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
       fait = true;
       if (tenu === haut) tenu = null;
       a.onfinish = () => {
-        a.onfinish = () => a.cancel();
+        a.onfinish = () => {
+          a.cancel();
+          zone?.remove();
+        };
         a.reverse();
       };
       if (a.playState === "finished") a.onfinish();
@@ -190,17 +202,13 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
     const b = p[0]?.closest?.("button, [data-a], [role=button], .pcv-legende > [data-b]");
     return b && !b.closest(".pcvc") && p.some((n) => n.id?.startsWith?.("pcv")) ? b : null;
   };
-  let pose = null;
-  const dans = (r, e) => e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
   const appui = (e) => {
-    pose = null;
     const b = notre(e.composedPath());
     if (!b?.animate) return;
-    const r = b.getBoundingClientRect();
-    pose = { b, r };
-    const haut = enfoncer(b), x = e.clientX, y = e.clientY;
+    if (e.pointerType === "touch") e.preventDefault();
+    const r = b.getBoundingClientRect(), haut = enfoncer(b, e.pointerType === "touch" && !e.composedPath()[0]?.matches?.("input, select, textarea") ? r : null), x = e.clientX, y = e.clientY;
     const glisse = (m) => {
-      if (Math.hypot(m.clientX - x, m.clientY - y) > 15 || !dans(r, m)) fin();
+      if (Math.hypot(m.clientX - x, m.clientY - y) > 15 || m.clientX < r.left || m.clientX > r.right || m.clientY < r.top || m.clientY > r.bottom) fin();
     };
     const fin = () => {
       haut();
@@ -213,15 +221,9 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
     window.addEventListener("pointercancel", fin, true);
   };
   const clic = (e) => {
-    const p = pose;
-    pose = null;
     if (!e.detail) {
       const b = notre(e.composedPath());
       if (b) window.__pcvAppui(b);
-    } else if (p && !e.composedPath().includes(p.b) && dans(p.r, e)) {
-      e.stopImmediatePropagation();
-      e.preventDefault();
-      p.b.dispatchEvent(new MouseEvent("click", e));
     }
   };
   let attente = null;
