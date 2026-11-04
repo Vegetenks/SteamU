@@ -499,6 +499,7 @@
     phrase: "pcv-spotpass-phrase",
     pose: "pcv-spotpass-pose",
     recus: "pcv-spotpass-recus",
+    visiteurs: "pcv-spotpass-visiteurs",
     etat: "pcv-spotpass-etat",
     caches: "pcv-spotpass-caches",
     garder: 40,
@@ -529,10 +530,24 @@
     const l = lireBool(SP.caches, []);
     return new Set(Array.isArray(l) ? l : []);
   };
-  const spRecus = () => {
-    const l = lireBool(SP.recus, []), c = spCaches();
+  const spVisiteur = (m) => m?.visiteur === true || m?.cle?.startsWith?.("v-defaut-") === true;
+  {
+    const l = lireBool(SP.recus, []), v = lireBool(SP.visiteurs, []);
+    if (Array.isArray(l) && l.some(spVisiteur)) {
+      ecrireBool(SP.visiteurs, [...new Map([...Array.isArray(v) ? v.filter(spVisiteur) : [], ...l.filter(spVisiteur)].map((m) => [m.cle, m])).values()]);
+      ecrireBool(SP.recus, l.filter((m) => !spVisiteur(m)));
+      if (!l.some((m) => m && !spVisiteur(m))) {
+        const e = lireBool(SP.etat, null);
+        if (e?.neuf) ecrireBool(SP.etat, { ...e, neuf: false });
+      }
+    }
+  }
+  const spListe = (cle) => {
+    const l = lireBool(cle, []), c = spCaches();
     return Array.isArray(l) ? l.filter((m) => spBon(m) && !c.has(m.cle)) : [];
   };
+  const spRecus = () => spListe(SP.recus).filter((m) => !spVisiteur(m));
+  const spVisiteurs = () => spListe(SP.visiteurs).filter(spVisiteur);
   const spPhrase = () => {
     const p = lireBool(SP.phrase, null);
     return typeof p === "string" && p ? p : T("spotpass.phrase.defaut");
@@ -640,8 +655,9 @@
       ecrireBool(SP.etat, { ...e, erreur: r?.erreur || "reseau", ...r?.erreur === "inconnue" ? { carte: null } : {} });
       return r;
     }
-    const frais = new Map(r.mii.filter(spBon).map((m) => [m.cle, m.phrase])), avant = spRecus().map((m) => frais.has(m.cle) ? { ...m, phrase: frais.get(m.cle) } : m), vus = /* @__PURE__ */ new Set([...avant.map((m) => m.cle), ...spCaches()]), neufs = r.mii.filter((m) => spBon(m) && !vus.has(m.cle)).map((m) => ({ ...m, jour: spJour() }));
-    ecrireBool(SP.recus, [...neufs, ...avant].slice(0, SP.garder));
+    const frais = new Map(r.mii.filter(spBon).map((m) => [m.cle, m.phrase])), avant = [...spRecus(), ...spVisiteurs()].map((m) => frais.has(m.cle) ? { ...m, phrase: frais.get(m.cle) } : m), vus = /* @__PURE__ */ new Set([...avant.map((m) => m.cle), ...spCaches()]), arrives = r.mii.filter((m) => spBon(m) && !vus.has(m.cle)).map((m) => ({ ...m, jour: spJour() })), neufs = arrives.filter((m) => !spVisiteur(m));
+    ecrireBool(SP.recus, [...neufs, ...avant.filter((m) => !spVisiteur(m))].slice(0, SP.garder));
+    ecrireBool(SP.visiteurs, [...arrives, ...avant].filter(spVisiteur).slice(0, SP.garder));
     ecrireBool(SP.etat, { ...e, jour: spJour(), langue, erreur: null, neuf: e.neuf || neufs.length > 0 });
     if (!neufs.length) return;
     spAvis(T(neufs.length > 1 ? "spotpass.arrivee.n" : "spotpass.arrivee.un", { n: neufs.length }));
@@ -732,6 +748,7 @@
     max: SP.max,
     actif: spActif,
     mii: spRecus,
+    visiteurs: spVisiteurs,
     nomRegion: spNomRegion,
     sync: spSync,
     neuf: () => spActif() && !!lireBool(SP.etat, null)?.neuf,

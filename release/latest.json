@@ -1,28 +1,34 @@
 {
- "version": "0.2.1",
- "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.2.1.zip",
- "sha256": "d245fa2fcc17186270d4f77453a31398834838bcaed3ecac0d1eae51eb8f2b43",
+ "version": "0.2.2",
+ "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.2.2.zip",
+ "sha256": "c1d116875704dbfe06c09c8a44392b173cb84dea85dbecd729d6d97eb5d6a27e",
  "notes": {
   "en": [
-   "You can now import Badge Arcade from a .3ds or .cia file, with the aes_keys.txt file from Citra or Azahar.",
-   "Storage shows all your drives and lets you choose where to move your games.",
-   "Notifications appear one at a time, repeated controller announcements are grouped and the update notice can be dismissed.",
-   "Fixed bugs on the SpotPass page.",
-   "On Windows, SteamU shows an incompatibility message instead of a white screen."
+   "Win rates reworked: a well-centred badge now stays in the claw (about one grab in two when you aim well, instead of",
+   "A machine where nothing moves for three games restocks itself, and Luigi tells you.",
+   "No more invisible wall: only the glass, the floor and the objects inside the machine stop the badges.",
+   "Badges no longer pile up inside each other, and the casino runs smoother at low power.",
+   "New startup screen: three dots under the SteamU logo show that the console is still loading (also when the video",
+   "Once SteamU is loaded, a button press no longer skips the startup video by mistake.",
+   "Removed the test Miis made by SteamU from your SpotPass encounters: only real players now. They stay as visitors",
+   "Every system sound is now importable and counted: \"all sounds\" really means all, including the 14 versions of",
+   "The shop music changes automatically with the month. If that month's version is missing, the closest earlier one",
+   "Notification bubbles: the pointer and the bubble form a single shape.",
+   "What's New opened from the notifications now goes back to the home screen when you finish."
   ],
   "fr": [
-   "Tu peux maintenant importer Badge Arcade depuis un fichier .3ds ou .cia, avec le fichier aes_keys.txt de Citra ou d'Azahar.",
-   "Le Stockage affiche tous tes disques et permet de choisir où déplacer tes jeux.",
-   "Les notifications passent une à la fois, les annonces répétées de manettes sont regroupées et l'avis de mise à jour peut être masqué.",
-   "Des bugs de la page SpotPass sont corrigés.",
-   "Sous Windows, SteamU affiche un message d'incompatibilité au lieu d'un écran blanc."
+   "Badge Arcade : taux de gain revus et bornes plus fluides.",
+   "SpotPass : suppression des Mii de test créés par SteamU.",
+   "Tous les sons système de la 3DS, de la Wii U et de la Switch sont maintenant importables.",
+   "Boutique : changement automatique des musiques.",
+   "Corrections de bugs et améliorations."
   ],
   "es": [
-   "Ahora puedes importar Badge Arcade desde un archivo .3ds o .cia, con el archivo aes_keys.txt de Citra o Azahar.",
-   "Almacenamiento muestra todos tus discos y permite elegir dónde mover tus juegos.",
-   "Las notificaciones aparecen de una en una, los avisos repetidos de mandos se agrupan y el aviso de actualización se puede ocultar.",
-   "Se han corregido errores de la página SpotPass.",
-   "En Windows, SteamU muestra un mensaje de incompatibilidad en lugar de una pantalla en blanco."
+   "Badge Arcade: probabilidades de ganar revisadas y máquinas más fluidas.",
+   "SpotPass: se eliminan los Mii de prueba creados por SteamU.",
+   "Ahora se pueden importar todos los sonidos de sistema de 3DS, Wii U y Switch.",
+   "Tienda: cambio automático de las músicas.",
+   "Corrección de errores y mejoras."
   ]
  }
 }

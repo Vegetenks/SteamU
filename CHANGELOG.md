@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.2.2 (2026-11-04)
+
+**Badge Arcade**
+- Win rates reworked: a well-centred badge now stays in the claw (about one grab in two when you aim well, instead of
+  almost never). A badge that is about to slip shakes first, so you see it coming.
+- A machine where nothing moves for three games restocks itself, and Luigi tells you.
+- No more invisible wall: only the glass, the floor and the objects inside the machine stop the badges.
+- Badges no longer pile up inside each other, and the casino runs smoother at low power.
+
+**Startup**
+- New startup screen: three dots under the SteamU logo show that the console is still loading (also when the video
+  is skipped), and the startup music keeps playing until the login screen, with a smooth fade.
+- Once SteamU is loaded, a button press no longer skips the startup video by mistake.
+
+**SpotPass**
+- Removed the test Miis made by SteamU from your SpotPass encounters: only real players now. They stay as visitors
+  on the plaza.
+
+**Console system sounds**
+- Every system sound is now importable and counted: "all sounds" really means all, including the 14 versions of
+  the eShop music.
+
+**Shop music**
+- The shop music changes automatically with the month. If that month's version is missing, the closest earlier one
+  plays instead of the default music, and the Christmas versions only ever play in December.
+
+**Bug fixes and improvements**
+- Notification bubbles: the pointer and the bubble form a single shape.
+- What's New opened from the notifications now goes back to the home screen when you finish.
+
 ## v0.2.1 (2026-11-02)
 
 - You can now import Badge Arcade from a .3ds or .cia file, with the aes_keys.txt file from Citra or Azahar.

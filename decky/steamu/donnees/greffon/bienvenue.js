@@ -194,10 +194,10 @@
     }
     pageAvant = null;
   };
-  const ouvrir = (v = version()) => {
+  const ouvrir = (v = version(), retour = true) => {
     if (!notes(v)) return false;
     if (document.body.dataset.pcvPage !== "accueil") {
-      pageAvant ||= window.__pcvBridge?.page?.() || null;
+      if (retour) pageAvant ||= window.__pcvBridge?.page?.() || null;
       window.__pcvSteamU?.fermer();
       window.__pcvBridge?.ouvrirAccueil();
       let n = 0;
@@ -205,7 +205,7 @@
         const ici = document.body.dataset.pcvPage === "accueil";
         if (ici || ++n > 20) {
           clearInterval(t);
-          if (ici) ouvrir(v);
+          if (ici) ouvrir(v, retour);
         }
       }, 150);
       return true;

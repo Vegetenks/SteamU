@@ -1,4 +1,27 @@
 {
+ "0.2.2": {
+  "fr": [
+   "Badge Arcade : taux de gain revus et bornes plus fluides.",
+   "SpotPass : suppression des Mii de test créés par SteamU.",
+   "Tous les sons système de la 3DS, de la Wii U et de la Switch sont maintenant importables.",
+   "Boutique : changement automatique des musiques.",
+   "Corrections de bugs et améliorations."
+  ],
+  "es": [
+   "Badge Arcade: probabilidades de ganar revisadas y máquinas más fluidas.",
+   "SpotPass: se eliminan los Mii de prueba creados por SteamU.",
+   "Ahora se pueden importar todos los sonidos de sistema de 3DS, Wii U y Switch.",
+   "Tienda: cambio automático de las músicas.",
+   "Corrección de errores y mejoras."
+  ],
+  "en": [
+   "Badge Arcade: win rates reworked and smoother machines.",
+   "SpotPass: removed the test Miis made by SteamU.",
+   "All system sounds from 3DS, Wii U and Switch can now be imported.",
+   "Shop: automatic music changes.",
+   "Bug fixes and improvements."
+  ]
+ },
  "0.2.1": {
   "fr": [
    "Tu peux maintenant importer Badge Arcade depuis un fichier .3ds ou .cia, avec le fichier aes_keys.txt de Citra ou d'Azahar.",

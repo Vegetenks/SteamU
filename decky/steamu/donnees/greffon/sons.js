@@ -277,7 +277,7 @@
   window.__pcvVariante = (liste, d = window.__pcvDateEssai || /* @__PURE__ */ new Date()) => {
     const mois = (c) => +c.match(/\d{4}-(\d\d)/)[1];
     for (let k = 0; liste?.length && k < 12; k++) {
-      const m = (d.getMonth() - k + 12) % 12 + 1, l = liste.filter((c) => mois(c) === m);
+      const m = (d.getMonth() - k + 12) % 12 + 1, l = liste.filter((c) => mois(c) === m && (!/noel/.test(c) || d.getMonth() === 11));
       if (l.length) return l[d.getFullYear() % l.length];
     }
     return null;

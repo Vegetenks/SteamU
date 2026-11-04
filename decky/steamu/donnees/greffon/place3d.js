@@ -1200,7 +1200,7 @@ float pcvN(vec2 p){ return texture(pcvBruit, (p + .5) / ${DALLES.bruit.toFixed(1
     }, () => {
     });
     const signature = (h) => h.pantalon + ":" + (h.donnees ? Array.from(h.donnees, (b) => b.toString(16)).join(".") : "~" + h.graine);
-    const spotpass = () => (window.__pcvSpotPass?.mii?.() || []).map((m) => ({
+    const spotpass = () => [...window.__pcvSpotPass?.mii?.() || [], ...window.__pcvSpotPass?.visiteurs?.() || []].map((m) => ({
       cle: "sp:" + m.cle,
       sid: "sp:" + m.cle,
       donnees: m.mii,

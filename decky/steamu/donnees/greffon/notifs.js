@@ -309,7 +309,7 @@
       window.__pcvBulleGrande({ svg: a.ic, titre: a.titre, ligne: a.ligne, valide: () => racine.hidden && actif(), agir: () => {
         window.__pcvNotifsMontrer?.(true);
         if (n.avis === "maj" || n.avis === "installee") ouvrirQuoi(n.avis === "installee");
-        else if (n.avis === "nouveautes") window.__pcvBienvenue?.ouvrir();
+        else if (n.avis === "nouveautes") window.__pcvBienvenue?.ouvrir(void 0, false);
       } }, 5e3);
     }, 5e3);
   };
@@ -506,7 +506,7 @@
   const agir = (i, action = act) => {
     const n = items[i];
     if (!n) return;
-    if (n.avis === "nouveautes") return action === 1 ? supprimer(i) : window.__pcvBienvenue.ouvrir();
+    if (n.avis === "nouveautes") return action === 1 ? supprimer(i) : window.__pcvBienvenue.ouvrir(void 0, false);
     if (n.avis === "installee") return ouvrirQuoi(true);
     if (n.avis === "maj") return ouvrirQuoi();
     if (n.avis === "plugins") return ouvrirPluginMaj();
@@ -749,14 +749,21 @@
     
     #pcv-toasts { position: fixed; inset: 0; z-index: 9050; pointer-events: none; font-family: var(--pcv-police); color: var(--pcv-texte); }
     #pcv-toasts .b { position: absolute; pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: ${u(12)}; box-sizing: border-box;
-      height: ${u(60)}; min-width: ${u(220)}; max-width: ${u(400)}; padding: 0 ${u(22)} 0 ${u(9)}; border-radius: ${u(22)};
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(10)} ${u(24)} rgb(from var(--pcv-ombre-c) r g b / .22);
+      height: ${u(60)}; min-width: ${u(220)}; max-width: ${u(400)}; padding: 0 ${u(22)} 0 ${u(9)}; --rayon: ${u(22)}; --fleche: ${u(12)}; --raccord: 1px; border-radius: var(--rayon);
+      isolation: isolate; filter: drop-shadow(0 calc(-1 * var(--raccord)) 0 var(--pcv-bord)) drop-shadow(0 ${u(10)} ${u(24)} rgb(from var(--pcv-ombre-c) r g b / .22));
       transform-origin: var(--pointe) ${u(-10)}; animation: pcvBulleNait .42s cubic-bezier(.2,.9,.3,1.25) both; }
     
-    #pcv-toasts .b::before { content: ""; position: absolute; top: ${u(-8)}; left: calc(var(--pointe) - ${u(9)}); width: ${u(18)}; height: ${u(18)};
-      background: var(--pcv-carte); transform: rotate(45deg); border-radius: ${u(4)} 0 0 0; box-shadow: -1px -1px 0 var(--pcv-bord); }
+    #pcv-toasts .b::before { content: ""; position: absolute; inset: calc(-1 * var(--fleche)) 0 0; z-index: -1; background: var(--pcv-verre);
+      --diametre: calc(2 * var(--rayon)); --coin: radial-gradient(circle var(--rayon), #000 calc(100% - var(--raccord) / 2), #0000);
+      mask: linear-gradient(#000 0 0) center bottom / calc(100% - var(--diametre)) calc(100% - var(--fleche)) no-repeat,
+        linear-gradient(#000 0 0) left calc(var(--fleche) + var(--rayon)) / 100% calc(100% - var(--fleche) - var(--diametre)) no-repeat,
+        var(--coin) left top var(--fleche) / var(--diametre) var(--diametre) no-repeat,
+        var(--coin) right top var(--fleche) / var(--diametre) var(--diametre) no-repeat,
+        var(--coin) left bottom / var(--diametre) var(--diametre) no-repeat,
+        var(--coin) right bottom / var(--diametre) var(--diametre) no-repeat,
+        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 12" preserveAspectRatio="none"><path d="M0 12 12 0 24 12Z"/></svg>') left calc(var(--pointe) - var(--fleche)) top / calc(2 * var(--fleche)) calc(var(--fleche) + var(--raccord)) no-repeat; }
     #pcv-toasts .b.sort { animation: pcvBulleRentre .28s ease-in both; }
-    #pcv-toasts .b.grande { height: auto; min-height: ${u(92)}; max-width: ${u(560)}; padding: ${u(14)} ${u(30)} ${u(14)} ${u(14)}; gap: ${u(16)}; border-radius: ${u(30)}; }
+    #pcv-toasts .b.grande { height: auto; min-height: ${u(92)}; max-width: ${u(560)}; padding: ${u(14)} ${u(30)} ${u(14)} ${u(14)}; gap: ${u(16)}; --rayon: ${u(30)}; }
     #pcv-toasts .b.grande .ic { width: ${u(62)}; height: ${u(62)}; background: var(--pcv-cyan); }
     #pcv-toasts .b.grande .t b { font-size: ${u(21)}; }
     #pcv-toasts .b.grande .t span { font-size: ${u(16)}; white-space: normal; }

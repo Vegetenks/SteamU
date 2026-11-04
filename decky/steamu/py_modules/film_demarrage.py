@@ -9,6 +9,8 @@ HAUTEURS, RATIO, DEFAUT = (800, 1200, 2400), 16 / 10, 1200
 POSE = threading.Lock()             
 NOTRE = "/uioverrides/movies/" + FILM   
 NOTRE_IMAGE = "/uioverrides/movies/" + IMAGE
+MUSIQUE = "steamu-musique.webm"   
+NOTRE_MUSIQUE = "/uioverrides/movies/" + MUSIQUE
 STEAM = {"id": "0", "chemin": "", "melange": False}   
 CHAMPS = {"id": 16000, "chemin": 16001, "melange": 16002}
 
@@ -79,7 +81,10 @@ def poser(donnees, films, apparence, son, haut=DEFAUT):
     with POSE:
         shutil.copy(donnees / source(apparence, "jpg", haut), films / (IMAGE + ".tmp")); os.replace(films / (IMAGE + ".tmp"), films / IMAGE)
         try:
-            if not son.is_file(): raise FileNotFoundError(son)
+            if not son.is_file(): (films / MUSIQUE).unlink(missing_ok=True); raise FileNotFoundError(son)
+            subprocess.run(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", str(son), "-map", "0:a:0", "-c", "copy", "-f", "webm", str(films / (MUSIQUE + ".tmp"))],
+                           check=True, timeout=30, capture_output=True)
+            os.replace(films / (MUSIQUE + ".tmp"), films / MUSIQUE)
             subprocess.run(["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", str(film), "-i", str(son), "-map", "0:v:0", "-map", "1:a:0",
                             "-c", "copy", "-shortest", "-f", "webm", str(tmp)], check=True, timeout=30, capture_output=True)
         except Exception:

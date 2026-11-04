@@ -806,7 +806,7 @@ def etat(prive, references=None):
         s["sur"] += 1
         if (prive / "sons" / p["chemin"]).is_file(): s["n"] += 1
         else: s["manquent"].append(p["emplacement"])
-    wiiu = [p for p in refs if p.get("emplacement") and (p.get("famille") or "wiiu") == "wiiu" and str(p.get("emplacement")).startswith("musiques.")]
+    wiiu = [p for p in refs if p.get("emplacement") and (p.get("famille") or "wiiu") == "wiiu" and str(p.get("emplacement")).startswith(("musiques.", "variantes."))]
     manquent = [p["emplacement"] for p in wiiu if not (prive / "sons" / p["chemin"]).is_file()]
     applis = {}
     for appli in EXIGE:

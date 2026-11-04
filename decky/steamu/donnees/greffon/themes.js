@@ -1149,7 +1149,7 @@
   }, PAGES_SONS = ["telechargements", "boutique-reglages", "parametres-controle-parental"];
   const sysMusique = (e, t) => {
     const f = window.__pcvSonsSysteme?.[familleSons(t)];
-    return systeme(window.__pcvVariante?.(f?.variantes?.[e])) || systeme(f?.musiques?.[e]);
+    return systeme(window.__pcvVariante?.(f?.variantes?.[e]?.filter(systeme))) || systeme(f?.musiques?.[e]);
   };
   let annivJour = "", annivOui = false;
   const anniversaire = () => {

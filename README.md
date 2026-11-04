@@ -7,7 +7,8 @@
 SteamU is a [Decky Loader](https://decky.xyz) plugin that gives Steam's Big Picture / gamepad UI a warm,
 Wii U / 3DS-inspired makeover: a grid home screen, a HOME menu, full-screen quick settings, a set of complete
 themes (day and night), a music player, a "plaza" screen, a Mii Maker, a badge-collecting casino mini-game, and
-more. It is still labelled `v0.1.5-test`: expect rough edges, and please open an issue if something looks wrong.
+more. This is `v0.2.2`, not yet a 1.0: expect rough edges, and please open an issue if something looks wrong.
+Questions, ideas and sharing your setup are welcome in the [Discussions](https://github.com/Vegetenks/SteamU/discussions).
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for how the plugin works internally.
 
@@ -141,11 +142,20 @@ The plugin is plain, unbundled JS/Python: no `npm install` or build step is requ
 installable zip:
 
 ```sh
-cd decky
-zip -r SteamU.zip steamu
+python3 decky/steamu/py_modules/paquet.py --archive SteamU.zip
 ```
 
 Decky's "Install plugin from ZIP" expects the plugin folder (containing `plugin.json`) at the root of the zip.
+The command checks `plugin.json`, `package.json`, `main.py` and the already supplied `dist/index.js` before
+creating the archive. Run it from the repository root. Do not install GitHub's "Source code (zip)" directly:
+it contains the repository, not the plugin folder at its root. No `npm`, `pnpm` or JavaScript build is needed.
+The folder `steamu`, the package name `steamu` and the Decky display name `SteamU` are intentional.
+
+If Decky reports "Failed to fetch dynamically imported module", keep the exact error and Decky version,
+restart Steam after installation, and report whether it happens again. Please include the output of the
+check command above and the HTTP status and Content-Type of Decky's local `/plugins/SteamU/dist/index.js`
+request if available. A missing file, a server startup failure and an unsupported response cannot be
+distinguished from this error alone. Do not post account names, avatars or full personal paths.
 
 ## If Steam misbehaves
 
@@ -182,12 +192,6 @@ described in `ARCHITECTURE.md`.
 What's planned next (performance first) is in [`ROADMAP.md`](ROADMAP.md); what changed in each version is in
 [`CHANGELOG.md`](CHANGELOG.md).
 
-## Translations
-
-SteamU speaks English, French and Spanish, and follows Steam's language. All texts are in plain files, one per
-language, in [`translations/`](translations/): no coding needed to fix a text or add a language. The short guide
-is in [`translations/README.md`](translations/README.md).
-
 ## Contributors
 
 - [@lieserlV](https://github.com/lieserlV): first tester; found the large-library crash (#1) and contributed the scrolling category row for libraries with many categories (#6, in v0.1.6).
@@ -198,3 +202,9 @@ AGPL-3.0-or-later, see [`LICENSE`](LICENSE). Third-party code bundled for conven
 WebSocket client, a screen-colour sampler) keeps its own license notice in its own files/folder.
 
 Rare visitors are fan-made tributes; all trademarks belong to their respective owners.
+
+## Translations
+
+SteamU speaks English, French and Spanish, and follows Steam's language. All texts are in plain files, one per
+language, in [`translations/`](translations/): no coding needed to fix a text or add a language. The short guide
+is in [`translations/README.md`](translations/README.md).

@@ -11081,9 +11081,9 @@ if (!window.planck) {
     Object.defineProperties(exports2, { __esModule: { value: true }, [Symbol.toStringTag]: { value: "Module" } });
   });
 }
-if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
+if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
   (() => {
-    const PPM = 20;
+    const PPM = 20, HAUTEUR = 240, PAS_POSE = 8;
     const REGLAGES = {
       pas: 1 / 120,
       sousPasMax: 6,
@@ -11108,7 +11108,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       // les deux parois (x écran) ; au-dessus de hautMurs, un objet du décor passe devant la pince
       murHaut: -160,
       // (14/10) les parois montent jusqu'en haut de la vitrine : rien ne passe derrière les poteaux
-      sortie: 240 + 40,
+      sortie: HAUTEUR + 40,
       // un corps plus bas que cela est sorti (goulotte)
       pince: {
         unite: 19.8,
@@ -11210,11 +11210,9 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       const R = { ...REGLAGES, ...o.reglages || {}, pince: { ...REGLAGES.pince, ...o.reglages?.pince || {} } };
       const V = (x, y) => new pl.Vec2(x / PPM, y / PPM);
       const monde = new pl.World({ gravity: new pl.Vec2(0, R.gravite / PPM) });
-      const badges = /* @__PURE__ */ new Set(), accs = /* @__PURE__ */ new Set(), evts = [], ignores = /* @__PURE__ */ new Map();
+      const badges = /* @__PURE__ */ new Set(), accs = /* @__PURE__ */ new Set(), evts = [];
       const prises = /* @__PURE__ */ new Map();
       let reste = 0, pince = null;
-      const cle = (a, b) => a.__id < b.__id ? a.__id + ":" + b.__id : b.__id + ":" + a.__id;
-      let nId = 0;
       const fixe = monde.createBody({ type: "static" });
       for (const x of R.murs) {
         if ((R.murHaut ?? R.hautMurs) < R.hautMurs) fixe.createFixture(new pl.Edge(V(x, R.murHaut ?? R.hautMurs), V(x, R.hautMurs)), { friction: 0.2, filterGroupIndex: GROUPE_PINCE }).__mur = true;
@@ -11222,10 +11220,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         fixe.createFixture(new pl.Polygon([V(x, R.hautMurs), V(x1, R.hautMurs), V(x1, R.sortie + 200), V(x, R.sortie + 200)]), { friction: 0.2 }).__mur = true;
       }
       fixe.__type = "decor";
-      monde.on("pre-solve", (c) => {
-        const a = c.getFixtureA().getBody(), b = c.getFixtureB().getBody();
-        if (a.__badge && b.__badge && ignores.has(cle(a, b))) c.setEnabled(false);
-      });
       monde.on("post-solve", (c, imp) => {
         const a = c.getFixtureA().getBody(), b = c.getFixtureB().getBody();
         const pc = a.__type === "pince" ? a : b.__type === "pince" ? b : null;
@@ -11320,7 +11314,8 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
           boite() {
             const q = [1e9, 1e9, -1e9, -1e9];
             for (let f = corps.getFixtureList(); f; f = f.getNext()) {
-              const a = f.getAABB(0);
+              const a = new pl.AABB();
+              f.getShape().computeAABB(a, corps.getTransform(), 0);
               q[0] = Math.min(q[0], a.lowerBound.x * PPM);
               q[1] = Math.min(q[1], a.lowerBound.y * PPM);
               q[2] = Math.max(q[2], a.upperBound.x * PPM);
@@ -11330,7 +11325,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
           }
         };
         corps.__badge = b;
-        corps.__id = ++nId;
         corps.__type = "badge";
         badges.add(b);
         return b;
@@ -11339,7 +11333,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         if (!badges.has(b)) return;
         badges.delete(b);
         prises.delete(b);
-        for (const k of [...ignores.keys()]) if (ignores.get(k).includes(b)) ignores.delete(k);
         monde.destroyBody(b.corps);
       };
       const chevauchent = (A, B) => {
@@ -11349,10 +11342,51 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         return false;
       };
       const croiser = (neufs) => {
-        const L = [...badges];
-        for (const a of neufs || L) for (const b of L) {
-          if (a === b || ignores.has(cle(a.corps, b.corps))) continue;
-          if (chevauchent(a.corps, b.corps)) ignores.set(cle(a.corps, b.corps), [a, b]);
+        for (const a of neufs || badges) {
+          const c = a.corps, p = c.getPosition().clone(), bo = a.boite();
+          const pris = () => chevauchent(c, fixe) || [...badges].some((b) => a !== b && chevauchent(c, b.corps));
+          const appui = () => {
+            if (a.donnees?.accroche) return true;
+            let oui = false;
+            const q = c.getPosition();
+            monde.rayCast(q, V(q.x * PPM, HAUTEUR + R.hautMurs), (f) => {
+              if (f.getBody() === fixe && !f.__mur || f.getBody().__acc) {
+                oui = true;
+                return 0;
+              }
+              return -1;
+            });
+            return oui;
+          };
+          if (!pris() && appui()) continue;
+          const x0 = p.x * PPM, y0 = p.y * PPM;
+          const xmin = R.murs[0] - bo[0] + x0 + 1, xmax = R.murs[1] - bo[2] + x0 - 1;
+          const ymin = R.hautMurs + y0 - bo[1] + 1, ymax = HAUTEUR - bo[3] + y0 - 1;
+          let place = null, distance = Infinity;
+          for (let y = ymin; y <= ymax; y += PAS_POSE) for (let x = xmin; x <= xmax; x += PAS_POSE) {
+            const d = (x - x0) ** 2 + (y - y0) ** 2;
+            if (d >= distance) continue;
+            c.setPosition(V(x, y));
+            if (!pris() && !couvert(a) && appui()) {
+              place = [x, y];
+              distance = d;
+            }
+          }
+          if (place) {
+            const [px, py] = place;
+            for (let y = Math.max(ymin, py - PAS_POSE); y <= Math.min(ymax, py + PAS_POSE); y++) for (let x = Math.max(xmin, px - PAS_POSE); x <= Math.min(xmax, px + PAS_POSE); x++) {
+              const d = (x - x0) ** 2 + (y - y0) ** 2;
+              if (d >= distance) continue;
+              c.setPosition(V(x, y));
+              if (!pris() && !couvert(a) && appui()) {
+                place = [x, y];
+                distance = d;
+              }
+            }
+          }
+          c.setPosition(place ? V(...place) : p);
+          if (place && a.fige && !a.reveille) c.setAwake(false);
+          else a.reveiller();
         }
       };
       const accessoire = (d) => {
@@ -11364,7 +11398,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         if (!pieces.length) corps.createFixture(new pl.Circle(V(0, 0), 6 / PPM), { density: R.densite, friction: frott });
         if (d.genre === "pivot") monde.createJoint(new pl.RevoluteJoint({}, fixe, corps, V(d.x, d.y)));
         corps.__bords = bordsExt(pieces);
-        corps.__id = ++nId;
         const a = {
           corps,
           donnees: d.donnees,
@@ -11620,9 +11653,11 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
             b.reveiller();
             prises.set(b, monde.createJoint(new pl.RevoluteJoint({}, moyeu, b.corps, V((g[0] + d[0]) / 2, Math.min((g[1] + d[1]) / 2, q.y - 0.4 * b.r)))));
           },
-          lacher() {
-            for (const [b, j] of prises) if (badges.has(b)) monde.destroyJoint(j);
-            prises.clear();
+          lacher(badge2) {
+            for (const [b, j] of prises) if (!badge2 || b === badge2) {
+              if (badges.has(b)) monde.destroyJoint(j);
+              prises.delete(b);
+            }
           },
           get prises() {
             return [...prises.keys()];
@@ -11702,9 +11737,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         if (laBombe && laBombe.getPosition().y * PPM > R.sortie + 60) {
           monde.destroyBody(laBombe);
           laBombe = null;
-        }
-        if (ignores.size) {
-          for (const [k, [a, b]] of ignores) if ((a.corps.isAwake() || b.corps.isAwake()) && !chevauchent(a.corps, b.corps)) ignores.delete(k);
         }
         const t1 = (typeof performance !== "undefined" ? performance : Date).now();
         cout = cout ? cout * 0.9 + (t1 - t0) * 0.1 : t1 - t0;
@@ -11791,7 +11823,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         R,
         PPM,
         monde,
-        ignores,
         decor,
         badge,
         retirer,
@@ -11819,7 +11850,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     };
     window.__pcvCasinoPhysique = { creer, REGLAGES, ARRET, MARGE_MUR, PPM, BRAS, ARTIC, MOYEU, nettoyer, enveloppe, fusionner };
   })();
-  window.__pcvCasinoPhysique.version = "db0482e13dbf";
+  window.__pcvCasinoPhysique.version = "417cd8e3405c";
 }
 (() => {
   const T = window.THREE;
@@ -12660,7 +12691,8 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     }
     return mo;
   };
-  const nbDedans = (m) => m.vraie ? m.vraie.lots.filter(horsGoulotte).length : m.entrainement ? 8 : 9;
+  const BADGES_MAX = 8;
+  const nbDedans = (m) => m.vraie ? Math.min(BADGES_MAX, m.vraie.lots.filter(horsGoulotte).length) : m.entrainement ? 8 : 9;
   const CARTONS = ["MroSMB", "DotHard", "FcRemix", "BTCenter"];
   let cartonIds = null;
   const idsCarton = () => cartonIds ||= (() => {
@@ -12681,7 +12713,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     return id ? { id, taille: tailleDe(id) } : null;
   };
   const TAS = { essais: 6, marge: 88, recul: 125, penche: 0.9, jeu: 10 };
-  const remplir = (m, n, pluie = false) => {
+  const remplir = (m, n) => {
     const a = TAS.marge, b = PINCE.rebord - TAS.recul;
     for (let k = 0; k < n; k++) {
       const c = nouveauCorps(m, m.monde.corps.length + k);
@@ -12696,10 +12728,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         }
       }
       if (y - rr < PINCE.rail + 14 + GEO_DESSIN.L0 + GEO_DESSIN.pointe + TAS.jeu) return;
-      if (pluie) {
-        ajouterCorps(m.monde, c, x, -rr * (1.5 + k * 2.6), (Math.random() - 0.5) * TAS.penche);
-        continue;
-      }
       ajouterCorps(m.monde, c, x, y, (Math.random() - 0.5) * TAS.penche);
       for (let i = 0; i < 40; i++) pas(m.monde, 1 / 120);
     }
@@ -12723,6 +12751,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       m.monde = creerMonde(m);
       remplir(m, nbDedans(m));
     }
+    m.lot = m.monde.corps.map((c) => c.id);
     m.jeu = { etat: "attente", cx: geoDe(m).x0, cible: geoDe(m).x0, dir: 0, vx: 0, L: geoDe(m).L0, phi: 0, vphi: 0, oG: OUVERTURE_REPOS, oD: OUVERTURE_REPOS, t: 0, tenus: [], gains: [], bombe: estBombe(m) };
     if (m.monde.phys) {
       m.monde.preroule = 480;
@@ -12735,14 +12764,35 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
   };
   const PREROULE_MS = 3;
   const horsDePortee = (m) => {
-    const fond = (PINCE.rail + 14 + GEO_VRAIE.Lmax + GEO_VRAIE.pointe - Y_ECRAN) / E_, coin = (xminDe(m) + pointBras(-1, 1, BRAS.pointe)[0]) / E_;
-    for (const c of m.monde.corps.slice()) {
+    const fond = (PINCE.rail + 14 + GEO_VRAIE.Lmax + GEO_VRAIE.pointe - Y_ECRAN) / E_, coin = (xminDe(m) + pointBras(-1, 1, BRAS.pointe)[0]) / E_, droite = (geoDe(m).x0 + pointBras(1, 1, BRAS.pointe)[0] - GEO_VRAIE.rBout) / E_;
+    return m.monde.corps.filter((c) => {
       const q = c.pb?.lire(), bo = c.pb?.boite();
-      if (q && Math.hypot(q.x - c.lot.x, q.y - c.lot.y) > c.r / E_ / 2 && (q.y - c.r / E_ > fond || bo[0] < coin + GEO_VRAIE.rBout / E_ || m.monde.phys.couvert(c.pb))) {
-        retirerCorps(m.monde, c);
-        (m.aRemettre ||= []).push(c.id);
-      }
+      return q && Math.hypot(q.x - c.lot.x, q.y - c.lot.y) > c.r / E_ / 2 && (q.y - c.r / E_ > fond || bo[0] < coin + GEO_VRAIE.rBout / E_ || bo[2] > droite || m.monde.phys.couvert(c.pb));
+    });
+  };
+  const REASSORT = { parties: 3, mouvement: 3, attente: 1.2 };
+  const verifierBorne = (m, partie = false) => {
+    if (!m.monde.phys || !m.monde.corps.length || m.jeu.etat !== "attente") return;
+    const immobile = !m.jeu.gains.length && m.monde.corps.every((c) => Math.hypot(c.parts[0].x - c.xDebut, c.parts[0].y - c.yDebut) < REASSORT.mouvement && Math.abs(c.ang - c.angleDebut) * c.r < REASSORT.mouvement);
+    if (partie) m.sansMouvement = immobile ? (m.sansMouvement || 0) + 1 : 0;
+    const coinces = m.monde.corps.filter((c) => c.pb && !c.pb.corps.isAwake() && dansChute(m, c.parts.reduce((t, p) => t + p.x, 0) / c.parts.length));
+    const bloques = [.../* @__PURE__ */ new Set([...horsDePortee(m), ...coinces])];
+    if (!bloques.length && !(m.sansMouvement >= REASSORT.parties)) return;
+    m.aReplacer = bloques.length && m.sansMouvement < REASSORT.parties ? bloques : m.monde.corps.slice();
+    m.jeu.etat = "reassort";
+    m.jeu.t = 0;
+    m.jeu.annonceReassort = false;
+    m.sansMouvement = 0;
+  };
+  const reamenager = (m) => {
+    for (const c of m.aReplacer) {
+      retirerCorps(m.monde, c);
+      (m.aRemettre ||= []).push(c.id);
     }
+    m.aReplacer = [];
+    m.aRemettre = regarnir(m, m.aRemettre || []);
+    m.jeu.etat = "attente";
+    m.jeu.t = 0;
   };
   const finirPreroule = (m) => {
     m.monde.preroule = 0;
@@ -12750,10 +12800,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       retirerCorps(m.monde, c);
       if (m.monde.phys) (m.aRemettre ||= []).push(c.id);
     }
-    if (m.monde.phys) {
-      horsDePortee(m);
-      m.aRemettre = regarnir(m, 0, m.aRemettre || []);
-    }
+    if (m.monde.phys) m.aRemettre = regarnir(m, m.aRemettre || []);
   };
   const preroulerUnPeu = (m, budget) => {
     const mo = m.monde, t0 = performance.now();
@@ -13003,14 +13050,24 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
   const echDe = (m, l, id, info) => info || !/_Sep$/.test(l.nom) || tailleDe(id)[0] * tailleDe(id)[1] > 1 ? l.s : Math.min(l.s, echPetits(m));
   const corpsVrai = (m, l, id, carton) => {
     const info = vraies.badges[l.nom] && (idDeNom(l.nom) === id || id === JEU + l.nom) ? vraies.badges[l.nom] : null, k = echDe(m, l, id, info) * E_;
-    return { id, carton, taille: [1, 1], vrai: info, ech: k, r: (info?.r ?? RAYON_COLLECTION) * k, dc: info ? [info.c[0] * k, info.c[1] * k] : [0, 0], lot: l };
+    return {
+      id,
+      carton,
+      taille: [1, 1],
+      vrai: info,
+      ech: k,
+      r: (info?.r ?? RAYON_COLLECTION) * k,
+      dc: info ? [info.c[0] * k, info.c[1] * k] : [0, 0],
+      lot: l,
+      accroche: (m.vraie.accroches || []).some((a) => m.vraie.lots[a.lot] === l)
+    };
   };
   const poserCorps = (m, c, l, fige) => {
     const a = l.rot * Math.PI / 180, [x, y] = ecranVersMonde(l.x, l.y), [dx, dy] = c.dc;
     ajouterCorps(m.monde, c, x + dx * Math.cos(a) - dy * Math.sin(a), y + dx * Math.sin(a) + dy * Math.cos(a), a);
     if (m.monde.phys) {
       c.pw = m.monde.phys;
-      c.pb = c.pw.badge({ polys: c.vrai?.polys, r: c.r / E_, x: l.x, y: l.y, ech: c.ech / E_, rot: a, fige, phys: l.phys, donnees: c });
+      c.pb = c.pw.badge({ polys: c.vrai?.polys, r: c.r / E_, x: l.x, y: l.y, ech: c.ech / E_, rot: a, fige: fige && c.accroche, phys: l.phys, donnees: c });
       if (c.id) quandPrete(image(c.id), (im) => {
         const P = formeImage(c.id, im);
         if (P && c.pw.badges.has(c.pb)) {
@@ -13037,7 +13094,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
   const horsGoulotte = (l) => !l.grav || l.x * E_ < GOULOTTE_VRAIE.x - RAYON_MEDIAN * l.s * E_;
   const poserLots = (m) => {
     const e = etatJour(), gagnes = new Set(e.gagnes[m.cle] || []), deja = /* @__PURE__ */ new Set();
-    m.vraie.lots.filter(horsGoulotte).forEach((l) => {
+    m.vraie.lots.filter(horsGoulotte).slice(0, nbDedans(m)).forEach((l) => {
       let id = idDeNom(l.nom);
       if (!m.entrainement && (!id || gagnes.has(id) || deja.has(id) || !m.file.includes(id))) id = prochainId(m, deja);
       if (m.entrainement && !id) id = vraies.badges[l.nom] ? JEU + l.nom : idsCarton()[deja.size % Math.max(1, idsCarton().length)];
@@ -13049,32 +13106,24 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     souderAccroches(m);
   };
   const croiser = (cs, neufs = cs) => {
-    if (neufs[0]?.pw) return neufs[0].pw.croiser(neufs === cs ? void 0 : neufs.map((c) => c.pb));
-    for (const a of neufs) for (const b of cs) if (a !== b && Math.hypot(a.parts[0].x - b.parts[0].x, a.parts[0].y - b.parts[0].y) < a.parts[0].r + b.parts[0].r) {
-      (a.croise ||= /* @__PURE__ */ new Set()).add(b);
-      (b.croise ||= /* @__PURE__ */ new Set()).add(a);
-    }
+    if (neufs[0]?.pw) neufs[0].pw.croiser(neufs === cs ? void 0 : neufs.map((c) => c.pb));
   };
-  const placeLibre = (m, l, r, serre = 1) => {
+  const placeLibre = (m, l, r) => {
     const [x, y] = ecranVersMonde(l.x, l.y);
     return m.monde.parts.every((p) => {
       const d = Math.hypot(p.x - x, p.y - y);
-      return d > (p.r + r * 0.8) * serre && (serre < 1 || d > p.r + r * 2.5 || !p.c.pb?.lire().eveille);
+      return d > p.r + r && (d > p.r + r * 2.5 || !p.c.pb?.lire().eveille);
     });
   };
-  const regarnir = (m, n, ids = []) => {
-    const deja = new Set(m.monde.corps.map((c) => c.id)), reste = ids.filter((id) => !deja.has(id));
-    for (const id of reste) deja.add(id);
+  const regarnir = (m, ids = []) => {
+    const deja = new Set(m.monde.corps.map((c) => c.id)), reste = [...new Set(ids)].filter((id) => !deja.has(id));
     const L = m.vraie.lots.filter(horsGoulotte), dorment = L.filter((l) => !l.grav);
-    for (const [places, serre] of [[m.monde.phys && dorment.length ? dorment : L, 1], [L, 1], [L, 0.5]]) for (const l of melanger(places.slice(), Math.random)) {
-      if (n <= 0 && !reste.length) return reste;
-      const id = reste[0] || (n <= 0 ? null : m.entrainement ? idDeNom(l.nom) || (vraies.badges[l.nom] ? JEU + l.nom : idsCarton()[Math.random() * idsCarton().length | 0]) : prochainId(m, deja));
-      if (!id) return reste;
+    for (const places of [m.monde.phys && dorment.length ? dorment : L, L]) for (const l of melanger(places.slice(), Math.random)) {
+      if (!reste.length) return reste;
+      const id = reste[0];
       const c = corpsVrai(m, l, id, !!m.entrainement);
-      if (!placeLibre(m, l, c.r, serre) || serre < 1 && reste[0] !== id) continue;
-      deja.add(id);
-      if (reste[0] === id) reste.shift();
-      else n--;
+      if (!placeLibre(m, l, c.r)) continue;
+      reste.shift();
       c.nait = horloge;
       poserCorps(m, c, l, !l.grav);
       croiser(m.monde.corps, [c]);
@@ -13182,8 +13231,17 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
   const gros = (p) => p.r > R_BADGE * 1.4 || p.c.parts.length > 1;
   let tricher = false;
   const stats = { gains: 0, pousses: 0 };
-  const PRISE_TIENT_VRAIE = 0.7;
-  const PRISE_VRAIE = { glisse: 0.92, quand: [0.3, 1], ouverte: 1.1 };
+  const TENUE_PRISE = { centre: 0.35, dessus: 0.04, seuil: 0.5, preavis: 0.4, quand: 0.8, avance: 0.25, ouverte: 1.1, tremble: 0.15 };
+  const qualitePrise = (m, j, c) => {
+    const ps = c.parts, g_ = geoDe(m), dx = ps.reduce((s, p) => s + p.x, 0) / ps.length - j.hx;
+    const largeur = Math.min(g_.cage[2], ps.reduce((s, p) => s + p.r, 0) / ps.length), excentre = Math.abs(dx) / largeur;
+    const dansCage = (p) => p.y > j.hy + g_.cage[0] && p.y < j.hy + g_.cage[1] && Math.abs(p.x - j.hx) < g_.cage[2];
+    const dessus = m.monde.parts.some((o) => o.c !== c && !dansCage(o) && ps.some((p) => o.y < p.y - 8 && Math.hypot(o.x - p.x, o.y - p.y) < o.r + p.r + 3));
+    return { dx, dessus, q: excentre <= TENUE_PRISE.centre ? 1 : clamp((1 - excentre) / (1 - TENUE_PRISE.centre) - (dessus ? TENUE_PRISE.dessus : 0), 0, 1) };
+  };
+  const prevenirPrise = (c, temps) => {
+    c.preavis = TENUE_PRISE.tremble * Math.sin(clamp(temps / TENUE_PRISE.preavis, 0, 1) * Math.PI * 4);
+  };
   const prisDe = (m, j) => {
     const [g, d] = m.monde.pince.pointes(), yM = (j.hy - Y_ECRAN) / E_;
     return (j.lu?.tenus || []).filter((b) => {
@@ -13191,7 +13249,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       return q.x > Math.min(g[0], d[0]) && q.x < Math.max(g[0], d[0]) && q.y > yM;
     });
   };
-  const PRISE_TIENT = 0.42;
   const prise = (m, j) => {
     const { hx, hy } = j, cand = [], g_ = geoDe(m), [c0, c1, cx_] = g_.cage;
     const dansCage = (p) => p.y > hy + c0 && p.y < hy + c1 && Math.abs(p.x - hx) < cx_;
@@ -13205,9 +13262,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         if (hy + g_.pointe > my + 6 && Math.abs(dx) < ps[0].r * 0.5 && j.bloqueG && j.bloqueD) q = 0.5 - 0.7 * Math.abs(dx) / ps[0].r;
       } else if (dedans || hy + g_.pointe > my && Math.abs(dx) < g_.prise[0]) q = (dedans === n ? 0.62 : 0.45) - Math.abs(dx) / g_.prise[1] - (c.axe ? 0.06 : 0);
       if (q <= 0) continue;
-      const dessus = m.monde.parts.some((o) => o.c !== c && !dansCage(o) && ps.some((p) => o.y < p.y - 8 && Math.hypot(o.x - p.x, o.y - p.y) < o.r + p.r + 3));
-      if (dessus) q -= 0.18;
-      cand.push({ c, q: clamp(q * (m.vraie ? PRISE_TIENT_VRAIE : PRISE_TIENT), 0.05, 0.95) });
+      cand.push({ c, ...qualitePrise(m, j, c) });
     }
     if (tricher && !cand.length) {
       const c = m.monde.corps.filter((k) => k.parts.length === 1).sort((a, b) => Math.hypot(a.parts[0].x - hx, a.parts[0].y - hy) - Math.hypot(b.parts[0].x - hx, b.parts[0].y - hy))[0];
@@ -13228,7 +13283,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         return [x * c2 - y * s2, x * s2 + y * c2];
       }) };
     }) : [];
-    j.rate = meilleur && !tricher && Math.random() > meilleur.q ? { quand: 0.08 + Math.random() * 0.62 } : null;
+    j.rate = meilleur && !tricher && meilleur.q < TENUE_PRISE.seuil ? { quand: TENUE_PRISE.avance, temps: 0 } : null;
     j.desserre = 0;
     j.Lbas = j.L;
     sonPince("serre", "serre");
@@ -13239,12 +13294,16 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       p.w = p.w0;
     }
   });
-  const glisser = (j, avance) => {
+  const glisser = (j, avance, dt) => {
     if (!j.rate || avance < j.rate.quand) return;
+    j.rate.temps += dt;
+    for (const t of j.tenus) prevenirPrise(t.c, j.rate.temps);
+    if (j.rate.temps < TENUE_PRISE.preavis) return;
     j.rate = null;
     j.desserre = 0.45;
     j.glisses = (j.glisses || 0) + 1;
     son("glisse");
+    for (const t of j.tenus) t.c.preavis = 0;
     for (const t of j.tenus) {
       lacher(t.c);
       if (!t.petit) {
@@ -13295,11 +13354,19 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     j.t += dt;
     if (m.monde.phys && (j.etat === "montee" || j.etat === "transport")) {
       j.tPrise = (j.tPrise || 0) + dt;
-      if (j.glisseT != null && j.tPrise >= j.glisseT) {
-        j.glisseT = null;
-        j.lachePrise = PRISE_VRAIE.ouverte;
-        m.monde.pince.lacher();
-        son("glisse");
+      if (j.glisseT != null) {
+        for (const b of j.fragiles) prevenirPrise(b.donnees, j.tPrise - (j.glisseT - TENUE_PRISE.preavis));
+        if (j.tPrise >= j.glisseT) {
+          j.glisseT = null;
+          if (j.fragiles.length === m.monde.pince.prises.length) j.lachePrise = TENUE_PRISE.ouverte;
+          for (const b of j.fragiles) {
+            b.donnees.preavis = 0;
+            m.monde.pince.lacher(b);
+          }
+          j.fragiles = [];
+          j.glisses = (j.glisses || 0) + 1;
+          son("glisse");
+        }
       }
       if (j.lachePrise > 0) j.lachePrise -= dt;
     }
@@ -13426,7 +13493,8 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
             j.tPrise = 0;
             const pris = prisDe(m, j);
             for (const b of pris) m.monde.pince.saisir(b);
-            j.glisseT = pris.length && !tricher && Math.random() < PRISE_VRAIE.glisse ? PRISE_VRAIE.quand[0] + Math.random() * (PRISE_VRAIE.quand[1] - PRISE_VRAIE.quand[0]) : null;
+            j.fragiles = tricher ? [] : pris.filter((b) => qualitePrise(m, j, b.donnees).q < TENUE_PRISE.seuil);
+            j.glisseT = j.fragiles.length ? TENUE_PRISE.quand : null;
           }
           break;
         } else {
@@ -13458,7 +13526,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       case "montee": {
         const L0_ = geoDe(m).L0;
         j.L -= (j.tenus.some((t) => !t.petit) ? 90 : 130) * dt;
-        glisser(j, 0.55 * (1 - (j.L - L0_) / Math.max(1, j.Lbas - L0_)));
+        glisser(j, 0.55 * (1 - (j.L - L0_) / Math.max(1, j.Lbas - L0_)), dt);
         serrer(j, dt);
         if (j.L <= L0_) {
           j.L = L0_;
@@ -13469,7 +13537,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         break;
       }
       case "transport":
-        glisser(j, 0.55 + 0.45 * clamp((j.cx - j.xDepart) / Math.max(1, G0.x0 - j.xDepart), 0, 1));
+        glisser(j, 0.55 + 0.45 * clamp((j.cx - j.xDepart) / Math.max(1, G0.x0 - j.xDepart), 0, 1), dt);
         serrer(j, dt);
         if (Math.abs(j.cx - G0.x0) < 3) {
           j.etat = "lacher";
@@ -13539,8 +13607,16 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         if (j.t > 1.8 || j.t > 0.6 && calme(m.monde)) {
           j.etat = "attente";
           j.cible = G0.x0;
+          verifierBorne(m, true);
           finPartie(m);
         }
+        break;
+      case "reassort":
+        if (!j.annonceReassort && m === mJeu) {
+          j.annonceReassort = true;
+          dire(Tr("casino.reassort"), { bas: true, duree: REASSORT.attente + 0.8 });
+        }
+        if (j.t >= REASSORT.attente) reamenager(m);
         break;
       default:
         j.oG = j.oD = j.oG + (OUVERTURE_REPOS - j.oG) * Math.min(1, dt * 4);
@@ -13552,7 +13628,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       if (c.parts.some((p) => p.y < H + 60)) continue;
       const x = c.parts[0].x;
       retirerCorps(mo, c);
-      const goulotte = mo.phys ? !!c.lache || dansChute(m, x) : x > (m.vraie ? GOULOTTE_VRAIE.x : PINCE.rebord) - 20;
+      const goulotte = c.xDebut != null && (mo.phys ? !!c.lache || dansChute(m, x) : x > (m.vraie ? GOULOTTE_VRAIE.x : PINCE.rebord) - 20);
       c.xChute = x;
       if (goulotte) {
         sonPince("goulotte", "goulotte");
@@ -13572,6 +13648,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       else remplirAvec(m, c);
     }
   };
+  const SANS_CHOC = /* @__PURE__ */ new Set(["fermeture", "montee", "transport"]);
   const POSE_BRUIT = 3.5;
   const avancer = (m, dt) => {
     if (m.monde.preroule) preroulerUnPeu(m);
@@ -13583,7 +13660,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     ramasser(m);
     const mo = m.monde;
     if (m === mJeu && vue === "machine") {
-      if (mo.chocs) sonPince("choc", null, 0.8);
+      if (mo.chocs && !SANS_CHOC.has(m.jeu.etat)) sonPince("choc", null, 0.8);
       if (mo.poses) sonPince("pose", null, 0.6);
     }
     mo.chocs = mo.poses = 0;
@@ -13603,16 +13680,30 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     }
   };
   const images = /* @__PURE__ */ new Map();
+  const CHARGEMENT_MAX = 3e4;
+  let chargement = null;
+  const preparer = (p) => {
+    const c = chargement;
+    if (c && !c.pret) {
+      c.attentes.add(p);
+      p.finally(() => c.attentes.delete(p)).catch(() => {
+      });
+    }
+    return p;
+  };
   const image = (id) => {
     let im = images.get(id);
     if (im) return im;
     im = new Image();
     images.set(id, im);
     const chemin = "badges/" + id;
-    (opts.lire ? opts.lire(chemin).then((b) => URL.createObjectURL(new Blob([b], { type: "image/png" }))) : Promise.resolve(window.__pcvRessource?.(chemin, "image/png"))).then((u) => {
-      if (u) im.src = u;
-    }).catch(() => {
-    });
+    preparer(new Promise((ok) => {
+      im.onload = im.onerror = ok;
+      (opts.lire ? opts.lire(chemin).then((b) => URL.createObjectURL(new Blob([b], { type: "image/png" }))) : Promise.resolve(window.__pcvRessource?.(chemin, "image/png"))).then((u) => {
+        if (u) im.src = u;
+        else ok();
+      }).catch(ok);
+    }));
     return im;
   };
   const pret = (im) => im.complete && im.naturalWidth > 0;
@@ -13885,7 +13976,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       });
       return;
     }
-    (async () => {
+    return preparer((async () => {
       const u = musiqueUrl[p] ||= await (opts.lire ? opts.lire("sons/" + p + ".mp3").then((b) => URL.createObjectURL(new Blob([b], { type: "audio/mpeg" }))) : Promise.resolve(window.__pcvRessource?.("sons/" + p + ".mp3", "audio/mpeg"))).catch(() => null);
       if (musiqueVoulue !== p || !u) return;
       const silencieux = lecteurCasino.paused;
@@ -13899,7 +13990,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       if (musiqueVoulue !== p) return;
       if (silencieux) finFonduCasino(volMusique());
       else lecteurCasino.volume = volMusique();
-    })();
+    })());
   };
   const jingleAudio = new Audio(), jingleUrl = {};
   const jingle = async (nom) => {
@@ -15335,7 +15426,13 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
   const MEUBLES = ["comptoir", "poker", "roulette", "cartes", "caisse", "sc\xE8ne", "machine \xE0 sous"];
   const RANGEE = { o: new T.Vector3(-23.24, 0, -25.39), u: new T.Vector3(0.439, 0, -0.899).normalize(), ECH: 0.66, pas: 18.8, debut: -100, recul: 5 };
   RANGEE.n = RANGEE.u.clone().cross(new T.Vector3(0, 1, 0)).normalize();
-  const Z = { fond: 1.2, terrain0: 2.4, terrain1: 9, badges: 8.1, pince: 8.1 };
+  const PLAN_BORNE = [[-7.4, 10.9], [7.4, 10.9], [13.6, 0.8], [13.6, -4.4], [-13.6, -4.4], [-13.6, 0.8]];
+  const RETRAIT_VITRE = 0.1;
+  const Z_JEU = (() => {
+    const [a, b] = [PLAN_BORNE[1], PLAN_BORNE[2]], pente = (b[0] - a[0]) / (a[1] - b[1]);
+    return a[1] - (ZONE_JEU.x1 - a[0] + RETRAIT_VITRE * Math.hypot(1, pente)) / pente;
+  })();
+  const Z = { fond: 1.2, terrain0: 2.4, terrain1: Z_JEU, badges: Z_JEU, pince: Z_JEU };
   let rendu = null, scene = null, camera = null, racine = null, toileGL = null, decor = null, luigi = null, luigiPret = null;
   let sel = 1, vue = "salle", mJeu = null, plan = null, horloge = 0, boucle = 0, dernier = 0, pilote = false, ouvert = false, bornes = [], tableau = null;
   let session = { parties: 0, gains: 0 };
@@ -17153,10 +17250,12 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     for (const bo of bornes) {
       bo.groupe.updateMatrixWorld(true);
       const f = (o) => {
-        if (o === bo.meuble.bouton) return;
+        if (o === bo.meuble.bouton) return false;
         o.updateMatrix();
         o.matrixAutoUpdate = false;
-        for (const c of o.children) f(c);
+        const fixe = o.children.map(f).every(Boolean);
+        o.matrixWorldAutoUpdate = !fixe;
+        return fixe;
       };
       bo.groupe.matrixAutoUpdate = false;
       f(bo.groupe.getObjectByName("meuble de la borne"));
@@ -17314,7 +17413,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     figurine(bo, m);
     ecrireFronton(bo, m.entrainement ? Tr("casino.entrainement") : m.nom, m.entrainement ? Tr("casino.badges_carton_faux") : m.sous);
   };
-  const PLAN_BORNE = [[-7.4, 10.9], [7.4, 10.9], [13.6, 0.8], [13.6, -4.4], [-13.6, -4.4], [-13.6, 0.8]];
   const VOLUME = { fond: -4.2 + 0.25 + 0.05, cote: PLAN_BORNE[2][0] - 0.15, haut: 13.3 + BORNE.DY + BORNE.DH - 0.15 - 0.02, jeu: 0.985 };
   const PLAN_VITRINE = PLAN_BORNE.map(([x, z]) => [x * VOLUME.jeu, Math.max(VOLUME.fond, z * VOLUME.jeu)]);
   const demiVitrine = (z) => {
@@ -17413,7 +17511,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     g.add(corniche);
     const face = (a, b, y0, y1, mat, dz = 0.3) => {
       const A = vec(a[0], 0, a[1]), Bv = vec(b[0], 0, b[1]), d = Bv.clone().sub(A), n_ = vec(d.z, 0, -d.x).normalize().multiplyScalar(-1);
-      const m = new T.Mesh(garder(new T.PlaneGeometry(d.length() * 0.82, y1 - y0)), mat);
+      const m = new T.Mesh(garder(new T.PlaneGeometry(d.length() * (mat === B.vitre ? 1 : 0.82), y1 - y0)), mat);
       m.position.copy(A.clone().add(Bv).multiplyScalar(0.5)).addScaledVector(n_, dz).setY((y0 + y1) / 2);
       m.rotation.y = Math.atan2(n_.x, n_.z);
       g.add(m);
@@ -17439,9 +17537,9 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       }
     }
     const v0 = 5.6 + DY, v1 = 13.4 + DY + DH;
-    face(PLAN_BORNE[0], PLAN_BORNE[1], v0, v1, B.vitre, -0.65).renderOrder = 6;
-    face(PLAN_BORNE[5], PLAN_BORNE[0], v0, v1, B.vitre, -0.1).renderOrder = 6;
-    face(PLAN_BORNE[1], PLAN_BORNE[2], v0, v1, B.vitre, -0.1).renderOrder = 6;
+    face(PLAN_BORNE[0], PLAN_BORNE[1], v0, v1, B.vitre, -RETRAIT_VITRE).renderOrder = 6;
+    face(PLAN_BORNE[5], PLAN_BORNE[0], v0, v1, B.vitre, -RETRAIT_VITRE).renderOrder = 6;
+    face(PLAN_BORNE[1], PLAN_BORNE[2], v0, v1, B.vitre, -RETRAIT_VITRE).renderOrder = 6;
     const dos = boite3(27.4, 8 + DH, 0.5, M.laqueSombre);
     dos.position.set(0, 9.6 + DY + DH / 2, -4.2);
     g.add(dos);
@@ -17732,22 +17830,15 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     }
     return pinceDessinee(m);
   };
-  const texPrivee = (chemin, f, o = {}) => {
-    const im = new Image();
-    (opts.lire ? opts.lire(chemin).then((b) => URL.createObjectURL(new Blob([b], { type: "image/png" }))) : Promise.resolve(window.__pcvRessource?.(chemin, chemin.endsWith(".jpg") ? "image/jpeg" : "image/png"))).then((u) => {
-      if (!u) return f(null);
-      im.onload = () => {
-        const t = garder(new T.Texture(im));
-        t.colorSpace = T.SRGBColorSpace;
-        t.flipY = o.flipY ?? true;
-        t.anisotropy = 4;
-        t.needsUpdate = true;
-        f(t, im);
-      };
-      im.onerror = () => f(null);
-      im.src = u;
-    }).catch(() => f(null));
-  };
+  const texPrivee = (chemin, f, o = {}) => imagePrivee(chemin, (im) => {
+    if (!im) return f(null);
+    const t = garder(new T.Texture(im));
+    t.colorSpace = T.SRGBColorSpace;
+    t.flipY = o.flipY ?? true;
+    t.anisotropy = 4;
+    t.needsUpdate = true;
+    f(t, im);
+  });
   const COTE_VRAI = 10132122, BANDE_VRAIE = 0.12;
   const PROFONDEUR_VRAIE = { bandeMur: 0.08, epaisseur: 0.86 / 8.56, pasCouche: 0.012, ombre: 1.55 / 6.4, decalage: [0.08, -0.12], opaciteOmbre: 0.4, tranche: 13158600, objets: 1.4 };
   const profondeur = () => ({ ...PROFONDEUR_VRAIE, ...window.__pcvCasinoProfondeur || {} });
@@ -17801,15 +17892,23 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     touchez: "MgCrRsltSignD/MgCrRsltBadgeTouch.png"
   };
   const IU = {};
-  const imagePrivee = (chemin, f) => {
-    const im = new Image();
-    (opts.lire ? opts.lire(chemin).then((b) => URL.createObjectURL(new Blob([b], { type: "image/png" }))) : Promise.resolve(window.__pcvRessource?.(chemin, "image/png"))).then((u) => {
-      if (!u) return f(null);
-      im.onload = () => f(im);
-      im.onerror = () => f(null);
+  const imagePrivee = (chemin, f) => preparer(new Promise((ok, ko) => {
+    const im = new Image(), salle = racine;
+    const fini = (image2) => {
+      try {
+        if (salle === racine && ouvert) f(image2);
+        ok();
+      } catch (e) {
+        ko(e);
+      }
+    };
+    (opts.lire ? opts.lire(chemin).then((b) => URL.createObjectURL(new Blob([b], { type: "image/png" }))) : Promise.resolve(window.__pcvRessource?.(chemin, chemin.endsWith(".jpg") ? "image/jpeg" : "image/png"))).then((u) => {
+      if (!u) return fini(null);
+      im.onload = () => fini(im);
+      im.onerror = () => fini(null);
       im.src = u;
-    }).catch(() => f(null));
-  };
+    }).catch(() => fini(null));
+  }));
   const chargerInterface = () => {
     for (const [k, f] of Object.entries(IU_FICHIERS)) if (!IU[k]) imagePrivee(PRIVE_BA.partie + f, (im) => {
       if (!im) return;
@@ -17899,7 +17998,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       I.add(levre);
     }
   };
-  const DEVANT_VRAIE = 0.45;
+  const DEVANT_VRAIE = 0.15;
   const RAIL_VRAI = { y: -0.12, r: 0.09, chariot: [0.7, 0.32, 0.42], teinte: 0.75, metal: 10133672 };
   const LED_VRAIE = { cadence: 30, allumee: "AnCaObBodyLightOn_rainbow", bras: ["AnCaObArmLLightOn", "AnCaObArmRLightOn"], derniere: "AnCaObBodyLightOn_LastLoop", brasDerniere: ["AnCaObArmLLastLoop", "AnCaObArmRLastLoop"] };
   const pinceVraie = (m) => {
@@ -17917,7 +18016,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     const bG = copie.getObjectByName("Pivot-ArmL"), bD = copie.getObjectByName("Pivot-ArmR"), tige2 = copie.getObjectByName("Tige"), HAUT_TIGE = 25.78;
     const bombeM = copie.getObjectByName("Pivot-Bomb");
     let libre = null;
-    P_2.habiller(g, { teinte: couleurVraie(m), lineaire: true }).then(() => {
+    preparer(P_2.habiller(g, { teinte: couleurVraie(m), lineaire: true }).then(() => {
       copie.visible = true;
       if (bombeM) {
         libre = E.clone(bombeM);
@@ -17925,7 +18024,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         libre.visible = false;
         groupe.add(libre);
       }
-    }).catch((e) => console.warn("casino : mat\xE9riaux de la vraie pince", e));
+    }).catch((e) => console.warn("casino : mat\xE9riaux de la vraie pince", e)));
     const eclat = bombeM && new T.Mesh(garder(new T.SphereGeometry(1, 20, 14)), basique({ color: 16765530, transparent: true, opacity: 0.9, depthWrite: false }));
     if (eclat) {
       eclat.visible = false;
@@ -18084,7 +18183,6 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       const face = new T.Mesh(geo, e.mat);
       face.renderOrder = 2;
       g.add(ombre2, face);
-      c.k3 = Math.random() * 0.4;
       bo.interieur.add(g);
       c.o3 = g;
       bo.badges.set(c, g);
@@ -18131,13 +18229,12 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         g.add(tr);
         g.userData.tranche = tr;
       }
-      c.k3 = Math.random() * 0.4;
       bo.interieur.add(g);
       c.o3 = g;
       bo.badges.set(c, g);
     });
   };
-  const NAISSANCE = 0.35;
+  const NAISSANCE = 0.35, ECART_BADGES = 2e-3;
   const BOUTON = { orange: new T.Color(16753178), blanc: new T.Color(16774876), lueurOrange: new T.Color(8008704), lueurBlanche: new T.Color(16773312), y: 0.9, ech: 0.55, enfonce: 0.32, onde: 0.35 };
   const animerBouton = (bo, m) => {
     const b = bo.meuble?.bouton;
@@ -18168,6 +18265,11 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     animerBouton(bo, m);
     if (bo.reflet) bo.reflet.visible = !(vue === "machine" && bornes[sel] === bo);
     const mo = m.monde, vus = /* @__PURE__ */ new Set(), proche = bornes[sel] === bo && vue !== "salle";
+    const calme2 = !mo.preroule && m.jeu.etat === "attente" && (m.entrainement || totalParties() !== 1) && mo.corps.every((c) => c.nait == null && (c.pb ? !c.pb.corps.isAwake() : c.parts.every((p) => p.dort)));
+    const cle = calme2 ? [proche, totalParties(), mo.corps.length, mo.corps.filter((c) => c.o3).length].join("|") : null;
+    if (calme2 && bo.repos === cle) return;
+    bo.repos = cle;
+    bo.interieur.matrixWorldAutoUpdate = !calme2;
     for (const o of bo.profondeurs || []) o.visible = proche;
     for (const c of mo.corps) {
       if (!c.o3) plaqueBadge(bo, c);
@@ -18175,8 +18277,8 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       const g = c.o3;
       if (!g) continue;
       const n = c.parts.length, x = c.parts.reduce((a, p) => a + p.x, 0) / n, y = c.parts.reduce((a, p) => a + p.y, 0) / n, [px, py] = versLocal(x, y);
-      g.position.set(px, py, Z.badges + c.k3 - 0.2);
-      g.rotation.z = -c.ang;
+      g.position.set(px, py, Z.badges + m.lot.indexOf(c.id) * ECART_BADGES);
+      g.rotation.z = -c.ang + (c.preavis || 0);
       g.visible = y < H + R_BADGE * 0.6;
       if (g.userData.tranche) g.userData.tranche.visible = proche;
       if (c.nait != null) {
@@ -18217,6 +18319,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     const w = (p) => versLocal(p[0], p[1]), nb = m.entrainement ? null : j.surprise ? "coeur" : totalParties();
     P.poser({ j, D, w, z: Z.pince, n: nb, clignote: j.etat === "deplacement" || j.etat === "transport" ? 0.5 + 0.5 * Math.sin(horloge * 14) : 0 });
     majCompteur(bo, m.entrainement ? null : totalParties());
+    if (calme2) bo.interieur.updateMatrixWorld(true);
   };
   const CLIGNOTE = new T.Color("#fff3a0");
   const poserPinceDessinee = (P, { j, D, w, z, n, clignote }) => {
@@ -18252,10 +18355,11 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     }
   };
   const TABLEAU = { badge: 4.8 };
+  const Z_TABLEAU = PLAN_BORNE[0][1] - RETRAIT_VITRE - 0.05;
   const construireTableau = () => {
     const gp = new T.Group();
     gp.visible = false;
-    const l = VITRE.x1 - VITRE.x0, h = VITRE.y1 - VITRE.y0, cy = (VITRE.y0 + VITRE.y1) / 2;
+    const l = PLAN_BORNE[1][0] - PLAN_BORNE[0][0], h = VITRE.y1 - VITRE.y0, cy = (VITRE.y0 + VITRE.y1) / 2;
     const [cr, xr] = toile(512, 512);
     xr.translate(256, 256);
     const halo = xr.createRadialGradient(0, 0, 10, 0, 0, 300);
@@ -18277,16 +18381,16 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     tr.repeat.set(1, h / l);
     tr.offset.set(0, (1 - h / l) / 2);
     const rayons = new T.Mesh(garder(new T.PlaneGeometry(l, h)), garder(new T.MeshBasicMaterial({ map: tr, transparent: true, depthWrite: false, opacity: 0.95 })));
-    rayons.position.set(0, cy, VITRE.z - 0.5);
+    rayons.position.set(0, cy, Z_TABLEAU);
     rayons.renderOrder = 6;
     gp.add(rayons);
     const voile = new T.Mesh(garder(new T.PlaneGeometry(l, h)), garder(new T.MeshBasicMaterial({ color: "#fff6d0", transparent: true, opacity: 0.35, depthWrite: false })));
-    voile.position.set(0, cy, VITRE.z - 0.55);
+    voile.position.set(0, cy, Z_TABLEAU);
     voile.renderOrder = 5;
     gp.add(voile);
     const [ct, xt] = toile(1024, 200), tt = texture(ct, { bord: true, flipY: true });
     const texte = new T.Mesh(garder(new T.PlaneGeometry(l * 0.86, l * 0.86 * 200 / 1024)), garder(new T.MeshBasicMaterial({ map: tt, transparent: true, depthWrite: false })));
-    texte.position.set(0, VITRE.y0 + h * 0.2, VITRE.z - 0.3);
+    texte.position.set(0, VITRE.y0 + h * 0.2, Z_TABLEAU);
     texte.renderOrder = 8;
     gp.add(texte);
     const image2 = new T.Mesh(garder(new T.PlaneGeometry(1, 1)), garder(new T.MeshBasicMaterial({ transparent: true, depthWrite: false })));
@@ -18294,6 +18398,9 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     image2.renderOrder = 8;
     image2.visible = false;
     gp.add(image2);
+    gp.traverse((o) => {
+      if (o.material) o.material.depthTest = false;
+    });
     return { gp, rayons, voile, texte, image: image2, xt, tt, badges: [], t: 0 };
   };
   const IMAGE_TEXTE = 0.64, texturesIU = /* @__PURE__ */ new Map();
@@ -18357,8 +18464,11 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     const n = Math.min(4, corps.length), l = VITRE.x1 - VITRE.x0, d = Math.min(TABLEAU.badge, l * 0.8 / n);
     corps.slice(0, n).forEach((c, i) => (c.vrai ? (f) => matVrai(c, (e) => e.mat && f({ ...e, marge: 0 })) : (f) => matAutocollant(c.id, c.carton, f))((e) => {
       const [col, rang] = c.taille, k = d / Math.max(col, rang) / (1 - 2 * e.marge);
-      const b = new T.Mesh(garder(new T.PlaneGeometry(k * col, k * rang)), e.mat);
-      b.position.set((i - (n - 1) / 2) * d * 1.08, (VITRE.y0 + VITRE.y1) / 2 + 0.55, VITRE.z - 0.4);
+      const mat = garder(e.mat.clone());
+      mat.depthTest = false;
+      mat.transparent = true;
+      const b = new T.Mesh(garder(new T.PlaneGeometry(k * col, k * rang)), mat);
+      b.position.set((i - (n - 1) / 2) * d * 1.08, (VITRE.y0 + VITRE.y1) / 2 + 0.55, Z_TABLEAU);
       b.renderOrder = 7;
       b.userData.k = i;
       b.scale.setScalar(0.01);
@@ -18402,7 +18512,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     if (!bo || !im) return;
     const l = (VITRE.x1 - VITRE.x0) * IMAGE_TEXTE, h = l * im.height / im.width;
     const o = new T.Mesh(garder(new T.PlaneGeometry(l, h)), garder(new T.MeshBasicMaterial({ map: texIU(im), transparent: true, depthWrite: false })));
-    o.position.set(0, (VITRE.y0 + VITRE.y1) / 2, VITRE.z - 0.35);
+    o.position.set(0, (VITRE.y0 + VITRE.y1) / 2, Z_TABLEAU);
     o.renderOrder = 9;
     o.scale.setScalar(0.01);
     bo.groupe.add(o);
@@ -19976,6 +20086,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     for (const c of m.monde.corps) {
       c.xDebut = c.parts[0].x;
       c.yDebut = c.parts[0].y;
+      c.angleDebut = c.ang;
       c.pince = c.lache = false;
     }
     j.surprise = !j.dejaSurprise && Math.random() < SURPRISE;
@@ -19999,11 +20110,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
   const finPartie = (m) => {
     const j = m.jeu, g = j.gains;
     j.gains = [];
-    if (m.monde.phys) horsDePortee(m);
-    if (m.vraie) {
-      const n = m.monde.corps.length + (m.aRemettre?.length || 0) <= nbDedans(m) - 3 ? 2 : 0;
-      m.aRemettre = regarnir(m, n, m.aRemettre || []);
-    } else if (m.monde.corps.length < nbDedans(m) - 4) remplir(m, 3, true);
+    if (m.vraie) m.aRemettre = regarnir(m, m.aRemettre || []);
     if (m !== mJeu) return;
     majHud();
     window.__pcvLed?.(g.length ? "casino-pince-fin" : "casino-perte");
@@ -20896,7 +21003,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     champ.setFromProjectionMatrix(mChamp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
     const vu = !(vue === "machine" && plan.t >= plan.d) && champ.intersectsSphere(VISEE_TABLE);
     for (const e of miiTable) {
-      if (e.m.objet.visible !== vu) e.m.objet.visible = vu;
+      e.m.objet.visible = e.m.objet.matrixWorldAutoUpdate = vu;
       if (vu) e.m.maj(dt);
     }
   };
@@ -21013,7 +21120,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
   };
   const touche = (b) => {
     if (!racine || !ouvert || recouvert()) return false;
-    if (!scene || !plan || !bornes.length) return b !== 2;
+    if (!scene || !plan || !bornes.length || !chargement?.pret) return b !== 2;
     try {
       return toucheOuvert(b);
     } catch (e) {
@@ -21368,6 +21475,17 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       f();
     }
     placerCamera();
+    camera.updateMatrixWorld();
+    champ.setFromProjectionMatrix(mChamp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+    for (const bo of bornes) if (bo.cadre) {
+      const vu = champ.intersectsBox(bo.cadre);
+      if (vu && !bo.groupe.visible) bo.repos = null;
+      bo.groupe.visible = bo.groupe.matrixWorldAutoUpdate = vu;
+    }
+    if (meuble?.cadre) {
+      meuble.groupe.visible = champ.intersectsBox(meuble.cadre);
+      meuble.groupe.matrixWorldAutoUpdate = meuble.groupe.visible;
+    }
     {
       const t0 = performance.now();
       for (const m of machines) if (m.monde?.preroule) preroulerUnPeu(m, Math.max(0, PREROULE_MS - (performance.now() - t0)));
@@ -21385,7 +21503,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       }
     }
     bornes.forEach((bo, i) => {
-      if (bo.interieur && machines[i]) majInterieur(bo, machines[i]);
+      if (bo.groupe.visible && bo.interieur && machines[i]) majInterieur(bo, machines[i]);
     });
     majHud(true);
     if (gain && horloge >= gain.fin) finirGain();
@@ -21473,6 +21591,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     Q.r = r;
     rendu.setPixelRatio(r);
     ajuster();
+    rendreImage();
   };
   const suivreQualite = (t, dt, cpu) => {
     const Q = qualite;
@@ -21501,7 +21620,8 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
       return;
     }
     const k = Math.min(1, (Q.ecran || 17) * 0.06);
-    const trop = Q.bilan.gpu != null ? gpu > QUALITE.gpuHaut * k : inter > QUALITE.intervalleHaut * k, large = Q.bilan.gpu != null && gpu < QUALITE.gpuBas * k;
+    const trop = gpu > QUALITE.gpuHaut * k || inter > QUALITE.intervalleHaut * k;
+    const large = Q.bilan.gpu != null && gpu < QUALITE.gpuBas * k && inter < (Q.ecran || 17) * 1.05;
     if (trop && Q.r > QUALITE.min) {
       regler(Q.r * QUALITE.pas);
       Q.change = t;
@@ -21519,170 +21639,197 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
     opts = o;
     pilote = !!o.pilote;
     ouvert = true;
-    window.__pcvMusique?.(false);
-    window.__pcvLed?.("casino-entree", "#" + COULEURS_MEUBLE.rouge.toString(16).padStart(6, "0"));
-    document.documentElement.classList.add("pcv-appli-plein");
-    racine = document.createElement("div");
-    racine.className = "pcvc" + (pilote ? " pilote" : "");
-    racine.innerHTML = `<style>${CSS}${CSS_SOUS}</style><canvas></canvas><div class="cpt verre2">${ico("piece")}<b class="p"></b><small></small><i></i><span class="pastille2">${ico("ticket")}</span><b class="n"></b><small></small><em class="essai" hidden>ESSAI</em></div>
+    const c = chargement = { attentes: /* @__PURE__ */ new Set(), debut: performance.now(), pret: false, ms: 0 };
+    const construire = async () => {
+      window.__pcvMusique?.(false);
+      window.__pcvLed?.("casino-entree", "#" + COULEURS_MEUBLE.rouge.toString(16).padStart(6, "0"));
+      document.documentElement.classList.add("pcv-appli-plein");
+      racine = document.createElement("div");
+      racine.className = "pcvc" + (pilote ? " pilote" : "");
+      racine.innerHTML = `<style>${CSS}${CSS_SOUS}</style><canvas></canvas><div class="cpt verre2">${ico("piece")}<b class="p"></b><small></small><i></i><span class="pastille2">${ico("ticket")}</span><b class="n"></b><small></small><em class="essai" hidden>ESSAI</em></div>
       <div class="tuiles cache"></div><div class="pcv-legende leg cache"></div><div class="points verre2 cache"></div><div class="gros-a cache"></div><div class="plaque verre2 cache"></div>
       <div class="boite"><div class="cadre-or"><div class="tableau-serie"></div></div>
         <div class="pupitre-boite"><div class="fiche"><b></b><hr><span></span></div><div class="carrousel"></div>
           <div class="bas-boite"><span class="retour" data-acte="b"><span class="bt" data-touche="2"></span>${Tr("casino.retour")}</span><span class="poser"><span class="bt" data-touche="1"></span>${Tr("casino.poser_sur_accueil")}</span><span class="total"><span>${Tr("casino.serie_complete")} :</span><b></b></span></div></div></div>
       <div class="bulle verre2" data-qui="Luigi"><div class="texte"></div><div class="choix"></div><span class="suite"></span></div>
       <div class="voile noir"><div class="chargement"><i>\u2605</i>${Tr("casino.chargement")}</div></div>`;
-    conteneur.appendChild(racine);
-    toileGL = racine.querySelector("canvas");
-    masquerDessous(true);
-    toileGL.addEventListener("webglcontextlost", (e) => {
-      e.preventDefault();
-      console.warn("casino : contexte WebGL perdu");
-      cancelAnimationFrame(boucle);
-      boucle = 0;
-    });
-    toileGL.addEventListener("webglcontextrestored", () => {
-      console.warn("casino : contexte WebGL rendu, r\xE9ouverture");
-      if (ouvert) ouvrir(conteneur, o);
-    });
-    racine.querySelector(".retour").addEventListener("click", () => touche(2));
-    const q = (c) => racine.querySelector(c);
-    hud = { cpt: q(".cpt"), p: q(".cpt .p"), n: q(".cpt .n"), essai: q(".cpt .essai"), tuiles: q(".tuiles"), leg: q(".leg"), points: q(".points"), grosA: q(".gros-a"), plaque: q(".plaque") };
-    hud.tuiles.addEventListener("pointerdown", (e) => {
-      e.stopPropagation();
-      const i = +e.target.closest(".tuile")?.dataset.i;
-      if (Number.isNaN(i)) return;
-      if (i === (choix ?? tuileIci())) touche(1);
-      else {
-        choix = i;
-        son("bouge", 0.7);
-        majHud();
-      }
-    });
-    hud.grosA.addEventListener("pointerdown", (e) => {
-      e.stopPropagation();
-      touche(1);
-      if (mJeu?.jeu?.etat === "deplacement") {
-        tenuHud = true;
-        try {
-          hud.grosA.setPointerCapture(e.pointerId);
-        } catch (x) {
-        }
-      }
-    });
-    rendu = new T.WebGLRenderer({ canvas: toileGL, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: pilote });
-    qualite = qualiteNeuve();
-    rendu.setPixelRatio(qualite.r);
-    rendu.setClearColor(0, 1);
-    qualite.ext = rendu.getContext().getExtension?.("EXT_disjoint_timer_query_webgl2") || null;
-    rendu.outputColorSpace = T.SRGBColorSpace;
-    rendu.info.autoReset = false;
-    rendu.shadowMap.enabled = true;
-    rendu.shadowMap.type = T.PCFSoftShadowMap;
-    post = preparerPost();
-    scene = new T.Scene();
-    camera = new T.PerspectiveCamera(46, 1.6, 0.3, 400);
-    scene.matrixAutoUpdate = false;
-    eclairer();
-    try {
-      const fontes = document.fonts?.load?.(`900 30px Nunito`).catch(() => {
+      conteneur.appendChild(racine);
+      toileGL = racine.querySelector("canvas");
+      masquerDessous(true);
+      toileGL.addEventListener("webglcontextlost", (e) => {
+        e.preventDefault();
+        console.warn("casino : contexte WebGL perdu");
+        cancelAnimationFrame(boucle);
+        boucle = 0;
       });
-      await Promise.all([chargerIndex(), fontes]);
-      await chargerVraies();
-      chargerInterface();
-      if (!ouvert) return false;
-      const souffle2 = () => new Promise((ok) => requestAnimationFrame(() => setTimeout(ok, 0)));
-      scene.environment = environnement();
-      construireSalle();
-      await souffle2();
-      if (!ouvert) return false;
-      preparerMachines();
-      await souffle2();
-      if (!ouvert) return false;
-      bornes = machines.map((m, i) => fabriquerBorne(i));
-      await souffle2();
-      if (!ouvert) return false;
-      for (const [i, bo] of bornes.entries()) {
-        autocollantsDessus(bo, machines[i]);
-        const c = monde(bo, 0, 0, 2);
-        ombre(c.x, c.z, 24, 24);
-      }
-      sel = bornes.slice(1).reduce((k, bo, j) => placeLuigi(bo).distanceTo(LUIGI.pos) < placeLuigi(bornes[k]).distanceTo(LUIGI.pos) ? j + 1 : k, Math.min(1, bornes.length - 1));
-      preparerBornes();
-      construireMeuble();
-      bornes.forEach((bo, i) => PLANS.rangee(i));
-      elaguer();
-      poserAmpoules();
-      poserKits();
-      if (o.fusion !== false) {
-        fusionner(decor);
-        for (const bo of bornes) {
-          fusionner(bo.fronton.groupe);
-          bo.meuble.compteur.userData.garder = bo.meuble.bouton.userData.garder = true;
-          fusionner(bo.groupe.getObjectByName("meuble de la borne"));
+      toileGL.addEventListener("webglcontextrestored", () => {
+        console.warn("casino : contexte WebGL rendu, r\xE9ouverture");
+        if (ouvert) ouvrir(conteneur, o);
+      });
+      racine.querySelector(".retour").addEventListener("click", () => touche(2));
+      const q = (c2) => racine.querySelector(c2);
+      hud = { cpt: q(".cpt"), p: q(".cpt .p"), n: q(".cpt .n"), essai: q(".cpt .essai"), tuiles: q(".tuiles"), leg: q(".leg"), points: q(".points"), grosA: q(".gros-a"), plaque: q(".plaque") };
+      hud.tuiles.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        const i = +e.target.closest(".tuile")?.dataset.i;
+        if (Number.isNaN(i)) return;
+        if (i === (choix ?? tuileIci())) touche(1);
+        else {
+          choix = i;
+          son("bouge", 0.7);
+          majHud();
         }
+      });
+      hud.grosA.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        touche(1);
+        if (mJeu?.jeu?.etat === "deplacement") {
+          tenuHud = true;
+          try {
+            hud.grosA.setPointerCapture(e.pointerId);
+          } catch (x) {
+          }
+        }
+      });
+      rendu = new T.WebGLRenderer({ canvas: toileGL, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: pilote });
+      qualite = qualiteNeuve();
+      rendu.setPixelRatio(qualite.r);
+      rendu.setClearColor(0, 1);
+      qualite.ext = rendu.getContext().getExtension?.("EXT_disjoint_timer_query_webgl2") || null;
+      rendu.outputColorSpace = T.SRGBColorSpace;
+      rendu.info.autoReset = false;
+      rendu.shadowMap.enabled = true;
+      rendu.shadowMap.type = T.PCFSoftShadowMap;
+      post = preparerPost();
+      scene = new T.Scene();
+      camera = new T.PerspectiveCamera(46, 1.6, 0.3, 400);
+      scene.matrixAutoUpdate = false;
+      eclairer();
+      try {
+        const fontes = document.fonts?.load?.(`900 30px Nunito`).catch(() => {
+        });
+        await Promise.all([chargerIndex(), fontes]);
+        await chargerVraies();
+        chargerInterface();
+        if (!ouvert) return false;
+        const souffle2 = () => new Promise((ok) => requestAnimationFrame(() => setTimeout(ok, 0)));
+        scene.environment = environnement();
+        construireSalle();
+        await souffle2();
+        if (!ouvert) return false;
+        preparerMachines();
+        await souffle2();
+        if (!ouvert) return false;
+        bornes = machines.map((m, i) => fabriquerBorne(i));
+        await souffle2();
+        if (!ouvert) return false;
+        for (const [i, bo] of bornes.entries()) {
+          autocollantsDessus(bo, machines[i]);
+          const c2 = monde(bo, 0, 0, 2);
+          ombre(c2.x, c2.z, 24, 24);
+        }
+        sel = bornes.slice(1).reduce((k, bo, j) => placeLuigi(bo).distanceTo(LUIGI.pos) < placeLuigi(bornes[k]).distanceTo(LUIGI.pos) ? j + 1 : k, Math.min(1, bornes.length - 1));
+        preparerBornes();
+        construireMeuble();
+        bornes.forEach((bo, i) => PLANS.rangee(i));
+        elaguer();
+        poserAmpoules();
+        poserKits();
+        if (o.fusion !== false) {
+          fusionner(decor);
+          for (const bo of bornes) {
+            fusionner(bo.fronton.groupe);
+            bo.meuble.compteur.userData.garder = bo.meuble.bouton.userData.garder = true;
+            fusionner(bo.groupe.getObjectByName("meuble de la borne"));
+          }
+        }
+        figer(decor);
+        if (o.fusion !== false) fusionnerRangee();
+        figerBornes();
+      } catch (e) {
+        console.warn("casino : d\xE9cor ou borne absents, le panneau se referme", e);
+        fermer();
+        return false;
       }
-      figer(decor);
-      if (o.fusion !== false) fusionnerRangee();
-      figerBornes();
-    } catch (e) {
-      console.warn("casino : d\xE9cor ou borne absents, le panneau se referme", e);
-      fermer();
-      return false;
-    }
-    luigiPret = poserLuigi();
-    chargerSons();
-    window.__pcvListe?.("sons").then((l) => {
-      if (!ouvert) return;
-      const a = (n) => l?.includes(n + ".mp3");
-      if (a(F.salleDeJeux)) musiqueSalle = F.salleDeJeux;
-      else if (a(F.musique)) musiqueSalle = F.musique;
-      if (a(F.musique)) musiqueCartes = F.musique;
-      if (vue === "salle") {
-        musiqueVoulue = void 0;
-        musique("salle");
+      luigiPret = preparer(poserLuigi());
+      preparer(chargerSons());
+      preparer(venueDesMii());
+      preparer(Promise.resolve(window.__pcvListe?.("sons")).then((l) => {
+        if (!ouvert || chargement !== c) return;
+        const a = (n) => l?.includes(n + ".mp3");
+        if (a(F.salleDeJeux)) musiqueSalle = F.salleDeJeux;
+        else if (a(F.musique)) musiqueSalle = F.musique;
+        if (a(F.musique)) musiqueCartes = F.musique;
+        if (vue === "salle") {
+          musiqueVoulue = void 0;
+          musique("salle");
+        }
+      }));
+      vue = "salle";
+      allerA("entree", 0);
+      allerA("salle", 0, 2.8);
+      musique("salle");
+      observateur = new ResizeObserver(ajuster);
+      observateur.observe(racine);
+      ajuster();
+      for (const t of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) toileGL.addEventListener(t, surDoigt);
+      addEventListener("vgp_onbuttonup", surRelache, true);
+      addEventListener("keyup", surToucheLevee, true);
+      addEventListener("pointerup", surLeveeHud, true);
+      addEventListener("pointercancel", surLeveeHud, true);
+      majHud();
+      do {
+        await Promise.all([...c.attentes]);
+        if (!ouvert || chargement !== c) return false;
+        for (const m of machines) if (m.monde?.preroule) preroulerUnPeu(m, PREROULE_MS);
+        image_(0, false);
+        if (machines.some((m) => m.monde?.preroule)) await new Promise((ok) => requestAnimationFrame(ok));
+      } while (c.attentes.size || machines.some((m) => m.monde?.preroule));
+      for (const bo of bornes) bo.cadre = new T.Box3().setFromObject(bo.groupe).expandByScalar(3);
+      if (meuble) meuble.cadre = new T.Box3().setFromObject(meuble.groupe).expandByScalar(3);
+      try {
+        rendu.compile(scene, camera);
+        image_(0);
+      } catch (e) {
+        console.warn("casino : pr\xE9compilation", e);
       }
-    });
-    vue = "salle";
-    allerA("entree", 0);
-    allerA("salle", 0, 2.8);
-    musique("salle");
-    observateur = new ResizeObserver(ajuster);
-    observateur.observe(racine);
-    ajuster();
-    for (const t of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) toileGL.addEventListener(t, surDoigt);
-    addEventListener("vgp_onbuttonup", surRelache, true);
-    addEventListener("keyup", surToucheLevee, true);
-    addEventListener("pointerup", surLeveeHud, true);
-    addEventListener("pointercancel", surLeveeHud, true);
-    majHud();
-    await luigiPret;
-    if (!ouvert) return false;
+      await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
+      if (!ouvert) return false;
+      c.pret = true;
+      c.ms = Math.round(performance.now() - c.debut);
+      racine.querySelector(".voile").classList.remove("noir");
+      apres(0.5, accueillir);
+      if (!pilote) boucle = requestAnimationFrame(tourner);
+      else image_(0);
+      return true;
+    };
+    let minuterie;
     try {
-      rendu.compile(scene, camera);
-      image_(0);
+      return await Promise.race([construire(), new Promise((_, ko) => {
+        minuterie = setTimeout(() => ko(new Error("pr\xE9paration du casino trop longue")), CHARGEMENT_MAX);
+      })]);
     } catch (e) {
-      console.warn("casino : pr\xE9compilation", e);
+      if (chargement === c) {
+        console.warn("casino : chargement interrompu", e);
+        fermer();
+      }
+      return false;
+    } finally {
+      clearTimeout(minuterie);
     }
-    await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
-    if (!ouvert) return false;
-    racine.querySelector(".voile").classList.remove("noir");
-    apres(0.5, accueillir);
-    apres(VENUE_MII, venueDesMii);
-    if (!pilote) boucle = requestAnimationFrame(tourner);
-    else image_(0);
-    return true;
   };
-  const VENUE_MII = 3.2;
   const figer = (g) => {
     const u = g.userData, vivants = new Set([u.roue, u.lustre, ...Object.values(u.ancres || {})].filter(Boolean));
     const f = (o) => {
-      if (vivants.has(o)) return;
+      if (vivants.has(o)) return false;
       o.updateMatrix();
       o.matrixAutoUpdate = false;
-      for (const c of o.children) f(c);
+      const fixe = o.children.map(f).every(Boolean);
+      o.matrixWorldAutoUpdate = !fixe;
+      return fixe;
     };
     g.updateMatrixWorld(true);
-    for (const c of g.children) f(c);
+    f(g);
   };
   const fermer = () => {
     document.documentElement.classList.remove("pcv-appli-plein");
@@ -21920,7 +22067,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         if (!oui || !m?.monde?.phys || !bo?.interieur) return 0;
         const w = m.monde.phys, K2 = w.PPM, pts = [], seg = (a, b) => {
           const A = versLocal(...ecranVersMonde(a[0], a[1])), B = versLocal(...ecranVersMonde(b[0], b[1]));
-          pts.push(A[0], A[1], Z.badges + 0.5, B[0], B[1], Z.badges + 0.5);
+          pts.push(A[0], A[1], Z.badges, B[0], B[1], Z.badges);
         };
         for (let c = w.monde.getBodyList(); c; c = c.getNext()) for (let f = c.getFixtureList(); f; f = f.getNext()) {
           const sh = f.getShape(), t = sh.getType();
@@ -22049,6 +22196,7 @@ if (window.__pcvCasinoPhysique?.version !== "db0482e13dbf") {
         return true;
       },
       perf: () => qualite && { ...qualite.bilan, echelleMax: qualite.plafond, minuterie: !!qualite.ext },
+      chargement: () => chargement && { pret: chargement.pret, ms: chargement.ms, attentes: chargement.attentes.size, miis: miiTable.length },
       info: () => {
         const i = rendu?.info;
         if (!i) return null;

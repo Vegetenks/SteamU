@@ -53,7 +53,7 @@ class Plugin:
         import film_demarrage
         threading.Thread(target=self._poser_film, args=(self._film_apparence.read_text() if self._film_apparence.exists() else "clair",),
                          name="pcv-film", daemon=True).start()
-        moteur.GREFFON_JS += ";window.__pcvGreffon.film = " + json.dumps(film_demarrage.NOTRE) + ";window.__pcvGreffon.image = " + json.dumps(film_demarrage.NOTRE_IMAGE)
+        moteur.GREFFON_JS += ";window.__pcvGreffon.film = " + json.dumps(film_demarrage.NOTRE) + ";window.__pcvGreffon.image = " + json.dumps(film_demarrage.NOTRE_IMAGE) + ";window.__pcvGreffon.musique = " + json.dumps(film_demarrage.NOTRE_MUSIQUE)
         self.fil = threading.Thread(target=moteur.boucle, args=(pathlib.Path(os.environ["PCV_DOSSIER"]), decky.logger.info), daemon=True)
         self.fil.start()
         decky.logger.info(f"{moteur.NOM} : moteur lancé")
@@ -631,7 +631,7 @@ class Plugin:
         await self.film_demarrage(False)   
         import film_demarrage
         f = pathlib.Path(decky.DECKY_USER_HOME) / ".steam/steam/config/uioverrides/movies" / film_demarrage.FILM
-        try: f.unlink(missing_ok=True); f.with_name(film_demarrage.IMAGE).unlink(missing_ok=True); decky.logger.info("SteamU : vidéo de démarrage retirée")
+        try: f.unlink(missing_ok=True); f.with_name(film_demarrage.IMAGE).unlink(missing_ok=True); f.with_name(film_demarrage.MUSIQUE).unlink(missing_ok=True); decky.logger.info("SteamU : vidéo de démarrage retirée")
         except Exception as e: decky.logger.warning(f"vidéo de démarrage non retirée : {e}")
 
     async def _unload(self):
