@@ -655,6 +655,73 @@ window.__pcvBridge = (() => {
       } catch (e) {
       }
     },
+    // (Steamcord) ouvre la vue Discord de Steamcord. Son entrée est la route /discord (/routes/discord) : son composant fait
+    // NavigateBack() tout de suite, puis ouvre la vue 100 ms plus tard ; au second lancement la vue pouvait ne pas venir, sans
+    // aucune erreur. On garde donc la route montée le temps que la vue s'ouvre : NavigateBack est neutralisé un instant (DFL est
+    // le même objet pour tous les plugins), puis restauré, et c'est nous qui revenons en arrière. On vérifie ensuite que la vue
+    // (.sc-xv-side) est affichée ; sinon on revient de la route et on retente, trois fois au plus (Steamcord ignore un appel
+    // tant que sa vue est ouverte). Si la version de Steamcord expose __steamcordOuvrirVue, la vue s'ouvre directement.
+    ouvrirSteamcord: () => {
+      if (typeof O.__steamcordOuvrirVue === "function") try {
+        return void O.__steamcordOuvrirVue();
+      } catch (e) {
+      }
+      let nav;
+      try {
+        nav = O.DFL.Navigation;
+      } catch (e) {
+      }
+      if (!nav) return;
+      const retour = () => {
+        try {
+          nav.NavigateBack();
+        } catch (e) {
+        }
+      };
+      const surRoute = () => /\/discord$/.test(O.location.pathname);
+      const vue = () => {
+        const docs = [O.document];
+        try {
+          docs.push(O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BrowserWindow.document);
+        } catch (e) {
+        }
+        return docs.some((d) => !!d?.querySelector(".sc-xv-side"));
+      };
+      // une tentative : navigue vers la route en gardant son composant monté ; rend de quoi restaurer NavigateBack
+      const aller = () => {
+        const origine = nav.NavigateBack;
+        let garde = false;
+        try {
+          nav.NavigateBack = () => {};
+          garde = true;
+        } catch (e) {
+        }
+        try {
+          nav.Navigate("/discord");
+        } catch (e) {
+        }
+        return () => {
+          try {
+            if (garde) nav.NavigateBack = origine;
+          } catch (e) {
+          }
+        };
+      };
+      const essayer = (n) => {
+        const restaurer = aller();
+        setTimeout(() => {
+          const ok = vue();
+          restaurer();
+          if (surRoute()) retour();
+          if (!ok && n < 3) setTimeout(() => essayer(n + 1), 600);
+        }, 900);
+      };
+      if (surRoute()) {
+        retour();
+        return void setTimeout(() => essayer(1), 400);
+      }
+      essayer(1);
+    },
     // a page of Steam's own Settings ("Internet", "Display", "Controller"...)
     navigate: (page) => {
       try {
