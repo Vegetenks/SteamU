@@ -1279,6 +1279,7 @@
   const placerCadre = () => {
     const c = contenu(), b = e.$(".cadre-boite");
     if (!c || !cadre) return requestAnimationFrame(placerCadre);
+    c.toggleAttribute("data-pcv-greffon-tiers", cadre.onglet === 999 && O.DeckyPluginLoader?.deckyState?._activePlugin?.name !== window.__pcvGreffon.nom);
     const r = b.getBoundingClientRect();
     h.style.setProperty("--pcv-cadre-l", "0px");
     h.style.setProperty("--pcv-cadre-w", "1000px");
@@ -1337,6 +1338,7 @@
     cadre = null;
     delete h.dataset.pcvPeCadre;
     e.racine.classList.remove("en-cadre");
+    d.querySelector("[data-pcv-greffon-tiers]")?.removeAttribute("data-pcv-greffon-tiers");
     for (const n of ["l", "t", "w", "h"]) h.style.removeProperty("--pcv-cadre-" + n);
     return true;
   };

@@ -483,9 +483,10 @@ window.__pcvBridge = (() => {
       }
     },
     // (22/10) un jeu pas installé ici : la fenêtre d'installation de Steam (choix du disque), sans passer par sa page
+    // Steam exige aussi la source ("0", comme son bouton Installer) ; sans elle, aucun assistant ni erreur.
     installer: (appid) => {
       try {
-        O.SteamClient.Installs.OpenInstallWizard([+appid]);
+        O.SteamClient.Installs.OpenInstallWizard([+appid], "0");
         return true;
       } catch (e) {
         return false;

@@ -1,4 +1,21 @@
 {
+ "0.2.3": {
+  "fr": [
+   "Le bouton Installer d'un jeu ouvre de nouveau la fenêtre d'installation.",
+   "Les onglets des plugins Decky ne passent plus par-dessus leur contenu.",
+   "Corrections de bugs."
+  ],
+  "es": [
+   "El botón Instalar de un juego vuelve a abrir la ventana de instalación.",
+   "Las pestañas de los plugins de Decky ya no tapan su contenido.",
+   "Corrección de errores."
+  ],
+  "en": [
+   "The Install button of a game opens the install window again.",
+   "Decky plugin tabs no longer cover their content.",
+   "Bug fixes."
+  ]
+ },
  "0.2.2": {
   "fr": [
    "Badge Arcade : taux de gain revus et bornes plus fluides.",

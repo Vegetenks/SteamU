@@ -3649,3 +3649,7 @@ body.pcv-compte-ouvert {{Digits@PinDigit}} > .gpfocuswithin {{PinDigit@Digits}},
   box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-cyan-plein), 0 0 0 calc(var(--u) * 6) var(--pcv-anneau-c), inset 0 2px 4px rgba(0,0,0,.08) !important; }
 body.pcv-compte-ouvert {{PinPromptOtherLinks@PinPromptCtn}} * { font-weight: 800 !important; font-size: calc(var(--u) * 15) !important; color: var(--pcv-cyan-plein) !important; background: transparent !important; }
 body.pcv-compte-ouvert {{NumericKeypad@Keyboard}} {{KeyboardKey@Keyboard}} { border-radius: calc(var(--u) * 26) !important; }
+
+html [data-pcv-greffon-tiers] {{TabRow@TabRowTabs}} { position: relative !important; top: auto !important; left: auto !important; right: auto !important; height: auto !important; }
+html [data-pcv-greffon-tiers] {{TabHeaderRowWrapper@TabRow}} { height: auto !important; margin-top: 0 !important; }
+html [data-pcv-greffon-tiers] {{TabContentsScroll@TabRow}} { padding-top: 0 !important; }

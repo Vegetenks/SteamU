@@ -1,34 +1,22 @@
 {
- "version": "0.2.2",
- "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.2.2.zip",
- "sha256": "c1d116875704dbfe06c09c8a44392b173cb84dea85dbecd729d6d97eb5d6a27e",
+ "version": "0.2.3",
+ "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.2.3.zip",
+ "sha256": "e139b846107cb313519a76b424d424f34015c7b0e871f6d35b44b50eec609c80",
  "notes": {
   "en": [
-   "Win rates reworked: a well-centred badge now stays in the claw (about one grab in two when you aim well, instead of",
-   "A machine where nothing moves for three games restocks itself, and Luigi tells you.",
-   "No more invisible wall: only the glass, the floor and the objects inside the machine stop the badges.",
-   "Badges no longer pile up inside each other, and the casino runs smoother at low power.",
-   "New startup screen: three dots under the SteamU logo show that the console is still loading (also when the video",
-   "Once SteamU is loaded, a button press no longer skips the startup video by mistake.",
-   "Removed the test Miis made by SteamU from your SpotPass encounters: only real players now. They stay as visitors",
-   "Every system sound is now importable and counted: \"all sounds\" really means all, including the 14 versions of",
-   "The shop music changes automatically with the month. If that month's version is missing, the closest earlier one",
-   "Notification bubbles: the pointer and the bubble form a single shape.",
-   "What's New opened from the notifications now goes back to the home screen when you finish."
+   "The Install button of a game opens the install window again.",
+   "Decky plugin tabs no longer cover their content.",
+   "Bug fixes."
   ],
   "fr": [
-   "Badge Arcade : taux de gain revus et bornes plus fluides.",
-   "SpotPass : suppression des Mii de test créés par SteamU.",
-   "Tous les sons système de la 3DS, de la Wii U et de la Switch sont maintenant importables.",
-   "Boutique : changement automatique des musiques.",
-   "Corrections de bugs et améliorations."
+   "Le bouton Installer d'un jeu ouvre de nouveau la fenêtre d'installation.",
+   "Les onglets des plugins Decky ne passent plus par-dessus leur contenu.",
+   "Corrections de bugs."
   ],
   "es": [
-   "Badge Arcade: probabilidades de ganar revisadas y máquinas más fluidas.",
-   "SpotPass: se eliminan los Mii de prueba creados por SteamU.",
-   "Ahora se pueden importar todos los sonidos de sistema de 3DS, Wii U y Switch.",
-   "Tienda: cambio automático de las músicas.",
-   "Corrección de errores y mejoras."
+   "El botón Instalar de un juego vuelve a abrir la ventana de instalación.",
+   "Las pestañas de los plugins de Decky ya no tapan su contenido.",
+   "Corrección de errores."
   ]
  }
 }

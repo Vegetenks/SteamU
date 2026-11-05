@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.2.3 (2026-11-05)
+
+Fixes only (issues #19 and #16).
+
+- **Installing a game**: the Install button on a game page did nothing (Steam silently ignored the request). It opens
+  Steam's install window again, with the controller and with touch.
+- **Decky plugins**: in some plugin panels (Unifideck), SteamU's placement of the Decky page tabs also moved the
+  plugin's own tabs, which ended up on top of its list. Tabs inside third-party plugins now stay where the plugin puts
+  them; plugins keep the SteamU look.
+
 ## v0.2.2 (2026-11-04)
 
 **Badge Arcade**
