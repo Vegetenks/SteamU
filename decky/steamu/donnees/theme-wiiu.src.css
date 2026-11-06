@@ -3651,5 +3651,11 @@ body.pcv-compte-ouvert {{PinPromptOtherLinks@PinPromptCtn}} * { font-weight: 800
 body.pcv-compte-ouvert {{NumericKeypad@Keyboard}} {{KeyboardKey@Keyboard}} { border-radius: calc(var(--u) * 26) !important; }
 
 html [data-pcv-greffon-tiers] {{TabRow@TabRowTabs}} { position: relative !important; top: auto !important; left: auto !important; right: auto !important; height: auto !important; }
-html [data-pcv-greffon-tiers] {{TabHeaderRowWrapper@TabRow}} { height: auto !important; margin-top: 0 !important; }
+html [data-pcv-greffon-tiers] {{TabHeaderRowWrapper@TabRow}} { position: relative !important; height: auto !important; margin-top: 0 !important; }
+html [data-pcv-greffon-tiers] :is({{GamepadTabbedPage@TabRow}}, {{TabContents@TabRow}}, {{TabContents@TabRow}} > *, {{ContentTransition@TabRow}}, {{ContentTransition@TabRow}} > *, {{TabContentsScroll@TabRow}}) { position: relative !important; height: auto !important; }
 html [data-pcv-greffon-tiers] {{TabContentsScroll@TabRow}} { padding-top: 0 !important; }
+
+html [data-pcv-greffon-tiers] {{GamepadTabbedPage@TabRow}} { background: transparent !important; }
+html [data-pcv-greffon-tiers] {{TabsRowScroll@TabRow}} { overflow: visible !important; height: auto !important; }
+html [data-pcv-greffon-tiers] {{FixCenterAlignScroll@TabRow}} { box-sizing: border-box !important; height: auto !important; padding: var(--pcv-marge-ombre) !important; }
+html [data-pcv-greffon-tiers] {{TabContentsScroll@TabRow}} { overflow: visible !important; }

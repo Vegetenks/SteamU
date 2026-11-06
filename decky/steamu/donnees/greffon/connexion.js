@@ -6,6 +6,10 @@
   const compteCourant = () => window.__pcvBridge?.compteCourant?.() ?? null;
   const resumeBibliotheque = () => window.__pcvBridge?.resumeBibliotheque?.() ?? { pret: false, nombreJeux: null };
   const compte = compteCourant(), bibliotheque = resumeBibliotheque();
+  let miiAbsents = false;
+  window.__pcvNintendo?.pret?.then((n) => {
+    miiAbsents = n.mii === false;
+  });
   const pseudo = compte?.nom || T("connexion.compte_attente"), nbJeux = bibliotheque.pret ? bibliotheque.nombreJeux : null;
   const jeuxTexte = (n) => n === 1 ? T("connexion.jeu_un", { n }) : T("connexion.jeu_plusieurs", { n });
   const avatar = compte?.avatar || "";
@@ -54,8 +58,8 @@
     lacherTouches = null;
     const entrees = window.__pcvManette?.__brute || window.__pcvManette;
     if (entrees?.connexion === manette) delete entrees.connexion;
-    const tuile = racine.querySelector(".tuile");
-    if (tuile) tuile.onclick = null;
+    const tuile2 = racine.querySelector(".tuile");
+    if (tuile2) tuile2.onclick = tuile2.onpointerdown = tuile2.onpointermove = tuile2.onpointerup = tuile2.onpointercancel = null;
   };
   const arreter = () => {
     if (arrete) return;
@@ -184,7 +188,7 @@
         placeTerminee = true;
         partir();
         terminer();
-      } else if (++essais < 60) attentePlace = setTimeout(versPlace, 250);
+      } else if (!miiAbsents && ++essais < 60) attentePlace = setTimeout(versPlace, 250);
       else {
         placeTerminee = true;
         partir();
@@ -217,7 +221,23 @@
       e.preventDefault();
     }
   };
-  racine.querySelector(".tuile").onclick = valider;
+  const tuile = racine.querySelector(".tuile"), DISTANCE_TOUCHER = 15;
+  let toucher = null;
+  tuile.onclick = valider;
+  tuile.onpointerdown = (e) => {
+    toucher = e.pointerType === "touch" ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null;
+  };
+  tuile.onpointermove = (e) => {
+    if (toucher?.id === e.pointerId && Math.hypot(e.clientX - toucher.x, e.clientY - toucher.y) > DISTANCE_TOUCHER) toucher = null;
+  };
+  tuile.onpointercancel = () => {
+    toucher = null;
+  };
+  tuile.onpointerup = (e) => {
+    const t = toucher;
+    toucher = null;
+    if (t && t.id === e.pointerId && tuile.contains(document.elementFromPoint(e.clientX, e.clientY))) valider();
+  };
   window.addEventListener("keydown", touche, true);
   manette = (b) => {
     if (!vivant()) {
@@ -227,6 +247,7 @@
     if (racine.style.visibility === "hidden") return false;
     if (b === 1) {
       diagnostic.a++;
+      window.__pcvAppui?.(tuile);
       valider();
     }
     return true;

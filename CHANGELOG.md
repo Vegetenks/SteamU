@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.2.4 (2026-11-06)
+
+Fixes only (issues #16, #19, #20, #22, #23).
+
+- **Decky plugins (Unifideck)**: since v0.2.3, Unifideck showed only its two tabs, its content had no height. The whole
+  tabbed page of a third-party plugin now stays in normal layout: tabs and content are visible, with the SteamU look.
+- **Account screen at startup**: when the Mii files were not imported, the screen waited about 15 seconds for the
+  plaza before moving on, so pressing A seemed to do nothing. It now moves on right away. A short touch on your
+  profile also works on release, even when Steam sends no click.
+- **Remote Play (#19 follow-up)**: since the v0.2.3 install fix, a game installed on another PC at home offered to
+  install instead of streaming. It streams again; installing stays available from the game's page.
+- **All Steam properties (#22)**: the button on a game's Properties page did nothing in Big Picture. It now opens
+  Steam's own Properties page.
+- **Decky menu (#23)**: plugins missing from Decky's saved order (installed later) were not listed, showing
+  "Installed 0". Every installed plugin is listed now.
+- **Also fixed**: the home tiles no longer flicker while Steam's screensaver runs; the account screen no longer shows
+  "Default string" as the machine model; the battery menu reads the right battery on the Steam Deck (BAT1).
+
 ## v0.2.3 (2026-11-05)
 
 Fixes only (issues #19 and #16).

@@ -1631,7 +1631,13 @@
   window.__pcvTuilesTailles?.disconnect();
   window.__pcvTuilesTailles = retailler;
   document.removeEventListener("visibilitychange", window.__pcvTuilesVisibilite);
+  let cacheeDepuis = 0;
   window.__pcvTuilesVisibilite = () => {
+    if (document.hidden) {
+      cacheeDepuis = performance.now();
+      return;
+    }
+    if (performance.now() - cacheeDepuis < 1e3) return;
     grille.querySelectorAll(".cel.jeu > .im").forEach((el) => {
       if (el.__pcvProche && el.__pcvJeu) peindreJeu(el, el.__pcvJeu);
     });
@@ -2388,7 +2394,12 @@
     lancerAvecEcran({ nom: a.display_name, jeu: a, depuis: grille.children[sel], pret: () => O.location.pathname !== page, faire: () => ouvrir(a.appid) });
   };
   const ici = (a) => (window.__pcvLancement?.banc?.installe || installe)(a);
-  const lancer = (a) => window.__pcvTelech?.ouvrir(a.appid) || (ici(a) ? jouerJeu(a, grille.children[sel]) : installer(a));
+  const ailleurs = (a) => {
+    const pc = window.__pcvBridge?.autresPC?.(a.appid)?.[0];
+    if (pc) window.__pcvBridge.diffuser(a.appid, pc.clientid);
+    return !!pc;
+  };
+  const lancer = (a) => window.__pcvTelech?.ouvrir(a.appid) || (ici(a) ? jouerJeu(a, grille.children[sel]) : ailleurs(a) || installer(a));
   let avant = null;
   const prendre = (i) => {
     avant = { cases: cases.slice(), sel: i };
@@ -3969,7 +3980,7 @@
     pincer,
     crans,
     lettre: lettreVoisine,
-    jouer: (a, el) => ici(a) ? jouerJeu(a, el) : installer(a),
+    jouer: (a, el) => ici(a) ? jouerJeu(a, el) : ailleurs(a) || installer(a),
     banc: BANC ? BANC_BASE : 0,
     zooms: ZOOMS,
     peindre: (el, a, c, petite = false, images) => {

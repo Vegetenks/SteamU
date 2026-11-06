@@ -1,21 +1,30 @@
 {
- "version": "0.2.3",
- "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.2.3.zip",
- "sha256": "e139b846107cb313519a76b424d424f34015c7b0e871f6d35b44b50eec609c80",
+ "version": "0.2.4",
+ "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.2.4.zip",
+ "sha256": "6ddc0db0849bc29754bcbefe9da0aa1894b96cfc117fa9644f8f695e2d0a36c5",
  "notes": {
   "en": [
-   "The Install button of a game opens the install window again.",
-   "Decky plugin tabs no longer cover their content.",
+   "Unifideck: its settings list is visible again.",
+   "Choosing your account at startup responds right away, with the controller and with touch.",
+   "A game installed on another PC at home launches with streaming again.",
+   "\"All Steam properties\" opens again from a game's page.",
+   "The Decky menu lists all installed plugins.",
    "Bug fixes."
   ],
   "fr": [
-   "Le bouton Installer d'un jeu ouvre de nouveau la fenêtre d'installation.",
-   "Les onglets des plugins Decky ne passent plus par-dessus leur contenu.",
+   "Unifideck : la liste de ses réglages est de nouveau visible.",
+   "Choisir son compte au démarrage répond tout de suite, à la manette et au doigt.",
+   "Un jeu installé sur un autre PC de la maison se lance de nouveau en streaming.",
+   "« Toutes les propriétés de Steam » s'ouvre de nouveau depuis la fiche d'un jeu.",
+   "Le menu Decky affiche tous les plugins installés.",
    "Corrections de bugs."
   ],
   "es": [
-   "El botón Instalar de un juego vuelve a abrir la ventana de instalación.",
-   "Las pestañas de los plugins de Decky ya no tapan su contenido.",
+   "Unifideck: la lista de sus ajustes vuelve a verse.",
+   "Elegir la cuenta al iniciar responde enseguida, con el mando y con el dedo.",
+   "Un juego instalado en otro PC de casa vuelve a iniciarse por streaming.",
+   "«Todas las propiedades de Steam» vuelve a abrirse desde la ficha de un juego.",
+   "El menú de Decky muestra todos los plugins instalados.",
    "Corrección de errores."
   ]
  }

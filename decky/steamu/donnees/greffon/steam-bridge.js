@@ -866,13 +866,16 @@ window.__pcvBridge = (() => {
       } catch (e) {
       }
     },
+    // (06/11, #22) « Toutes les propriétés de Steam » : en Big Picture, la page Propriétés de Steam (son navigateur) ; la fenêtre
+    // de bureau (OpenAppSettingsDialog) ne s'ouvre plus dans ce mode
     proprietesSteam: (appid) => {
       try {
+        const n = navigator_();
+        if (n?.AppProperties) return n.AppProperties(+appid);
         O.SteamClient.Apps.OpenAppSettingsDialog(appid, "");
       } catch (e) {
       }
     },
-    // (la fenêtre de Steam : chaque changement s'y fait chez elle)
     estFavori: (appid) => {
       try {
         return !!O.collectionStore.BIsFavorite(appid);

@@ -237,7 +237,7 @@ class Plugin:
         return await asyncio.get_running_loop().run_in_executor(None, pleinecran.corriger, appid)
 
     async def batterie(self):
-        d = pathlib.Path("/sys/class/power_supply/BAT0")
+        d = next(iter(sorted(pathlib.Path("/sys/class/power_supply").glob("BAT*"))), pathlib.Path("/sys/class/power_supply/BAT0"))
         def lire(n):
             try: return int((d / n).read_text().strip())
             except Exception: return None

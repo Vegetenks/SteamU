@@ -1,4 +1,30 @@
 {
+ "0.2.4": {
+  "fr": [
+   "Unifideck : la liste de ses réglages est de nouveau visible.",
+   "Choisir son compte au démarrage répond tout de suite, à la manette et au doigt.",
+   "Un jeu installé sur un autre PC de la maison se lance de nouveau en streaming.",
+   "« Toutes les propriétés de Steam » s'ouvre de nouveau depuis la fiche d'un jeu.",
+   "Le menu Decky affiche tous les plugins installés.",
+   "Corrections de bugs."
+  ],
+  "en": [
+   "Unifideck: its settings list is visible again.",
+   "Choosing your account at startup responds right away, with the controller and with touch.",
+   "A game installed on another PC at home launches with streaming again.",
+   "\"All Steam properties\" opens again from a game's page.",
+   "The Decky menu lists all installed plugins.",
+   "Bug fixes."
+  ],
+  "es": [
+   "Unifideck: la lista de sus ajustes vuelve a verse.",
+   "Elegir la cuenta al iniciar responde enseguida, con el mando y con el dedo.",
+   "Un juego instalado en otro PC de casa vuelve a iniciarse por streaming.",
+   "«Todas las propiedades de Steam» vuelve a abrirse desde la ficha de un juego.",
+   "El menú de Decky muestra todos los plugins instalados.",
+   "Corrección de errores."
+  ]
+ },
  "0.2.3": {
   "fr": [
    "Le bouton Installer d'un jeu ouvre de nouveau la fenêtre d'installation.",

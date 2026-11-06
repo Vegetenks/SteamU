@@ -363,9 +363,9 @@
   };
   const greffons = () => {
     try {
-      const s = O.DeckyPluginLoader.deckyState, caches = new Set(s._hiddenPlugins || []);
-      const ordre = s._pluginOrder?.length ? s._pluginOrder : s._plugins.map((p) => p.name), par = new Map(s._plugins.map((p) => [p.name, p]));
-      return ordre.filter((n) => par.has(n) && !caches.has(n)).map((n) => par.get(n));
+      const L = O.DeckyPluginLoader, s = L.deckyState, caches = new Set(s._hiddenPlugins || []);
+      const tous = s._plugins?.length ? s._plugins : L.plugins || [], par = new Map(tous.map((p) => [p.name, p])), rang\u00E9s = (s._pluginOrder || []).filter((n) => par.has(n));
+      return [...rang\u00E9s, ...tous.map((p) => p.name).filter((n) => !rang\u00E9s.includes(n))].filter((n) => !caches.has(n)).map((n) => par.get(n));
     } catch (x) {
       return [];
     }
