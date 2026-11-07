@@ -173,6 +173,18 @@
       }
       if (bt) peindreAccueil(bt, id);
     } else stats?.querySelector(".pcv-accueil")?.remove();
+    const puces = stats?.querySelector(".pcv-puces");
+    if (puces && !puces.querySelector(".pcv-options-steam")) {
+      const bt = document.createElement("button");
+      bt.type = "button";
+      bt.className = "puce pcv-options-steam";
+      bt.textContent = Tr("jeu.plus_options");
+      bt.insertAdjacentHTML("beforeend", window.__pcvIcones?.touche?.(14) || "");
+      bt.onclick = () => {
+        if (!window.__pcvBridge.menuJeuSteam(id, bt)) window.__pcvSon?.("bord");
+      };
+      puces.appendChild(bt);
+    }
     for (const [cle, libelle] of Object.entries(ONGLETS)) {
       const t = document.querySelector(`[role=tab][id$=${cle}] ._1nq0ibcuVEbRv0z_wk9pIQ`);
       if (t && t.textContent !== libelle) t.textContent = libelle;

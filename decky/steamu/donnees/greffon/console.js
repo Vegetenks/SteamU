@@ -1822,6 +1822,9 @@
   };
   const menuJeu = (a, i) => window.__pcvDossiers?.choix(i, [
     { svg: TRACES.page, teinte: "#7fd17f, #3aa64a", nom: T("console.page_jeu"), faire: () => voir(a) },
+    { svg: window.__pcvIcones?.trace("reglages") || "", teinte: "#c3ccd8, #8f9bab", nom: T("jeu.plus_options"), faire: () => {
+      if (!window.__pcvBridge.menuJeuSteam(a.appid, grille.children[i])) window.__pcvSon?.("bord");
+    } },
     { svg: TRACES.ranger, teinte: "#ffd36b, #e6a21a", nom: T("console.ranger"), faire: () => {
       prendre(i);
       dessiner();

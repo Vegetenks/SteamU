@@ -1174,9 +1174,9 @@
     chanter: (P, t, m) => {
       const e = m.energie ?? 1, s = Math.sin(t * Math.PI / 2), k = pulse(t);
       accroupir(P, 0.1 * e * k, m);
-      P[K.edx] = -1.6;
-      P[K.edz] = 0.3;
-      P[K.cd] = 1.4;
+      P[K.edx] = -0.81;
+      P[K.edz] = -0.32;
+      P[K.cd] = 1.11;
       P[K.hx] = -0.1 - 0.05 * s;
       P[K.egz] = 0.45 + 0.55 * e * (0.5 + 0.5 * s);
       P[K.egx] = -0.55;
@@ -1973,6 +1973,12 @@
         PRISES[m.deuxMains](P);
         depuisCanaux(P, g, U, poseBras);
         for (const n of ["arm_l1", "arm_l2", "wrist_l", ...m.kBras > 0.5 ? [] : ["arm_r1", "arm_r2", "wrist_r"]]) poseB.q[I[n]].slerp(poseBras.q[I[n]], m.kPrise);
+      }
+      if (m.role === "chanteur") {
+        P.set(NEUTRE);
+        ANIMS.chanter(P, m.t, m);
+        depuisCanaux(P, g, U, poseBras);
+        for (const n of ["arm_r1", "arm_r2", "wrist_r"]) poseB.q[I[n]].copy(poseBras.q[I[n]]);
       }
       let gx = 0, gy = 0;
       if (m.regard) {

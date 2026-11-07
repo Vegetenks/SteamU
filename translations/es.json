@@ -1,4 +1,5 @@
 {
+  "jeu.plus_options": "Más opciones",
   "spaces.accueil.nom": "Inicio",
   "spaces.bibliotheque.nom": "Biblioteca",
   "spaces.fiche.nom": "Ficha del juego",
@@ -406,6 +407,7 @@
   "acces.appuie_appairer": "Pulsa para emparejar",
   "acces.appareils": "Dispositivos",
   "acces.bt_desactive_texte": "El Bluetooth está desactivado.",
+  "acces.bt_oublier_appareil": "Olvidar este dispositivo",
   "acces.bt_oublier": "Olvidar",
   "acces.bt_oublier_titre": "¿Olvidar «{nom}»?",
   "acces.bt_oublier_texte": "Tendrás que volver a emparejarlo para usarlo aquí.",

@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.5 (2026-11-07)
+
+Fixes only (issues #24 and #25, plus problems found by the maintainer).
+
+- **Steam's game menu (#24)**: SteamU's home grid and game page replaced Steam's own screens, so Steam's full game menu (and the
+  entries plugins add to it, like SteamGridDB's "Change artwork…") was out of reach. "More options" now opens Steam's real menu, from
+  a home tile (Options or X) and from the game page (Options or X, or in Properties).
+- **Bluetooth in the quick settings**: connecting, disconnecting, pairing and forgetting sent Steam an empty request, so nothing
+  happened. They work again, and a paired device can be forgotten (with a confirmation).
+- **Friend pop-ups (#25)**: SteamU's notification style blew up the icon of friend and chat pop-ups and pushed the name and
+  message out of the bubble, in games too. They show the avatar, name and status or message again.
+- **Lyrics screen**: the musician Miis hold the mic the right way up, in front of the mouth; the guitarist's hand no longer goes
+  through the guitar; the keyboard faces the player.
+
 ## v0.2.4 (2026-11-06)
 
 Fixes only (issues #16, #19, #20, #22, #23).

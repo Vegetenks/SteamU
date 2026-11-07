@@ -1,4 +1,27 @@
 {
+ "0.2.5": {
+  "fr": [
+   "Le menu complet de Steam pour un jeu (avec les entrées des plugins, comme SteamGridDB) s'ouvre depuis l'accueil et la fiche du jeu : « Plus d'options ».",
+   "Bluetooth : connecter un appareil depuis les réglages rapides fonctionne, et on peut l'oublier.",
+   "Les Mii musiciens des paroles tiennent micro, guitare et clavier comme il faut.",
+   "Les bulles d'amis et de messages affichent de nouveau le nom et le texte, en jeu aussi.",
+   "Corrections de bugs."
+  ],
+  "en": [
+   "Steam's full game menu (with plugin entries like SteamGridDB) opens from the home screen and the game page: \"More options\".",
+   "Bluetooth: connecting a device from the quick settings works, and you can forget it.",
+   "The musician Miis on the lyrics screen hold their mic, guitar and keyboard properly.",
+   "Friend and message pop-ups show the name and text again, in games too.",
+   "Bug fixes."
+  ],
+  "es": [
+   "El menú completo de Steam de un juego (con las entradas de los plugins, como SteamGridDB) se abre desde el inicio y la ficha del juego: «Más opciones».",
+   "Bluetooth: conectar un dispositivo desde los ajustes rápidos funciona, y se puede olvidar.",
+   "Los Mii músicos de las letras sujetan bien el micro, la guitarra y el teclado.",
+   "Las notificaciones de amigos y mensajes vuelven a mostrar el nombre y el texto, también en los juegos.",
+   "Corrección de errores."
+  ]
+ },
  "0.2.4": {
   "fr": [
    "Unifideck : la liste de ses réglages est de nouveau visible.",

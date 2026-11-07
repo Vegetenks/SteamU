@@ -1,4 +1,5 @@
 {
+  "jeu.plus_options": "More options",
   "spaces.accueil.nom": "Home",
   "spaces.bibliotheque.nom": "Library",
   "spaces.fiche.nom": "Game Details",
@@ -406,6 +407,7 @@
   "acces.appuie_appairer": "Press to pair",
   "acces.appareils": "Devices",
   "acces.bt_desactive_texte": "Bluetooth is off.",
+  "acces.bt_oublier_appareil": "Forget this device",
   "acces.bt_oublier": "Forget",
   "acces.bt_oublier_titre": "Forget \"{nom}\"?",
   "acces.bt_oublier_texte": "You will need to pair it again to use it here.",

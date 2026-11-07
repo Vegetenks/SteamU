@@ -1,30 +1,27 @@
 {
- "version": "0.2.4",
- "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.2.4.zip",
- "sha256": "6ddc0db0849bc29754bcbefe9da0aa1894b96cfc117fa9644f8f695e2d0a36c5",
+ "version": "0.2.5",
+ "url": "https://github.com/Vegetenks/SteamU/raw/main/release/SteamU-v0.2.5.zip",
+ "sha256": "f7533f035d66b6e86d2dcf61c228eaabf8ba26838c33b42b2abccd89c7f342aa",
  "notes": {
   "en": [
-   "Unifideck: its settings list is visible again.",
-   "Choosing your account at startup responds right away, with the controller and with touch.",
-   "A game installed on another PC at home launches with streaming again.",
-   "\"All Steam properties\" opens again from a game's page.",
-   "The Decky menu lists all installed plugins.",
+   "Steam's full game menu (with plugin entries like SteamGridDB) opens from the home screen and the game page: \"More options\".",
+   "Bluetooth: connecting a device from the quick settings works, and you can forget it.",
+   "The musician Miis on the lyrics screen hold their mic, guitar and keyboard properly.",
+   "Friend and message pop-ups show the name and text again, in games too.",
    "Bug fixes."
   ],
   "fr": [
-   "Unifideck : la liste de ses réglages est de nouveau visible.",
-   "Choisir son compte au démarrage répond tout de suite, à la manette et au doigt.",
-   "Un jeu installé sur un autre PC de la maison se lance de nouveau en streaming.",
-   "« Toutes les propriétés de Steam » s'ouvre de nouveau depuis la fiche d'un jeu.",
-   "Le menu Decky affiche tous les plugins installés.",
+   "Le menu complet de Steam pour un jeu (avec les entrées des plugins, comme SteamGridDB) s'ouvre depuis l'accueil et la fiche du jeu : « Plus d'options ».",
+   "Bluetooth : connecter un appareil depuis les réglages rapides fonctionne, et on peut l'oublier.",
+   "Les Mii musiciens des paroles tiennent micro, guitare et clavier comme il faut.",
+   "Les bulles d'amis et de messages affichent de nouveau le nom et le texte, en jeu aussi.",
    "Corrections de bugs."
   ],
   "es": [
-   "Unifideck: la lista de sus ajustes vuelve a verse.",
-   "Elegir la cuenta al iniciar responde enseguida, con el mando y con el dedo.",
-   "Un juego instalado en otro PC de casa vuelve a iniciarse por streaming.",
-   "«Todas las propiedades de Steam» vuelve a abrirse desde la ficha de un juego.",
-   "El menú de Decky muestra todos los plugins instalados.",
+   "El menú completo de Steam de un juego (con las entradas de los plugins, como SteamGridDB) se abre desde el inicio y la ficha del juego: «Más opciones».",
+   "Bluetooth: conectar un dispositivo desde los ajustes rápidos funciona, y se puede olvidar.",
+   "Los Mii músicos de las letras sujetan bien el micro, la guitarra y el teclado.",
+   "Las notificaciones de amigos y mensajes vuelven a mostrar el nombre y el texto, también en los juegos.",
    "Corrección de errores."
   ]
  }

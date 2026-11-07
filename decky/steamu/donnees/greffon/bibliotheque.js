@@ -492,6 +492,11 @@
       m.rendreGrille();
     };
     const PB = () => window.__pcvBridge;
+    let retourMenuSteam = false;
+    const plusOptions = (g) => {
+      if (PB().menuJeuSteam(g.id, m.$(".carrousel .cel.sel"))) retourMenuSteam = true;
+      else window.__pcvSon?.("bord");
+    };
     const romDe = (g) => !!g.emu || window.__pcvJeux.raccourci(g.a);
     const GRIS = "#8b94a3", COULEURS = {
       jouer: "var(--pcv-vert)",
@@ -575,11 +580,11 @@
       manette: (g) => rg("manette", T2("biblio.manette_b"), T2("biblio.manette_t"), val(T2("biblio.ouvrir")), () => PB().controllerConfig(g.id)),
       proprietes: (g) => {
         const c = PB().commande(g.id);
-        return rg("clavier", T2("biblio.options_l"), T2("biblio.options_s"), val(c.lancement || T2("biblio.aucune"), "code")) + (g.inst ? rg("bouclier", T2("biblio.verifier"), T2("biblio.verifier_s"), val(T2("biblio.verifier_b")), () => confirmer(T2("biblio.verifier"), () => PB().verifier(g.id))) : "") + rg("boutique", T2("biblio.boutique"), "", val(T2("biblio.ouvrir")), () => PB().pageBoutique(g.id)) + rg("reglages", T2("biblio.proprietes_steam"), T2("biblio.proprietes_s"), val(T2("biblio.ouvrir")), () => PB().proprietesSteam(g.id));
+        return rg("clavier", T2("biblio.options_l"), T2("biblio.options_s"), val(c.lancement || T2("biblio.aucune"), "code")) + (g.inst ? rg("bouclier", T2("biblio.verifier"), T2("biblio.verifier_s"), val(T2("biblio.verifier_b")), () => confirmer(T2("biblio.verifier"), () => PB().verifier(g.id))) : "") + rg("boutique", T2("biblio.boutique"), "", val(T2("biblio.ouvrir")), () => PB().pageBoutique(g.id)) + rg("reglages", T2("jeu.plus_options"), "", val(T2("biblio.ouvrir")), () => plusOptions(g)) + rg("reglages", T2("biblio.proprietes_steam"), T2("biblio.proprietes_s"), val(T2("biblio.ouvrir")), () => PB().proprietesSteam(g.id));
       },
       emulateur: (g) => {
         const c = PB().commande(g.id);
-        return (g.emu ? rg("manette", T2("biblio.emulateur_t"), g.emu[2] || "", val(g.emu[1])) : "") + (g.fichier ? rg("disque", T2("biblio.fichier"), g.fichier) : "") + (c.exe ? rg("prise", T2("biblio.commande"), "", val(c.exe, "code")) : "") + rg("clavier", T2("biblio.options_l"), T2("biblio.options_r"), val(c.options || T2("biblio.aucune"), "code")) + rg("reglages", T2("biblio.proprietes_steam"), T2("biblio.proprietes_r"), val(T2("biblio.ouvrir")), () => PB().proprietesSteam(g.id));
+        return (g.emu ? rg("manette", T2("biblio.emulateur_t"), g.emu[2] || "", val(g.emu[1])) : "") + (g.fichier ? rg("disque", T2("biblio.fichier"), g.fichier) : "") + (c.exe ? rg("prise", T2("biblio.commande"), "", val(c.exe, "code")) : "") + rg("clavier", T2("biblio.options_l"), T2("biblio.options_r"), val(c.options || T2("biblio.aucune"), "code")) + rg("reglages", T2("jeu.plus_options"), "", val(T2("biblio.ouvrir")), () => plusOptions(g)) + rg("reglages", T2("biblio.proprietes_steam"), T2("biblio.proprietes_r"), val(T2("biblio.ouvrir")), () => PB().proprietesSteam(g.id));
       },
       ranger: (g) => {
         const acc = !!window.__pcvJeux.surAccueil?.(g.id), fav = PB().estFavori(g.id);
@@ -602,6 +607,7 @@
     };
     const ouvrirPage = (g, l, depuis = null) => m.ouvrirFiche(g, l, depuis);
     const quitterPage = () => {
+      retourMenuSteam = false;
       const r = m.retour?.origine;
       if (!["accueil", "place", "telechargements"].includes(r)) return false;
       m.vue = "etageres";
@@ -686,6 +692,11 @@
         rubriques: (g) => rubriquesDe(g).map(([k, ic]) => [k, ic, k === "jouer" ? motJouer(g) : T2(NOMS[k]), COULEURS[k]]),
         contenu: (g, k) => CONTENUS[k || "jouer"](g),
         classe: (k) => RICHES.has(k) ? "riche" : "",
+        touche: (b) => {
+          if (b !== 3) return false;
+          plusOptions(m.fiche);
+          return true;
+        },
         agir: () => faireJouer(),
         quitter: quitterPage,
         voisins: () => T2("biblio.prec_suiv"),
@@ -704,7 +715,7 @@
       },
       // A dit ce qu'il fera : Jouer, Installer (pas installé ici), Ouvrir (la porte), Tout voir ; X la page du jeu (Options)
       libelles: (m2) => {
-        if (m2.vue === "fiche") return { a: !m2.dedans && m2.rubrique === 0 ? motJouer(m2.fiche) : T2("biblio.choisir") };
+        if (m2.vue === "fiche") return { a: !m2.dedans && m2.rubrique === 0 ? motJouer(m2.fiche) : T2("biblio.choisir"), x: T2("jeu.plus_options") };
         const g = m2.vue === "grille" ? m2.lignes[m2.sel] : jeuIci();
         if (g) return { a: motA(g), x: T2("biblio.options") };
         return { a: m2.vue === "grille" ? motA({ inst: true }) : T2(m2.courant() === m2.porte ? "biblio.ouvrir" : "biblio.tout_voir"), x: m2.courant()?.dataset?.g?.startsWith("tout-") ? T2("biblio.options") : "" };
@@ -787,8 +798,10 @@
       }
       const voir = !casse && ROUTE.test(p) && !ancienne && !window.__pcvJeuDevant && !!window.__pcvJeux && !window.__pcvEcran?.ouvert?.();
       if (voir === racine2.hidden) {
-        if (voir) montrer(route === p || /^\/routes\/(library\/app|apprunning)/.test(route));
-        else m.cacher();
+        if (voir) {
+          montrer(retourMenuSteam || route === p || /^\/routes\/(library\/app|apprunning)/.test(route));
+          retourMenuSteam = false;
+        } else m.cacher();
       }
       route = p;
     };

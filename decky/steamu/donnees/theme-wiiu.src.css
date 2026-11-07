@@ -1537,6 +1537,7 @@ body:not(:has(#pcv-barre)) {{GamepadToastPlaceholder@TinyToast}} { top: calc(var
 
 {{GamepadToastPopup@TinyToast}} {
   --u: calc(100vh / 64);
+  --pcv-toast-icone: calc(var(--u) * 16); --pcv-toast-ecart: calc(var(--u) * 6);
   position: absolute !important; inset: 0 !important; width: auto !important; height: auto !important; border: 0 !important;
   background: var(--pcv-verre) !important;
   color: var(--pcv-texte) !important; font-family: var(--pcv-police) !important; overflow: hidden !important; animation: none !important;
@@ -1558,12 +1559,12 @@ body:not(:has(#pcv-barre)) {{GamepadToastPopup@TinyToast}} { border-radius: calc
 {{GamepadToastPopup@TinyToast}} > * > :last-child:not(:first-child) { flex: 1 1 auto !important; min-width: 0 !important; width: auto !important; margin: 0 !important; padding: 0 !important;
   display: flex !important; flex-direction: column !important; justify-content: center !important; line-height: 1.2 !important; }
 {{GamepadToastPopup@TinyToast}} > * > :last-child:not(:first-child) > * { margin: 0 !important; padding: 0 !important; min-width: 0 !important; white-space: nowrap !important; overflow: hidden !important;
-  text-overflow: ellipsis !important; display: flex !important; align-items: center !important; gap: calc(var(--u) * 6) !important; line-height: 1.2 !important; }
+  text-overflow: ellipsis !important; display: flex !important; align-items: center !important; gap: var(--pcv-toast-ecart) !important; line-height: 1.2 !important; }
 {{GamepadToastPopup@TinyToast}} > * > :last-child:not(:first-child) > :first-child, {{GamepadToastPopup@TinyToast}} > * > :last-child:not(:first-child) > :first-child * { font-size: calc(var(--u) * 15) !important; font-weight: 900 !important; }
 {{GamepadToastPopup@TinyToast}} > * > :last-child:not(:first-child) > :not(:first-child) { display: block !important; font-size: calc(var(--u) * 13) !important; font-weight: 800 !important; color: var(--pcv-texte2) !important; margin-top: calc(var(--u) * 2) !important; }
 {{GamepadToastPopup@TinyToast}} > * > :last-child:not(:first-child) > :first-child > * { margin: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
 {{GamepadToastPopup@TinyToast}} > * > :last-child:not(:first-child) > :first-child > :first-child:not(:last-child) { flex: none !important; }
-{{GamepadToastPopup@TinyToast}} svg { width: calc(var(--u) * 16) !important; height: calc(var(--u) * 16) !important; }
+{{GamepadToastPopup@TinyToast}} svg { width: var(--pcv-toast-icone) !important; height: var(--pcv-toast-icone) !important; }
 {{GamepadToastPopup@TinyToast}} svg, {{GamepadToastPopup@TinyToast}} svg * { fill: #1a9ae6 !important; color: #1a9ae6 !important; }
 
 {{PlayButtonContainer@ShowingStreaming}} *::after, {{PlayButtonContainer@ShowingStreaming}} *::before { display: none !important; animation: none !important; }
@@ -2866,6 +2867,13 @@ html[data-pcv-fenetre=menu] { --u: calc(100vh / 800) !important; }
   text-overflow: ellipsis !important; line-height: 1.2 !important; }
 {{GamepadToastPopup@TinyToast}} > * > {{Content@ShortTemplate}} {{Title@ShortTemplate}}:not(#pcv) { font-size: calc(var(--u) * 15) !important; font-weight: 900 !important; color: var(--pcv-texte) !important; }
 {{GamepadToastPopup@TinyToast}} > * > {{Content@ShortTemplate}} {{Body@ShortTemplate}}:not(#pcv) { font-size: calc(var(--u) * 13) !important; font-weight: 800 !important; color: var(--pcv-texte2) !important; }
+
+{{GamepadToastPopup@TinyToast}} > {{ShortTemplate@Content}}:has(> {{AvatarStatus@ShortTemplate}}) > {{Content@ShortTemplate}} > {{Header@ShortTemplate}} {
+  flex-direction: row !important; align-items: center !important; gap: var(--pcv-toast-ecart) !important; }
+{{GamepadToastPopup@TinyToast}} > {{ShortTemplate@Content}}:has(> {{AvatarStatus@ShortTemplate}}) > {{Content@ShortTemplate}} > {{Header@ShortTemplate}} svg {
+  width: var(--pcv-toast-icone) !important; height: var(--pcv-toast-icone) !important; }
+{{GamepadToastPopup@TinyToast}} > {{ShortTemplate@Content}}:has(> {{AvatarStatus@ShortTemplate}}) > {{Content@ShortTemplate}} > {{Header@ShortTemplate}} > {{Title@ShortTemplate}}:not(#pcv) {
+  flex: 0 1 auto !important; }
 
 {{HeaderContainer@QuickAccessMenu}} { display: flex !important; justify-content: flex-end !important; width: 100% !important; margin: 0 0 calc(var(--u) * 10) !important; }
 {{HeaderContainer@QuickAccessMenu}} #header { height: var(--pcv-etat-h) !important; margin: 0 !important; padding: 0 calc(var(--u) * 6) 0 calc(var(--u) * 18) !important;

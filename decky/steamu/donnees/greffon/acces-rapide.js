@@ -251,11 +251,11 @@
   const peindreListeBt = () => {
     if (appui) return;
     const l = e.$(".liste-bt"), f = e.focus()?.dataset.a;
-    const elt = (x) => `<div class="elt${x.is_connected ? " connecte" : ""}" data-a="btappareil:${esc(x.id)}"${x.is_paired ? ` data-y="oublier:${esc(x.id)}" data-y-nom="${esc(T("acces.bt_oublier", "Oublier"))}"` : ""}>${pastille(ICO_BT[x.etype] || "bluetooth")}${esc(x.nom)}<span class="etat-elt">${x.is_pairing || x.operation_in_progress ? '<span class="tourne"></span>' : x.is_connected ? T("acces.connecte_statut", "Connect\xE9") : x.is_paired ? T("acces.associe", "Associ\xE9") : T("acces.appuie_appairer", "Appuie pour appairer")}</span></div>`;
+    const elt = (x) => `<div class="elt${x.is_connected ? " connecte" : ""}" data-a="btappareil:${esc(x.id)}"${x.is_paired ? ` data-y="oublier:${esc(x.id)}" data-y-nom="${esc(T("acces.bt_oublier", "Oublier"))}"` : ""}>${pastille(ICO_BT[x.etype] || "bluetooth")}${esc(x.nom)}<span class="etat-elt">${x.is_pairing || x.operation_in_progress ? '<span class="tourne"></span>' : x.is_connected ? T("acces.connecte_statut", "Connect\xE9") : x.is_paired ? T("acces.associe", "Associ\xE9") : T("acces.appuie_appairer", "Appuie pour appairer")}</span></div>` + (x.is_paired ? `<div class="ligne" data-a="btoublier:${esc(x.id)}">${T("acces.bt_oublier_appareil", "Oublier cet appareil")}</div>` : "");
     const assoc = btEtat.liste.filter((x) => x.is_paired), trouves = btEtat.liste.filter((x) => !x.is_paired);
     l.innerHTML = !btEtat.on ? `<h3>${T("acces.appareils", "Appareils")}</h3><div class="vide">${T("acces.bt_desactive_texte", "Le Bluetooth est d\xE9sactiv\xE9.")}</div>` : `<h3>${T("acces.appareils_associes", "Appareils associ\xE9s")}</h3>${assoc.map(elt).join("") || `<div class="vide">${T("acces.aucun_point", "Aucun.")}</div>`}<h3>${T("acces.appareils_trouves", "Appareils trouv\xE9s")} ${btEtat.cherche ? '<span class="tourne"></span>' : ""}</h3>${trouves.map(elt).join("") || `<div class="vide">${btEtat.cherche ? T("acces.recherche_en_cours", "Recherche en cours\u2026") : T("acces.lance_rechercher", "Lance \xAB Rechercher \xBB.")}</div>`}`;
     e.$(".b-recherche").textContent = btEtat.cherche ? T("acces.recherche_court", "Recherche\u2026") : T("acces.rechercher", "Rechercher");
-    if (f?.startsWith("btappareil:")) e.poser(l.querySelector(`[data-a="${f}"]`) || e.$('[data-sous="bt"] .premier'));
+    if (/^bt(appareil|oublier):/.test(f || "")) e.poser(l.querySelector(`[data-a="${f}"]`) || e.$('[data-sous="bt"] .premier'));
   };
   let suiviBt = 0;
   const ouvrirBt = (chercher) => {
@@ -994,7 +994,7 @@
       mesh(new T2.CylinderGeometry(8e-3, 8e-3, HT - 0.11, 8), NOIR, 0, (HT - 0.11) / 2, 0),
       pieds
     );
-    const HC = 0.4, coin = new T2.Shape(), w = 0.32, p = 0.1, r = 0.025;
+    const HC = 0.44, coin = new T2.Shape(), w = 0.32, p = 0.1, r = 0.025;
     coin.moveTo(-w + r, -p);
     coin.lineTo(w - r, -p);
     coin.quadraticCurveTo(w, -p, w, -p + r);
@@ -1009,7 +1009,7 @@
       mt.makeTranslation(-0.27 + (i + 1) * 0.0175, HC + 0.012, 0);
       noires.setMatrixAt(k++, mt);
     }
-    const jambes = new T2.InstancedMesh(new T2.BoxGeometry(0.016, 0.5, 0.016), NOIR, 2);
+    const jambes = new T2.InstancedMesh(new T2.BoxGeometry(0.016, 0.55, 0.016), NOIR, 2);
     [-1, 1].forEach((s, i) => {
       mt.makeRotationZ(s * 0.55).setPosition(0, HC / 2 - 0.02, 0);
       jambes.setMatrixAt(i, mt);
@@ -1021,7 +1021,7 @@
       jambes
     );
     return {
-      micro: echelle(1.6, micro),
+      micro: echelle(1, micro),
       maracaD: echelle(1.6, maraca(15222060)),
       maracaG: echelle(1.6, maraca(15971890)),
       baguetteD: echelle(0.8, baguette()),
@@ -1037,11 +1037,11 @@
     const v = { a: new T2.Vector3(), b: new T2.Vector3(), d: new T2.Vector3(), g: new T2.Vector3(), x: new T2.Vector3(), y: new T2.Vector3(), z: new T2.Vector3(), M: new T2.Matrix4(), Y: new T2.Vector3(0, 1, 0) };
     return (m, role) => {
       m.objet.updateMatrixWorld(true);
-      const main = (cote) => {
+      const main = (cote, avance = 0.035) => {
         v.a.setFromMatrixPosition(m.os[cote ? 9 : 6].matrixWorld);
         v.b.setFromMatrixPosition(m.os[cote ? 8 : 5].matrixWorld);
         const dir = v.a.clone().sub(v.b).normalize();
-        return { p: v.a.clone().addScaledVector(dir, 0.035 * m.taille), dir };
+        return { p: v.a.clone().addScaledVector(dir, avance * m.taille), dir };
       };
       const dans = (o, h2, cible) => {
         o.position.copy(h2.p);
@@ -1058,8 +1058,10 @@
       };
       const avant = (dz, dx = 0, y = 0) => v.g.copy(m.objet.position).add(v.d.set(Math.sin(m.cap) * dz + Math.cos(m.cap) * dx, y, Math.cos(m.cap) * dz - Math.sin(m.cap) * dx));
       if (role === "chanteur") {
-        const bouche = new T2.Vector3().setFromMatrixPosition(m.os[3].matrixWorld).add(v.d.set(Math.sin(m.cap) * 0.12, 0.03, Math.cos(m.cap) * 0.12));
-        dans(O2.micro, main(1), bouche);
+        const h2 = main(1, 0.012), angle = 15 * Math.PI / 180;
+        const axe = v.d.set(-Math.sin(m.cap) * Math.sin(angle), Math.cos(angle), -Math.cos(m.cap) * Math.sin(angle));
+        dans(O2.micro, h2, h2.p.clone().add(axe));
+        O2.micro.position.addScaledVector(axe, -0.025 * O2.micro.scale.y);
       } else if (role === "maracas") {
         for (const [o, c] of [[O2.maracaD, 1], [O2.maracaG, 0]]) {
           const h2 = main(c);
@@ -1070,15 +1072,14 @@
         devant(O2.tambour, 0.2);
         dans(O2.baguetteD, main(1), avant(0.2, -0.05, PEAU).clone());
         dans(O2.baguetteG, main(0), avant(0.2, 0.05, PEAU).clone());
-      } else if (role === "clavier") devant(O2.clavier, 0.19);
-      else if (role === "guitare") {
-        const d2 = main(1), g = main(0);
-        v.g.copy(d2.p).add(v.z.set(Math.sin(m.cap), 0, Math.cos(m.cap)).multiplyScalar(-0.035));
-        v.x.copy(g.p).sub(v.g).normalize();
-        v.y.crossVectors(v.z.set(Math.sin(m.cap), 0, Math.cos(m.cap)), v.x).normalize();
-        v.z.crossVectors(v.x, v.y);
-        O2.guitare.position.copy(v.g);
-        O2.guitare.quaternion.setFromRotationMatrix(v.M.makeBasis(v.x, v.y, v.z));
+      } else if (role === "clavier") {
+        devant(O2.clavier, 0.25);
+        O2.clavier.rotation.y += Math.PI;
+      } else if (role === "guitare") {
+        v.x.set(Math.cos(m.cap), 0, -Math.sin(m.cap));
+        v.z.set(Math.sin(m.cap), 0, Math.cos(m.cap));
+        O2.guitare.position.copy(main(0, 0).p).addScaledVector(v.x, -0.32 * O2.guitare.scale.x).addScaledVector(v.z, -0.02 * O2.guitare.scale.z);
+        O2.guitare.rotation.set(0, m.cap, 0);
       }
     };
   };
@@ -1447,7 +1448,7 @@
   let enAttente = null;
   const oublier = (id) => {
     const x = btEtat.liste.find((a) => String(a.id) === id);
-    if (!x) return;
+    if (!x?.is_paired) return;
     const v = e.$(".voile.confirme");
     enAttente = () => {
       B.bluetooth.forget(x.id)?.then?.(majBt);
@@ -1563,6 +1564,7 @@
         return typeof cle === "function" ? cle() : cle && basculer(cle, true);
       }
       if (k === "bt") return ouvrirBt(v === "recherche");
+      if (k === "btoublier") return oublier(v);
       if (k === "btappareil") {
         const x = btEtat.liste.find((a) => String(a.id) === v);
         if (!x) return;

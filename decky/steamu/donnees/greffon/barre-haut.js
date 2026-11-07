@@ -1394,6 +1394,15 @@
       connexion.entrees = (connexion.entrees || 0) + 1;
       connexion.steamDessus = !!window.__pcvSteamDessus?.();
     }
+    if (b === 14 && document.body.dataset.pcvPage === "fiche" && !window.__pcvEcran?.ouvert?.() && !window.__pcvSteamDessus()) {
+      const bt = document.querySelector(".pcv-options-steam");
+      if (bt) {
+        e.stopPropagation();
+        e.preventDefault();
+        bt.click();
+        return;
+      }
+    }
     if (centre && (!window.__pcvNosPages() || window.__pcvSteamDessus())) return;
     try {
       if (window.__pcvMenus?.m_eOpenSideMenu) return;

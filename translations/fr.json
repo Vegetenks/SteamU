@@ -1,4 +1,5 @@
 {
+  "jeu.plus_options": "Plus d'options",
   "spaces.accueil.nom": "Accueil",
   "spaces.bibliotheque.nom": "Bibliothèque",
   "spaces.fiche.nom": "Fiche d'un jeu",
@@ -406,6 +407,7 @@
   "acces.appuie_appairer": "Appuie pour appairer",
   "acces.appareils": "Appareils",
   "acces.bt_desactive_texte": "Le Bluetooth est désactivé.",
+  "acces.bt_oublier_appareil": "Oublier cet appareil",
   "acces.bt_oublier": "Oublier",
   "acces.bt_oublier_titre": "Oublier « {nom} » ?",
   "acces.bt_oublier_texte": "Il faudra l'associer à nouveau pour s'en servir ici.",

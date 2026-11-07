@@ -306,7 +306,7 @@ window.__pcvBridge = (() => {
       if (!x || typeof x !== "object") continue;
       for (const v of Object.values(x)) {
         try {
-          if (test(v)) {
+          if (test(v, x)) {
             manquants.delete(key);
             return found[key] = v;
           }
@@ -826,11 +826,11 @@ window.__pcvBridge = (() => {
         } catch (e) {
         }
       },
-      pair: (id) => bt()?.Pair({ id }),
-      cancelPair: (id) => bt()?.CancelPair({ id }),
-      connect: (id) => bt()?.Connect({ id }),
-      disconnect: (id) => bt()?.Disconnect({ id }),
-      forget: (id) => bt()?.Forget({ id }),
+      pair: (id) => bt()?.Pair({ device: id }),
+      cancelPair: (id) => bt()?.CancelPair({ device: id }),
+      connect: (id) => bt()?.Connect({ device: id }),
+      disconnect: (id) => bt()?.Disconnect({ device: id }),
+      forget: (id) => bt()?.Forget({ device: id }),
       isEnabled: () => !!clientSettings()?.system_bluetooth_enabled,
       setEnabled: (v) => {
         try {
@@ -865,6 +865,18 @@ window.__pcvBridge = (() => {
         O.SteamClient.Apps.ShowStore(appid);
       } catch (e) {
       }
+    },
+    // Même composant et même ouverture que le portrait de la bibliothèque Steam : Decky patche ce composant.
+    menuJeuSteam: (appid, ancre) => {
+      const overview = O.appStore?.GetAppOverviewByAppID(+appid);
+      if (!overview || !ancre) return false;
+      const signature = "GetPrimaryActionMenuItem";
+      const menu = findModule("libraryContextMenu", signature, (v) => typeof v === "function" && /navigator:.*instance:/.test(String(v)));
+      const options = findModule("libraryContextOptions", signature, (v) => typeof v === "function" && String(v).includes("LibraryContextMenu"));
+      const ouvrir = findModule("showContextMenu", "CreateContextMenuInstance", (v) => typeof v === "function" && String(v).includes(".CreateContextMenuInstance("));
+      const element = findModule("reactCreateElement", "react.transitional.element", (v, x) => v === x.createElement && typeof x.useState === "function");
+      if (!menu || !options || !ouvrir || !element) return false;
+      return !!ouvrir(element(menu, { overview, client: "mostavailable", launchSource: 1e3, bInGamepadUI: true, ownerWindow: window }), ancre, options());
     },
     // (06/11, #22) « Toutes les propriétés de Steam » : en Big Picture, la page Propriétés de Steam (son navigateur) ; la fenêtre
     // de bureau (OpenAppSettingsDialog) ne s'ouvre plus dans ce mode
