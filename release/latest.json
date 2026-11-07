@@ -1,27 +1,24 @@
 {
- "version": "0.2.5",
- "url": "https://github.com/Vegetenks/SteamU/releases/download/v0.2.5/SteamU-v0.2.5.zip",
- "sha256": "f7533f035d66b6e86d2dcf61c228eaabf8ba26838c33b42b2abccd89c7f342aa",
+ "version": "0.2.6",
+ "url": "https://github.com/Vegetenks/SteamU/releases/download/v0.2.6/SteamU-v0.2.6.zip",
+ "sha256": "f72942cdb6011ae4b4348569ce34bcb901450cedd3e5db0149c06fd04dbd2311",
  "notes": {
   "en": [
-   "Steam's full game menu (with plugin entries like SteamGridDB) opens from the home screen and the game page: \"More options\".",
-   "Bluetooth: connecting a device from the quick settings works, and you can forget it.",
-   "The musician Miis on the lyrics screen hold their mic, guitar and keyboard properly.",
-   "Friend and message pop-ups show the name and text again, in games too.",
+   "Quick settings: choosing another audio output works.",
+   "Wi-Fi: available networks show up again.",
+   "Battery info no longer disappears at startup or in games.",
    "Bug fixes."
   ],
   "fr": [
-   "Le menu complet de Steam pour un jeu (avec les entrées des plugins, comme SteamGridDB) s'ouvre depuis l'accueil et la fiche du jeu : « Plus d'options ».",
-   "Bluetooth : connecter un appareil depuis les réglages rapides fonctionne, et on peut l'oublier.",
-   "Les Mii musiciens des paroles tiennent micro, guitare et clavier comme il faut.",
-   "Les bulles d'amis et de messages affichent de nouveau le nom et le texte, en jeu aussi.",
+   "Réglages rapides : choisir une autre sortie audio fonctionne.",
+   "Wi-Fi : les réseaux disponibles s'affichent de nouveau.",
+   "L'info batterie ne disparaît plus au démarrage ni en jeu.",
    "Corrections de bugs."
   ],
   "es": [
-   "El menú completo de Steam de un juego (con las entradas de los plugins, como SteamGridDB) se abre desde el inicio y la ficha del juego: «Más opciones».",
-   "Bluetooth: conectar un dispositivo desde los ajustes rápidos funciona, y se puede olvidar.",
-   "Los Mii músicos de las letras sujetan bien el micro, la guitarra y el teclado.",
-   "Las notificaciones de amigos y mensajes vuelven a mostrar el nombre y el texto, también en los juegos.",
+   "Ajustes rápidos: elegir otra salida de audio funciona.",
+   "Wi-Fi: las redes disponibles vuelven a aparecer.",
+   "La información de la batería ya no desaparece al iniciar ni en los juegos.",
    "Corrección de errores."
   ]
  }

@@ -1,4 +1,24 @@
 {
+ "0.2.6": {
+  "fr": [
+   "Réglages rapides : choisir une autre sortie audio fonctionne.",
+   "Wi-Fi : les réseaux disponibles s'affichent de nouveau.",
+   "L'info batterie ne disparaît plus au démarrage ni en jeu.",
+   "Corrections de bugs."
+  ],
+  "en": [
+   "Quick settings: choosing another audio output works.",
+   "Wi-Fi: available networks show up again.",
+   "Battery info no longer disappears at startup or in games.",
+   "Bug fixes."
+  ],
+  "es": [
+   "Ajustes rápidos: elegir otra salida de audio funciona.",
+   "Wi-Fi: las redes disponibles vuelven a aparecer.",
+   "La información de la batería ya no desaparece al iniciar ni en los juegos.",
+   "Corrección de errores."
+  ]
+ },
  "0.2.5": {
   "fr": [
    "Le menu complet de Steam pour un jeu (avec les entrées des plugins, comme SteamGridDB) s'ouvre depuis l'accueil et la fiche du jeu : « Plus d'options ».",

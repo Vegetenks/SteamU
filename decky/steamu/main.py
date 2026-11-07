@@ -242,7 +242,17 @@ class Plugin:
             try: return int((d / n).read_text().strip())
             except Exception: return None
         p, plein, origine = lire("power_now"), lire("energy_full"), lire("energy_full_design")
-        return {"watts": round(p / 1e6, 1) if p else None, "sante": round(100 * plein / origine) if plein and origine else None,
+        capacite = lire("capacity")
+        try: statut = (d / "status").read_text().strip()
+        except Exception: statut = ""
+        present = d.exists() and lire("present") != 0
+        etat = {"present": False} if not d.exists() or not present else None
+        if present and capacite is not None and 0 <= capacite <= 100 and statut:
+            branche = statut in ("Charging", "Full", "Not charging")
+            etat = {"present": True, "percent": capacite / 100, "charging": statut == "Charging",
+                    "acState": 2 if branche else 1, "batteryState": 3 if statut == "Full" else 1,
+                    "secondsRemaining": 0, "confidence": 0}
+        return {"etat": etat, "watts": round(p / 1e6, 1) if p else None, "sante": round(100 * plein / origine) if plein and origine else None,
                 "cycles": lire("cycle_count")}
 
     async def machine(self):

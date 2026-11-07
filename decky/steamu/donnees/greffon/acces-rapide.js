@@ -113,8 +113,9 @@
       c: "var(--c-accueil)",
       choix: () => [...audio()?.m_mapAudioDevices.values() || []].filter((x) => x.bHasOutput).map((x) => ({ valeur: x.id, texte: x.GetName() })),
       lire: () => audio()?.m_activeOutputDeviceId,
+      // (07/11) 1 = EAudioDirection.Output de Steam (0 = Input : on changeait le micro, la sortie restait la même)
       ecrire: (id) => {
-        audio()?.m_mapAudioDevices.get(+id)?.setAsDefaultDevice(0);
+        audio()?.m_mapAudioDevices.get(+id)?.setAsDefaultDevice(1);
         setTimeout(peindreSortie, 400);
       }
     },
@@ -293,7 +294,7 @@
   };
   const peindreWifi = () => {
     const l = e.$(".liste-wifi"), f = e.focus()?.dataset.a;
-    const pts = (reseau().accessPoints || []).filter((a) => a.type === 2 && !a.m_NoLongerPresent).sort((a, b) => b.isConnected - a.isConnected || (infoWifi(b).strength_raw || 0) - (infoWifi(a).strength_raw || 0));
+    const pts = (reseau().userVisibleAccessPoints || []).filter((a) => a.type === 2).sort((a, b) => b.isConnected - a.isConnected || (infoWifi(b).strength_raw || 0) - (infoWifi(a).strength_raw || 0));
     l.innerHTML = !reseau().isWifiEnabled ? `<h3>${T("acces.reseaux", "R\xE9seaux")}</h3><div class="vide">${T("acces.wifi_desactive_texte", "Le Wi-Fi est d\xE9sactiv\xE9.")}</div>` : `<h3>${T("acces.reseaux_disponibles", "R\xE9seaux disponibles")}</h3>${pts.map((a) => `<div class="elt${a.isConnected ? " connecte" : ""}" data-a="wifi:${esc(a.key)}">${barres(infoWifi(a).estrength || 0)}${esc(a.displayName)}${a.showAsLocked ? `<small class="cadenas">${T("acces.protege", "prot\xE9g\xE9")}</small>` : ""}<span class="etat-elt">${a.isConnected ? T("acces.connecte_statut", "Connect\xE9") + " \u203A" : a.isSaved ? T("acces.enregistre", "Enregistr\xE9") : ""}</span></div>`).join("") || `<div class="vide">${T("acces.recherche_reseaux", "Recherche des r\xE9seaux\u2026")}</div>`}`;
     if (f?.startsWith("wifi:")) e.poser(l.querySelector(`[data-a="${CSS.escape(f)}"]`) || e.$('[data-sous="wifi"] .premier'));
   };
@@ -1643,7 +1644,7 @@
         return el;
       }
       if (dy < 0 && el.matches(".lien-bandes")) return e.$(".musique .paroles-star") || void 0;
-      if (dy > 0 && /^bascule:(npd|nuit)$|^bt:recherche$/.test(a)) return d.querySelector('#pcv-ar [data-a="lect:page"]') || null;
+      if (!sousOuvert() && dy > 0 && /^bascule:(npd|nuit)$/.test(a)) return d.querySelector('#pcv-ar [data-a="lect:page"]') || null;
       if (dy < 0 && a === "sous:decky") return d.querySelector('#pcv-ar [data-a="lect:page"]') || null;
       if (dy < 0 && a === "lect:page") {
         const r = el.getBoundingClientRect(), cx = r.left + r.width / 2;

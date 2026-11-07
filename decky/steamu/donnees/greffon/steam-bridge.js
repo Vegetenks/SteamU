@@ -767,19 +767,45 @@ window.__pcvBridge = (() => {
         return null;
       }
     },
-    // battery (percent 0..1, charging, time left) : a single, normalized read of Steam's SystemPowerStore
+    // #21 : cache sur la fenêtre principale, conservé quand QuickAccess est recréée.
+    // Le suivi commun de l'horloge relit ceci ; aucun nouveau minuteur ni sondage par écran.
     battery: () => {
-      const p = globalStore("SystemPowerStore");
-      if (!p) return null;
-      return {
-        present: !!p.m_bHasBattery,
-        percent: p.m_flBatteryLevel,
-        charging: p.m_eACState === 2,
-        acState: p.m_eACState,
-        batteryState: p.m_eBatteryState,
-        secondsRemaining: p.m_nBatterySecondsRemaining,
-        confidence: p.m_eBatteryTimeConfidence
-      };
+      const r = O.__pcvBatterieSysteme ||= { t: -Infinity, enCours: false, etat: null, dernier: null };
+      let p;
+      try {
+        p = globalStore("SystemPowerStore");
+      } catch (e) {
+      }
+      if (p?.m_bHasBattery === true && Number.isFinite(p.m_flBatteryLevel) && p.m_flBatteryLevel >= 0 && p.m_flBatteryLevel <= 1) {
+        return r.dernier = {
+          present: true,
+          percent: p.m_flBatteryLevel,
+          charging: p.m_eACState === 2,
+          acState: p.m_eACState,
+          batteryState: p.m_eBatteryState,
+          secondsRemaining: p.m_nBatterySecondsRemaining,
+          confidence: p.m_eBatteryTimeConfidence
+        };
+      }
+      if (!r.enCours && Date.now() - r.t >= (r.etat ? 3e4 : 5e3)) {
+        r.t = Date.now();
+        r.enCours = true;
+        Promise.resolve().then(() => Promise.race([
+          window.__pcvBridge.callPlugin(window.__pcvGreffon.nom, "batterie"),
+          new Promise((_, non) => {
+            r.delai = O.setTimeout(() => non(new Error("batterie sans r\xE9ponse")), 4e3);
+          })
+        ])).then((b) => {
+          r.etat = b?.etat || null;
+          if (r.etat) r.dernier = r.etat;
+        }).catch(() => {
+          r.etat = null;
+        }).finally(() => {
+          O.clearTimeout(r.delai);
+          r.enCours = false;
+        });
+      }
+      return r.dernier;
     },
     // calls cb on every battery change ; returns the subscription Steam gives (call .unregister() on it to stop)
     onBattery: (cb) => {
@@ -1130,16 +1156,20 @@ window.__pcvEtat = {
       for (const n of c.querySelectorAll("[class]")) if (!n.matches("{{BatteryIcon@LegacySizing}}")) n.removeAttribute("class");
       return c;
     };
-    const sig = s ? s.outerHTML : "";
+    const b = B.battery();
+    const classesPile = (selecteur) => (selecteur.match(/\.[\w-]+/g) || []).map((c) => c.slice(1)).join(" ");
+    const secours = b?.present ? `<div class="${classesPile("{{HeaderItem@Header}}{{BatteryIcon@HeaderItem}}")}"><div><div class="${classesPile("{{BatteryIcon@LegacySizing}}")} pcv-pile-rect"><svg viewBox="0 0 48 36"><svg x="6" y="12" width="27" height="12"><rect width="${Math.round(b.percent * 100)}%" height="100%"/></svg></svg></div></div></div>` : "";
+    const sig = s ? s.outerHTML : secours;
     racine.querySelectorAll(".pile").forEach((p) => {
       if (p.__pcvSrc === sig) return;
       p.__pcvSrc = sig;
-      p.replaceChildren(...s ? [cloner()] : []);
+      if (s) p.replaceChildren(cloner());
+      else p.innerHTML = secours;
     });
     try {
-      const b = B.battery(), charge = b?.present && b.charging;
+      const b2 = B.battery(), charge = b2?.present && b2.charging;
       racine.querySelectorAll(".pilule.etat > .pile").forEach((p) => {
-        p.hidden = b?.present !== true;
+        p.hidden = b2?.present !== true;
       });
       for (const svg of racine.querySelectorAll('.pile svg:is([viewBox="0 0 48 36"], [viewBox="0 0 42 36"])')) {
         const r = svg.parentElement, e = r.querySelector(".pcv-eclair");
@@ -1148,10 +1178,10 @@ window.__pcvEtat = {
       }
       for (const r of racine.querySelectorAll(".pilule.etat .pile > *")) {
         let p = r.querySelector(":scope > .pcv-pct");
-        if (!b?.present) p?.remove();
+        if (!b2?.present) p?.remove();
         else {
           if (!p) r.prepend(p = Object.assign(d.createElement("div"), { className: "pcv-pct" }));
-          const t = Math.round(b.percent * 100) + "%";
+          const t = Math.round(b2.percent * 100) + "%";
           if (p.textContent !== t) p.textContent = t;
         }
       }

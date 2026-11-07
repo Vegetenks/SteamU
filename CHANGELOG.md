@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.2.6 (2026-11-07)
+
+Fixes only (issue #21, plus problems found by the maintainer).
+
+- **Audio output in the quick settings**: choosing another output changed the input device instead (SteamU sent Steam the wrong
+  direction), so the sound stayed on the same output. It now switches the output.
+- **Wi-Fi in the quick settings**: the list relied on an old presence flag and could stay empty; it now shows the networks Steam
+  sees, and starts scanning when the panel opens.
+- **Battery info (#21)**: the battery card was shown only while Steam itself reported the battery; at startup or when reopening Quick
+  Access in a game it could disappear. SteamU now also reads the battery from the system, retries, and keeps the last known value.
+
 ## v0.2.5 (2026-11-07)
 
 Fixes only (issues #24 and #25, plus problems found by the maintainer).
