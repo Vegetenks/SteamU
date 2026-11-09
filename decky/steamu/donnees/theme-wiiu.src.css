@@ -568,13 +568,13 @@ html.pcv-clavier {{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList
               0 0 0 calc(var(--u) * 7) color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 22) color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent) !important;
 }
 
-{{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList}} .DialogButton, {{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList}} {{DropDownControlButton@DropDownControlButton}} {
+{{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList}} .DialogButton, {{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList}} {{DropDownControlButton@DropDownControlButton}}, {{ScreenshotShareDialog@CaptionField}} {{Combobox@ScreenshotShareDialog}} {
   min-height: 0 !important; height: auto !important; width: auto !important; min-width: 0 !important;
   padding: calc(var(--u) * 10) calc(var(--u) * 16) !important; border-radius: calc(var(--u) * 18) !important;
   background: var(--pcv-verre) !important; box-shadow: var(--pcv-reflet), var(--pcv-ombre) !important; border: 0 !important;
   color: var(--pcv-texte) !important; font-size: calc(var(--u) * 15) !important; font-weight: 900 !important; text-transform: none !important;
 }
-{{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList}} .DialogButton *, {{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList}} {{DropDownControlButton@DropDownControlButton}} * { color: inherit !important; }
+{{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList}} .DialogButton *, {{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList}} {{DropDownControlButton@DropDownControlButton}} *, {{ScreenshotShareDialog@CaptionField}} {{Combobox@ScreenshotShareDialog}} * { color: inherit !important; }
 
 {{PagedSettingsDialog@PagedSettingsDialog_PageList}} {{Toggle@ToggleRail}}, {{PagedSettingsDialog@PagedSettingsDialog_PageList}} .pcv-inter { width: calc(var(--u) * 64) !important; height: calc(var(--u) * 34) !important; }
 {{PagedSettingsDialog@PagedSettingsDialog_PageList}} {{ToggleRail@ToggleSwitch}}, {{PagedSettingsDialog@PagedSettingsDialog_PageList}} .pcv-inter > i:first-child { width: 100% !important; height: 100% !important; border-radius: calc(var(--u) * 17) !important; background: color-mix(in srgb, var(--pcv-filet) 86%, transparent) !important; box-shadow: inset 0 2px 3px rgba(0,0,0,.18) !important; }
@@ -1393,7 +1393,7 @@ body:has({{VirtualKeyboardContainer@Positioner}} {{Keyboard@KeyboardKey}}) {{Bac
 
 {{BasicContextMenuContainer@contextMenuContents}}[data-pcv-alim-carte] > {{contextMenuContents@BasicContextMenuContainer}} > .contextMenuItem[data-pcv-autre] { order: 10 !important; flex: 0 0 auto !important; width: auto !important; min-width: 0 !important; height: auto !important; min-height: 0 !important;
   margin: 0 calc(var(--u) * 5) !important; padding: calc(var(--u) * 9) calc(var(--u) * 18) !important; border: 0 !important; border-radius: 999px !important; transform: none !important;
-  background: var(--pcv-verre) !important; box-shadow: var(--pcv-reflet), 0 calc(var(--u) * 4) calc(var(--u) * 10) rgb(from var(--pcv-ombre-c) r g b / .12) !important;
+  background: var(--pcv-carte) !important; box-shadow: inset 0 0 0 1px var(--pcv-bord), 0 1px 2px rgb(from var(--pcv-ombre-c) r g b / .08) !important;   
   color: var(--pcv-texte2) !important; font-family: var(--pcv-police) !important; font-size: calc(var(--u) * 14) !important; font-weight: 900 !important; line-height: calc(var(--u) * 19) !important;
   text-transform: none !important; letter-spacing: 0 !important; white-space: nowrap !important; }
 {{BasicContextMenuContainer@contextMenuContents}}[data-pcv-alim-carte] > {{contextMenuContents@BasicContextMenuContainer}} > .contextMenuItem[data-pcv-autre]::before, {{BasicContextMenuContainer@contextMenuContents}}[data-pcv-alim-carte] > {{contextMenuContents@BasicContextMenuContainer}} > .contextMenuItem[data-pcv-autre]::after { display: none !important; }
@@ -1856,14 +1856,14 @@ body[data-pcv-page=medias] {{BasicContextMenuContainer@contextMenuContents}}:not
   display: flex !important; flex-direction: column !important;
 }
 body[data-pcv-page=medias] {{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) {{contextMenuContents@BasicContextMenuContainer}} {
-  background: none !important; box-shadow: none !important; border: 0 !important; display: flex !important; flex-direction: column !important; gap: calc(var(--u) * 8) !important;
-  padding: calc(var(--u) * 10) !important; max-height: calc(var(--u) * 520) !important; overflow-y: auto !important;
+  background: none !important; box-shadow: none !important; border: 0 !important; display: flex !important; flex-direction: column !important; gap: calc(var(--u) * 12) !important;
+  padding: calc(var(--u) * 12) !important; max-height: calc(var(--u) * 520) !important; overflow-y: auto !important;
   width: 100% !important; max-width: none !important; min-width: 0 !important; box-sizing: border-box !important;
 }
 body[data-pcv-page=medias] {{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) {{contextMenuContents@BasicContextMenuContainer}} > div[style*="100vh"] { display: none !important; }
 body[data-pcv-page=medias] {{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) .contextMenuItem {
-  margin: 0 !important; padding: calc(var(--u) * 11) calc(var(--u) * 20) !important; min-height: 0 !important; border-radius: 999px !important; border: 0 !important;
-  background: var(--pcv-verre) !important; box-shadow: var(--pcv-reflet), 0 calc(var(--u) * 4) calc(var(--u) * 10) rgb(from var(--pcv-ombre-c) r g b / .12) !important;
+  margin: 0 !important; padding: calc(var(--u) * 13) calc(var(--u) * 22) !important; min-height: 0 !important; border-radius: 999px !important; border: 0 !important;
+  background: var(--pcv-carte) !important; box-shadow: inset 0 0 0 1px var(--pcv-bord), 0 1px 2px rgb(from var(--pcv-ombre-c) r g b / .08) !important;   
   color: var(--pcv-texte) !important; font-family: var(--pcv-police) !important; font-size: calc(var(--u) * 15) !important; font-weight: 900 !important; text-transform: none !important; letter-spacing: 0 !important;
 }
 body[data-pcv-page=medias] {{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) .contextMenuItem::before,
@@ -2372,14 +2372,17 @@ body[data-pcv-page=recherche] {{ResultsRow@ResultTemplate}}:first-child { margin
   display: flex !important; flex-direction: column !important;
 }
 {{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) {{contextMenuContents@BasicContextMenuContainer}} {
-  background: none !important; box-shadow: none !important; border: 0 !important; display: flex !important; flex-direction: column !important; gap: calc(var(--u) * 8) !important;
-  padding: calc(var(--u) * 10) !important; max-height: calc(var(--u) * 520) !important; overflow-y: auto !important;
+  background: none !important; box-shadow: none !important; border: 0 !important; display: flex !important; flex-direction: column !important; gap: calc(var(--u) * 12) !important;
+  padding: calc(var(--u) * 12) !important; max-height: calc(var(--u) * 520) !important; overflow-y: auto !important;
   width: 100% !important; max-width: none !important; min-width: 0 !important; box-sizing: border-box !important;
 }
 {{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) {{contextMenuContents@BasicContextMenuContainer}} > div[style*="100vh"] { display: none !important; }
+
+{{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) > {{contextMenuContents@BasicContextMenuContainer}}:has(~ {{contextMenuContents@BasicContextMenuContainer}}) { display: none !important; }
+{{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) .contextMenuItem { flex-shrink: 0 !important; }   
 {{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) .contextMenuItem {
-  margin: 0 !important; padding: calc(var(--u) * 11) calc(var(--u) * 20) !important; min-height: 0 !important; border-radius: 999px !important; border: 0 !important;
-  background: var(--pcv-verre) !important; box-shadow: var(--pcv-reflet), 0 calc(var(--u) * 4) calc(var(--u) * 10) rgb(from var(--pcv-ombre-c) r g b / .12) !important;
+  margin: 0 !important; padding: calc(var(--u) * 13) calc(var(--u) * 22) !important; min-height: 0 !important; border-radius: 999px !important; border: 0 !important;
+  background: var(--pcv-carte) !important; box-shadow: inset 0 0 0 1px var(--pcv-bord), 0 1px 2px rgb(from var(--pcv-ombre-c) r g b / .08) !important;   
   color: var(--pcv-texte) !important; font-family: var(--pcv-police) !important; font-size: calc(var(--u) * 15) !important; font-weight: 900 !important; text-transform: none !important; letter-spacing: 0 !important;
 }
 {{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) .contextMenuItem::before,
@@ -2587,11 +2590,27 @@ body[data-pcv-page=apropos] .SettingsDialogSubHeader { color: var(--pcv-texte2) 
 {{Code@FriendCodeSection}} { color: #1a9ae6 !important; font-size: calc(var(--u) * 34) !important; font-weight: 900 !important; letter-spacing: .04em; text-shadow: none !important; }
 {{Caption@FriendCodeSection}} { color: var(--pcv-texte2) !important; font-weight: 900 !important; font-size: calc(var(--u) * 13) !important; letter-spacing: .08em; }
 {{InputForm@AddFriendSection}} { display: flex !important; gap: calc(var(--u) * 10) !important; align-items: center !important; margin-top: calc(var(--u) * 6) !important; }
-{{InputForm@AddFriendSection}} :is(input, .DialogInput) {
+
+:is({{InputForm@AddFriendSection}}, {{AllChatsMenu@ShareSheet}}) :is(input, .DialogInput), {{CaptionField@ScreenshotShareDialog}} {
   background: var(--pcv-carte) !important; color: var(--pcv-texte) !important; border: 0 !important; border-radius: calc(var(--u) * 14) !important; min-height: calc(var(--u) * 44) !important;
   padding: 0 calc(var(--u) * 16) !important; box-shadow: inset 0 2px 4px rgb(from var(--pcv-ombre-c) r g b / .14), inset 0 0 0 1px color-mix(in srgb, var(--pcv-bord-fort) 88%, transparent) !important; font-weight: 700 !important; font-style: normal !important;
 }
 {{InputForm@AddFriendSection}} :is(.DialogInput_Wrapper, {{Input@InputForm}}) { flex: 1 1 auto !important; }
+
+{{ContainerGamepad@ShareSheet}} { background: transparent !important; display: flex !important; flex-direction: column !important; gap: calc(var(--u) * 14) !important; padding: calc(var(--u) * 6) calc(var(--u) * 4) !important; }
+
+{{ContainerGamepad@ShareSheet}} .contextMenuItem { padding: calc(var(--u) * 15) calc(var(--u) * 24) !important; font-size: calc(var(--u) * 17) !important; }
+{{SectionTitle@ShareSheet}} { margin: calc(var(--u) * 12) 0 calc(var(--u) * 4) calc(var(--u) * 10) !important; font-size: calc(var(--u) * 14) !important; letter-spacing: .04em; }
+{{ChatRow@ChatLabel}} { display: flex !important; gap: calc(var(--u) * 16) !important; padding: calc(var(--u) * 6) calc(var(--u) * 4) !important; }
+{{ChatRow@ChatLabel}} :is({{AllChats@ChatRow}}, {{Chat@ChatRow}}) { min-width: calc(var(--u) * 104) !important; padding: calc(var(--u) * 14) calc(var(--u) * 16) !important; border-radius: calc(var(--u) * 22) !important; gap: calc(var(--u) * 8) !important; }   
+:is({{ChatLabel@ChatRow}}, {{SectionTitle@ShareSheet}}) { color: var(--pcv-texte2) !important; font-weight: 900 !important; }
+{{ScreenshotShareDialog@CaptionField}} .DialogButton { white-space: nowrap !important; }
+{{Content@ShareSheet}} { min-height: 0 !important; }   
+
+body:has(#pcv-medias:not([hidden])) {{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) {{contextMenuContents@BasicContextMenuContainer}} { gap: calc(var(--u) * 14) !important; padding: calc(var(--u) * 16) !important; }
+body:has(#pcv-medias:not([hidden])) {{BasicContextMenuContainer@contextMenuContents}}:not([data-pcv-alim-carte]) .contextMenuItem { padding: calc(var(--u) * 15) calc(var(--u) * 24) !important; font-size: calc(var(--u) * 17) !important; }
+{{ChatDivider@ChatRow}} { background: color-mix(in srgb, var(--pcv-bord) 91%, transparent) !important; border-color: transparent !important; }
+:is({{AllChats@ChatRow}}, {{Chat@ChatRow}}) {{Name@AllChats}} { -webkit-mask-image: none !important; mask-image: none !important; width: auto !important; overflow: visible !important; white-space: nowrap !important; }
 :is({{InvitesSectionHeader@InvitesList}}, {{Divider@InvitesList}}) { color: var(--pcv-texte2) !important; font-weight: 900 !important; border-color: color-mix(in srgb, var(--pcv-bord) 91%, transparent) !important; }
 
 [role=tab][id$="/calibration/0/LInputs"], [role=tab][id*="/calibration/"][id$="/LInputs"] { --m: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222.2%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%224%22%2F%3E%3C%2Fsvg%3E"); --c: #2a8cff; }

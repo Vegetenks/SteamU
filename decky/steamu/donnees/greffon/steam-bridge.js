@@ -776,17 +776,17 @@ window.__pcvBridge = (() => {
         p = globalStore("SystemPowerStore");
       } catch (e) {
       }
-      if (p?.m_bHasBattery === true && Number.isFinite(p.m_flBatteryLevel) && p.m_flBatteryLevel >= 0 && p.m_flBatteryLevel <= 1) {
-        return r.dernier = {
-          present: true,
-          percent: p.m_flBatteryLevel,
-          charging: p.m_eACState === 2,
-          acState: p.m_eACState,
-          batteryState: p.m_eBatteryState,
-          secondsRemaining: p.m_nBatterySecondsRemaining,
-          confidence: p.m_eBatteryTimeConfidence
-        };
-      }
+      const steam = p?.m_bHasBattery === true && Number.isFinite(p.m_flBatteryLevel) && p.m_flBatteryLevel >= 0 && p.m_flBatteryLevel <= 1;
+      const sansTemps = steam && !(p.m_eBatteryTimeConfidence === 1 && p.m_nBatterySecondsRemaining > 0) && p.m_eACState !== 2;
+      if (steam && !sansTemps) return r.dernier = {
+        present: true,
+        percent: p.m_flBatteryLevel,
+        charging: p.m_eACState === 2,
+        acState: p.m_eACState,
+        batteryState: p.m_eBatteryState,
+        secondsRemaining: p.m_nBatterySecondsRemaining,
+        confidence: p.m_eBatteryTimeConfidence
+      };
       if (!r.enCours && Date.now() - r.t >= (r.etat ? 3e4 : 5e3)) {
         r.t = Date.now();
         r.enCours = true;
@@ -805,6 +805,15 @@ window.__pcvBridge = (() => {
           r.enCours = false;
         });
       }
+      if (sansTemps) return r.dernier = {
+        present: true,
+        percent: p.m_flBatteryLevel,
+        charging: false,
+        acState: p.m_eACState,
+        batteryState: p.m_eBatteryState,
+        secondsRemaining: r.etat?.secondsRemaining || 0,
+        confidence: r.etat?.secondsRemaining > 0 ? 1 : p.m_eBatteryTimeConfidence
+      };
       return r.dernier;
     },
     // calls cb on every battery change ; returns the subscription Steam gives (call .unregister() on it to stop)

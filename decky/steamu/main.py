@@ -27,6 +27,27 @@ def pid_reaper(appid, proc="/proc"):
         if a[0].endswith(b"/reaper") and b"SteamLaunch" in a[:3] and f"AppId={appid}".encode() in a[:4]: trouves.append((debut, int(d)))
     return max(trouves)[1] if trouves else 0
 
+def processus_du_jeu(pid, exiles_seuls=False):
+    import os
+    enfants, porteurs = {}, set()
+    try: marque = next((l.split(b"=", 1)[1] for l in open(f"/proc/{int(pid)}/environ", "rb").read().split(b"\0") if l.startswith(b"SteamGameId=")), None)
+    except Exception: marque = None
+    for d in os.listdir("/proc"):
+        if not d.isdigit(): continue
+        try:
+            enfants.setdefault(int(open(f"/proc/{d}/stat").read().rsplit(")", 1)[1].split()[1]), []).append(int(d))
+            if marque and b"SteamOverlayGameId=" + marque in open(f"/proc/{d}/environ", "rb").read().split(b"\0"): porteurs.add(int(d))
+        except Exception: pass   
+    def descendance(racines):
+        vus, file = [], list(racines)
+        while file:
+            for e in enfants.get(file.pop(), []): vus.append(e); file.append(e)
+        return vus
+    dedans = set(descendance([int(pid)]))
+    exiles = [p for p in porteurs if p not in dedans and p != int(pid)]
+    exiles = set(exiles) | set(descendance(exiles))
+    return sorted(exiles) if exiles_seuls else sorted(dedans | exiles)
+
 class Plugin:
     async def _main(self):
         if sys.platform != "linux":
@@ -252,6 +273,9 @@ class Plugin:
             etat = {"present": True, "percent": capacite / 100, "charging": statut == "Charging",
                     "acState": 2 if branche else 1, "batteryState": 3 if statut == "Full" else 1,
                     "secondsRemaining": 0, "confidence": 0}
+            reste, debit = (lire("energy_now"), p) if lire("energy_now") is not None else (lire("charge_now"), lire("current_now"))
+            if statut == "Discharging" and reste and debit and debit > 0:
+                etat.update(secondsRemaining=int(reste / debit * 3600), confidence=1)
         return {"etat": etat, "watts": round(p / 1e6, 1) if p else None, "sante": round(100 * plein / origine) if plein and origine else None,
                 "cycles": lire("cycle_count")}
 
@@ -311,18 +335,19 @@ class Plugin:
 
     async def reprendre_jeu(self, pid):
         import os, signal
-        enfants = {}
-        for d in os.listdir("/proc"):
-            if d.isdigit():
-                try: enfants.setdefault(int(open(f"/proc/{d}/stat").read().rsplit(")", 1)[1].split()[1]), []).append(int(d))
-                except Exception: pass   
-        file, repris = [int(pid)], 0
-        while file:
-            for e in enfants.get(file.pop(), []):
-                file.append(e)
-                try: os.kill(e, signal.SIGCONT); repris += 1
-                except Exception: pass
+        repris = 0
+        for e in processus_du_jeu(pid):
+            try: os.kill(e, signal.SIGCONT); repris += 1
+            except Exception: pass
         return repris > 0
+
+    async def figer_exiles(self, pid):
+        import os, signal
+        figes = 0
+        for e in processus_du_jeu(pid, exiles_seuls=True):
+            try: os.kill(e, signal.SIGSTOP); figes += 1
+            except Exception: pass
+        return figes
 
     async def apercu(self, appid, ips):
         import asyncio, apercu
@@ -596,6 +621,19 @@ class Plugin:
             return {"fichier": nom, "resume": resume}
         except Exception as e:
             decky.logger.warning(f"SteamU : rapport de diagnostic manqué ({type(e).__name__})")
+            return {"erreur": type(e).__name__}
+
+    async def enregistrer_capture(self, chemin):
+        import diagnostic, shutil
+        try:
+            src, maison = pathlib.Path(str(chemin)).resolve(), pathlib.Path(decky.DECKY_USER_HOME).resolve()
+            if not (src.is_file() and src.is_relative_to(maison) and "760" in src.parts and src.suffix.lower() in (".jpg", ".jpeg", ".png")):
+                return {"erreur": "chemin"}
+            dest = diagnostic.telechargements(maison) / src.name
+            shutil.copyfile(src, dest)
+            return {"fichier": dest.name}
+        except Exception as e:
+            decky.logger.warning(f"SteamU : capture non enregistrée ({type(e).__name__})")
             return {"erreur": type(e).__name__}
 
     def _rapport_plantage(self):

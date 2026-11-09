@@ -155,6 +155,7 @@
       background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(6)} ${u(18)} rgb(from var(--pcv-ombre-c) r g b / .13); }
     #pcv-amis .msg.moi { align-self: flex-end; flex-direction: row-reverse; text-align: right; }
     #pcv-amis .msg.moi .t { align-items: flex-end; }
+    #pcv-amis .msg .photo { display: block; max-width: ${u(320)}; max-height: ${u(200)}; border-radius: ${u(14)}; box-shadow: var(--pcv-ombre); }
     #pcv-amis .msg .t span { white-space: normal; color: var(--pcv-texte); }
     #pcv-amis .msg.inv, #pcv-amis .msg.ecrire { max-width: none; }
     #pcv-amis .msg .capsule { width: ${u(130)}; height: ${u(61)}; }
@@ -231,8 +232,50 @@
       return [];
     }
   };
+  const imageDe = (t) => {
+    const x = /^\s*\[img\b[^\]]*?\bsrc="?(https:\/\/images\.steamusercontent\.com\/[^\s"\]]+)"?(?:[^\]]*?\bthumbnail_src="?(https:\/\/images\.steamusercontent\.com\/[^\s"\]]+))?/.exec(t || "");
+    return x ? x[2] || x[1] : null;
+  };
+  {
+    const sys = O.SteamClient?.System, copier = sys?.CopyFilesToClipboard;
+    if (copier && !copier.__pcv) {
+      const f = (l, ...a) => {
+        O.__pcvDerniereCopie = { chemin: String([].concat(l)[0] || ""), t: Date.now() };
+        return copier.call(sys, l, ...a);
+      };
+      f.__pcv = true;
+      sys.CopyFilesToClipboard = f;
+    }
+  }
+  const CONTEXTE_CONSOLE = { m_unPID: 0, m_nBrowserID: -1, m_unAppID: 0, m_eUIMode: 4 };
+  const envoyerImage = async (c, url, nom, appid) => {
+    try {
+      const fichier = new File([await (await fetch(url)).blob()], nom, { type: /\.png$/i.test(nom) ? "image/png" : "image/jpeg" });
+      const UI = O.g_FriendsUIApp.UIStore, MS = O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.MenuStore, ouvrir2 = MS.OpenSideMenu, basculer = MS.ToggleSideMenu;
+      MS.OpenSideMenu = MS.ToggleSideMenu = () => {
+      };
+      try {
+        const vue2 = Object.getPrototypeOf(UI).ShowAndOrActivateChat.call(UI, [...UI.m_mapChatBrowserContexts.values()][0]?.m_browserContext || CONTEXTE_CONSOLE, c, true);
+        await vue2.m_fileUploadManager.SetImageFileToUpload(fichier, { info: { unAssociatedAppID: appid } });
+        await vue2.UploadFile();
+        setTimeout(() => {
+          signature = "";
+          peindreDisc();
+        }, 800);
+      } finally {
+        setTimeout(() => {
+          MS.OpenSideMenu = ouvrir2;
+          MS.ToggleSideMenu = basculer;
+        }, 1e3);
+      }
+    } catch (x) {
+      console.warn("amis : image non envoy\xE9e", x);
+      window.__pcvSon?.("bord");
+    }
+  };
   const dernier = (c) => {
     const m = c.GetLastMessage?.();
+    if (imageDe(m)) return T("social.image");
     const inv = /^\s*\[(game|lobby)invite\b[^\]]*appid="?(\d+)/.exec(m || "");
     return inv ? T("social.invitation_a", { jeu: jeuNom(+inv[2]) }) : S.texte(m);
   };
@@ -264,11 +307,17 @@
       const inv = S.invitation(m), lui = m.unAccountID !== F.self?.accountid, q = lui ? p : moi;
       if (inv && lui) return `<div class="msg inv${inv.bAccepted || inv.bDismissed || inv.bOld ? "" : " choix"}" data-inv="${m.rtTimestamp}">${avatar(p)}<span class="t"><b>${T("social.invite_titre", { nom: echappe(p.m_strPlayerName) })} <time>${heure(m.rtTimestamp)}</time></b><span>${echappe(jeuNom(inv.appID) + (inv.connectString || inv.lobbyID ? T("social.partie_ouverte") : ""))}</span></span>
         <i class="capsule" data-jeu="${+inv.appID}" style="background-image:${S.capsule(inv.appID)}"></i>${inv.bAccepted || inv.bDismissed || inv.bOld ? "" : `<button class="btn cyan" data-act="accepter">${T("social.rejoindre")}</button><button class="btn" data-act="plus-tard">${T("social.plus_tard")}</button>`}</div>`;
-      return `<div class="msg${lui ? "" : " moi"}">${avatar(q || p)}<span class="t"><b>${lui ? echappe(p.m_strPlayerName) : T("social.toi")} <time>${heure(m.rtTimestamp)}</time></b><span>${echappe(inv ? T("social.invitation_a", { jeu: jeuNom(inv.appID) }) : S.texte(m.strMessage))}</span></span></div>`;
+      return `<div class="msg${lui ? "" : " moi"}">${avatar(q || p)}<span class="t"><b>${lui ? echappe(p.m_strPlayerName) : T("social.toi")} <time>${heure(m.rtTimestamp)}</time></b>${imageDe(m.strMessage) ? `<img class="photo" src="${echappe(imageDe(m.strMessage))}" alt="">` : `<span>${echappe(inv ? T("social.invitation_a", { jeu: jeuNom(inv.appID) }) : S.texte(m.strMessage))}</span>`}</span></div>`;
     };
     fil.innerHTML = `<div class="qui">${avatar(p)}<span><b>${echappe(p.m_strPlayerName)}</b><span class="pastille${p.m_unGamePlayedAppID ? " etat-jeu" : ""}">\u25CF ${echappe(ligne(p))}</span></span></div>${msgs.map(bulle).join("")}
       ${S.peutEcrire(c) ? `<div class="msg ecrire choix"><span class="clavier">${window.__pcvIcones?.svg?.("clavier", { attrs: 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' }) || ""}</span><span class="t"><b>${T("social.ecrire_a", { nom: echappe(p.m_strPlayerName) })}</b><span>${T("social.clavier")}</span></span><input class="saisie" type="text" maxlength="2000"></div>` : ""}`;
     S.peindre(fil);
+    fil.querySelector(".saisie")?.addEventListener("paste", (e) => {
+      const d = O.__pcvDerniereCopie, x = d && Date.now() - d.t < 36e5 && /\/760\/remote\/(\d+)\/screenshots\/([^/]+\.(?:jpe?g|png))$/i.exec(d.chemin);
+      if (!x || ![...e.clipboardData?.types || []].includes("text/uri-list")) return;
+      e.preventDefault();
+      envoyerImage(c, `https://steamloopback.host/screenshots/${x[1]}/screenshots/${x[2]}`, x[2], +x[1]);
+    });
     fil.querySelector(".saisie")?.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       const t = e.target.value.trim();

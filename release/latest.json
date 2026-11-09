@@ -1,24 +1,33 @@
 {
- "version": "0.2.6",
- "url": "https://github.com/Vegetenks/SteamU/releases/download/v0.2.6/SteamU-v0.2.6.zip",
- "sha256": "f72942cdb6011ae4b4348569ce34bcb901450cedd3e5db0149c06fd04dbd2311",
+ "version": "0.2.7",
+ "url": "https://github.com/Vegetenks/SteamU/releases/download/v0.2.7/SteamU-v0.2.7.zip",
+ "sha256": "945bd56a31a95f95896cd1f4c1c820d4398ffe03c8cd050d87c999500e593c95",
  "notes": {
   "en": [
-   "Quick settings: choosing another audio output works.",
-   "Wi-Fi: available networks show up again.",
-   "Battery info no longer disappears at startup or in games.",
+   "Media: press X on a screenshot to share it (phone, chat, Steam), save it to Downloads or delete it.",
+   "Chats: images show up, and a copied screenshot can be pasted into a chat.",
+   "Unifideck: install, play and update from the game page, and its games in Storage (thanks lieserlV).",
+   "Battery: the remaining time comes back after sleep.",
+   "HOME menu: a game launched through Heroic really pauses.",
+   "Cleaner Steam menus, and swiping no longer zooms by mistake.",
    "Bug fixes."
   ],
   "fr": [
-   "Réglages rapides : choisir une autre sortie audio fonctionne.",
-   "Wi-Fi : les réseaux disponibles s'affichent de nouveau.",
-   "L'info batterie ne disparaît plus au démarrage ni en jeu.",
+   "Médiathèque : X sur une capture pour la partager (téléphone, discussion, Steam), l'enregistrer dans Téléchargements ou la supprimer.",
+   "Discussions : les images s'affichent, et une capture copiée se colle dans la discussion.",
+   "Unifideck : installer, jouer, mettre à jour depuis la page du jeu, et ses jeux dans Stockage (merci lieserlV).",
+   "Batterie : le temps restant revient après une mise en veille.",
+   "Menu HOME : un jeu lancé par Heroic se met vraiment en pause.",
+   "Menus de Steam plus propres, et glisser le doigt ne zoome plus par erreur.",
    "Corrections de bugs."
   ],
   "es": [
-   "Ajustes rápidos: elegir otra salida de audio funciona.",
-   "Wi-Fi: las redes disponibles vuelven a aparecer.",
-   "La información de la batería ya no desaparece al iniciar ni en los juegos.",
+   "Mediateca: pulsa X en una captura para compartirla (teléfono, chat, Steam), guardarla en Descargas o borrarla.",
+   "Chats: las imágenes se muestran, y una captura copiada se puede pegar en un chat.",
+   "Unifideck: instalar, jugar y actualizar desde la ficha del juego, y sus juegos en Almacenamiento (gracias lieserlV).",
+   "Batería: el tiempo restante vuelve tras la suspensión.",
+   "Menú HOME: un juego lanzado con Heroic se pausa de verdad.",
+   "Menús de Steam más limpios, y deslizar el dedo ya no amplía por error.",
    "Corrección de errores."
   ]
  }

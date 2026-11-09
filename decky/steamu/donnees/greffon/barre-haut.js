@@ -283,7 +283,7 @@
     O.__pcvPauser = (pid) => {
       if (!pgLa()) return Promise.resolve();
       O.__pcvHomePid = pid;
-      const p = O.__pcvPauseEnVol = appel("pause", pid).catch(() => {
+      const p = O.__pcvPauseEnVol = appel("pause", pid).then(() => appelPCV("figer_exiles", pid)).catch(() => {
       });
       p.finally(() => {
         if (O.__pcvPauseEnVol === p) O.__pcvPauseEnVol = null;

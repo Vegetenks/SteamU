@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.2.7 (2026-11-09)
+
+Fixes and improvements (issues #21 and #26, pull request #17 by @lieserlV, plus problems found by the maintainer).
+
+- **Media (#26)**: press X on a screenshot for its options: share it (Steam's own share sheet: send to your phone, share in a
+  chat, share on Steam, copy), save it to Downloads, or delete it. The share sheet and upload dialog match SteamU.
+- **Chats**: sharing a screenshot to a friend sends it and opens SteamU's chat (it used to land on the quick settings and never
+  sent); images show up in SteamU's chats, and a copied screenshot can be pasted there.
+- **Unifideck (pull request #17 by @lieserlV, thank you!)**: the game page shows Unifideck's actions (install, cancel, play, update, cloud saves, launch
+  executable, uninstall) and Storage lists its installed games.
+- **Battery (#21)**: after waking from sleep, the remaining time is read from the system when Steam stops providing it.
+- **HOME menu**: games launched through a shortcut that starts them outside Steam's launcher (Heroic, umu) are really paused.
+- **Touch**: swiping left or right no longer zooms the home grid (a finger lift the system never reported kept being counted).
+- **Steam menus**: cleaner pills without heavy shadows; a submenu (Add to, Remove from, Manage) replaces the menu instead of
+  stacking under it; long menus scroll instead of squeezing their items.
+
 ## v0.2.6 (2026-11-07)
 
 Fixes only (issue #21, plus problems found by the maintainer).

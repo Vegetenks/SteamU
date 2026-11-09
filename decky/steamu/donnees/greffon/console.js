@@ -2223,6 +2223,7 @@
     };
     el.addEventListener("pointerdown", (e) => {
       if (e.pointerType !== "touch") return;
+      if (e.isPrimary) doigts.clear();
       doigts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (doigts.size === 2) d0 = permis() ? ecart() : 0;
     }, true);
@@ -3963,7 +3964,8 @@
     lancJeu(id, null, false, depuis);
   };
   const installer = (a) => {
-    if (window.__pcvBridge?.unifideck?.etat(a) != null || !window.__pcvBridge?.installer?.(a.appid)) return ouvrir(a.appid);
+    if (window.__pcvBridge?.unifideck?.etat(a) != null) return window.__pcvPageJeu?.(a.appid) || ouvrir(a.appid);
+    if (!window.__pcvBridge?.installer?.(a.appid)) return ouvrir(a.appid);
     let vu2 = Date.now();
     const t = setInterval(() => {
       if (window.__pcvTelech?.dans?.(a.appid)) {
