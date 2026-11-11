@@ -48,7 +48,7 @@
     try {
       const [gr, ir] = await Promise.all([ufAppel("get_all_unifideck_games"), ufAppel("get_installed_disk_info")]);
       const g = ufDonnee(gr), info = ufDonnee(ir) || {};
-      ufListe = (Array.isArray(g) ? g : []).filter((x) => x && x.installed && x.app_id != null && x.store && x.store !== "steam" && !(Array.isArray(x.tags) && x.tags.some((t) => String(t).toLowerCase() === "xcloud"))).map((x) => {
+      ufListe = (Array.isArray(g) ? g : []).filter((x) => x && x.installed && x.app_id != null && x.store && x.store !== "steam" && !(Array.isArray(x.tags) && x.tags.some((t) => String(t).toLowerCase() === "xcloud") && !x.tags.some((t) => String(t).toLowerCase() === "xbox_pc"))).map((x) => {
         const f = ufFormes(x.app_id), a = f.map(appDe).find(Boolean), gid = String(x.store_game_id ?? x.id), i = info[`${x.store}:${gid}`] || {};
         return { id: a?.appid ?? f[f.length - 1], appId: x.app_id, store: x.store, gid, titre: String(x.title || x.name || ""), octets: +i.size_bytes || 0, externe: i.location === "external" };
       });

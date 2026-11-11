@@ -126,8 +126,7 @@
   const succes = async (id) => {
     if (cache[id]) return cache[id];
     try {
-      const r = await O.SteamClient.Apps.GetMyAchievementsForApp(String(id));
-      const d = (typeof r === "string" ? JSON.parse(r) : r).data.rgAchievements;
+      const d = await window.__pcvBridge.succes(id);
       return cache[id] = { total: d.length, obtenus: d.filter((a) => a.bAchieved).sort((a, b) => b.rtUnlocked - a.rtUnlocked) };
     } catch (e) {
       return cache[id] = { total: 0, obtenus: [] };

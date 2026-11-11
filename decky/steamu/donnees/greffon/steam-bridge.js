@@ -504,24 +504,30 @@ window.__pcvBridge = (() => {
     // « installés » pour lui, toujours jouables. etat(a) les dit donc vrais, nuage(a) dit lesquels (l'accueil y met le
     // nuage). Un raccourci reconnu à son lanceur mais absent de la liste d'Unifideck (GameVault hors ligne) : pas installé.
     unifideck: (() => {
-      const TAG_NUAGE = "xcloud", LANCEUR = "unifideck-launcher", REVOIR_LANCEUR = 1e4;
+      const TAG_NUAGE = "xcloud", TAG_PC = "xbox_pc", LANCEUR = "unifideck-launcher", REVOIR_LANCEUR = 1e4;
       const u = O.__pcvUnifideck ||= { jeux: /* @__PURE__ */ new Map(), ok: false, version: 0, enCours: false, rejouer: false, dernier: 0, echecs: 0, erreur: "" };
       u.nuage ||= /* @__PURE__ */ new Set();
+      u.pc ||= /* @__PURE__ */ new Set();
       const formes = (id) => {
         const n = Number(id);
         return !Number.isFinite(n) ? [] : n < 0 ? [n, n + 4294967296] : n > 2147483647 ? [n, n - 4294967296] : [n];
       };
       const appliquer = (l) => {
-        const m = /* @__PURE__ */ new Map(), nuage = /* @__PURE__ */ new Set();
+        const m = /* @__PURE__ */ new Map(), nuage = /* @__PURE__ */ new Set(), pcs = /* @__PURE__ */ new Set();
         for (const g of l) if (g && g.app_id != null && g.store && g.store !== "steam") {
-          const cloud = Array.isArray(g.tags) && g.tags.some((t) => String(t).toLowerCase() === TAG_NUAGE);
+          const tags = Array.isArray(g.tags) ? g.tags.map((t) => String(t).toLowerCase()) : [];
+          // (Xbox PC) Une ligne Xbox peut porter xcloud ET xbox_pc : le même jeu se streame ou s'installe. Tant qu'il
+          // n'est pas installé, il reste jouable en streaming ; une fois installé, il se lance en local : plus du nuage.
+          const pc = tags.includes(TAG_PC), cloud = tags.includes(TAG_NUAGE) && !(pc && g.installed);
           for (const id of formes(g.app_id)) {
             m.set(id, !!g.installed || cloud);
             if (cloud) nuage.add(id);
+            if (pc) pcs.add(id);
           }
         }
-        if (m.size !== u.jeux.size || nuage.size !== u.nuage.size || [...nuage].some((k) => !u.nuage.has(k)) || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
-        Object.assign(u, { jeux: m, nuage, ok: true, echecs: 0, erreur: "" });
+        const meme = (a, b) => a.size === b.size && [...a].every((k) => b.has(k));
+        if (m.size !== u.jeux.size || !meme(nuage, u.nuage) || !meme(pcs, u.pc) || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
+        Object.assign(u, { jeux: m, nuage, pc: pcs, ok: true, echecs: 0, erreur: "" });
       };
       const rate = (e) => {
         u.erreur = e;
@@ -548,6 +554,7 @@ window.__pcvBridge = (() => {
       const surEvenement = (e) => {
         const d = e?.detail;
         if (d && d.appId != null && typeof d.isInstalled === "boolean") for (const id of formes(d.appId)) {
+          if (d.isInstalled && u.pc.has(id)) u.nuage.delete(id);
           const v = d.isInstalled || u.nuage.has(id);
           if (u.jeux.get(id) !== v) {
             u.jeux.set(id, v);
@@ -591,6 +598,7 @@ window.__pcvBridge = (() => {
         charger,
         version: () => u.version,
         nuage: (a) => u.nuage.has(Number(a.appid)),
+        pc: (a) => u.pc.has(Number(a.appid)),
         etat: (a) => {
           charger();
           const v = u.jeux.get(Number(a.appid));
@@ -988,10 +996,48 @@ window.__pcvBridge = (() => {
       }
     },
     // les succès du joueur : [{ strName, strDescription, strImage, bAchieved, rtUnlocked, bHidden… }] (vide si aucun)
+    // (Unifideck) Steam n'a rien pour un raccourci non Steam : si c'est un jeu d'Unifideck (GOG, Epic, Xbox), ses succès
+    // viennent de lui (RPC get_game_achievements) et sont rendus dans la MÊME forme que ceux de Steam, pour que la page
+    // du jeu, la fiche et les bulles de la console n'aient rien à distinguer.
     succes: async (appid) => {
+      let l = [];
       try {
         const r = await O.SteamClient.Apps.GetMyAchievementsForApp(String(appid));
-        return (typeof r === "string" ? JSON.parse(r) : r)?.data?.rgAchievements || [];
+        l = (typeof r === "string" ? JSON.parse(r) : r)?.data?.rgAchievements || [];
+      } catch (e) {
+      }
+      if (l.length) return l;
+      return window.__pcvBridge.succesUnifideck(appid);
+    },
+    succesUnifideck: async (appid) => {
+      try {
+        const B = window.__pcvBridge, a = { appid: Number(appid) };
+        if (!(a.appid > 0) || B.unifideck.etat(a) == null) return [];
+        const donnee = (r) => r && typeof r === "object" && !Array.isArray(r) && "success" in r && "data" in r ? r.data : r;
+        const n = a.appid, formes = n > 2147483647 ? [n, n - 4294967296] : [n];
+        let info = null;
+        for (const f of formes) {
+          const d = donnee(await B.callPlugin("Unifideck", "get_game_info", f));
+          if (d && typeof d === "object" && (d.store_game_id || d.id)) {
+            info = d;
+            break;
+          }
+        }
+        // les boutiques dont Unifideck lit les succès : GOG, Epic, Xbox (« microsoft »)
+        if (!info || ![ "gog", "epic", "microsoft" ].includes(String(info.store))) return [];
+        const r = await B.callPlugin("Unifideck", "get_game_achievements", String(info.store), String(info.store_game_id ?? info.id));
+        if (r && r.success === false) return [];
+        const l = donnee(r)?.achievements;
+        if (!Array.isArray(l)) return [];
+        return l.map((x) => ({
+          strID: String(x.key || ""),
+          strName: String(x.name || ""),
+          strDescription: String(x.description || ""),
+          strImage: String((x.unlocked ? x.image_unlocked : x.image_locked || x.image_unlocked) || ""),
+          bAchieved: !!x.unlocked,
+          rtUnlocked: Math.round(+x.unlocked_at || 0),
+          bHidden: !!x.hidden
+        }));
       } catch (e) {
         return [];
       }
