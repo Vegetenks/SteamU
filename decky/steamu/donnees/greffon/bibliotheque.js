@@ -319,7 +319,7 @@
     const loinDe = (g) => g && !g.inst ? window.__pcvBridge?.autresPC?.(g.id)?.[0] || null : null;
     const SUCCES = /* @__PURE__ */ new Map();
     const succesDe = (g, fait) => {
-      if (g.src !== "steam" || g.emu || window.__pcvJeux.raccourci(g.a)) return null;
+      if (!estUnifideck(g.id) && (g.src !== "steam" || g.emu || window.__pcvJeux.raccourci(g.a))) return null;
       if (SUCCES.has(g.id)) return SUCCES.get(g.id);
       SUCCES.set(g.id, null);
       window.__pcvBridge?.succes?.(g.id).then((l) => {

@@ -2131,8 +2131,7 @@
     infosDe = a.appid;
     let s = null;
     try {
-      const r = await O.SteamClient.Apps.GetMyAchievementsForApp(String(a.appid));
-      const d = (typeof r === "string" ? JSON.parse(r) : r).data.rgAchievements;
+      const d = await window.__pcvBridge.succes(a.appid);
       s = { total: d.length, obtenus: d.filter((x) => x.bAchieved).sort((x, y) => y.rtUnlocked - x.rtUnlocked) };
     } catch (e) {
     }

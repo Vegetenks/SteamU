@@ -996,10 +996,48 @@ window.__pcvBridge = (() => {
       }
     },
     // les succès du joueur : [{ strName, strDescription, strImage, bAchieved, rtUnlocked, bHidden… }] (vide si aucun)
+    // (Unifideck) Steam n'a rien pour un raccourci non Steam : si c'est un jeu d'Unifideck (GOG, Epic, Xbox), ses succès
+    // viennent de lui (RPC get_game_achievements) et sont rendus dans la MÊME forme que ceux de Steam, pour que la page
+    // du jeu, la fiche et les bulles de la console n'aient rien à distinguer.
     succes: async (appid) => {
+      let l = [];
       try {
         const r = await O.SteamClient.Apps.GetMyAchievementsForApp(String(appid));
-        return (typeof r === "string" ? JSON.parse(r) : r)?.data?.rgAchievements || [];
+        l = (typeof r === "string" ? JSON.parse(r) : r)?.data?.rgAchievements || [];
+      } catch (e) {
+      }
+      if (l.length) return l;
+      return window.__pcvBridge.succesUnifideck(appid);
+    },
+    succesUnifideck: async (appid) => {
+      try {
+        const B = window.__pcvBridge, a = { appid: Number(appid) };
+        if (!(a.appid > 0) || B.unifideck.etat(a) == null) return [];
+        const donnee = (r) => r && typeof r === "object" && !Array.isArray(r) && "success" in r && "data" in r ? r.data : r;
+        const n = a.appid, formes = n > 2147483647 ? [n, n - 4294967296] : [n];
+        let info = null;
+        for (const f of formes) {
+          const d = donnee(await B.callPlugin("Unifideck", "get_game_info", f));
+          if (d && typeof d === "object" && (d.store_game_id || d.id)) {
+            info = d;
+            break;
+          }
+        }
+        // les boutiques dont Unifideck lit les succès : GOG, Epic, Xbox (« microsoft »)
+        if (!info || ![ "gog", "epic", "microsoft" ].includes(String(info.store))) return [];
+        const r = await B.callPlugin("Unifideck", "get_game_achievements", String(info.store), String(info.store_game_id ?? info.id));
+        if (r && r.success === false) return [];
+        const l = donnee(r)?.achievements;
+        if (!Array.isArray(l)) return [];
+        return l.map((x) => ({
+          strID: String(x.key || ""),
+          strName: String(x.name || ""),
+          strDescription: String(x.description || ""),
+          strImage: String((x.unlocked ? x.image_unlocked : x.image_locked || x.image_unlocked) || ""),
+          bAchieved: !!x.unlocked,
+          rtUnlocked: Math.round(+x.unlocked_at || 0),
+          bHidden: !!x.hidden
+        }));
       } catch (e) {
         return [];
       }
