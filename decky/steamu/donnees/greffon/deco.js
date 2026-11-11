@@ -61,7 +61,6 @@
     #pcv-deco .bt { flex: none; display: flex; align-items: center; gap: 8u; height: 42u; padding: 0 16u 0 7u; border-radius: 21u; font-size: 15u; font-weight: 900; white-space: nowrap;
       
       background: var(--pcv-verre); box-shadow: inset 0 2u 0 var(--pcv-reflet-haut), inset 0 -3u 0 var(--pcv-reflet-bas), 0 3u 0 rgb(from var(--pcv-ombre-c) r g b / .22), 0 6u 12u rgb(from var(--pcv-ombre-c) r g b / .14); color: var(--pcv-texte); }
-    #pcv-deco .bt:active { transform: translateY(2u); box-shadow: inset 0 2u 0 var(--pcv-reflet-haut), 0 1u 0 rgb(from var(--pcv-ombre-c) r g b / .22); }
     #pcv-deco .bt.fin { background: var(--pcv-cyan); color: var(--pcv-sur-accent); box-shadow: inset 0 2u 0 rgba(255,255,255,.5), inset 0 -3u 0 rgba(0,0,0,.12), 0 3u 0 rgba(20,90,140,.35), 0 6u 12u rgba(30,120,190,.2); }
     #pcv-deco .zm { flex: none; display: flex; align-items: center; gap: 6u; height: 42u; padding: 0 6u; border-radius: 21u; background: color-mix(in srgb, var(--pcv-carte) 50%, transparent); font-size: 13u; font-weight: 900; color: var(--pcv-texte2); }
     #pcv-deco .zm button { width: 32u; height: 32u; border-radius: 50%; font-size: 18u; font-weight: 900; color: var(--pcv-texte);

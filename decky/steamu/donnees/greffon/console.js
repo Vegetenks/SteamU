@@ -1050,9 +1050,8 @@
     MESURES_IMAGES.push({ etape, ms: +(performance.now() - debut2).toFixed(2), ...autres });
     if (MESURES_IMAGES.length > 200) MESURES_IMAGES.shift();
   };
-  const LARGEUR_TOUR = { n: 0 };
   const tuilesDe = (id) => [...grille.querySelectorAll(`.cel.jeu .im[data-appid="${id}"]`), ...window.__pcvTuilesAilleurs?.(id) || [], ...window.__pcvTuilesBoutique?.(id) || []];
-  const tailleTuile = (el) => el.__pcvTaille || (!el.__pcvProche || racine.hidden || document.hidden ? TUILE.pas : Math.max(TUILE.pas, Math.ceil(((el.__pcvLargeurTour === LARGEUR_TOUR.n ? el.__pcvLargeur : el.offsetWidth) || 160) * (devicePixelRatio || 1) * TUILE.agrandie * TUILE.marge / TUILE.pas) * TUILE.pas));
+  const tailleTuile = (el) => el.__pcvTaille || (!el.__pcvProche || racine.hidden || document.hidden ? TUILE.pas : Math.max(TUILE.pas, Math.ceil((el.__pcvLargeur || el.offsetWidth || 160) * (devicePixelRatio || 1) * TUILE.agrandie * TUILE.marge / TUILE.pas) * TUILE.pas));
   let enCopie = 0, tuilesFinies = false;
   const aCopier = [], lecturesImages = /* @__PURE__ */ new Set(), annulationsVideos = /* @__PURE__ */ new Set();
   const copieSuivante = () => {
@@ -1577,15 +1576,12 @@
     const cache = racine.hidden || document.hidden, z = ZOOMS[zi], pas = (z.c + z.g) * (innerHeight / 800);
     const rr = racine.getBoundingClientRect(), rg = grille.getBoundingClientRect(), larg = rr.width || innerWidth;
     const c0 = Math.floor((rr.left - rg.left - larg * PROCHE_MARGE) / pas), c1 = Math.ceil((rr.left - rg.left + larg * (1 + PROCHE_MARGE)) / pas);
-    const tour = ++LARGEUR_TOUR.n, aPeindre = [];
+    const aPeindre = [];
     for (const el of grille.querySelectorAll(".cel.jeu > .im")) {
       const a = el.__pcvJeu;
       if (!a) continue;
       const col = Math.floor(+el.parentElement.dataset.i / z.r), pres = !cache && col >= c0 && col <= c1, avant2 = el.__pcvProche === true;
-      if (pres) {
-        el.__pcvLargeur = el.offsetWidth;
-        el.__pcvLargeurTour = tour;
-      }
+      if (pres) el.__pcvLargeur = el.offsetWidth;
       aPeindre.push([el, a, pres, avant2]);
     }
     for (const [el, a, pres, avant2] of aPeindre) {
@@ -1594,7 +1590,6 @@
         if (!avant2 || !el.dataset.appid || el.__pcvS && tailleTuile(el) !== el.__pcvS) peindreJeu(el, a);
       } else if (avant2 && el.dataset.appid) peindreJeu(el, a);
     }
-    LARGEUR_TOUR.n++;
     if (!cache) rechauffer();
   };
   const prochesPlus = () => {

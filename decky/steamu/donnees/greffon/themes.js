@@ -26,6 +26,16 @@
     } catch (e) {
     }
   };
+  const appelerBackend = (methode, ...a) => {
+    try {
+      return Promise.race([
+        (O?.DeckyBackend || window.DeckyBackend)?.call("loader/call_plugin_method", window.__pcvGreffon.nom, methode, ...a) ?? Promise.reject(new Error("Decky absent")),
+        new Promise((_, non) => setTimeout(() => non(new Error("d\xE9lai")), 8e3))
+      ]).catch((e) => ({ erreur: String(e?.message || e) }));
+    } catch (e) {
+      return Promise.resolve({ erreur: String(e?.message || e) });
+    }
+  };
   const U = (n) => `calc(var(--u) * ${+n.toFixed(2)})`;
   const son = (n) => window.__pcvSon?.(n);
   const echap = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -1887,12 +1897,16 @@
     poser(r, r.suivant(v));
     son("choisir");
   };
-  const poser = (r, n) => {
-    ecrire(r.cle, n);
+  const appliquerReglage = (r, n) => {
     if (r.cle === "pcv-apparence") window.__pcvApparence?.choisir(n);
     if (r.cle === "pcv-volume-musique") L.forEach((a) => {
       if (!a.paused && cibles.get(a) !== 0) viser(a, n);
     });
+  };
+  const poser = (r, n) => {
+    ecrire(r.cle, n);
+    appelerBackend("themes_reglages", r.cle, n);
+    appliquerReglage(r, n);
     musique();
     if (racine) {
       rendreReglages();
@@ -1913,10 +1927,6 @@
     } else if (a === "supprimer" && cat === "importes") supprimerDemander(vu);
     else if (a === "fiche") ouvrirFiche(vu);
   };
-  const appelerBackend = (methode, ...a) => Promise.race([
-    (O?.DeckyBackend || window.DeckyBackend)?.call("loader/call_plugin_method", window.__pcvGreffon.nom, methode, ...a) ?? Promise.reject(new Error("Decky absent")),
-    new Promise((_, non) => setTimeout(() => non(new Error("d\xE9lai")), 8e3))
-  ]).catch((e) => ({ erreur: String(e?.message || e) }));
   const supprimerDemander = (t) => {
     const id = t.id.replace(/^importe:/, "");
     if (!window.__pcvDossiers?.demander?.({
@@ -2368,6 +2378,15 @@
   fins.push(() => {
     if (window.__pcvSon === monSon) window.__pcvSon = sonOrigine;
     if (window.__pcvMusique === maMusique) window.__pcvMusique = maMusique.origine;
+  });
+  appelerBackend("themes_reglages").then((s) => {
+    if (fini || !s || s.erreur) return;
+    for (const [cle, valeur] of Object.entries(s)) {
+      if (JSON.stringify(lire(cle, null)) === JSON.stringify(valeur)) continue;
+      ecrire(cle, valeur);
+      appliquerReglage({ cle }, valeur);
+    }
+    musique();
   });
   brancher();
   appliquer(lire("pcv-theme", "verre"));

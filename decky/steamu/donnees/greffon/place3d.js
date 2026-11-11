@@ -2680,7 +2680,13 @@ float pcvN(vec2 p){ return texture(pcvBruit, (p + .5) / ${DALLES.bruit.toFixed(1
       });
     }, 3e3);
     let fermeture = 0;
+    let lacherY = null;
     const montrer = (oui) => {
+      if (oui && !lacherY) lacherY = window.__pcvToutesTouches?.((b, bas) => b === 4 && bas && !racine.hidden && !window.__pcvSteamDessus?.(250) && !window.__pcvEcran?.ouvert?.() && window.__pcvManette.place(4)) || null;
+      else if (!oui && lacherY) {
+        lacherY();
+        lacherY = null;
+      }
       if (fermeture) {
         clearTimeout(fermeture);
         fermeture = 0;

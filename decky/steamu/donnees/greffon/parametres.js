@@ -87,6 +87,7 @@
       rangee.__active = active;
       rangee.__affiche = affiche;
       placer(active);
+      curseur(false);
     }
   };
   const placer = (c) => {
@@ -431,12 +432,20 @@
   };
   const cibles = () => [...contenu.querySelectorAll(".ligne")];
   const curseur = (suivre = true) => {
-    page.querySelectorAll(".f").forEach((e2) => e2.classList.remove("f"));
+    [...page.querySelectorAll(".f, [data-pcv-vise]"), ...rangee?.querySelectorAll("[data-pcv-vise]") || []].forEach((e2) => {
+      e2.classList.remove("f");
+      e2.removeAttribute("data-pcv-vise");
+    });
     const z = S.manette ? S.zone : "";
     if ((document.body.dataset.pcvParamZone || "") !== z) document.body.dataset.pcvParamZone = z;
-    if (!S.manette || S.zone === "tuiles") return;
+    if (S.zone === "tuiles") {
+      rangee?.__active?.setAttribute("data-pcv-vise", "");
+      return;
+    }
     const e = S.zone === "colonne" ? colonne.querySelector(".choisi") : cibles()[S.cur];
     if (!e) return;
+    e.setAttribute("data-pcv-vise", "");
+    if (!S.manette) return;
     e.classList.add("f");
     if (suivre) window.__pcvSuivre?.(e) || e.scrollIntoView({ block: "nearest" });
   };

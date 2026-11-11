@@ -62,7 +62,7 @@ def _fenetre(appid):
             def entier(w, atome):
                 t, f, n, r, p = ctypes.c_ulong(), ctypes.c_int(), ctypes.c_ulong(), ctypes.c_ulong(), ctypes.POINTER(ctypes.c_ulong)()
                 if not atome or X.XGetWindowProperty(d, w, atome, 0, 1, 0, 0, ctypes.byref(t), ctypes.byref(f), ctypes.byref(n), ctypes.byref(r), ctypes.byref(p)) or not p: return None
-                v = p[0] if n.value and f.value == 32 else None
+                v = p[0] & 0xFFFFFFFF if n.value and f.value == 32 else None
                 X.XFree(p); return v
             def pid(w):
                 s, n, ids = _Spec(w, PID_CLIENT), ctypes.c_long(), ctypes.POINTER(_Id)()

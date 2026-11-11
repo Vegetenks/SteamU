@@ -137,7 +137,7 @@ window.__pcvPE = (() => {
   };
   const FLOU_MAQUETTE = 12, LARGEUR_FOND = 480;
   const photo = () => Promise.race([
-    O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "instantane", { appid: window.__pcvBridge?.runningApp()?.appid || O.__pcvBridge?.runningApp()?.appid || 0 }) ?? Promise.reject(),
+    O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "instantane", window.__pcvBridge?.runningApp()?.appid || O.__pcvBridge?.runningApp()?.appid || 0) ?? Promise.reject(),
     new Promise((_, non) => setTimeout(non, 6e3))
   ]).then((u) => {
     if (!u) throw 0;

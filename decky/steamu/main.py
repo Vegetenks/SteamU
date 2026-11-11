@@ -89,6 +89,41 @@ class Plugin:
         except Exception as e:
             self.conflit_nouveau = False; decky.logger.warning(f"avis de conflit : version non suivie ({type(e).__name__})")
 
+    async def themes_reglages(self, cle=None, valeur=None, effacer=False):
+        import tempfile, math
+        cles = {"pcv-musique", "pcv-volume-musique", "pcv-bruitages", "pcv-fond-anime",
+                "pcv-apparence", "pcv-sons-famille"}
+        def valide(k, v):
+            return k in cles and (type(v) in (bool, str, int) or type(v) is float and math.isfinite(v)) and len(json.dumps(v)) <= 128
+        if cle is not None and not valide(cle, valeur): raise ValueError("réglage de thème invalide")
+        dossier = pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR)
+        fichier = dossier / "themes-reglages.json"
+        try:
+            contenu = json.loads(fichier.read_text())
+            if not isinstance(contenu, dict): contenu = {}
+        except (FileNotFoundError, ValueError): contenu = {}
+        contenu = {k: v for k, v in contenu.items() if valide(k, v)}
+        if cle is None and not effacer: return contenu
+        dossier.mkdir(parents=True, exist_ok=True)
+        if effacer:
+            fichier.unlink(missing_ok=True)
+        else:
+            contenu[cle] = valeur
+            temporaire = None
+            try:
+                with tempfile.NamedTemporaryFile(mode="w", dir=dossier, delete=False, encoding="utf-8") as f:
+                    temporaire = f.name
+                    json.dump(contenu, f, ensure_ascii=False, allow_nan=False)
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.replace(temporaire, fichier)
+            finally:
+                if temporaire and os.path.exists(temporaire): os.unlink(temporaire)
+        fd = os.open(dossier, os.O_RDONLY | os.O_DIRECTORY)
+        try: os.fsync(fd)
+        finally: os.close(fd)
+        return True
+
     @property
     def _film_apparence(self): return pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "film-apparence.txt"
 
@@ -302,6 +337,19 @@ class Plugin:
             from session_x import environnement
             f, env = pathlib.Path("/tmp/gamescope.png"), environnement()
             try:
+                if appid:
+                    from apercu import _fenetre
+                    cible, gris = _fenetre(int(appid)), pathlib.Path(f"/tmp/steamu-noir-{os.getpid()}.gray")
+                    if cible:
+                        try:
+                            jpg = subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "x11grab", "-draw_mouse", "0", "-window_id", str(cible[1]), "-i", cible[0],
+                                                  "-filter_complex", "[0:v]split[a][b];[b]scale=16:9,format=gray[c]",
+                                                  "-map", "[a]", "-frames:v", "1", "-q:v", "3", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1",
+                                                  "-map", "[c]", "-frames:v", "1", "-f", "rawvideo", str(gris)], env=env, timeout=3, capture_output=True).stdout
+                            if jpg and gris.exists() and max(gris.read_bytes() or b"\0") >= 16:
+                                return "data:image/jpeg;base64," + base64.b64encode(jpg).decode()
+                        finally:
+                            gris.unlink(missing_ok=True)
                 f.unlink(missing_ok=True)
                 subprocess.run(["xprop", "-root", "-f", "GAMESCOPECTRL_DEBUG_REQUEST_SCREENSHOT", "32c", "-set", "GAMESCOPECTRL_DEBUG_REQUEST_SCREENSHOT", "1"],
                                env=env, timeout=2, check=True, capture_output=True)
@@ -310,16 +358,7 @@ class Plugin:
                     n = f.stat().st_size if f.exists() else 0
                     if n and n == avant: break
                     avant = n; time.sleep(.03)
-                if not f.exists() and appid:
-                    from apercu import _fenetre
-                    cible = _fenetre(int(appid))
-                    if not cible:
-                        return None
-                    affichage, fenetre = cible
-                    jpg = subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "x11grab", "-draw_mouse", "0", "-window_id", str(fenetre), "-i", affichage,
-                                          "-frames:v", "1", "-q:v", "3", "-f", "image2pipe", "-vcodec", "mjpeg", "-"],
-                                         env=env, timeout=3, capture_output=True).stdout
-                    return "data:image/jpeg;base64," + base64.b64encode(jpg).decode() if jpg else None
+                if not f.exists(): return None
                 jpg = subprocess.run(["magick", str(f), "-quality", "85", "jpg:-"], env=env, timeout=3, capture_output=True).stdout if shutil.which("magick") else b""
                 jpg = jpg or subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(f), "-q:v", "3", "-f", "image2pipe", "-vcodec", "mjpeg", "-"],
                                      env=env, timeout=3, capture_output=True).stdout

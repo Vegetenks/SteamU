@@ -2216,5 +2216,19 @@
   "uf.cloud_lance": "Sincronización iniciada",
   "uf.cloud_cours": "Sincronización en curso",
   "uf.cloud_aucune": "No hay partida en la nube",
-  "uf.cloud_presente": "Hay una partida en la nube"
+  "uf.cloud_presente": "Hay una partida en la nube",
+  "uf.xbox_pc": "Xbox PC",
+  "uf.xbox_installer": "Instalar en el dispositivo",
+  "uf.xbox_installer_s": "Versión de PC del juego, ejecutada por Unifideck. El streaming sigue disponible.",
+  "uf.xbox_stream_aussi": "Streaming de Xbox Cloud disponible (también se puede instalar)",
+  "uf.xbox_uwp": "Este juego de Xbox no tiene versión de PC instalable (UWP).",
+  "uf.xbox_non_supporte": "No hay versión de PC instalable para este juego.",
+  "uf.xbox_choix": "Hay varios paquetes posibles: elige en Unifideck.",
+  "uf.xbox_off": "Xbox PC está desactivado: actívalo en los ajustes de Unifideck.",
+  "uf.xbox_runtime": "Faltan componentes de Xbox PC: instálalos desde Unifideck.",
+  "uf.xbox_connexion": "Se requiere iniciar sesión en Xbox PC: hazlo desde Unifideck.",
+  "uf.xbox_indispo": "Xbox PC no está disponible en este dispositivo.",
+  "uf.xbox_reparer": "Reparar",
+  "uf.xbox_reparer_s": "Comprobar el juego y volver a descargar los archivos que faltan",
+  "uf.xbox_reparer_ok": "Reparación iniciada."
 }

@@ -160,10 +160,14 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
   };
 })();
 {
-  let aTenue = false, tenu = null;
+  let aTenue = false, tenu = null, relache = null, pointeur = null;
   const enfoncer = (el, r) => {
+    if (relache?.anime || pointeur?.anime || aTenue && tenu) return () => {
+    };
     if (tenu?.el === el) return tenu;
     tenu?.();
+    if (relache) relache.anime = true;
+    if (pointeur) pointeur.anime = true;
     let zone = null;
     if (r) {
       zone = document.createElement("span");
@@ -199,22 +203,29 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
     }, window.__pcvRapide);
   };
   const notre = (p) => {
-    const b = p[0]?.closest?.("button, [data-a], [role=button], .pcv-legende > [data-b]");
+    const b = p[0]?.closest?.("button, [data-a], [role=button], .pf, #pcv-console .cel[data-i], .pcv-legende > [data-b]");
     return b && !b.closest(".pcvc") && p.some((n) => n.id?.startsWith?.("pcv")) ? b : null;
   };
   const appui = (e) => {
     const b = notre(e.composedPath());
-    if (!b?.animate) return;
+    if (!b?.animate || e.isPrimary === false) return;
+    const suivi = {};
+    pointeur = suivi;
     if (e.pointerType === "touch") e.preventDefault();
     const r = b.getBoundingClientRect(), haut = enfoncer(b, e.pointerType === "touch" && !e.composedPath()[0]?.matches?.("input, select, textarea") ? r : null), x = e.clientX, y = e.clientY;
     const glisse = (m) => {
-      if (Math.hypot(m.clientX - x, m.clientY - y) > 15 || m.clientX < r.left || m.clientX > r.right || m.clientY < r.top || m.clientY > r.bottom) fin();
+      if (m.pointerId !== e.pointerId) return;
+      if (Math.hypot(m.clientX - x, m.clientY - y) > 15 || m.clientX < r.left || m.clientX > r.right || m.clientY < r.top || m.clientY > r.bottom) haut();
     };
-    const fin = () => {
+    const fin = (m) => {
+      if (m.pointerId !== e.pointerId) return;
       haut();
       window.removeEventListener("pointermove", glisse, true);
       window.removeEventListener("pointerup", fin, true);
       window.removeEventListener("pointercancel", fin, true);
+      setTimeout(() => {
+        if (pointeur === suivi) pointeur = null;
+      }, 0);
     };
     window.addEventListener("pointermove", glisse, true);
     window.addEventListener("pointerup", fin, true);
@@ -228,9 +239,11 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
   };
   let attente = null;
   window.__pcvVise = () => {
-    const SEL = ":is(.f, .pcv-f, .k, .sel, .sur-action, .mm-focus)", vues = /* @__PURE__ */ new Set();
-    for (const h of document.querySelectorAll('[id^="pcv"]')) for (const x of [...h.querySelectorAll(SEL), ...h.shadowRoot?.querySelectorAll(SEL) || []]) vues.add(x);
-    return [...vues].filter((x) => {
+    const FOCUS = ".f, .foc, .pcv-f, .pcv-sel, #pcv-console .entete button.choisi, .k, .sur-action, .mm-focus, [data-pcv-vise]", SEL = `:is(${FOCUS}, .sel, .pcv-legende > [data-b="1"])`, vues = /* @__PURE__ */ new Set();
+    const barre = window.__pcvBarreVise?.();
+    if (barre) vues.add(barre);
+    for (const h of document.querySelectorAll('[id^="pcv"]')) for (const x of [...h.matches?.(SEL) ? [h] : [], ...h.querySelectorAll(SEL), ...h.shadowRoot?.querySelectorAll(SEL) || []]) vues.add(x);
+    const visibles = [...vues].filter((x) => {
       const r = x.getBoundingClientRect();
       if (!r.width || !r.height) return false;
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
@@ -241,7 +254,8 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
         el = f;
       }
       return !!el && (el === x || x.contains(el));
-    }).pop() || null;
+    });
+    return visibles.includes(barre) ? barre : visibles.filter((x) => x.matches(FOCUS)).pop() || visibles.filter((x) => x.matches(".sel")).pop() || visibles.pop() || null;
   };
   window.__pcvAuRelacher = (faire, el) => {
     attente = faire;
@@ -254,12 +268,18 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
       if (bas && attente) window.__pcvAuRelacher(null);
       return;
     }
+    if (bas) pointeur = null;
     aTenue = bas;
     if (bas) return;
     const f = attente;
     attente = null;
-    tenu?.();
-    f?.();
+    relache = { anime: !!tenu };
+    try {
+      tenu?.();
+      f?.();
+    } finally {
+      relache = null;
+    }
   };
   const sansMenuNavigateur = (e) => e.preventDefault();
   window.__pcvAppuiFin?.();
@@ -503,6 +523,8 @@ window.__pcvBridge = (() => {
     // (26/10, PR #10 de lieserlV) Les jeux Xbox Cloud d'Unifideck (tag TAG_NUAGE) se jouent en streaming : jamais
     // « installés » pour lui, toujours jouables. etat(a) les dit donc vrais, nuage(a) dit lesquels (l'accueil y met le
     // nuage). Un raccourci reconnu à son lanceur mais absent de la liste d'Unifideck (GameVault hors ligne) : pas installé.
+    // (11/11, PR #27 de lieserlV) Unifideck 0.8 : une ligne Xbox peut porter xcloud ET TAG_PC, le même jeu se streame ou
+    // s'installe. Tant qu'il n'est pas installé, il reste jouable en streaming ; installé, il se lance en local : plus du nuage.
     unifideck: (() => {
       const TAG_NUAGE = "xcloud", TAG_PC = "xbox_pc", LANCEUR = "unifideck-launcher", REVOIR_LANCEUR = 1e4;
       const u = O.__pcvUnifideck ||= { jeux: /* @__PURE__ */ new Map(), ok: false, version: 0, enCours: false, rejouer: false, dernier: 0, echecs: 0, erreur: "" };
@@ -513,21 +535,19 @@ window.__pcvBridge = (() => {
         return !Number.isFinite(n) ? [] : n < 0 ? [n, n + 4294967296] : n > 2147483647 ? [n, n - 4294967296] : [n];
       };
       const appliquer = (l) => {
-        const m = /* @__PURE__ */ new Map(), nuage = /* @__PURE__ */ new Set(), pcs = /* @__PURE__ */ new Set();
+        const m = /* @__PURE__ */ new Map(), nuage = /* @__PURE__ */ new Set(), pc = /* @__PURE__ */ new Set();
         for (const g of l) if (g && g.app_id != null && g.store && g.store !== "steam") {
           const tags = Array.isArray(g.tags) ? g.tags.map((t) => String(t).toLowerCase()) : [];
-          // (Xbox PC) Une ligne Xbox peut porter xcloud ET xbox_pc : le même jeu se streame ou s'installe. Tant qu'il
-          // n'est pas installé, il reste jouable en streaming ; une fois installé, il se lance en local : plus du nuage.
-          const pc = tags.includes(TAG_PC), cloud = tags.includes(TAG_NUAGE) && !(pc && g.installed);
+          const estPC = tags.includes(TAG_PC), cloud = tags.includes(TAG_NUAGE) && !(estPC && g.installed);
           for (const id of formes(g.app_id)) {
             m.set(id, !!g.installed || cloud);
             if (cloud) nuage.add(id);
-            if (pc) pcs.add(id);
+            if (estPC) pc.add(id);
           }
         }
         const meme = (a, b) => a.size === b.size && [...a].every((k) => b.has(k));
-        if (m.size !== u.jeux.size || !meme(nuage, u.nuage) || !meme(pcs, u.pc) || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
-        Object.assign(u, { jeux: m, nuage, pc: pcs, ok: true, echecs: 0, erreur: "" });
+        if (m.size !== u.jeux.size || !meme(nuage, u.nuage) || !meme(pc, u.pc) || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
+        Object.assign(u, { jeux: m, nuage, pc, ok: true, echecs: 0, erreur: "" });
       };
       const rate = (e) => {
         u.erreur = e;
@@ -554,7 +574,7 @@ window.__pcvBridge = (() => {
       const surEvenement = (e) => {
         const d = e?.detail;
         if (d && d.appId != null && typeof d.isInstalled === "boolean") for (const id of formes(d.appId)) {
-          if (d.isInstalled && u.pc.has(id)) u.nuage.delete(id);
+          if (d.isInstalled && u.pc.has(id) && u.nuage.delete(id)) u.version++;
           const v = d.isInstalled || u.nuage.has(id);
           if (u.jeux.get(id) !== v) {
             u.jeux.set(id, v);
@@ -598,7 +618,6 @@ window.__pcvBridge = (() => {
         charger,
         version: () => u.version,
         nuage: (a) => u.nuage.has(Number(a.appid)),
-        pc: (a) => u.pc.has(Number(a.appid)),
         etat: (a) => {
           charger();
           const v = u.jeux.get(Number(a.appid));
@@ -996,9 +1015,8 @@ window.__pcvBridge = (() => {
       }
     },
     // les succès du joueur : [{ strName, strDescription, strImage, bAchieved, rtUnlocked, bHidden… }] (vide si aucun)
-    // (Unifideck) Steam n'a rien pour un raccourci non Steam : si c'est un jeu d'Unifideck (GOG, Epic, Xbox), ses succès
-    // viennent de lui (RPC get_game_achievements) et sont rendus dans la MÊME forme que ceux de Steam, pour que la page
-    // du jeu, la fiche et les bulles de la console n'aient rien à distinguer.
+    // (11/11, PR #27 de lieserlV) Steam n'a rien pour un raccourci : si c'est un jeu d'Unifideck (GOG, Epic, Xbox), ses
+    // succès viennent de lui (get_game_achievements), rendus dans la MÊME forme que ceux de Steam
     succes: async (appid) => {
       let l = [];
       try {
@@ -1006,14 +1024,13 @@ window.__pcvBridge = (() => {
         l = (typeof r === "string" ? JSON.parse(r) : r)?.data?.rgAchievements || [];
       } catch (e) {
       }
-      if (l.length) return l;
-      return window.__pcvBridge.succesUnifideck(appid);
+      return l.length ? l : window.__pcvBridge.succesUnifideck(appid);
     },
     succesUnifideck: async (appid) => {
       try {
         const B = window.__pcvBridge, a = { appid: Number(appid) };
         if (!(a.appid > 0) || B.unifideck.etat(a) == null) return [];
-        const donnee = (r) => r && typeof r === "object" && !Array.isArray(r) && "success" in r && "data" in r ? r.data : r;
+        const donnee = (r2) => r2 && typeof r2 === "object" && !Array.isArray(r2) && "success" in r2 && "data" in r2 ? r2.data : r2;
         const n = a.appid, formes = n > 2147483647 ? [n, n - 4294967296] : [n];
         let info = null;
         for (const f of formes) {
@@ -1023,13 +1040,10 @@ window.__pcvBridge = (() => {
             break;
           }
         }
-        // les boutiques dont Unifideck lit les succès : GOG, Epic, Xbox (« microsoft »)
-        if (!info || ![ "gog", "epic", "microsoft" ].includes(String(info.store))) return [];
+        if (!info || !["gog", "epic", "microsoft"].includes(String(info.store))) return [];
         const r = await B.callPlugin("Unifideck", "get_game_achievements", String(info.store), String(info.store_game_id ?? info.id));
-        if (r && r.success === false) return [];
-        const l = donnee(r)?.achievements;
-        if (!Array.isArray(l)) return [];
-        return l.map((x) => ({
+        const l = r && r.success === false ? null : donnee(r)?.achievements;
+        return !Array.isArray(l) ? [] : l.map((x) => ({
           strID: String(x.key || ""),
           strName: String(x.name || ""),
           strDescription: String(x.description || ""),

@@ -144,8 +144,6 @@
       const t = exe + " " + options;
       const b = /(?:^|[\s"])(epic|gog|amazon|ubisoft|battlenet|itchio|xbox|microsoft|gamevault):[^\s"]/i.exec(options) || /(?:^|[\s"])(epic|gog|amazon|ubisoft|battlenet|itchio|xbox|microsoft|gamevault):[^\s"]/i.exec(exe);
       if (b) {
-        // (Xbox PC) Unifideck lance les jeux Xbox par « microsoft:ID » ; « microsoft:ms-auth » est le raccourci temporaire
-        // de sa fenêtre de connexion : ce n'est pas un jeu, la bibliothèque l'écarte (g.auth).
         const k = b[1].toLowerCase();
         return { src: k === "microsoft" ? "xbox" : k, lanceur: "Unifideck", auth: /(?:^|[\s"])microsoft:ms-auth/i.test(options) };
       }
@@ -627,8 +625,7 @@
     };
     const UF = /* @__PURE__ */ (() => {
       const infos = /* @__PURE__ */ new Map(), choix = /* @__PURE__ */ new Map(), notes = /* @__PURE__ */ new Map(), cloudSt = /* @__PURE__ */ new Map();
-      const st2 = { file: null, tFile: 0, empl: null, majs: null, tMajs: 0 };
-      const xs = { d: null, t: 0, cours: false };
+      const st2 = { file: null, tFile: 0, empl: null, majs: null, tMajs: 0 }, xs = { d: null, t: 0, cours: false };
       const NOMS_BOUTIQUES = { epic: "Epic Games", gog: "GOG", amazon: "Amazon Games", ubisoft: "Ubisoft Connect", battlenet: "Battle.net", microsoft: "Xbox", gamevault: "GameVault" };
       const formes = (id) => {
         const n = Number(id);
@@ -675,7 +672,6 @@
           }
           const avant = JSON.stringify(i.d);
           const tg = d ? (d.tags || d.store_tags || []).map((t) => String(t).toLowerCase()) : [], instD = !!(d && (d.installed ?? d.is_installed)), pc = tg.includes("xbox_pc");
-          // (Xbox PC) xcloud + xbox_pc : streaming tant que le jeu n'est pas installé, jeu local ensuite (cf. steam-bridge.js)
           i.d = d ? { store: String(d.store || ""), gid: String(d.store_game_id ?? d.id), inst: instD, pc, pcm: pc && d.metadata && typeof d.metadata.xbox_pc === "object" ? d.metadata.xbox_pc : null, cloud: tg.includes("xcloud") && !(pc && instD), appId: typeof d.app_id === "number" ? d.app_id : formes(g.id)[0], titre: String(d.title || "") } : null;
           i.cours = false;
           i.fait = !!d;
@@ -834,7 +830,6 @@
         if (d.override_active) h += rg("reglages", T2("uf.exe_reinit"), "", "", () => choisirExe(g, null));
         return h;
       };
-      // (Xbox PC) Statut d'Unifideck pour Xbox PC (activé ? composants ? compte ?), relu au plus toutes les 15 s.
       const statutXbox = () => {
         if (!xs.cours && Date.now() - xs.t > 15e3) {
           xs.cours = true;
@@ -851,11 +846,10 @@
         }
         return xs.d;
       };
-      // Pourquoi un jeu Xbox PC ne s'installe pas encore : la clé du message, ou null s'il est prêt.
       const xboxEtat = (i) => {
-        const m2 = i.pcm, S = statutXbox();
-        if (m2 && m2.state === "not_supported") return m2.reason === "uwp" ? "uf.xbox_uwp" : "uf.xbox_non_supporte";
-        if (m2 && m2.state === "choice") return "uf.xbox_choix";
+        const p = i.pcm, S = statutXbox();
+        if (p && p.state === "not_supported") return p.reason === "uwp" ? "uf.xbox_uwp" : "uf.xbox_non_supporte";
+        if (p && p.state === "choice") return "uf.xbox_choix";
         if (!S) return null;
         if (S.available === false) return "uf.xbox_indispo";
         if (!S.enabled) return "uf.xbox_off";
@@ -867,7 +861,6 @@
         const k = xboxEtat(i);
         return k ? rg("info", T2("uf.xbox_pc"), T2(k), "") : "";
       };
-      // Les codes d'erreur d'Unifideck (install_game, repair_xbox_pc_game) : un message lisible, sinon le code tel quel.
       const CODES_XBOX = {
         xbox_pc_disabled: "uf.xbox_off",
         xbox_pc_runtime_missing: "uf.xbox_runtime",
@@ -996,7 +989,6 @@
           return h + `<div class="uf-prog">` + rg("telechargements", T2("uf.telecharge"), texteProg(d), "") + `<div style="height:8px;margin:4px 6px 10px;border-radius:4px;background:rgba(127,127,127,.35);overflow:hidden"><i class="uf-w" style="display:block;height:100%;width:${pct(d)}%;background:var(--pcv-vert,#2fbf71)"></i></div></div>` + rg("supprimer", T2("uf.annuler"), "", val(T2("uf.annuler_court")), () => confirmer(T2("uf.annuler"), () => annuler(g), "suppr"));
         }
         if (s === "absent" || s === "nuage" && iX?.pc) {
-          // (Xbox PC) Jeu en streaming qui s'installe aussi : la lecture reste le bouton principal, l'installation une ligne de plus.
           if (s === "nuage") h += rg("telechargements", T2("uf.xbox_installer"), T2("uf.xbox_installer_s"), val(T2("biblio.installer")), () => installer(g));
           const E = chargerEmpl(), c = choix.get(g.id) || {}, L = langues(g);
           const cur = E?.liste.find((x) => x.id === (c.stockage || E.def)) || E?.liste[0];

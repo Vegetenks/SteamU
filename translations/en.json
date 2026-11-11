@@ -2216,5 +2216,19 @@
   "uf.cloud_lance": "Sync started",
   "uf.cloud_cours": "Sync in progress",
   "uf.cloud_aucune": "No save in the cloud",
-  "uf.cloud_presente": "A save exists in the cloud"
+  "uf.cloud_presente": "A save exists in the cloud",
+  "uf.xbox_pc": "Xbox PC",
+  "uf.xbox_installer": "Install on this device",
+  "uf.xbox_installer_s": "PC version of the game, run by Unifideck. Streaming stays available.",
+  "uf.xbox_stream_aussi": "Xbox Cloud streaming available (can be installed too)",
+  "uf.xbox_uwp": "This Xbox game has no installable PC version (UWP).",
+  "uf.xbox_non_supporte": "No installable PC version for this game.",
+  "uf.xbox_choix": "Several packages are possible: choose in Unifideck.",
+  "uf.xbox_off": "Xbox PC is off: turn it on in Unifideck settings.",
+  "uf.xbox_runtime": "Xbox PC components are missing: install them from Unifideck.",
+  "uf.xbox_connexion": "Xbox PC sign-in required: sign in from Unifideck.",
+  "uf.xbox_indispo": "Xbox PC is not available on this device.",
+  "uf.xbox_reparer": "Repair",
+  "uf.xbox_reparer_s": "Check the game and download missing files again",
+  "uf.xbox_reparer_ok": "Repair started."
 }

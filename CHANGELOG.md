@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.8 (2026-11-11)
+
+Last fixes before v0.3 (pull request #27 by @lieserlV, plus problems found by the maintainer).
+
+- **Unifideck 0.8 (pull request #27 by @lieserlV, thank you!)**: Xbox PC games can be installed and repaired from the game
+  page (with the reason when one cannot be installed yet), installed Xbox PC games show up in Storage, and achievements of
+  GOG, Epic and Xbox games appear like Steam's.
+- **Button presses**: one press animation per gesture, on the right element: no more double press when releasing A, no more
+  two buttons pressed at once (a tile left selected under the top bar, Settings, eShop, Library, Themes, Notifications).
+- **HOME menu**: the game preview no longer stays grey, and the game snapshot is taken much faster (including Heroic and
+  emulator shortcuts).
+- **Updates**: the interface reloads by itself after an update (never during a game), and SteamU restarts its background
+  part once if Decky left it stopped.
+- **Speed**: no more stutter when the plaza opens right after Steam starts.
+- **Themes page**: settings changed just before a restart are no longer lost.
+- **Plaza**: the first Y press right after arriving works.
+
 ## v0.2.7 (2026-11-09)
 
 Fixes and improvements (issues #21 and #26, pull request #17 by @lieserlV, plus problems found by the maintainer).

@@ -1,4 +1,27 @@
 {
+ "0.2.8": {
+  "fr": [
+   "Unifideck : installer et réparer les jeux Xbox PC, et les succès GOG, Epic et Xbox (merci lieserlV).",
+   "Un seul appui par geste, sur le bon bouton.",
+   "Menu HOME : l'aperçu du jeu s'affiche, et plus vite.",
+   "L'interface se recharge seule après une mise à jour.",
+   "Corrections de bugs."
+  ],
+  "en": [
+   "Unifideck: install and repair Xbox PC games, and GOG, Epic and Xbox achievements (thanks lieserlV).",
+   "One press per gesture, on the right button.",
+   "HOME menu: the game preview shows up, and faster.",
+   "The interface reloads by itself after an update.",
+   "Bug fixes."
+  ],
+  "es": [
+   "Unifideck: instalar y reparar juegos de Xbox PC, y logros de GOG, Epic y Xbox (gracias lieserlV).",
+   "Una sola pulsación por gesto, en el botón correcto.",
+   "Menú HOME: la vista previa del juego aparece, y más rápido.",
+   "La interfaz se recarga sola tras una actualización.",
+   "Corrección de errores."
+  ]
+ },
  "0.2.7": {
   "fr": [
    "Médiathèque : X sur une capture pour la partager (téléphone, discussion, Steam), l'enregistrer dans Téléchargements ou la supprimer.",

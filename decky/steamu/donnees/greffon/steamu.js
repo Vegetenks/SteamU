@@ -1247,7 +1247,17 @@
     S.fenetre = true;
     dessiner();
   };
-  const reinitialiser = () => {
+  const reinitialiser = async () => {
+    if (S.occupe) return;
+    S.occupe = true;
+    dessiner();
+    const r = await appel("themes_reglages", [null, null, true]);
+    S.occupe = false;
+    if (r !== true) {
+      montrer(T("steamu.import.erreur"), [], true);
+      son("rate");
+      return;
+    }
     try {
       Object.keys(localStorage).filter((k) => k.startsWith("pcv-")).forEach((k) => localStorage.removeItem(k));
     } catch (e) {

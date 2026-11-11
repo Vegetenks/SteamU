@@ -1210,6 +1210,7 @@
       const r = b.getBoundingClientRect();
       return r.width > 8 && !b.hidden && !b.closest("[hidden]");
     }).sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+    window.__pcvBarreVise = () => curs >= 0 ? cibles()[curs] : rendre ? document.querySelector("#pcv-barre .rond.loupe") : null;
     const marquer = () => {
       document.querySelectorAll(".pcv-sel").forEach((x) => x.classList.remove("pcv-sel"));
       document.body.classList.toggle("pcv-barre-nav", curs >= 0);

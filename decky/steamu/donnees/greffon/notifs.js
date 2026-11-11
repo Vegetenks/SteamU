@@ -268,6 +268,13 @@
       remise = await backend.call("utilities/install_plugin", archive.url, nom, archive.version, archive.sha256, 2) !== false;
       if (!remise) throw new Error();
       await fin;
+      setTimeout(() => {
+        const S = O?.SteamClient || window.SteamClient;
+        if (!(O?.SteamUIStore || window.SteamUIStore)?.RunningApps?.length) try {
+          S.Browser.RestartJSContext();
+        } catch (e) {
+        }
+      }, 4e3);
     };
     try {
       evenements.forEach(([n, f]) => backend?.addEventListener?.(n, f));
@@ -900,7 +907,6 @@
       return;
     }
     const k = unite(), n = total > 9 ? "9+" : String(total);
-    if (!compteur.hidden && compteur.textContent !== n) window.__pcvAppui(compteur);
     compteur.textContent = n;
     compteur.style.left = `${r.right - 18 * k}px`;
     compteur.style.top = `${r.top - 4 * k}px`;

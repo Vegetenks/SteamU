@@ -1,33 +1,27 @@
 {
- "version": "0.2.7",
- "url": "https://github.com/Vegetenks/SteamU/releases/download/v0.2.7/SteamU-v0.2.7.zip",
- "sha256": "945bd56a31a95f95896cd1f4c1c820d4398ffe03c8cd050d87c999500e593c95",
+ "version": "0.2.8",
+ "url": "https://github.com/Vegetenks/SteamU/releases/download/v0.2.8/SteamU-v0.2.8.zip",
+ "sha256": "0307c390121a6b302fffc168b85b50935b2db0da9a78ed9497c53563ded11a83",
  "notes": {
   "en": [
-   "Media: press X on a screenshot to share it (phone, chat, Steam), save it to Downloads or delete it.",
-   "Chats: images show up, and a copied screenshot can be pasted into a chat.",
-   "Unifideck: install, play and update from the game page, and its games in Storage (thanks lieserlV).",
-   "Battery: the remaining time comes back after sleep.",
-   "HOME menu: a game launched through Heroic really pauses.",
-   "Cleaner Steam menus, and swiping no longer zooms by mistake.",
+   "Unifideck: install and repair Xbox PC games, and GOG, Epic and Xbox achievements (thanks lieserlV).",
+   "One press per gesture, on the right button.",
+   "HOME menu: the game preview shows up, and faster.",
+   "The interface reloads by itself after an update.",
    "Bug fixes."
   ],
   "fr": [
-   "Médiathèque : X sur une capture pour la partager (téléphone, discussion, Steam), l'enregistrer dans Téléchargements ou la supprimer.",
-   "Discussions : les images s'affichent, et une capture copiée se colle dans la discussion.",
-   "Unifideck : installer, jouer, mettre à jour depuis la page du jeu, et ses jeux dans Stockage (merci lieserlV).",
-   "Batterie : le temps restant revient après une mise en veille.",
-   "Menu HOME : un jeu lancé par Heroic se met vraiment en pause.",
-   "Menus de Steam plus propres, et glisser le doigt ne zoome plus par erreur.",
+   "Unifideck : installer et réparer les jeux Xbox PC, et les succès GOG, Epic et Xbox (merci lieserlV).",
+   "Un seul appui par geste, sur le bon bouton.",
+   "Menu HOME : l'aperçu du jeu s'affiche, et plus vite.",
+   "L'interface se recharge seule après une mise à jour.",
    "Corrections de bugs."
   ],
   "es": [
-   "Mediateca: pulsa X en una captura para compartirla (teléfono, chat, Steam), guardarla en Descargas o borrarla.",
-   "Chats: las imágenes se muestran, y una captura copiada se puede pegar en un chat.",
-   "Unifideck: instalar, jugar y actualizar desde la ficha del juego, y sus juegos en Almacenamiento (gracias lieserlV).",
-   "Batería: el tiempo restante vuelve tras la suspensión.",
-   "Menú HOME: un juego lanzado con Heroic se pausa de verdad.",
-   "Menús de Steam más limpios, y deslizar el dedo ya no amplía por error.",
+   "Unifideck: instalar y reparar juegos de Xbox PC, y logros de GOG, Epic y Xbox (gracias lieserlV).",
+   "Una sola pulsación por gesto, en el botón correcto.",
+   "Menú HOME: la vista previa del juego aparece, y más rápido.",
+   "La interfaz se recarga sola tras una actualización.",
    "Corrección de errores."
   ]
  }
