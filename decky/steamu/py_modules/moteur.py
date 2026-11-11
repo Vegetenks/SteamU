@@ -41,8 +41,10 @@ CARTE_JS = r"""(() => { const chunk = window.webpackChunksteamui; if (!chunk) re
       try { m = req(id); } catch (e) { continue; } }
     let vals; try { if (m && m.default && typeof m.default === 'object') m = m.default;
       if (!m || typeof m !== 'object') continue; vals = Object.entries(m); } catch (e) { continue; }
-    const cl = vals.filter(([k, v]) => classe(v));
-    if (cl.length < 2 || cl.length < vals.length * .5) continue; out[id] = Object.fromEntries(cl); }
+    // (12/11) les mesures qu'une feuille exporte avec ses classes (« 1158px », « 800ms ») ne comptent pas : Steam du 11/11
+    // en a ajouté 21 à la feuille de sa racine (BasicUiRoot), sortie de la carte, et notre barre restait sur le jeu
+    const cl = vals.filter(([k, v]) => classe(v)), mesures = vals.filter(([k, v]) => typeof v === 'string' && /^-?[\d.]+[a-z%]*$/.test(v)).length;
+    if (cl.length < 2 || cl.length < (vals.length - mesures) * .5) continue; out[id] = Object.fromEntries(cl); }
   return out; })()"""
 
 def _journal(*a): print(time.strftime("%H:%M:%S"), *a, flush=True)

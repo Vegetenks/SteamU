@@ -1,4 +1,15 @@
 {
+ "0.2.9": {
+  "fr": [
+   "Compatible avec la mise à jour de Steam du 11/11 : elle empêchait certaines parties de l'interface de SteamU de se charger."
+  ],
+  "en": [
+   "Works with the Steam update of 11/11: it prevented some parts of the SteamU interface from loading."
+  ],
+  "es": [
+   "Compatible con la actualización de Steam del 11/11: impedía que se cargaran algunas partes de la interfaz de SteamU."
+  ]
+ },
  "0.2.8": {
   "fr": [
    "Unifideck : installer et réparer les jeux Xbox PC, et les succès GOG, Epic et Xbox (merci lieserlV).",

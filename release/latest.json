@@ -1,28 +1,16 @@
 {
- "version": "0.2.8",
- "url": "https://github.com/Vegetenks/SteamU/releases/download/v0.2.8/SteamU-v0.2.8.zip",
- "sha256": "0307c390121a6b302fffc168b85b50935b2db0da9a78ed9497c53563ded11a83",
+ "version": "0.2.9",
+ "url": "https://github.com/Vegetenks/SteamU/releases/download/v0.2.9/SteamU-v0.2.9.zip",
+ "sha256": "970d9cafdb04507fb23ecde2cc65930875287d4782dfb804b34719be7209c77e",
  "notes": {
   "en": [
-   "Unifideck: install and repair Xbox PC games, and GOG, Epic and Xbox achievements (thanks lieserlV).",
-   "One press per gesture, on the right button.",
-   "HOME menu: the game preview shows up, and faster.",
-   "The interface reloads by itself after an update.",
-   "Bug fixes."
+   "Works with the Steam update of 11/11: it prevented some parts of the SteamU interface from loading."
   ],
   "fr": [
-   "Unifideck : installer et réparer les jeux Xbox PC, et les succès GOG, Epic et Xbox (merci lieserlV).",
-   "Un seul appui par geste, sur le bon bouton.",
-   "Menu HOME : l'aperçu du jeu s'affiche, et plus vite.",
-   "L'interface se recharge seule après une mise à jour.",
-   "Corrections de bugs."
+   "Compatible avec la mise à jour de Steam du 11/11 : elle empêchait certaines parties de l'interface de SteamU de se charger."
   ],
   "es": [
-   "Unifideck: instalar y reparar juegos de Xbox PC, y logros de GOG, Epic y Xbox (gracias lieserlV).",
-   "Una sola pulsación por gesto, en el botón correcto.",
-   "Menú HOME: la vista previa del juego aparece, y más rápido.",
-   "La interfaz se recarga sola tras una actualización.",
-   "Corrección de errores."
+   "Compatible con la actualización de Steam del 11/11: impedía que se cargaran algunas partes de la interfaz de SteamU."
   ]
  }
 }

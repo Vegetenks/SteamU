@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.9 (2026-11-12)
+
+- **Works with the Steam update of 11/11**: it prevented some parts of the SteamU interface from loading.
+
 ## v0.2.8 (2026-11-11)
 
 Last fixes before v0.3 (pull request #27 by @lieserlV, plus problems found by the maintainer).
