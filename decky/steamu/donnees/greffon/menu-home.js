@@ -13,6 +13,7 @@
   const APPLIS = [
     ["aller:accueil", T("spaces.accueil.nom", "Accueil"), "accueil", "#5fd0ff, #1a9ae6"],
     ["aller:bibliotheque", T("spaces.bibliotheque.nom", "Biblioth\xE8que"), "bibliotheque", "bibliotheque"],
+    ["steamcord", "Steamcord", "steamcord", "#5865f2, #3b45c4"],
     ["appli:eshop", T("spaces.boutique.nom", "Boutique"), "boutique", "eshop"],
     ["amis", T("spaces.amis.nom", "Amis"), "amis", "#5fe39a, #22a85f"],
     ["notifs", T("spaces.notifs.nom", "Notifications"), "notifications", "#ff7a7e, #e5484d"],
@@ -27,6 +28,20 @@
     } catch (x) {
     }
     return (/^(#|var)/.test(f) ? f : F[f]?.fond || "#c5cdd8, #8b9098").split(/,(?![^(]*\))/);
+  };
+  // (Steamcord) la tuile n'est montrée que si le plugin Steamcord est chargé : il s'inscrit dans __necroSteamMenuV1 (contexte
+  // partagé de Steam, O), et se retire de lui-même s'il est déchargé. Masquée, elle ne prend pas de place et reste hors du curseur.
+  const steamcordPresent = () => {
+    try {
+      return !!O.__necroSteamMenuV1?.entries?.has("steamcord");
+    } catch (x) {
+      return false;
+    }
+  };
+  const majSteamcord = () => {
+    const present = steamcordPresent();
+    e.racine.querySelector('.icone[data-a="steamcord"]').style.display = present ? "" : "none";
+    e.racine.querySelector(".icones").classList.toggle("neuf", present);
   };
   const peindreFonds = () => e.racine.querySelectorAll(".icone").forEach((el, i) => {
     const [haut, bas] = fondDe(APPLIS[i][3]);
@@ -471,6 +486,10 @@
         }
       }
       if (k === "aller") return O.__pcvAller?.(v);
+      if (k === "steamcord") {
+        fermerMenu();
+        return setTimeout(() => B.ouvrirSteamcord?.(), 300);
+      }
       if (k === "mode-emploi") {
         fermerMenu();
         return setTimeout(() => {
@@ -509,6 +528,7 @@
     ouvrir: () => {
       remettre();
       peindreFonds();
+      majSteamcord();
       peindreManettes();
       const a = jeu(), p = !a && appli();
       e.racine.classList.toggle("en-jeu", !!a);
