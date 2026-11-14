@@ -507,6 +507,14 @@
     };
     // (Doublons) les autres copies du jeu (autres boutiques d'Unifideck, versions Steam possédées), sans la copie ouverte
     const copiesDe = (g) => g && !g.emu ? window.__pcvBridge?.unifideck?.doublons?.(g.a)?.filter((c) => !c.soi) || [] : [];
+    // Unifideck donne l'appid d'un jeu tantôt signé (négatif), tantôt non signé ; la bibliothèque l'indexe d'une seule façon :
+    // on cherche la copie sous les deux formes (comme formes() dans le bloc Unifideck)
+    const copieParId = (id) => {
+      const n = Number(id);
+      if (!Number.isFinite(n)) return null;
+      for (const k of n < 0 ? [n, n + 4294967296] : n > 2147483647 ? [n, n - 4294967296] : [n]) if (parId.has(k)) return parId.get(k);
+      return null;
+    };
     const romDe = (g) => !!g.emu || window.__pcvJeux.raccourci(g.a);
     const GRIS = "#8b94a3", COULEURS = {
       jouer: "var(--pcv-vert)",
@@ -1046,7 +1054,7 @@
       CONTENUS.unifideck = (g) => UF.rubrique2(g);
     }
     CONTENUS.copies = (g) => copiesDe(g).map((c) => {
-      const g2 = parId.get(c.appid) || parId.get(c.appid | 0);
+      const g2 = copieParId(c.appid);
       return rg("boutique", nomCopie(c), c.inst ? T2("uf.copie_inst") : "", g2 ? val(T2("biblio.ouvrir")) : "", g2 ? () => ouvrirPage(g2, [g2]) : null);
     }).join("");
     const RICHES = /* @__PURE__ */ new Set(["jouer", "infos", "succes"]);
