@@ -656,9 +656,13 @@
       const chargerInfo = (g, force = false) => {
         let i = infos.get(g.id);
         if (!i) infos.set(g.id, i = { d: null, cours: false, t: 0, fait: false });
-        if (i.cours || !force && (i.fait || Date.now() - i.t < 5e3)) return i;
+        // (Xbox PC) Un jeu vu « cloud » puis installé (depuis Unifideck ou ici) doit changer d'état : l'info n'est plus gardée
+        // pour toujours, elle est relue quand la liste d'Unifideck a changé (version du pont) ou après 30 s.
+        const ver = window.__pcvBridge?.unifideck?.version?.() ?? 0;
+        if (i.cours || !force && (i.fait ? i.ver === ver && Date.now() - i.t < 3e4 : Date.now() - i.t < 5e3)) return i;
         i.cours = true;
         i.t = Date.now();
+        i.ver = ver;
         (async () => {
           let d = null;
           for (const f of formes(g.id)) {
