@@ -175,7 +175,7 @@
       if (r < 19) return { src: "gog", lanceur: "Heroic", img: i % 2 > 0, inst: i % 3 === 0 };
       return { src: "autre", img: false, inst: true };
     };
-    let tous = [], filtres = [], bases = [], manquants = [], enDetails = false, casse = false, parId = /* @__PURE__ */ new Map();
+    let tous = [], filtres = [], bases = [], manquants = [], enDetails = false, casse = false, parId = /* @__PURE__ */ new Map(), visibles = [];
     const { lettreDe } = window.__pcvPresentation;
     const charger = () => {
       const J = window.__pcvJeux, coll2 = new Intl.Collator(loc(), { numeric: true, sensitivity: "base" });
@@ -203,13 +203,15 @@
         };
       }).filter((g) => !g.auth).sort((x, y) => coll2.compare(x.cle, y.cle));
       parId = new Map(tous.map((g) => [g.id, g]));
-      const par = (test) => tous.filter(test);
+      const D = window.__pcvDoublons;
+      visibles = D?.actif() ? tous.filter((g) => !D.masque(g.a)) : tous;
+      const par = (test) => visibles.filter(test);
       const cols = (O.collectionStore?.userCollections || []).filter((c) => !/^(local-install|uncategorized|type-|hidden)/.test(c.id)).map((c) => {
         const ids = new Set((c.allApps || []).map((a) => a.appid));
         return { cle: "c:" + c.id, nom: c.displayName, ic: "epingle", col: true, l: par((g) => ids.has(g.id)), garder: c.bIsEditable && !c.bIsDynamic };
       }).filter((f) => f.l.length || f.garder);
       const sources = SOURCES.map((s) => ({ cle: s, nom: nomSource(s), ic: picto({ src: s }), l: par((g) => g.src === s) })).filter((f) => f.l.length);
-      filtres = [{ cle: "tous", nom: T2("biblio.tous"), ic: "bibliotheque", l: tous }, { cle: "installes", nom: T2("biblio.installes"), ic: "disque", l: par((g) => g.inst) }, ...sources, ...cols];
+      filtres = [{ cle: "tous", nom: T2("biblio.tous"), ic: "bibliotheque", l: visibles }, { cle: "installes", nom: T2("biblio.installes"), ic: "disque", l: par((g) => g.inst) }, ...sources, ...cols];
       const recents = par((g) => g.der).sort((x, y) => y.der - x.der);
       bases = [
         ...recents.length ? [{ cle: "recents", nom: T2("biblio.recents"), ic: "horloge", l: recents, vus: recents }] : [],
@@ -502,9 +504,11 @@
       else window.__pcvSon?.("bord");
     };
     const romDe = (g) => !!g.emu || window.__pcvJeux.raccourci(g.a);
-    const GRIS = "#8b94a3", COULEURS = {
+    const copiesDe = (g) => g && !g.emu ? window.__pcvDoublons?.doublons(g.a).filter((c) => !c.soi) || [] : [];
+    const GRIS = "#8b94a3", BLEU_UF = "#2a8cff", COULEURS = {
       jouer: "var(--pcv-vert)",
-      unifideck: "#2a8cff",
+      unifideck: BLEU_UF,
+      copies: BLEU_UF,
       infos: "#1a9ae6",
       succes: "var(--pcv-orange)",
       manette: "#5b6676",
@@ -520,6 +524,7 @@
       return [
         ["jouer", loinDe(g) ? "nuage" : g.inst ? "lecture" : "telechargements"],
         ...estUnifideck(g.id) ? [["unifideck", "boutique"]] : [],
+        ...copiesDe(g).length ? [["copies", "bibliotheque"]] : [],
         ...rom ? [] : [["infos", "info"]],
         // (un raccourci : Steam n'en sait rien)
         ...SUCCES.get(g.id) ? [["succes", "trophee"]] : [],
@@ -533,6 +538,7 @@
     const NOMS = {
       infos: "biblio.r_infos",
       unifideck: "uf.rubrique",
+      copies: "uf.copies",
       succes: "biblio.r_succes",
       manette: "biblio.r_manette",
       proprietes: "biblio.r_proprietes",
@@ -656,9 +662,11 @@
       const chargerInfo = (g, force = false) => {
         let i = infos.get(g.id);
         if (!i) infos.set(g.id, i = { d: null, cours: false, t: 0, fait: false });
-        if (i.cours || !force && (i.fait || Date.now() - i.t < 5e3)) return i;
+        const ver = window.__pcvBridge?.unifideck?.version?.() ?? 0;
+        if (i.cours || !force && (i.fait ? i.ver === ver && Date.now() - i.t < 3e4 : Date.now() - i.t < 5e3)) return i;
         i.cours = true;
         i.t = Date.now();
+        i.ver = ver;
         (async () => {
           let d = null;
           for (const f of formes(g.id)) {
@@ -1034,6 +1042,16 @@
       CONTENUS.jouer = (g) => base(g) + (estUnifideck(g.id) ? UF.bloc(g) : "");
       CONTENUS.desinstaller = (g) => estUnifideck(g.id) ? rg("supprimer", T2("biblio.desinstaller_t"), g.taille ? taille(g.taille) : "", val(T2("biblio.r_desinstaller")), () => confirmer(T2("biblio.r_desinstaller"), () => UF.desinstaller(g), "suppr")) : desBase(g);
       CONTENUS.unifideck = (g) => UF.rubrique2(g);
+      CONTENUS.copies = (g) => copiesDe(g).map((c) => {
+        const g2 = PB().unifideck.formes(c.appid).map((k) => parId.get(k)).find(Boolean);
+        return rg(
+          "boutique",
+          BOUTIQUES[{ microsoft: "xbox", itch: "itchio" }[c.store] || c.store] || c.store,
+          [c.edition, c.inst ? T2("uf.copie_inst") : ""].filter(Boolean).join(", "),
+          g2 ? val(T2("biblio.ouvrir")) : "",
+          g2 ? () => ouvrirPage(g2, [g2]) : null
+        );
+      }).join("");
     }
     const RICHES = /* @__PURE__ */ new Set(["jouer", "infos", "succes"]);
     const origineDe = () => {
@@ -1077,7 +1095,7 @@
       tuile,
       peindre,
       // la porte « Toute la bibliothèque » : les trois derniers jeux joués (avec une image), en éventail comme la maquette
-      porte: () => ({ liste: [...tous].filter((g) => g.img).sort((x, y) => y.der - x.der), titre: T2("biblio.toute"), nombre: nb(tous.length), ouvrir: () => ouvrirGrille(filtres[0], true) }),
+      porte: () => ({ liste: [...visibles].filter((g) => g.img).sort((x, y) => y.der - x.der), titre: T2("biblio.toute"), nombre: nb(visibles.length), ouvrir: () => ouvrirGrille(filtres[0], true) }),
       etageres: () => bases.map((f) => ({
         cle: f.cle,
         titre: f.nom,

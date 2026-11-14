@@ -1,4 +1,4 @@
-import base64, json, os, pathlib, shutil, sys, threading
+import base64, json, os, pathlib, re, shutil, sys, threading
 import decky
 
 ICI = pathlib.Path(__file__).resolve().parent
@@ -57,7 +57,7 @@ class Plugin:
         import paquet
         try: decky.logger.info("SteamU : entrée Decky " + json.dumps(paquet.verifier(ICI)))
         except ValueError as e: decky.logger.error("SteamU : " + str(e))
-        v = ".".join(json.loads((ICI / "package.json").read_text())["version"].split(".")[:3])
+        v = re.sub(r"^(\d+\.\d+\.\d+)\.\d+$", r"\1", json.loads((ICI / "package.json").read_text())["version"])   
         notes = ICI / "nouveautes.json"
         moteur.GREFFON_JS += ";window.__pcvGreffon.nouveautes = " + json.dumps({"version": v,
             "notes": json.loads(notes.read_text(encoding="utf-8")).get(v, {}) if notes.exists() else {}})
@@ -282,6 +282,17 @@ class Plugin:
         except Exception as e:
             decky.logger.warning(f"spotpass {action} : {e}")
             return {"erreur": "console"}
+
+    async def annonces(self):
+        import asyncio, spotpass
+        try:
+            r = await asyncio.get_running_loop().run_in_executor(None, spotpass._requete, "GET", "/annonces")
+            if isinstance(r, dict) and "annonces" in r:
+                import eshop, maj
+                r["annonces"] = maj.annonces_sures(r["annonces"], json.loads((ICI / "package.json").read_text()).get("version", ""), eshop.CLE_SOURCES)
+            return r
+        except Exception:
+            return {}  
 
     async def paroles(self, artiste, titre, album="", duree=0):
         import asyncio, paroles
@@ -699,19 +710,28 @@ class Plugin:
             decky.logger.warning(f"SteamU : détection des conflits manquée ({type(e).__name__})"); actifs = {}
         return {"actifs": actifs, "nouveau": nouveau and bool(actifs)}
 
-    async def maj_verifier(self, manifeste=""):
+    async def maj_verifier(self, manifeste="", canal="stable"):
         import asyncio, maj, urllib.error
         garde = getattr(self, "_maj", None)
-        if garde and garde[0] == manifeste: return garde[1]
+        if garde and garde[0] == (manifeste, canal): return garde[1]
         try:
             v = json.loads((ICI / "package.json").read_text()).get("version", "")
-            r = await asyncio.get_running_loop().run_in_executor(None, maj.verifier, v, manifeste)
+            r = await asyncio.get_running_loop().run_in_executor(None, *(
+                (maj.verifier_canal, v, canal) if canal in maj.CANAUX[1:] else (maj.verifier, v, manifeste)))
         except urllib.error.HTTPError as e:   
             decky.logger.info(f"mise à jour : pas de manifeste ({e.code})"); r = {}
         except Exception as e:
             decky.logger.info(f"mise à jour : manifeste illisible ({type(e).__name__} {getattr(e, 'reason', '')})"); return None   
-        self._maj = (manifeste, r)
+        self._maj = ((manifeste, canal), r)
         return r
+
+    async def maj_publication(self, version=""):
+        import asyncio, maj
+        try:
+            r = await asyncio.get_running_loop().run_in_executor(None, maj.trouver, version)
+            return r if not version or maj.plus_recente(version, json.loads((ICI / "package.json").read_text()).get("version", "")) else {}
+        except Exception as e:
+            decky.logger.info(f"publication {str(version)[:20]} illisible ({type(e).__name__})"); return None
 
     async def _uninstall(self):
         if sys.platform != "linux": return

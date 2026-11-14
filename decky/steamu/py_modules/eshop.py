@@ -13,6 +13,7 @@ UA = "SteamU/1.0 (personal Steam theme; eShop, public Decky plugin catalogues)"
 CACHE = 1800
 VERROU = threading.Lock()
 CATALOGUES = {"plugins.deckbrew.xyz", "safetzahirovic.github.io"}
+CLE_SOURCES = bytes.fromhex("a1de12f5bbf334150ac663141bb34714376a810183b16f0a6a8be56906a1e064")
 
 def adresse(valeur, domaines=None):
     try:

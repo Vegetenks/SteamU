@@ -465,7 +465,7 @@ html:is([data-pcv-apparence="gris"], [data-pcv-apparence="noir"]) .pcv-marque-re
 
 :where(html:not([data-pcv-apparence="gris"]):not([data-pcv-apparence="noir"]))
 :where({{PagedSettingDialog_ContentColumn@PagedSettingsDialog_PageList}} *,
-  .ModalOverlayContent {{GamepadDialogContent@ModalPosition}} *) {
+  .ModalOverlayContent:where(:not(:has(.sc-xv-side))) {{GamepadDialogContent@ModalPosition}} *) {
   color: inherit !important;
 }
 
@@ -2200,7 +2200,7 @@ body[data-pcv-page=recherche] {{SearchAndTitleContainer@SearchBox}}::after { z-i
 {{miniProfilePlayer@playerContent}} img { border-radius: 50% !important; box-shadow: 0 0 0 calc(var(--u) * 3) var(--pcv-lisere) !important; }
 
 .FullModalOverlay { z-index: 20000 !important; }   
-.ModalOverlayBackground, .FullModalOverlay > .ModalOverlayBackground { background: var(--pcv-voile) !important; backdrop-filter: blur(calc(var(--u) * 3)) !important; }
+.ModalOverlayBackground:where(:not(.FullModalOverlay:has(.sc-xv-side) *)), .FullModalOverlay > .ModalOverlayBackground:where(:not(.FullModalOverlay:has(.sc-xv-side) *)) { background: var(--pcv-voile) !important; backdrop-filter: blur(calc(var(--u) * 3)) !important; }
 
 :is({{ControllerConfiguratorMain@ControllerConfiguratorGamepadPage}}, {{TopSection@ControllerConfiguratorMain}}, {{ControllerConfiguratorBackgroundContainer@ControllerConfiguratorMain}}) {
   background: var(--pcv-fond-page) !important; color: var(--pcv-texte) !important;
@@ -2221,21 +2221,21 @@ body[data-pcv-page=recherche] {{SearchAndTitleContainer@SearchBox}}::after { z-i
   box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 8px 20px color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent) !important;
 }
 
-.ModalOverlayContent {{GamepadDialogContent@ModalPosition}} {
+.ModalOverlayContent:where(:not(:has(.sc-xv-side))) {{GamepadDialogContent@ModalPosition}} {
   background: var(--pcv-verre) !important; box-shadow: var(--pcv-reflet), var(--pcv-ombre) !important; border: 0 !important; border-radius: calc(var(--u) * 30) !important;
   padding: calc(var(--u) * 28) calc(var(--u) * 32) calc(var(--u) * 30) !important; color: var(--pcv-texte) !important; font-family: var(--pcv-police) !important;
   width: auto !important; max-width: calc(var(--u) * 820) !important; overflow: visible !important;
 }
-.ModalOverlayContent {{GamepadDialogContent@ModalPosition}} * { font-family: var(--pcv-police) !important; text-shadow: none !important; }
-.ModalOverlayContent {{GamepadDialogContent@ModalPosition}} .DialogHeader {
+.ModalOverlayContent:where(:not(:has(.sc-xv-side))) {{GamepadDialogContent@ModalPosition}} * { font-family: var(--pcv-police) !important; text-shadow: none !important; }
+.ModalOverlayContent:where(:not(:has(.sc-xv-side))) {{GamepadDialogContent@ModalPosition}} .DialogHeader {
   color: var(--pcv-texte) !important; font-size: calc(var(--u) * 24) !important; font-weight: 900 !important; text-transform: none !important; letter-spacing: 0 !important;
   padding: 0 0 calc(var(--u) * 16) !important; margin: 0 !important; background: none !important;
 }
-.ModalOverlayContent {{GamepadDialogContent@ModalPosition}} .DialogSubHeader {
+.ModalOverlayContent:where(:not(:has(.sc-xv-side))) {{GamepadDialogContent@ModalPosition}} .DialogSubHeader {
   color: var(--pcv-texte2) !important; font-size: calc(var(--u) * 14) !important; font-weight: 900 !important; text-transform: none !important; letter-spacing: 0 !important; margin: 0 0 calc(var(--u) * 12) !important;
 }
-.ModalOverlayContent {{GamepadDialogContent@ModalPosition}} .DialogFooter { margin-top: calc(var(--u) * 24) !important; padding: 0 !important; background: none !important; border: 0 !important; display: flex !important; justify-content: flex-end !important; }
-.ModalOverlayContent {{GamepadDialogContent@ModalPosition}} .DialogButton {
+.ModalOverlayContent:where(:not(:has(.sc-xv-side))) {{GamepadDialogContent@ModalPosition}} .DialogFooter { margin-top: calc(var(--u) * 24) !important; padding: 0 !important; background: none !important; border: 0 !important; display: flex !important; justify-content: flex-end !important; }
+.ModalOverlayContent:where(:not(:has(.sc-xv-side))) {{GamepadDialogContent@ModalPosition}} .DialogButton {
   width: auto !important; min-width: calc(var(--u) * 160) !important; height: calc(var(--u) * 46) !important; padding: 0 calc(var(--u) * 28) !important; border-radius: 999px !important; border: 0 !important;
   background: var(--pcv-verre) !important; box-shadow: var(--pcv-reflet), var(--pcv-ombre) !important; color: var(--pcv-texte) !important; font-size: calc(var(--u) * 16) !important; font-weight: 900 !important;
 }
@@ -2252,8 +2252,8 @@ body[data-pcv-page=recherche] {{SearchAndTitleContainer@SearchBox}}::after { z-i
 {{QuickAccessMenu@PanelOuterNav}} {{TabGroupPanel@QuickAccessMenu}} .gpfocus:not(.DialogButton):not(:has(.gpfocus)) {
   box-shadow: var(--pcv-anneau-choisi) !important; border-radius: calc(var(--u) * 16) !important; }
 
-.ModalOverlayContent {{GamepadDialogContent@ModalPosition}} .DialogBody, .ModalOverlayContent {{GamepadDialogContent@ModalPosition}} .DialogBodyText { color: var(--pcv-texte) !important; background: none !important; overflow: visible !important; }
-.ModalOverlayContent {{GamepadDialogContent@ModalPosition}} .DialogButton.gpfocus, .ModalOverlayContent {{GamepadDialogContent@ModalPosition}} .DialogButton:hover {
+.ModalOverlayContent:where(:not(:has(.sc-xv-side))) {{GamepadDialogContent@ModalPosition}} .DialogBody, .ModalOverlayContent:where(:not(:has(.sc-xv-side))) {{GamepadDialogContent@ModalPosition}} .DialogBodyText { color: var(--pcv-texte) !important; background: none !important; overflow: visible !important; }
+.ModalOverlayContent:where(:not(:has(.sc-xv-side))) {{GamepadDialogContent@ModalPosition}} .DialogButton.gpfocus, .ModalOverlayContent:where(:not(:has(.sc-xv-side))) {{GamepadDialogContent@ModalPosition}} .DialogButton:hover {
   background: var(--pcv-cyan) !important; color: var(--pcv-sur-accent) !important;
   box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), inset 0 -6px 10px -6px rgba(0,40,90,.25), 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 7) color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 22) color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent) !important;
 }

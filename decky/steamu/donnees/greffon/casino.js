@@ -12767,15 +12767,19 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     const fond = (PINCE.rail + 14 + GEO_VRAIE.Lmax + GEO_VRAIE.pointe - Y_ECRAN) / E_, coin = (xminDe(m) + pointBras(-1, 1, BRAS.pointe)[0]) / E_, droite = (geoDe(m).x0 + pointBras(1, 1, BRAS.pointe)[0] - GEO_VRAIE.rBout) / E_;
     return m.monde.corps.filter((c) => {
       const q = c.pb?.lire(), bo = c.pb?.boite();
-      return q && Math.hypot(q.x - c.lot.x, q.y - c.lot.y) > c.r / E_ / 2 && (q.y - c.r / E_ > fond || bo[0] < coin + GEO_VRAIE.rBout / E_ || bo[2] > droite || m.monde.phys.couvert(c.pb));
+      return q && bouge(c, q) && (q.y - c.r / E_ > fond || bo[0] < coin + GEO_VRAIE.rBout / E_ || bo[2] > droite);
     });
+  };
+  const bouge = (c, q) => {
+    const o = c.remis ? c.repos ||= q : c.lot;
+    return Math.hypot(q.x - o.x, q.y - o.y) > c.r / E_ / 2;
   };
   const REASSORT = { parties: 3, mouvement: 3, attente: 1.2 };
   const verifierBorne = (m, partie = false) => {
     if (!m.monde.phys || !m.monde.corps.length || m.jeu.etat !== "attente") return;
     const immobile = !m.jeu.gains.length && m.monde.corps.every((c) => Math.hypot(c.parts[0].x - c.xDebut, c.parts[0].y - c.yDebut) < REASSORT.mouvement && Math.abs(c.ang - c.angleDebut) * c.r < REASSORT.mouvement);
     if (partie) m.sansMouvement = immobile ? (m.sansMouvement || 0) + 1 : 0;
-    const coinces = m.monde.corps.filter((c) => c.pb && !c.pb.corps.isAwake() && dansChute(m, c.parts.reduce((t, p) => t + p.x, 0) / c.parts.length));
+    const coinces = m.monde.corps.filter((c) => c.pb && !c.pb.corps.isAwake() && (!c.remis || bouge(c, c.pb.lire())) && dansChute(m, c.parts.reduce((t, p) => t + p.x, 0) / c.parts.length));
     const bloques = [.../* @__PURE__ */ new Set([...horsDePortee(m), ...coinces])];
     if (!bloques.length && !(m.sansMouvement >= REASSORT.parties)) return;
     m.aReplacer = bloques.length && m.sansMouvement < REASSORT.parties ? bloques : m.monde.corps.slice();
@@ -12789,8 +12793,10 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
       retirerCorps(m.monde, c);
       (m.aRemettre ||= []).push(c.id);
     }
+    const ids = new Set(m.aRemettre);
     m.aReplacer = [];
     m.aRemettre = regarnir(m, m.aRemettre || []);
+    for (const c of m.monde.corps) if (ids.has(c.id)) c.remis = true;
     m.jeu.etat = "attente";
     m.jeu.t = 0;
   };
@@ -12995,7 +13001,7 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     return y;
   };
   const RAYON_MEDIAN = 48;
-  const EMPAN_IMAGE = 128, RAYON_COLLECTION = EMPAN_IMAGE / 2 / 1.06, LISERE_IMAGE = 4, formesImages = /* @__PURE__ */ new Map();
+  const EMPAN_IMAGE = 128, RAYON_COLLECTION = EMPAN_IMAGE / 2 / 1.06, LISERE_IMAGE = 0, formesImages = /* @__PURE__ */ new Map();
   const BANDES_IMAGE = 4;
   const formeImage = (id, im) => {
     if (formesImages.has(id)) return formesImages.get(id);
@@ -13067,7 +13073,7 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     ajouterCorps(m.monde, c, x + dx * Math.cos(a) - dy * Math.sin(a), y + dx * Math.sin(a) + dy * Math.cos(a), a);
     if (m.monde.phys) {
       c.pw = m.monde.phys;
-      c.pb = c.pw.badge({ polys: c.vrai?.polys, r: c.r / E_, x: l.x, y: l.y, ech: c.ech / E_, rot: a, fige: fige && c.accroche, phys: l.phys, donnees: c });
+      c.pb = c.pw.badge({ polys: c.vrai?.polys, r: c.r / E_, x: l.x, y: l.y, ech: c.ech / E_, rot: a, fige, phys: l.phys, donnees: c });
       if (c.id) quandPrete(image(c.id), (im) => {
         const P = formeImage(c.id, im);
         if (P && c.pw.badges.has(c.pb)) {
@@ -13128,7 +13134,22 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
       poserCorps(m, c, l, !l.grav);
       croiser(m.monde.corps, [c]);
     }
+    for (const id of reste.splice(0)) {
+      const l = L.reduce((a, b) => degage(m, b) > degage(m, a) ? b : a, L[0]);
+      if (!l) {
+        reste.push(id);
+        continue;
+      }
+      const c = corpsVrai(m, l, id, !!m.entrainement);
+      c.nait = horloge;
+      poserCorps(m, c, l, !l.grav);
+      croiser(m.monde.corps, [c]);
+    }
     return reste;
+  };
+  const degage = (m, l) => {
+    const [x, y] = ecranVersMonde(l.x, l.y);
+    return m.monde.parts.reduce((d, p) => Math.min(d, Math.hypot(p.x - x, p.y - y) - p.r), 1e9);
   };
   const FERMEE = /* @__PURE__ */ new Set(["fermeture", "montee", "transport"]);
   const PRISE_COMPTE = /* @__PURE__ */ new Set(["fermeture", "montee", "transport", "lacher", "largage", "souffle"]);
@@ -13644,8 +13665,10 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
         }
         feter(m, c);
         if (m.jeu.etat === "attente") finPartie(m);
-      } else if (m.vraie) (m.aRemettre ||= []).push(c.id);
-      else remplirAvec(m, c);
+      } else if (m.vraie) {
+        (m.aRemettre ||= []).push(c.id);
+        if (mo.phys && m.jeu.etat === "attente") m.aRemettre = regarnir(m, m.aRemettre);
+      } else remplirAvec(m, c);
     }
   };
   const SANS_CHOC = /* @__PURE__ */ new Set(["fermeture", "montee", "transport"]);
@@ -15024,8 +15047,10 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     } }
   };
   const decorDe = (m) => DECORS[m.theme] || null;
-  const autocollant = (im, carton, z = 4) => {
-    const s = agrandir(im, Math.round(Math.log2(z)), false), w = s.width, h = s.height, m = 8 * z, [c, x] = toile(w + 2 * m, h + 2 * m), sx = s.getContext("2d");
+  const BORD_AUTOCOLLANT = 8;
+  const BORD_BORNE = 3;
+  const autocollant = (im, carton, z = 4, largeur = BORD_AUTOCOLLANT) => {
+    const s = agrandir(im, Math.round(Math.log2(z)), false), w = s.width, h = s.height, m = largeur * z, [c, x] = toile(w + 2 * m, h + 2 * m), sx = s.getContext("2d");
     if (carton) {
       const d = sx.getImageData(0, 0, w, h), p = d.data, A = [181, 131, 74], B = [226, 191, 134];
       for (let i = 0; i < p.length; i += 4) {
@@ -18152,14 +18177,14 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     o.quaternion.setFromUnitVectors(Yh, d.normalize());
   };
   const matsAuto = /* @__PURE__ */ new Map();
-  const matAutocollant = (id, carton, f) => {
-    const cle = (carton ? "c:" : "") + id;
+  const matAutocollant = (id, carton, f, bord = BORD_AUTOCOLLANT) => {
+    const cle = (carton ? "c:" : "") + bord + ":" + id;
     let e = matsAuto.get(cle);
     if (!e) {
       e = { mat: null, ombre: null, marge: 0, attente: [] };
       matsAuto.set(cle, e);
       quandPrete(image(id), (im) => {
-        const a = autocollant(im, carton), t = texture(a.c, { bord: true, flipY: true });
+        const a = autocollant(im, carton, 4, bord), t = texture(a.c, { bord: true, flipY: true });
         e.mat = basique({ map: t, alphaTest: 0.5 });
         e.ombre = basique({ map: t, color: 0, transparent: true, opacity: 0.3, depthWrite: false });
         e.marge = a.marge;
@@ -18186,7 +18211,7 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
       bo.interieur.add(g);
       c.o3 = g;
       bo.badges.set(c, g);
-    });
+    }, BORD_BORNE);
   };
   const texVraies = /* @__PURE__ */ new Map();
   const matVrai = (c, f) => {

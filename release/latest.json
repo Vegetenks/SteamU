@@ -1,16 +1,31 @@
 {
- "version": "0.2.9",
- "url": "https://github.com/Vegetenks/SteamU/releases/download/v0.2.9/SteamU-v0.2.9.zip",
- "sha256": "970d9cafdb04507fb23ecde2cc65930875287d4782dfb804b34719be7209c77e",
+ "version": "0.2.10",
+ "url": "https://github.com/Vegetenks/SteamU/releases/download/v0.2.10/SteamU-v0.2.10.zip",
+ "sha256": "ee536cc6bc2035468b8c6dde6ef03ec7f17b76afcaa44d45f6af37e1f934ce78",
  "notes": {
   "en": [
-   "Works with the Steam update of 11/11: it prevented some parts of the SteamU interface from loading."
+   "Announcements: SteamU can receive news from the project (Settings › SteamU › Privacy to turn them off).",
+   "Updates: a section in Settings › SteamU to choose the channel (stable, release candidate, beta, alpha).",
+   "Unifideck: group the copies of a game owned on several stores, with \"Other stores\" on its page (thanks lieserlV).",
+   "Touching behind a window closes it without pressing the button underneath.",
+   "Badge Arcade: badges float like in the original game, no longer get stuck, and Luigi no longer keeps putting them back.",
+   "Home: a tile picked up with a finger to move it keeps its rounded corners."
   ],
   "fr": [
-   "Compatible avec la mise à jour de Steam du 11/11 : elle empêchait certaines parties de l'interface de SteamU de se charger."
+   "Annonces : SteamU peut recevoir les nouvelles du projet (Paramètres › SteamU › Confidentialité pour les couper).",
+   "Mises à jour : une rubrique dans Paramètres › SteamU pour choisir le canal (stable, candidate, bêta, alpha).",
+   "Unifideck : regrouper les copies d'un jeu présent sur plusieurs boutiques, avec « Autres boutiques » sur sa page (merci lieserlV).",
+   "Toucher derrière une fenêtre la ferme sans appuyer sur le bouton caché dessous.",
+   "Badge Arcade : les badges flottent comme dans le jeu d'origine, ne se coincent plus, et Luigi ne les replace plus en boucle.",
+   "Accueil : une tuile prise au doigt pour la déplacer garde ses coins arrondis."
   ],
   "es": [
-   "Compatible con la actualización de Steam del 11/11: impedía que se cargaran algunas partes de la interfaz de SteamU."
+   "Anuncios: SteamU puede recibir las novedades del proyecto (Ajustes › SteamU › Privacidad para desactivarlos).",
+   "Actualizaciones: una sección en Ajustes › SteamU para elegir el canal (estable, candidata, beta, alfa).",
+   "Unifideck: agrupar las copias de un juego presente en varias tiendas, con «Otras tiendas» en su página (gracias lieserlV).",
+   "Tocar detrás de una ventana la cierra sin pulsar el botón que hay debajo.",
+   "Badge Arcade: las chapas flotan como en el juego original, ya no se atascan y Luigi ya no las recoloca sin parar.",
+   "Inicio: un mosaico tomado con el dedo para moverlo conserva sus esquinas redondeadas."
   ]
  }
 }

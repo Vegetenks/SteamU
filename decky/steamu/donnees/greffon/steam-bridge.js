@@ -118,6 +118,28 @@ window.__pcvVoile = /* @__PURE__ */ (() => {
     document.documentElement.classList.toggle("pcv-voile", ouvertes.size > 0);
   };
 })();
+if (!window.__pcvDerriere) {
+  const GARDE_MS = 350;
+  let garde = null;
+  const avaler = (e) => {
+    if (!garde) return;
+    const t = performance.now();
+    if (t > garde.fin) {
+      garde = null;
+      return;
+    }
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if ((e.type === "pointerup" || e.type === "pointercancel") && e.pointerId === garde.id) garde.fin = t + GARDE_MS;
+  };
+  for (const t of ["pointerdown", "pointerup", "pointercancel", "mousedown", "mouseup", "click", "touchend", "contextmenu"]) window.addEventListener?.(t, avaler, true);
+  window.__pcvDerriere = (voile, fermer) => voile.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    garde = { id: e.pointerId, fin: performance.now() + 5e3 };
+    fermer();
+  });
+}
 window.__pcvApparition = /* @__PURE__ */ (() => {
   let j;
   return (el, sortie = false, boite, fin) => {
@@ -546,8 +568,9 @@ window.__pcvBridge = (() => {
           }
         }
         const meme = (a, b) => a.size === b.size && [...a].every((k) => b.has(k));
-        if (m.size !== u.jeux.size || !meme(nuage, u.nuage) || !meme(pc, u.pc) || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
-        Object.assign(u, { jeux: m, nuage, pc, ok: true, echecs: 0, erreur: "" });
+        const dbl = window.__pcvDoublons?.grouper(l) || null;
+        if (m.size !== u.jeux.size || !meme(nuage, u.nuage) || !meme(pc, u.pc) || dbl?.sig !== u.dbl?.sig || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
+        Object.assign(u, { jeux: m, nuage, pc, dbl, ok: true, echecs: 0, erreur: "" });
       };
       const rate = (e) => {
         u.erreur = e;
@@ -616,6 +639,7 @@ window.__pcvBridge = (() => {
       };
       return {
         charger,
+        formes,
         version: () => u.version,
         nuage: (a) => u.nuage.has(Number(a.appid)),
         etat: (a) => {

@@ -275,6 +275,7 @@
     
     
     body.pcv-dossiers-ouvert #pcv-console .bas { visibility: hidden; }
+    #pcv-console.au-doigt .bas { visibility: hidden; }   
     
     :is(body, .BasicUI):has(> #pcv-notifs:not([hidden]), > #pcv-amis:not([hidden]), > #pcv-profil:not([hidden])) #pcv-console .bas { visibility: hidden; }
     
@@ -327,7 +328,7 @@
     return appsMemo = m;
   };
   const installe = (a) => raccourci(a) ? window.__pcvBridge?.unifideck?.etat(a) ?? true : !!a.local_per_client_data?.installed;
-  const versionUnifideck = () => window.__pcvBridge?.unifideck?.version() ?? 0;
+  const versionUnifideck = () => (window.__pcvBridge?.unifideck?.version() ?? 0) + (window.__pcvDoublons?.actif() ? "+d" : "");
   const distant = (a) => !!window.__pcvBridge?.unifideck?.nuage(a) || !installe(a) && (a.per_client_data || []).some((p) => p.clientid !== "0" && p.installed);
   const reglageJeux = () => {
     try {
@@ -352,6 +353,10 @@
   const montres = () => {
     const m = new Map(apps());
     for (const id of m.keys()) if (accueilRetire(id)) m.delete(id);
+    const D = window.__pcvDoublons;
+    if (D?.actif()) {
+      for (const [id, a] of m) if (D.masque(a)) m.delete(id);
+    }
     if (reglageJeux() === "tous") return m;
     for (const [id, a] of m) if (!installe(a) && !distant(a)) m.delete(id);
     return m;
@@ -2029,8 +2034,8 @@
     }
     marquer(false);
   };
-  const nomCase = (i) => {
-    const c = cases[i], a = appDe(c), bd = c.bd ?? cases[reserve.ancreDe.get(i)]?.bd, ap = appliDe(c);
+  const nomCase = (i, c = cases[i]) => {
+    const a = appDe(c), bd = c.bd ?? cases[reserve.ancreDe.get(i)]?.bd, ap = appliDe(c);
     const nom = a ? a.display_name : ap ? ap.nom : c.dossier ? c.nom : bd != null ? window.__pcvCasinoBadges?.nom?.(bd) || "" : T("console.case_libre");
     return ap?.verrouille?.() ? `${nom} (${window.__pcvT("verrou.bientot")})` : nom;
   };
@@ -2070,7 +2075,7 @@
     if (!appui?.long && !deco || decal < 0) decal = Math.max(0, col - visibles(z) + 2, decal < 0 ? 0 : Math.min(decal, col - 1));
     placer();
     const dedans = document.body.classList.contains("pcv-zone-jaquettes");
-    texte($(".titre"), dedans ? nomCase(sel) : "");
+    texte($(".titre"), dedans ? sortant ? nomCase(-1, sortant.x) : nomCase(sel) : "");
     legende();
     $(".titre").classList.remove("dors");
     clearTimeout(dodo);
@@ -2087,7 +2092,7 @@
       u.style.background = c;
       return u;
     };
-    const morceaux = sortant ? [T("console.rangement"), T("console.lache_accueil_poser")] : porte < 0 ? badgeMain != null ? [T("console.badge_en_main"), [glyphe(1), " " + T("console.coller_case_libre")], [glyphe(2), " " + T("console.lacher")]] : [] : appui?.long ? [T("console.rangement"), T("console.lache_pour_poser")] : cible >= 0 ? [T("console.rangement"), [glyphe(1), cases[porte]?.app || cases[porte]?.appli ? " " + T("console.ranger_dans", { nom: cases[cible]?.nom }) : " " + T("console.coller_sur", { nom: cases[cible]?.nom })], [glyphe(2), " " + T("console.annuler")]] : cible === SORTIE ? [T("console.rangement"), [glyphe(1), " " + T("console.ressortir_accueil")], [glyphe(2), " " + T("console.annuler")]] : [T("console.rangement"), "\u2725 " + T("console.deplacer"), [glyphe(1), " " + T("console.poser")], [glyphe(2), " " + T("console.annuler")]];
+    const morceaux = sortant ? [T("console.lache_accueil_poser")] : porte < 0 ? badgeMain != null ? [T("console.badge_en_main"), [glyphe(1), " " + T("console.coller_case_libre")], [glyphe(2), " " + T("console.lacher")]] : [] : appui?.long ? [T("console.lache_pour_poser")] : cible >= 0 ? [T("console.rangement"), [glyphe(1), cases[porte]?.app || cases[porte]?.appli ? " " + T("console.ranger_dans", { nom: cases[cible]?.nom }) : " " + T("console.coller_sur", { nom: cases[cible]?.nom })], [glyphe(2), " " + T("console.annuler")]] : cible === SORTIE ? [T("console.rangement"), [glyphe(1), " " + T("console.ressortir_accueil")], [glyphe(2), " " + T("console.annuler")]] : [T("console.rangement"), "\u2725 " + T("console.deplacer"), [glyphe(1), " " + T("console.poser")], [glyphe(2), " " + T("console.annuler")]];
     const cle = morceaux.map((m) => [m].flat().map((x) => typeof x === "string" ? x : x.outerHTML).join("")).join("|");
     if (e.dataset.cle === cle) return;
     e.dataset.cle = cle;
@@ -2835,7 +2840,7 @@
     const r = (t.querySelector(".bdg.grand") || t).getBoundingClientRect(), f = t.cloneNode(true);
     f.classList.remove("sel", "porte", "pose", "prise", "cible");
     f.classList.add("fantome");
-    for (const v of ["r", "c", "g", "d", "pad", "im", "bo"]) f.style.setProperty("--" + v, grille.style.getPropertyValue("--" + v));
+    for (const v of grille.style) if (v.startsWith("--")) f.style.setProperty(v, grille.style.getPropertyValue(v));
     Object.assign(f.style, { width: r.width + "px", height: r.height + "px", margin: "0" });
     f.dx = x - r.left;
     f.dy = y - r.top;

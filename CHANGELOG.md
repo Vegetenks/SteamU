@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.2.10 (2026-11-14)
+
+- **Announcements**: SteamU can receive news from the project (Settings › SteamU › Privacy to turn them off).
+- **Updates**: a new Updates section in Settings › SteamU to choose a channel (stable, release candidate, beta, alpha).
+- **Unifideck (pull requests #28 and #29 by @lieserlV, thank you!)**: an option groups the copies of a game owned on
+  several stores, with an "Other stores" section on its page; an Xbox game installed after playing it in the cloud updates.
+- **Windows**: touching behind a window closes it without pressing the button underneath.
+- **Badge Arcade**: badges float like in the original game, no longer get stuck under ropes, and Luigi no longer keeps
+  putting them back.
+- **Home**: a tile picked up with a finger to move it keeps its rounded corners.
+
 ## v0.2.9 (2026-11-12)
 
 - **Works with the Steam update of 11/11**: it prevented some parts of the SteamU interface from loading.

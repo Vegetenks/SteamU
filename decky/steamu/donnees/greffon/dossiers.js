@@ -329,10 +329,7 @@
     const b = e.target.closest("button");
     if (b) prendre(+b.dataset.k);
   });
-  $(".voile").addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    fermer();
-  });
+  window.__pcvDerriere($(".voile"), () => fermer());
   const PLACES = 10, NOM_MAX = 20;
   const appel = (m, ...a) => window.opener.DeckyBackend.call("loader/call_plugin_method", window.__pcvGreffon.nom, m, ...a);
   let DD = null, occupe = false;

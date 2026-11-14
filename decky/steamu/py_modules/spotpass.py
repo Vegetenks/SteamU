@@ -113,6 +113,33 @@ def signer(graine, message):
     h = int.from_bytes(hashlib.sha512(R + pub + message).digest(), "little") % _L
     return R + ((r + h * a) % _L).to_bytes(32, "little")
 
+def _decoder(o):
+    y = int.from_bytes(o, "little")
+    signe, y = y >> 255, y & ((1 << 255) - 1)
+    if y >= _P:
+        raise ValueError("point invalide")
+    x2 = (y * y - 1) * pow(_D * y * y + 1, _P - 2, _P) % _P
+    x = pow(x2, (_P + 3) // 8, _P)
+    if (x * x - x2) % _P:
+        x = x * pow(2, (_P - 1) // 4, _P) % _P
+    if (x * x - x2) % _P or (x == 0 and signe):
+        raise ValueError("point invalide")
+    if x & 1 != signe:
+        x = _P - x
+    return (x, y, 1, x * y % _P)
+
+def verifier(pub, message, signature):
+    try:
+        if len(pub) != 32 or len(signature) != 64 or int.from_bytes(signature[32:], "little") >= _L:
+            return False
+        R, A = _decoder(signature[:32]), _decoder(pub)
+        if _coder(_fois(8, A)) == _coder((0, 1, 1, 0)):
+            return False   
+        h = int.from_bytes(hashlib.sha512(signature[:32] + pub + message).digest(), "little") % _L
+        return _coder(_fois(int.from_bytes(signature[32:], "little"), _G)) == _coder(_ajouter(R, _fois(h, A)))
+    except (TypeError, ValueError):
+        return False
+
 def _b64u(o):
     return base64.urlsafe_b64encode(o).decode().rstrip("=")
 

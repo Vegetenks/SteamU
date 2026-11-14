@@ -58,7 +58,7 @@
     danger: '<path d="M12 3 2.5 20h19z"/><path d="M12 9.3v5M12 17.2h.01"/>',
     image: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>'
   };
-  for (const n of ["reglages", "info", "accueil", "bibliotheque", "manette", "soleil", "ecran", "musique", "casino", "epingle", "antenne", "crayon"]) ICO[n] = window.__pcvIcones?.trace(n) || "";
+  for (const n of ["reglages", "info", "accueil", "bibliotheque", "manette", "soleil", "ecran", "musique", "casino", "epingle", "antenne", "crayon", "mise-a-jour"]) ICO[n] = window.__pcvIcones?.trace(n) || "";
   const APPLIS = [["mii", "#2fbf71"], ["casino", "#e5484d"], ["badges", "#f5a000"], ["sons", "#8a63ff"]];
   const GUIDES = (imp = T("steamu.importer")) => [
     { id: "mii", c: "#2fbf71", ico: ICO.mii, pret: true, schemas: [
@@ -154,6 +154,8 @@
     { id: "applis", ic: "biblio", c: "--c-applis", libelle: "steamu.applis" },
     { id: "confid", ic: "cadenas", c: "--c-confid", libelle: "steamu.tab.confid" },
     { id: "aide", ic: "aide", c: "--c-aide", libelle: "steamu.tab.aide" },
+    { id: "maj", ic: "mise-a-jour", c: "--c-import", libelle: "steamu.maj.titre" },
+    // (14/11, l'auteur, comme en v0.3 : sa propre rubrique)
     { id: "danger", ic: "redemarrer", c: "--c-danger", libelle: "steamu.tab.reinit" },
     { id: "apparence", ic: "apparence", c: "--c-apparence", libelle: "steamu.apparence" },
     { id: "autres", ic: "reglages", c: "--c-autres", libelle: "steamu.tab.autres" }
@@ -488,6 +490,8 @@
         <span>${T("steamu.confid.paroles")}<small>${T("steamu.confid.paroles.aide")}</small></span><i class="inter"></i></button>
       <button class="bouton confid-ligne${majActif() ? " oui" : ""}" data-a="maj-bascule"><i class="pastille">${ico(ICO.internet)}</i>
         <span>${T("steamu.confid.maj")}<small>${T("steamu.confid.maj.aide")}</small></span><i class="inter"></i></button>
+      <button class="bouton confid-ligne${window.__pcvAnnonces?.actif() ? " oui" : ""}" data-a="annonces-bascule"><i class="pastille">${ico(ICO.internet)}</i>
+        <span>${T("annonces.titre")}<small>${T("annonces.confidentialite")}</small></span><i class="inter"></i></button>
       <button class="bouton confid-ligne${horsStoreActif() ? " oui" : ""}${S.highlightConfid === "hors-store-bascule" ? " vise" : ""}" data-a="hors-store-bascule"><i class="pastille">${ico(ICO.prise)}</i>
         <span>${T("steamu.confid.hors_store")}<small>${T("steamu.confid.hors_store.aide")}</small></span><i class="inter"></i></button>
       ${dessinerSpot()}<p class="note">${T("steamu.confid.note")}</p></div>`;
@@ -794,6 +798,27 @@
     return `<div class="conflits-avis"><i class="pastille">${ico(ICO.danger)}</i>
       <div><b>${T("steamu.conflits.titre")}</b>${cles.map((c) => `<p class="note">${T("steamu.conflits." + c)}</p>`).join("")}</div></div>`;
   };
+  const CANAL_MAJ = { cle: "pcv-maj-canal", def: "stable", ic: "internet", nom: "steamu.maj.canal", choix: ["stable", "rc", "beta", "alpha"], apres: () => window.__pcvMajVerifier?.() };
+  const canalInstalle = () => version().match(/-(rc|beta|alpha)\./)?.[1] || "stable";
+  const revenirStable = async () => {
+    if (S.occupe) return;
+    S.occupe = true;
+    const r = await appel("maj_publication", [""], 2e4);
+    S.occupe = false;
+    if (!r?.version) {
+      montrer(T("steamu.maj.stable"), [T("steamu.maj.stable.erreur")], true);
+      son("rate");
+      return;
+    }
+    son("choisir");
+    window.__pcvMajProposer?.({ ...r, canalApres: "stable" });
+  };
+  const dessinerMaj = () => `<div class="vue maj${S.og === "maj" ? " on" : ""}"><h3>${T("steamu.maj.titre")}</h3>
+      <div class="danger-liste">
+        ${ligneReglage(CANAL_MAJ, "maj-canal")}
+        <button class="bouton ligne-reg" data-a="maj-version"><i class="pastille" style="--c:var(--c-autres)">${ico(ICO.info)}</i><span>${T("steamu.maj.installee")}</span><em>${esc(version())} (${T("steamu.maj.canal." + canalInstalle())})</em></button>
+        ${canalInstalle() === "stable" ? "" : `<button class="bouton" data-a="maj-stable"><i class="pastille">${ico(ICO.redemarrer)}</i><span>${T("steamu.maj.stable")}<small>${T("steamu.maj.stable.aide")}</small></span></button>`}
+      </div></div>`;
   const dessinerDanger = () => `<div class="vue danger${S.og === "danger" ? " on" : ""}"><h3>${T("steamu.danger.titre")}</h3>
       <div class="danger-liste">
         <button class="bouton" data-a="confirm:reset"><i class="pastille">${ico(ICO.redemarrer)}</i><span>${T("steamu.danger.reset")}<small>${T("steamu.danger.reset.aide")}</small></span></button>
@@ -846,6 +871,9 @@
   const AUTRES = () => [
     ...regleSU("interface")?.vers === "steamu.debug" ? [] : [STYLE_ACCUEIL],
     { cle: "pcv-accueil-jeux", def: "installes", ic: "bibliotheque", nom: "steamu.reg.jeux", choix: ["installes", "tous"] },
+    // (PR #29 de lieserlV) une seule tuile par jeu présent dans plusieurs boutiques (accueil et bibliothèque) ; montré
+    // seulement si Unifideck a répondu avec au moins un doublon (unifideck-page.js)
+    ...window.__pcvDoublons?.disponible() ? [{ cle: window.__pcvDoublons.cle, def: false, ic: "bibliotheque", nom: "steamu.reg.doublons", aide: "steamu.reg.doublons.aide" }] : [],
     // les symboles de touches (barre-haut.js, __pcvTouche) : ceux de la manette branchée, ou une famille imposée (la Legion Go
     // passe par Handheld Daemon, qui se fait passer pour une DualSense alors que ses boutons portent A B X Y)
     { cle: "pcv-touches", def: "auto", ic: "manette", nom: "steamu.reg.touches", choix: ["auto", "xbox", "ps", "nintendo"] },
@@ -1045,7 +1073,7 @@
       window.__pcvVoile?.("steamu", etats.some(Boolean));
       const avant = [...page.children].slice(1, 3).map((v) => v.classList.contains("on"));
       const sortantes = avant.flatMap((on, i) => on && !etats[i] ? [window.__pcvApparition(page.children[i + 1], true, ".fenetre")] : []);
-      page.innerHTML = `<div class="panneau">${dessinerColonne()}<div class="contenu"><div class="vue nouveautes${S.og === "nouveautes" ? " on" : ""}"><h3>${T("bienvenue.rubrique")}</h3>${dessinerNouveautes()}</div>${dessinerContrib()}${dessinerImport()}${dessinerApplis(etat)}${dessinerConfid()}${dessinerAide()}${dessinerDanger()}${dessinerApparence()}${dessinerAutres()}${dessinerDebug()}</div></div><div class="voile${S.fenetre ? " on" : ""}"><div class="fenetre pcv-fenetre">${resultat ? `<h2>${resultat.titre}</h2><ul>${resultat.lignes.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` + (resultat.fini ? `<button class="bouton" data-a="fermer">${touche(1)}${T("touche.fermer")}</button>` : "") : ""}</div></div><div class="voile${S.signaler ? " on" : ""}"><div class="fenetre signaler pcv-fenetre">${S.signaler ? dessinerSignaler() : ""}</div></div>`;
+      page.innerHTML = `<div class="panneau">${dessinerColonne()}<div class="contenu"><div class="vue nouveautes${S.og === "nouveautes" ? " on" : ""}"><h3>${T("bienvenue.rubrique")}</h3>${dessinerNouveautes()}</div>${dessinerContrib()}${dessinerImport()}${dessinerApplis(etat)}${dessinerConfid()}${dessinerAide()}${dessinerMaj()}${dessinerDanger()}${dessinerApparence()}${dessinerAutres()}${dessinerDebug()}</div></div><div class="voile${S.fenetre ? " on" : ""}"><div class="fenetre pcv-fenetre">${resultat ? `<h2>${resultat.titre}</h2><ul>${resultat.lignes.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` + (resultat.fini ? `<button class="bouton" data-a="fermer">${touche(1)}${T("touche.fermer")}</button>` : "") : ""}</div></div><div class="voile${S.signaler ? " on" : ""}"><div class="fenetre signaler pcv-fenetre">${S.signaler ? dessinerSignaler() : ""}</div></div>`;
       [...page.children].slice(1, 3).forEach((v, i) => {
         if (etats[i] && !avant[i]) window.__pcvApparition(v, false, ".fenetre");
       });
@@ -1413,12 +1441,17 @@
     } else if (a === "maj-bascule") {
       ecrireBool(CLE_MAJ, !majActif());
       son("choisir");
+    } else if (a === "annonces-bascule") {
+      window.__pcvAnnonces?.basculer();
+      son("choisir");
     } else if (a === "sp-ouvrir") return window.__pcvSpotPassPage?.ouvrir?.();
     else if (a === "hors-store-bascule") {
       ecrireBool(CLE_HORS_STORE, !horsStoreActif());
       S.highlightConfid = false;
       son("choisir");
     } else if (a.startsWith("confirm:")) confirmer(a.slice(8));
+    else if (a === "maj-canal") choisirDans(CANAL_MAJ);
+    else if (a === "maj-stable") return revenirStable();
     else if (a === "fermer") {
       if (!resultat?.fini) return;
       S.fenetre = false;
