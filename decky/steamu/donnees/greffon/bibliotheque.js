@@ -175,7 +175,7 @@
       if (r < 19) return { src: "gog", lanceur: "Heroic", img: i % 2 > 0, inst: i % 3 === 0 };
       return { src: "autre", img: false, inst: true };
     };
-    let tous = [], filtres = [], bases = [], manquants = [], enDetails = false, casse = false, parId = /* @__PURE__ */ new Map();
+    let tous = [], visibles = [], filtres = [], bases = [], manquants = [], enDetails = false, casse = false, parId = /* @__PURE__ */ new Map();
     const { lettreDe } = window.__pcvPresentation;
     const charger = () => {
       const J = window.__pcvJeux, coll2 = new Intl.Collator(loc(), { numeric: true, sensitivity: "base" });
@@ -203,13 +203,17 @@
         };
       }).filter((g) => !g.auth).sort((x, y) => coll2.compare(x.cle, y.cle));
       parId = new Map(tous.map((g) => [g.id, g]));
-      const par = (test) => tous.filter(test);
+      // (Doublons) groupés (réglage de SteamU) : une seule tuile par jeu dans les listes ; parId garde toutes les copies,
+      // pour qu'on puisse ouvrir la page d'une autre copie depuis sa rubrique « Autres boutiques »
+      const BU = window.__pcvBridge?.unifideck;
+      visibles = J.groupeDoublons?.() && BU?.masque ? tous.filter((g) => !BU.masque(g.a)) : tous;
+      const par = (test) => visibles.filter(test);
       const cols = (O.collectionStore?.userCollections || []).filter((c) => !/^(local-install|uncategorized|type-|hidden)/.test(c.id)).map((c) => {
         const ids = new Set((c.allApps || []).map((a) => a.appid));
         return { cle: "c:" + c.id, nom: c.displayName, ic: "epingle", col: true, l: par((g) => ids.has(g.id)), garder: c.bIsEditable && !c.bIsDynamic };
       }).filter((f) => f.l.length || f.garder);
       const sources = SOURCES.map((s) => ({ cle: s, nom: nomSource(s), ic: picto({ src: s }), l: par((g) => g.src === s) })).filter((f) => f.l.length);
-      filtres = [{ cle: "tous", nom: T2("biblio.tous"), ic: "bibliotheque", l: tous }, { cle: "installes", nom: T2("biblio.installes"), ic: "disque", l: par((g) => g.inst) }, ...sources, ...cols];
+      filtres = [{ cle: "tous", nom: T2("biblio.tous"), ic: "bibliotheque", l: visibles }, { cle: "installes", nom: T2("biblio.installes"), ic: "disque", l: par((g) => g.inst) }, ...sources, ...cols];
       const recents = par((g) => g.der).sort((x, y) => y.der - x.der);
       bases = [
         ...recents.length ? [{ cle: "recents", nom: T2("biblio.recents"), ic: "horloge", l: recents, vus: recents }] : [],
@@ -501,10 +505,13 @@
       if (PB().menuJeuSteam(g.id, m.$(".carrousel .cel.sel"))) retourMenuSteam = true;
       else window.__pcvSon?.("bord");
     };
+    // (Doublons) les autres copies du jeu (autres boutiques d'Unifideck, versions Steam possédées), sans la copie ouverte
+    const copiesDe = (g) => g && !g.emu ? window.__pcvBridge?.unifideck?.doublons?.(g.a)?.filter((c) => !c.soi) || [] : [];
     const romDe = (g) => !!g.emu || window.__pcvJeux.raccourci(g.a);
     const GRIS = "#8b94a3", COULEURS = {
       jouer: "var(--pcv-vert)",
       unifideck: "#2a8cff",
+      copies: "#7c5cff",
       infos: "#1a9ae6",
       succes: "var(--pcv-orange)",
       manette: "#5b6676",
@@ -520,6 +527,7 @@
       return [
         ["jouer", loinDe(g) ? "nuage" : g.inst ? "lecture" : "telechargements"],
         ...estUnifideck(g.id) ? [["unifideck", "boutique"]] : [],
+        ...copiesDe(g).length ? [["copies", "bibliotheque"]] : [],
         ...rom ? [] : [["infos", "info"]],
         // (un raccourci : Steam n'en sait rien)
         ...SUCCES.get(g.id) ? [["succes", "trophee"]] : [],
@@ -533,6 +541,7 @@
     const NOMS = {
       infos: "biblio.r_infos",
       unifideck: "uf.rubrique",
+      copies: "uf.copies",
       succes: "biblio.r_succes",
       manette: "biblio.r_manette",
       proprietes: "biblio.r_proprietes",
@@ -555,6 +564,7 @@
       if (loin) PB().diffuser(g.id, loin.clientid);
       else jouer(g, m.$(".carrousel .cel.sel"));
     };
+    const nomCopie = (c) => (BOUTIQUES[c.store === "microsoft" ? "xbox" : c.store === "itch" ? "itchio" : c.store] || c.store) + (c.edition ? " \xB7 " + c.edition : "");
     const rubrique = () => rubriquesDe(m.fiche)[m.rubrique]?.[0] || "jouer";
     const rg = (ic, t, s, droite = "", f = null) => `<${f ? `button class="rg verre act" data-a="${m.action(f)}"` : `div class="rg verre"`} style="--k:${COULEURS[rubrique()]}"><span class="pastille">${ico(ic)}</span><div class="t"><b>${e(t)}</b>${s ? `<small>${e(s)}</small>` : ""}</div>${droite}</${f ? "button" : "div"}>`;
     const val = (t, cl = "") => `<span class="val ${cl}">${e(t)}</span>`;
@@ -1035,6 +1045,10 @@
       CONTENUS.desinstaller = (g) => estUnifideck(g.id) ? rg("supprimer", T2("biblio.desinstaller_t"), g.taille ? taille(g.taille) : "", val(T2("biblio.r_desinstaller")), () => confirmer(T2("biblio.r_desinstaller"), () => UF.desinstaller(g), "suppr")) : desBase(g);
       CONTENUS.unifideck = (g) => UF.rubrique2(g);
     }
+    CONTENUS.copies = (g) => copiesDe(g).map((c) => {
+      const g2 = parId.get(c.appid) || parId.get(c.appid | 0);
+      return rg("boutique", nomCopie(c), c.inst ? T2("uf.copie_inst") : "", g2 ? val(T2("biblio.ouvrir")) : "", g2 ? () => ouvrirPage(g2, [g2]) : null);
+    }).join("");
     const RICHES = /* @__PURE__ */ new Set(["jouer", "infos", "succes"]);
     const origineDe = () => {
       const r = m.retour || {};
@@ -1077,7 +1091,7 @@
       tuile,
       peindre,
       // la porte « Toute la bibliothèque » : les trois derniers jeux joués (avec une image), en éventail comme la maquette
-      porte: () => ({ liste: [...tous].filter((g) => g.img).sort((x, y) => y.der - x.der), titre: T2("biblio.toute"), nombre: nb(tous.length), ouvrir: () => ouvrirGrille(filtres[0], true) }),
+      porte: () => ({ liste: [...visibles].filter((g) => g.img).sort((x, y) => y.der - x.der), titre: T2("biblio.toute"), nombre: nb(visibles.length), ouvrir: () => ouvrirGrille(filtres[0], true) }),
       etageres: () => bases.map((f) => ({
         cle: f.cle,
         titre: f.nom,

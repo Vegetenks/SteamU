@@ -846,6 +846,9 @@
   const AUTRES = () => [
     ...regleSU("interface")?.vers === "steamu.debug" ? [] : [STYLE_ACCUEIL],
     { cle: "pcv-accueil-jeux", def: "installes", ic: "bibliotheque", nom: "steamu.reg.jeux", choix: ["installes", "tous"] },
+    // (Doublons) une seule tuile par jeu quand il est dans plusieurs boutiques (accueil et bibliothèque) ; chaque copie reste
+    // ouvrable depuis la rubrique « Autres boutiques » de la page du jeu
+    { cle: "pcv-groupe-doublons", def: false, ic: "bibliotheque", nom: "steamu.reg.doublons", aide: "steamu.reg.doublons.aide" },
     // les symboles de touches (barre-haut.js, __pcvTouche) : ceux de la manette branchée, ou une famille imposée (la Legion Go
     // passe par Handheld Daemon, qui se fait passer pour une DualSense alors que ses boutons portent A B X Y)
     { cle: "pcv-touches", def: "auto", ic: "manette", nom: "steamu.reg.touches", choix: ["auto", "xbox", "ps", "nintendo"] },

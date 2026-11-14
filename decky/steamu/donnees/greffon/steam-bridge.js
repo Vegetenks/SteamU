@@ -530,9 +530,51 @@ window.__pcvBridge = (() => {
       const u = O.__pcvUnifideck ||= { jeux: /* @__PURE__ */ new Map(), ok: false, version: 0, enCours: false, rejouer: false, dernier: 0, echecs: 0, erreur: "" };
       u.nuage ||= /* @__PURE__ */ new Set();
       u.pc ||= /* @__PURE__ */ new Set();
+      // (Doublons) les copies d'un même jeu dans plusieurs boutiques : par appid, l'entrée de son groupe ; l'appid Steam
+      // possédé -> l'entrée d'un des jeux d'Unifideck qui le référence ; les versions Steam d'un même groupe -> ses pairs
+      u.grp ||= /* @__PURE__ */ new Map();
+      u.steamRev ||= /* @__PURE__ */ new Map();
+      u.steamPeers ||= /* @__PURE__ */ new Map();
+      u.sigGrp ||= "";
       const formes = (id) => {
         const n = Number(id);
         return !Number.isFinite(n) ? [] : n < 0 ? [n, n + 4294967296] : n > 2147483647 ? [n, n - 4294967296] : [n];
+      };
+      // (Doublons) Même ordre de boutiques qu'Unifideck (STORE_PRIORITY) pour choisir la copie qui représente un groupe
+      const ORDRE = ["steam", "epic", "gog", "amazon", "ubisoft", "battlenet", "microsoft", "gamevault", "itch"];
+      const XBOX_ONE = /\bxbox\s+one(?:\s+(?:edition|version))?\s*$/i;
+      const rang = (b) => {
+        const k = ORDRE.indexOf(b);
+        return k < 0 ? 1e9 : k;
+      };
+      // Les champs de regroupement qu'Unifideck pose sur chaque jeu (dedupe_group_id, edition_label, steam_owned_app_id,
+      // steam_versions) -> les groupes, la copie « principale » de chacun et les versions Steam possédées.
+      const grouper = (l) => {
+        const grp = /* @__PURE__ */ new Map(), rev = /* @__PURE__ */ new Map(), pairs = /* @__PURE__ */ new Map(), groupes = /* @__PURE__ */ new Map(), lignes = [];
+        for (const g of l) if (g && g.app_id != null && g.store && g.store !== "steam") {
+          const steam = /* @__PURE__ */ new Map();
+          for (const v of Array.isArray(g.steam_versions) ? g.steam_versions : []) if (Number(v?.app_id) > 0) steam.set(Number(v.app_id), v.edition_label ? String(v.edition_label) : "");
+          if (Number(g.steam_owned_app_id) > 0 && !steam.has(Number(g.steam_owned_app_id))) steam.set(Number(g.steam_owned_app_id), g.steam_owned_edition_label ? String(g.steam_owned_edition_label) : "");
+          const e = { id: Number(g.app_id), store: String(g.store), titre: String(g.title || ""), edition: g.edition_label ? String(g.edition_label) : "", inst: !!g.installed, groupe: g.dedupe_group_id ? String(g.dedupe_group_id) : "", steam, primaire: true, membres: [] };
+          e.membres = [e];
+          lignes.push(e);
+          if (e.groupe) (groupes.get(e.groupe) || groupes.set(e.groupe, []).get(e.groupe)).push(e);
+        }
+        for (const membres of groupes.values()) {
+          const steam = /* @__PURE__ */ new Map();
+          for (const e of membres) for (const [k, v] of e.steam) if (!steam.has(k)) steam.set(k, v);
+          // la copie installée d'abord, sinon la première boutique dans l'ordre (hors « Xbox One » seul à boutique égale)
+          const premiere = [...membres].sort((x, y) => rang(x.store) - rang(y.store))[0], memes = membres.filter((x) => x.store === premiere.store);
+          const prim = membres.find((x) => x.inst) || memes.find((x) => !XBOX_ONE.test(x.titre)) || memes[0];
+          for (const e of membres) Object.assign(e, { membres, steam, primaire: e === prim });
+        }
+        for (const e of lignes) {
+          for (const id of formes(e.id)) grp.set(id, e);
+          for (const k of e.steam.keys()) if (!rev.has(k)) rev.set(k, e);
+          if (e.steam.size > 1) for (const k of e.steam.keys()) pairs.set(k, [...e.steam.keys()]);
+        }
+        const sig = lignes.map((e) => [e.id, e.groupe, e.primaire ? 1 : 0, e.inst ? 1 : 0, e.edition, [...e.steam.keys()].join("+")].join(":")).sort().join("|");
+        return { grp, rev, pairs, sig };
       };
       const appliquer = (l) => {
         const m = /* @__PURE__ */ new Map(), nuage = /* @__PURE__ */ new Set(), pc = /* @__PURE__ */ new Set();
@@ -545,9 +587,10 @@ window.__pcvBridge = (() => {
             if (estPC) pc.add(id);
           }
         }
+        const dbl = grouper(l);
         const meme = (a, b) => a.size === b.size && [...a].every((k) => b.has(k));
-        if (m.size !== u.jeux.size || !meme(nuage, u.nuage) || !meme(pc, u.pc) || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
-        Object.assign(u, { jeux: m, nuage, pc, ok: true, echecs: 0, erreur: "" });
+        if (m.size !== u.jeux.size || !meme(nuage, u.nuage) || !meme(pc, u.pc) || dbl.sig !== u.sigGrp || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
+        Object.assign(u, { jeux: m, nuage, pc, grp: dbl.grp, steamRev: dbl.rev, steamPeers: dbl.pairs, sigGrp: dbl.sig, ok: true, echecs: 0, erreur: "" });
       };
       const rate = (e) => {
         u.erreur = e;
@@ -618,6 +661,33 @@ window.__pcvBridge = (() => {
         charger,
         version: () => u.version,
         nuage: (a) => u.nuage.has(Number(a.appid)),
+        // (Doublons) les autres copies du jeu : [{ appid, store, titre, edition, inst, steam, soi }] (vide s'il est seul) ;
+        // « soi » marque la copie demandée, « steam » une version Steam possédée
+        doublons: (a) => {
+          const id = Number(a.appid), e = u.grp.get(id) || u.steamRev.get(id);
+          if (!e) return [];
+          const ov = (k) => O.appStore?.GetAppOverviewByAppID?.(k);
+          const l = e.membres.map((x) => ({ appid: x.id, store: x.store, titre: x.titre, edition: x.edition, inst: x.inst, steam: false, soi: formes(x.id).includes(id) }));
+          for (const [k, ed] of e.steam) l.push({ appid: k, store: "steam", titre: e.titre, edition: ed, inst: ov(k)?.installed === true, steam: true, soi: k === id });
+          return l.length > 1 ? l : [];
+        },
+        // (Doublons) vrai si cette copie n'a pas à s'afficher quand les doublons sont groupés : jamais une copie installée ;
+        // une copie d'Unifideck quand le jeu est déjà là en Steam natif, ou quand une autre copie la représente ; une version
+        // Steam qui n'est pas celle retenue parmi plusieurs (l'installée, sinon la plus récente)
+        masque: (a) => {
+          const id = Number(a.appid), e = u.grp.get(id), ov = (k) => O.appStore?.GetAppOverviewByAppID?.(k);
+          if (e) {
+            if (e.inst) return false;
+            if ([...e.steam.keys()].some((k) => ov(k))) return true;
+            return !e.primaire;
+          }
+          const p = u.steamPeers.get(id);
+          if (p && p.length > 1) {
+            if (ov(id)?.installed) return false;
+            return (p.find((k) => ov(k)?.installed) ?? Math.max(...p)) !== id;
+          }
+          return false;
+        },
         etat: (a) => {
           charger();
           const v = u.jeux.get(Number(a.appid));

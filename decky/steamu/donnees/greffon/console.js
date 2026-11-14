@@ -336,6 +336,14 @@
       return "installes";
     }
   };
+  // (Doublons) Grouper les copies d'un même jeu (réglage de SteamU, désactivé par défaut) : une seule tuile par jeu
+  const groupeDoublons = () => {
+    try {
+      return JSON.parse(localStorage.getItem("pcv-groupe-doublons")) === true;
+    } catch (e) {
+      return false;
+    }
+  };
   const retires = () => lire("pcv-accueil-retires", {});
   const accueilRetire = (id) => !!retires()[id];
   const accueilRetirer = (id, oui = true) => {
@@ -352,6 +360,7 @@
   const montres = () => {
     const m = new Map(apps());
     for (const id of m.keys()) if (accueilRetire(id)) m.delete(id);
+    if (groupeDoublons()) for (const [id, a] of m) if (window.__pcvBridge?.unifideck?.masque?.(a)) m.delete(id);
     if (reglageJeux() === "tous") return m;
     for (const [id, a] of m) if (!installe(a) && !distant(a)) m.delete(id);
     return m;
@@ -536,6 +545,7 @@
       localStorage.getItem("pcv-grille"),
       localStorage.getItem("pcv-accueil-retires"),
       reglageJeux(),
+      groupeDoublons(),
       familleTheme(),
       zi,
       versionUnifideck(),
@@ -584,7 +594,7 @@
   };
   const construireCases = () => {
     const connus = apps(), tous = montres(), mode2 = reglageJeux();
-    vueJeux = mode2 + "|" + versionUnifideck();
+    vueJeux = mode2 + "|" + versionUnifideck() + "|" + (groupeDoublons() ? 1 : 0);
     const recent = (a) => a.rt_last_time_played || a.rt_last_time_played_or_installed || 0;
     const recents2 = [...tous.values()].filter((a) => mode2 === "installes" || a.rt_last_time_played).sort((a, b) => recent(b) - recent(a)).slice(0, mode2 === "installes" ? Infinity : 36);
     const range = lire("pcv-grille", null);
@@ -3538,7 +3548,7 @@
       signaler();
       window.__pcvMusique?.("home-menu");
     } else if (visible && vueFamille !== familleTheme() && !appui) dessiner();
-    else if (visible && (changementJeux || vueJeux && vueJeux !== reglageJeux() + "|" + versionUnifideck()) && porte < 0 && !appui && !deco) {
+    else if (visible && (changementJeux || vueJeux && vueJeux !== reglageJeux() + "|" + versionUnifideck() + "|" + (groupeDoublons() ? 1 : 0)) && porte < 0 && !appui && !deco) {
       jeuxChanges = false;
       construireCases();
       infosDe = -1;
@@ -3971,6 +3981,7 @@
   };
   window.__pcvJeux = {
     apps,
+    groupeDoublons,
     installe,
     raccourci,
     ouvrir,
