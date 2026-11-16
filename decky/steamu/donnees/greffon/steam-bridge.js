@@ -637,8 +637,17 @@ window.__pcvBridge = (() => {
         vus.set(a.appid, { v, t });
         return v;
       };
+      const OUTIL = /(?:^|\s)[a-z]+:[a-z-]+-(?:auth|store)(?:-temp)?(?:-\d{10,})?(?=\s|$)/i;
+      const outil = (id) => {
+        try {
+          return OUTIL.test(O.appDetailsStore?.GetAppDetails?.(+id)?.strLaunchOptions || "") || O.appStore?.GetAppOverviewByAppID?.(+id)?.display_name === LANCEUR;
+        } catch (e) {
+          return false;
+        }
+      };
       return {
         charger,
+        outil,
         formes,
         version: () => u.version,
         nuage: (a) => u.nuage.has(Number(a.appid)),

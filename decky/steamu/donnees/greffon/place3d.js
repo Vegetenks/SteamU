@@ -53,7 +53,7 @@
       return [h, c];
     };
     const JOUABLE = /* @__PURE__ */ new Set([1, 1073741824]);
-    const lireJeux = () => (O.appStore?.allApps || []).filter((a) => JOUABLE.has(a.app_type) && a.rt_last_time_played).sort((a, b) => b.rt_last_time_played - a.rt_last_time_played).slice(0, 7);
+    const lireJeux = () => (O.appStore?.allApps || []).filter((a) => JOUABLE.has(a.app_type) && a.rt_last_time_played && !window.__pcvBridge?.unifideck?.outil?.(a.appid)).sort((a, b) => b.rt_last_time_played - a.rt_last_time_played).slice(0, 7);
     const pseudo = () => {
       try {
         return O.g_FriendsUIApp.FriendStore.self.persona.m_strPlayerName || "";
@@ -1788,7 +1788,7 @@ float pcvN(vec2 p){ return texture(pcvBruit, (p + .5) / ${DALLES.bruit.toFixed(1
         introLum = true;
       } else icones.forEach((ic) => {
         ic.objet.visible = true;
-        ic.ombre.visible = true;
+        ic.ombre.visible = ombreTuile(ic);
         ic.arrive = false;
         ic.objet.rotation.set(0, 0, 0);
         ic.ombre.scale.setScalar(1);
@@ -1848,7 +1848,8 @@ float pcvN(vec2 p){ return texture(pcvBruit, (p + .5) / ${DALLES.bruit.toFixed(1
         const ic = ordreIcones[i], q = lisse((e - INTRO.icones - i * 0.11) / 0.75), g = ic.objet;
         const v = 1 - Math.pow(1 - q, 3);
         ic.venue = q > 0 ? v : 0;
-        g.visible = ic.ombre.visible = q > 0;
+        g.visible = q > 0;
+        ic.ombre.visible = ombreTuile(ic);
         ic.arrive = q < 1;
         if (q <= 0) continue;
         g.position.set(ic.pos.x, 2.35 + 6 * (1 - v), ic.pos.z);
@@ -2292,6 +2293,7 @@ float pcvN(vec2 p){ return texture(pcvBruit, (p + .5) / ${DALLES.bruit.toFixed(1
         }
       }
     };
+    const ombreTuile = (ic) => sol?.material.map !== motifSol && PALIERS[Q?.palier || 0].ombres && ic.objet.visible;
     const PALIERS = [
       { ombres: true, foule: 1, tete: 256, basse: false, tranche: 3, finitions: true, lentille: true },
       { ombres: true, foule: 0.85, tete: 256, basse: true, tranche: 3, finitions: true, lentille: true },
@@ -2315,7 +2317,7 @@ float pcvN(vec2 p){ return texture(pcvBruit, (p + .5) / ${DALLES.bruit.toFixed(1
         const f = ordreFoule[i];
         garder(f, i < max || f === bulleMii);
       }
-      for (const ic of icones) ic.ombre.visible = palier.ombres && ic.objet.visible;
+      for (const ic of icones) ic.ombre.visible = ombreTuile(ic);
       finitions(palier);
     };
     const finitions = (palier, tout) => {
@@ -2682,7 +2684,7 @@ float pcvN(vec2 p){ return texture(pcvBruit, (p + .5) / ${DALLES.bruit.toFixed(1
     let fermeture = 0;
     let lacherY = null;
     const montrer = (oui) => {
-      if (oui && !lacherY) lacherY = window.__pcvToutesTouches?.((b, bas) => b === 4 && bas && !racine.hidden && !window.__pcvSteamDessus?.(250) && !window.__pcvEcran?.ouvert?.() && window.__pcvManette.place(4)) || null;
+      if (oui && !lacherY) lacherY = window.__pcvToutesTouches?.((b, bas) => b === 4 && bas && !racine.hidden && !window.__pcvSteamDessus?.(250) && window.__pcvEcran?.actif?.() === "place" && !window.__pcvBienvenue?.ouvert?.() && window.__pcvManette.place(4)) || null;
       else if (!oui && lacherY) {
         lacherY();
         lacherY = null;

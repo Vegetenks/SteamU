@@ -40,7 +40,7 @@
     plus: '<path d="M12 5v14M5 12h14"/>'
   };
   const premier = urlSure(avatar || repliAvatar(compte?.nom)), srcAvatar = premier ? `src="${premier}"` : "";
-  const svg = (n, t, ep = 1.6) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${ep}" stroke-linecap="round" stroke-linejoin="round">${TRAITS[n]}</svg>`;
+  const svg = (n, ep = 1.6) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${ep}" stroke-linecap="round" stroke-linejoin="round">${TRAITS[n]}</svg>`;
   const u = (n) => `calc(var(--u) * ${n})`;
   const racine = document.createElement("div");
   racine.id = "pcv-connexion";
@@ -114,7 +114,7 @@
   </style>
   <div class="colline"></div>
   <div class="choix">
-    <div class="ajouter"><i>${svg("plus", "calc(var(--u) * 18)", 2.6)}</i>${T("connexion.ajouter_compte")}</div>
+    <div class="ajouter"><i>${svg("plus", 2.6)}</i>${T("connexion.ajouter_compte")}</div>
     ${window.__pcvPiluleMachine?.() || ""}
     <div class="centre"><div class="bulle">${window.__pcvIcones?.touche?.(1) || ""} ${T("connexion.commencer_compte")}</div>
       <button class="tuile" aria-label="${echappe(T("connexion.commencer_aria", { pseudo }))}"><span class="attente-avatar" aria-hidden="true" data-pcv-initiale>${echappe(initiale(compte?.nom))}</span><img data-pcv-avatar ${srcAvatar} alt=""></button></div>

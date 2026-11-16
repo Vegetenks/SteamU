@@ -340,6 +340,8 @@
           BOUTIQUE.set(g.id, r || {});
           fait();
         }, () => BOUTIQUE.delete(g.id));
+        Promise.resolve(O.appDetailsStore?.RequestAppDetails(g.id)).then(fait, () => {
+        });
       }, 400);
     };
     const fondCSS = (l) => l.filter(Boolean).map((x) => `url('${String(x).replace(/["'()\\\s]/g, (c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))}')`).join(",");

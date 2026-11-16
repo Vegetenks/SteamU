@@ -44,7 +44,7 @@
       { sel: "#pcv-themes .pcvth .vitrine", genre: "vitrine" },
       { sel: "#pcv-themes .pcvth .esp i", genre: "pastille" },
       { sel: "#pcv-themes .pcvth .tete", genre: "socle" },
-      { sel: "#pcv-themes .pcvth .onglets", genre: "socle" }
+      { sel: "#pcv-themes .pcvth .onglets b[data-cat]", genre: "socle" }
     ]
   };
   let pageCourante = null;
@@ -1347,6 +1347,10 @@
     };
     return o;
   };
+  const cadrerBulle = (s) => {
+    s.position.x = borne(s.position.x, s.scale.x * s.center.x, innerWidth - s.scale.x * (1 - s.center.x));
+    s.position.y = borne(s.position.y, -innerHeight + s.scale.y * s.center.y, -s.scale.y * (1 - s.center.y));
+  };
   const marque = (a, nom, o = {}) => {
     const h = hMii(), s = sprite(o.bulle ? texBulle(nom) : texMarque(nom), (o.taille ?? 0.3) * h);
     if (o.couleur) s.material.color.set(o.couleur);
@@ -1374,6 +1378,7 @@
       s.material.opacity = Math.min(pop, (1 - q) / 0.25);
       const k = (o.taille ?? 0.3) * h * (o.bulle ? u2.t < 0.12 ? 0.6 + 0.5 * u2.t / 0.12 : 1.1 - 0.1 * Math.min(1, (u2.t - 0.12) / 0.1) : 1);
       s.scale.set(k, k, 1);
+      if (o.bulle) cadrerBulle(s);
       return q < 1;
     };
     return s;
@@ -1443,6 +1448,7 @@
       sp.scale.set(L * pop, H * pop, 1);
       sp.material.opacity = Math.max(0, Math.min(1, t / 0.08, fin));
       sp.position.set(borne(a.x, L / 2 + 4, innerWidth - L / 2 - 4), -(a.y - 1.32 * h), 720);
+      cadrerBulle(sp);
       if (t >= vie) {
         tex.dispose();
         return false;

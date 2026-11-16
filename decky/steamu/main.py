@@ -48,13 +48,26 @@ def processus_du_jeu(pid, exiles_seuls=False):
     exiles = set(exiles) | set(descendance(exiles))
     return sorted(exiles) if exiles_seuls else sorted(dedans | exiles)
 
+def sortie_bornee(dernier=None, delai=1.5):
+    import signal
+    avant = signal.getsignal(signal.SIGTERM)
+    def fin():
+        try: dernier and dernier()
+        finally: os._exit(0)
+    def terme(n, f):
+        t = threading.Timer(delai, fin); t.daemon = True; t.start()
+        if callable(avant): avant(n, f)
+    signal.signal(signal.SIGTERM, terme)
+
 class Plugin:
     async def _main(self):
         if sys.platform != "linux":
             decky.logger.warning("SteamU : système non compatible, aucune injection")
             return
+        sortie_bornee(lambda: degeler(self._figes()))
         import asyncio, moteur, reprise
         import paquet
+        import reseau; reseau.borner_resolution()
         try: decky.logger.info("SteamU : entrée Decky " + json.dumps(paquet.verifier(ICI)))
         except ValueError as e: decky.logger.error("SteamU : " + str(e))
         v = re.sub(r"^(\d+\.\d+\.\d+)\.\d+$", r"\1", json.loads((ICI / "package.json").read_text())["version"])   

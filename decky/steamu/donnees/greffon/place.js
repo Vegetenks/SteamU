@@ -234,7 +234,7 @@
     const [, c, h] = window.__pcvTouche?.(4) || ["Y", "#e0a100", "Y"];
     return [h, c];
   };
-  const jeux = (O.appStore.allApps || []).filter((a) => (a.app_type === 1 || a.app_type === 1073741824) && a.rt_last_time_played).sort((a, b) => b.rt_last_time_played - a.rt_last_time_played).slice(0, 4);
+  const jeux = (O.appStore.allApps || []).filter((a) => (a.app_type === 1 || a.app_type === 1073741824) && a.rt_last_time_played && !window.__pcvBridge?.unifideck?.outil?.(a.appid)).sort((a, b) => b.rt_last_time_played - a.rt_last_time_played).slice(0, 4);
   const avatarDe = () => document.querySelector("#header_profile img")?.src || (() => {
     try {
       const p = window.opener.g_FriendsUIApp.FriendStore.self.persona;

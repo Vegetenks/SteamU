@@ -1492,6 +1492,27 @@
   window.__pcvQamSuivi = setInterval(() => {
     try {
       window.__pcvW ||= requis(75380).SteamUIStore.WindowStore.GamepadUIMainWindowInstance;
+      window.__pcvSansCurseur?.();
+      window.__pcvSansCurseur = window.__pcvToutesTouches((b, bas) => {
+        if (!bas || window.__pcvSteamDessus()) return false;
+        if (!(window.__pcvMiiMaker?.ouvert || window.__pcvEcran?.ouvert?.() || window.__pcvSteamU?.ouvert?.() || document.body.dataset.pcvPage === "accueil" || document.body.classList.contains("pcv-barre-main"))) return false;
+        let N, t;
+        try {
+          N = oy().NavigationManager;
+          t = N.GetActiveContext()?.m_LastActiveNavTree;
+          if (!t || t.GetLastFocusedNode() || N.BGlobalGamepadButton(b)) return false;
+        } catch (x) {
+          return false;
+        }
+        window.__pcvPrendre({ detail: { button: b }, stopPropagation() {
+        }, preventDefault() {
+        } });
+        try {
+          return N.GetActiveContext()?.m_LastActiveNavTree !== t || !!t.GetLastFocusedNode();
+        } catch (x) {
+          return true;
+        }
+      });
       const arbres = window.__pcvW.m_FocusNavContext?.m_rgGamepadNavigationTrees || [];
       const transparent = /bazzite|steamos|chimera|holo/i.test(appareil?.sOSName || "");
       for (const x of [window, ...arbres.map((a) => a.m_window)]) try {

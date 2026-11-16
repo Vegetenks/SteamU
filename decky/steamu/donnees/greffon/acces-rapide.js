@@ -1592,8 +1592,11 @@
         fermer();
         return setTimeout(() => {
           try {
-            const V = principale().VirtualKeyboardManager;
-            (V.SetVirtualKeyboardVisible || V.ShowVirtualKeyboard).call(V);
+            const W = principale(), V = W.VirtualKeyboardManager;
+            if (O.SteamUIStore.RunningApps.length) {
+              V.SetVirtualKeyboardHidden();
+              W.NavigateWithoutChangingFocus("/keyboard", true, true);
+            } else (V.SetVirtualKeyboardVisible || V.ShowVirtualKeyboard).call(V);
           } catch (x) {
           }
         }, 300);

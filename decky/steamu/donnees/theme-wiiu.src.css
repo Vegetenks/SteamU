@@ -1347,7 +1347,11 @@ body[data-pcv-page=recherche] {{SearchAndTitleContainer@SearchBox}} { width: cal
 
 {{BasicUiRoot@BasicHome}}, {{BlackBackground@BasicHome}} { background: var(--pcv-fond-page) !important; }
 
+html[data-pcv-fenetre=clavier] { --pcv-fond-page: transparent; --u: 1px; }
+
 body:has(> #pcv-fond-steam.pcv-fond-vivant:not([hidden])) .BasicUI { background: transparent !important; }
+
+body[data-pcv-page="clavier"] { --pcv-fond-page: transparent; }
 body:has(> #pcv-fond-steam.pcv-fond-vivant:not([hidden])) #MainNavMenu-Rest { --pcv-fond-page: transparent; }
 
 body:has({{VirtualKeyboardContainer@Positioner}} {{Keyboard@KeyboardKey}}) {{BackgroundGlass@Blur}}{{Visible@BackgroundGlass}} { background: transparent !important; backdrop-filter: none !important; }
@@ -3585,7 +3589,7 @@ html[data-pcv-pe-cadre] [id^="quickaccess_content_"] { position: fixed !importan
 .pcv-legende .pcv-touche { --taille: calc(var(--u) * 28); flex: none; }
 .pcv-legende em { font-style: normal; }
 body:not(.pcv-steamu-ouvert) #pcv-steamu-legende, body:not(.pcv-stockage-main) #pcv-stockage-legende { display: none; }
-#pcv-steamu-legende, #pcv-stockage-legende { bottom: calc(var(--u) * 12) !important; }   
+#pcv-stockage-legende { bottom: calc(var(--u) * 12) !important; }   
 body:not([data-pcv-page="parametres"], [data-pcv-page="recherche"]) #pcv-steam-legende, body.pcv-steamu-ouvert #pcv-steam-legende, body.pcv-stockage-main #pcv-steam-legende, body[data-pcv-param=ecran] #pcv-steam-legende { display: none; }   
 #pcv-notifs-legende, #pcv-amis-legende, #pcv-profil-legende, #pcv-steamu-legende, #pcv-stockage-legende, #pcv-accueil-legende, #pcv-steam-legende { position: fixed; right: calc(var(--u) * 34); bottom: calc(var(--u) * 24); z-index: 8650; }   
 

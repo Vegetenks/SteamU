@@ -1,4 +1,33 @@
 {
+ "0.2.11": {
+  "fr": [
+   "SteamU s'ouvre plus vite quand la console n'a pas de connexion.",
+   "Clavier : hors Big Picture et hors Gamescope, il reprend son état classique, sans le fond de SteamU.",
+   "Unifideck : affichage des fenêtres de connexion corrigé.",
+   "Amélioration de l'affichage des tuiles et des bannières des jeux.",
+   "Place : clignotement des ombres résolu.",
+   "Résolution des problèmes de son au démarrage.",
+   "Mises à jour plus fiables : la console ne reste plus bloquée sur l'écran de chargement."
+  ],
+  "en": [
+   "SteamU opens faster when the console has no connection.",
+   "Keyboard: outside Big Picture and Gamescope, it goes back to its usual look, without the SteamU background.",
+   "Unifideck: sign-in windows now display correctly.",
+   "Better display of game tiles and banners.",
+   "Plaza: flickering shadows fixed.",
+   "Startup sound issues fixed.",
+   "More reliable updates: the console no longer gets stuck on the loading screen."
+  ],
+  "es": [
+   "SteamU se abre más rápido cuando la consola no tiene conexión.",
+   "Teclado: fuera de Big Picture y de Gamescope, recupera su aspecto habitual, sin el fondo de SteamU.",
+   "Unifideck: las ventanas de inicio de sesión se muestran correctamente.",
+   "Mejor visualización de los mosaicos y banners de los juegos.",
+   "Plaza: parpadeo de las sombras resuelto.",
+   "Problemas de sonido al arrancar resueltos.",
+   "Actualizaciones más fiables: la consola ya no se queda bloqueada en la pantalla de carga."
+  ]
+ },
  "0.2.10": {
   "fr": [
    "Annonces : SteamU peut recevoir les nouvelles du projet (Paramètres › SteamU › Confidentialité pour les couper).",

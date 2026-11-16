@@ -315,7 +315,7 @@
   const apps = () => {
     const t = performance.now();
     if (appsMemo && t - appsT < 500) return appsMemo;
-    const m = new Map((O.appStore.allApps || []).filter((a) => a.app_type === 1 || raccourci(a)).map((a) => [a.appid, a]));
+    const m = new Map((O.appStore.allApps || []).filter((a) => a.app_type === 1 || raccourci(a) && !window.__pcvBridge?.unifideck?.outil?.(a.appid)).map((a) => [a.appid, a]));
     if (BANC) {
       const vrais = [...m.values()].filter((a) => a.app_type === 1);
       for (let i = 0; i < BANC && vrais.length; i++) {
@@ -792,7 +792,7 @@
       return [];
     }
   };
-  const sourcesTuile = (a, fichier, verifiee) => verifiee && !a.__pcvImages ? [verifiee] : [...verifiee ? [verifiee] : [], ...a.__pcvImages ? [] : [IMG(a.appid, fichier)], CDN(a.appid, fichier)];
+  const sourcesTuile = (a, fichier, verifiee) => verifiee && !a.__pcvImages ? [verifiee, CDN(a.appid, fichier)] : [...verifiee ? [verifiee] : [], ...a.__pcvImages ? [] : [IMG(a.appid, fichier)], CDN(a.appid, fichier)];
   window.__pcvFondRepli = (d) => `linear-gradient(160deg, oklch(from var(--pcv-cyan-plein) .76 c calc(h + ${d})), oklch(from var(--pcv-cyan-plein) .55 c calc(h + ${d})))`;
   const urlCss = (x) => `url('${String(x).replace(/['\\\n\r]/g, (c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))}')`;
   const sansArt = (a) => !perso("GetCustomVerticalCapsuleURLs", a).length && !perso("GetCustomLandcapeImageURLs", a).length && !perso("GetCustomLogoImageURLs", a).length && !perso("GetCustomHeroImageURLs", a).length;
@@ -3760,6 +3760,7 @@
     lancSurveiller();
   };
   const lancJeu = (appid, action, essai, depuis, muet) => {
+    if (outil(appid)) return;
     if (lancEtat?.jeu && lancEtat.appid === +appid) {
       if (action != null) lancEtat.action = action;
       return;
@@ -3781,6 +3782,7 @@
   const EN_COURS = /^(\/routes)?\/apprunning/;
   const pageAct = () => window.__pcvBridge?.page?.() || O.location.pathname;
   const PAGE_STEAM = /^(?:\/routes)?\/library\/app\/(\d+)\/?$/;
+  const outil = (id) => !!window.__pcvBridge?.unifideck?.outil?.(id);
   const pageSteam = (appid) => +pageAct().match(PAGE_STEAM)?.[1] === +appid;
   const appDeGid = (g) => {
     try {
@@ -3824,6 +3826,7 @@
   const tourne = (id) => O.SteamUIStore.RunningApps.some((x) => +x.appid === id);
   const suivreLancement = (id) => {
     const r = lancRetour;
+    if (outil(id)) return void noter({ outil: id });
     if (r?.appid === id && Date.now() - r.t0 < 5e3) return;
     if (r?.appid === id && tourne(id)) return lancGarder(LANCEMENT.jeuMax);
     journal.length = 0;
@@ -3831,8 +3834,16 @@
     noter({ lance: id, depuis: lancRetour.page });
     lancGarder(LANCEMENT.jeuMax);
   };
+  const outilsVus = /* @__PURE__ */ new Set();
   const versFiche = () => {
     const id = +pageAct().match(PAGE_STEAM)?.[1];
+    if (id && outil(id)) {
+      if (!outilsVus.has(id)) return void outilsVus.add(id);
+      if (tourne(id)) return;
+      outilsVus.delete(id);
+      const h2 = O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance?.m_history;
+      return void window.__pcvBridge?.revenirA?.(h2?.entries?.[h2.index - 1]?.pathname || "/library/home");
+    }
     if (id !== pageVoulue) pageVoulue = 0;
     if (!id || id === pageVoulue || lancRetour?.appid === id && Date.now() <= lancRetour.fin || lancModale() || !apps().has(id)) return;
     noter({ fiche: id });
@@ -3840,6 +3851,7 @@
   };
   const nomJeu = (id) => O.appStore.GetAppOverviewByAppID(id)?.display_name || T("console.jeu_n", { id });
   const echecLancement = (id, raison) => {
+    if (outil(id)) return;
     lancRetirer(true, "\xE9chec");
     noter({ echec: raison || "arr\xEAt\xE9" });
     recents.delete(id);
@@ -3899,7 +3911,7 @@
     })),
     abo(() => SC.Apps.RegisterForGameActionShowError((id, gid, action, code) => {
       if (lancEtat?.jeu && lancEtat.action === id) lancRetirer();
-      if (/launch/i.test(String(action))) {
+      if (/launch/i.test(String(action)) && !outil(appDeGid(gid))) {
         fermerErreurSteam();
         echecLancement(appDeGid(gid), String(code));
       }
@@ -4008,7 +4020,16 @@
     mesuresImages: () => MESURES_IMAGES.slice(),
     sansImage: (a) => raccourci(a) && sansArt(a),
     // hero(a) : le décor du jeu (sans titre), l'image choisie par l'utilisateur d'abord, en adresses de repli successives
-    hero: (a) => [...perso("GetCustomHeroImageURLs", a), IMG(a.appid, "library_hero.jpg"), CDN(a.appid, "library_hero.jpg")],
+    // (16/11) puis celui des détails de Steam, déjà demandés : un jeu récent pas installé n'a son décor qu'à une adresse avec
+    // empreinte (Assassin's Creed Black Flag Resynced : bannière vide dans la Bibliothèque)
+    hero: (a) => {
+      let d = [];
+      try {
+        d = (O.appDetailsStore?.GetHeroImagesForAppId(a.appid)?.rgHeroImages || []).map(absolu);
+      } catch (e) {
+      }
+      return [...perso("GetCustomHeroImageURLs", a), IMG(a.appid, "library_hero.jpg"), CDN(a.appid, "library_hero.jpg"), ...d];
+    },
     dossier: (nom, l, n) => {
       const t = tuileDossier({ dossier: true, nom, l: l.slice(0, 3).map((a) => ({ app: a.appid })) });
       t.querySelector("small").textContent = n;

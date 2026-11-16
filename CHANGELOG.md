@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.2.11 (2026-11-16)
+
+Fixes only (issues #30, #31).
+
+- **Offline**: SteamU opens quickly again when the console has no Internet: it no longer waits for a name lookup (#30).
+- **Keyboard**: outside Big Picture and Gamescope (desktop mode, Windows, a desktop session), Steam's keyboard is no
+  longer covered by the SteamU background: it keeps its usual look, and the SteamU keyboard is used only while Big Picture
+  is open (#31). Over a game, the Keyboard button in quick settings opens it in front of the game.
+- **Unifideck**: store sign-in windows (Amazon, Epic, GOG, Microsoft, Battle.net) open directly and stay visible, without
+  a launch screen, a fake game page or "The game could not start".
+- **Controller**: the first button press is no longer lost after closing the keyboard or tapping the screen, and the
+  first Y on the plaza goes to Home.
+- **Images**: no more empty tile or banner for a game that is uninstalled or not installed yet.
+- **Plaza**: no more shadows flickering under the tiles; Mii no longer sit on "Find more themes" and their bubbles stay
+  on screen.
+- **Startup**: music no longer stays silent for 20 seconds when Decky answers late; the Settings legend no longer jumps on
+  the SteamU tab.
+- **Updates**: SteamU now stops within 1.5 s when Decky asks it to, so an update can no longer freeze Decky and leave the
+  console stuck on the loading screen.
+
 ## v0.2.10 (2026-11-14)
 
 - **Announcements**: SteamU can receive news from the project (Settings › SteamU › Privacy to turn them off).

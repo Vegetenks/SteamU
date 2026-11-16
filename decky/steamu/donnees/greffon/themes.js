@@ -1128,7 +1128,7 @@
   let demandee = null;
   const consoleDe = (t) => t?.sons || t?.famille;
   const familleSons = (t = courant) => window.__pcvFamilleSons ? window.__pcvFamilleSons(consoleDe(t)) : consoleDe(t);
-  let sysPresents = null, sysSource = null, sysEssai = 0;
+  let sysPresents = null, sysSource = null, sysEssai = 0, sysRelances = 0;
   const lireSys = () => {
     if (!window.__pcvSonsPresents || !sysSource && Date.now() - sysEssai < 5e3) return;
     const p = window.__pcvSonsPresents();
@@ -1141,7 +1141,12 @@
         musique();
       }
     }, () => {
-      if (sysSource === p) sysSource = null;
+      if (sysSource !== p) return;
+      sysSource = null;
+      if (++sysRelances <= 30) {
+        sysEssai = 0;
+        setTimeout(musique, 1e3);
+      }
     });
   };
   const systeme = (chemin) => chemin && sysPresents?.has("sons/" + chemin) ? "sons/" + chemin : null;
@@ -2360,7 +2365,7 @@
     document.body.prepend(fs);
     const d = monter(fs), pageSteam = () => {
       const p = document.body.dataset.pcvPage;
-      fs.hidden = p === "accueil" || !espaceDePage(p);
+      fs.hidden = p === "accueil" || p === "clavier" || !espaceDePage(p);
       d.vu = void 0;
       relancer();
     };

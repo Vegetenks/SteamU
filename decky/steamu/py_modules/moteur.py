@@ -347,9 +347,21 @@ class Secours:
 secours = Secours()            
 etat_scripts = {}              
 
+FENETRE_GAMESCOPE, CLAVIER_STEAM, FENETRE_BIG_PICTURE = "SP", "SP Keyboard", "SP BPM"
+
 def fenetre_principale(c):
     t, url = c["title"], c.get("url", "")
-    return c.get("type") == "page" and url.startswith("about:blank") and "Gamepad" in url and ("Big" in t or t == "SP")
+    return c.get("type") == "page" and url.startswith("about:blank") and "Gamepad" in url and ("Big" in t or t == FENETRE_GAMESCOPE)
+
+def clavier_hors_gamescope(c, cibles):
+    if any(x["title"] == FENETRE_GAMESCOPE for x in cibles) or "browserviewpopup=1" in c.get("url", "") or fenetre_principale(c): return False
+    return str(evaluer(c, "window.name") or "").startswith(CLAVIER_STEAM)
+
+def big_picture_ouvert(cibles):
+    return any(x.get("type") == "page" and "Gamepad" in x.get("url", "") and "browserviewpopup=1" not in x.get("url", "")
+               and str(evaluer(x, "window.name") or "").startswith(FENETRE_BIG_PICTURE) for x in cibles)
+
+RENDRE_CLAVIER_JS = "(s => (delete document.documentElement.dataset.pcvFenetre, s ? (s.remove(), 1) : 0))(document.getElementById('theme-clair'))"
 
 TOASTS_TOT = "html:not([data-pcv-toasts]) :is({{GamepadToastPlaceholder@GamepadToastPlaceholder}}, {{GamepadToastPopup@GamepadToastPopup}}) { visibility: hidden !important; }"
 
@@ -390,7 +402,7 @@ def boucle(DOSSIER, ecrire=None):
         try:
             cibles = json.load(urllib.request.urlopen(DEBOGUEUR, timeout=3))
             partage = next((c for c in cibles if c["title"] == "SharedJSContext"), None)
-            principale = any(c.get("type") == "page" and ("Big" in c["title"] or c["title"] == "SP") for c in cibles)
+            principale = any(c.get("type") == "page" and ("Big" in c["title"] or c["title"] == FENETRE_GAMESCOPE) for c in cibles)
             secours.contexte(partage and partage["id"], pid_steam)
             if ancien_actif():   
                 nettoyer(set())
@@ -412,6 +424,10 @@ def boucle(DOSSIER, ecrire=None):
                     fermer(partage["id"])
                 time.sleep(1); continue
             if not partage or not principale:
+                for c in cibles:   
+                    if "Gamepad" in c.get("url", "") and clavier_hors_gamescope(c, cibles):
+                        if evaluer(c, RENDRE_CLAVIER_JS): journal("clavier : rendu à Steam →", c["title"])
+                        fermer(c["id"])
                 time.sleep(1); continue
             avant_connexion = evaluer(partage, AVANT_CONNEXION_JS)
             if modules or carte_avant: poser_toasts(cibles, modules or carte_avant[1])
@@ -466,8 +482,13 @@ def boucle(DOSSIER, ecrire=None):
                     continue
                 if not url.startswith("about:blank"): continue
                 if not ("Gamepad" in url or "browserviewpopup=1" in url) or t.endswith("_desktop"): continue
+                if clavier_hors_gamescope(c, cibles):   
+                    if not big_picture_ouvert(cibles):
+                        if evaluer(c, RENDRE_CLAVIER_JS): journal("clavier : rendu à Steam →", t)
+                        continue
+                    evaluer(c, "document.documentElement.dataset.pcvFenetre = 'clavier'")
                 v_page, s_page = deja(c, "theme-clair")
-                liste = SCRIPTS_MENU if t.startswith("MainMenu") else SCRIPTS_ACCES if t.startswith("QuickAccess") else SCRIPTS_PRINCIPALE if ("Big" in t or t == "SP") else SCRIPTS_BULLES if t.startswith("notificationtoasts") else []   
+                liste = SCRIPTS_MENU if t.startswith("MainMenu") else SCRIPTS_ACCES if t.startswith("QuickAccess") else SCRIPTS_PRINCIPALE if ("Big" in t or t == FENETRE_GAMESCOPE) else SCRIPTS_BULLES if t.startswith("notificationtoasts") else []
                 if liste is SCRIPTS_PRINCIPALE and s_page != v_scripts:
                     secours.reposee(t, v_scripts)
                     if secours.pause: break   
