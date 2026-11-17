@@ -84,13 +84,12 @@
   const choixDe = {};
   const personnaliser = (i) => {
     const choix = [
-      { cle: "themes", nom: window.__pcvT("spaces.themes.nom"), teinte: "#ff8db5, #e8457c", svg: '<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.1 0-.9.7-1.5 1.6-1.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10" r="1"/>', faire: () => lancer("themes") },
-      window.__pcvDeco && { ic: "decorer", nom: window.__pcvT("perso.decorer"), faire: () => window.__pcvDeco.ouvrir() }
-    ].filter(Boolean);
+      { cle: "themes", nom: window.__pcvT("spaces.themes.nom"), teinte: "#ff8db5, #e8457c", svg: '<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.1 0-.9.7-1.5 1.6-1.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10" r="1"/>', faire: () => lancer("themes") }
+    ];
     choix.forEach((c) => {
       if (c.cle) choixDe[c.cle] = c;
     });
-    if (!window.__pcvDossiers?.choix(i, choix)) ouvrir("themes");
+    lancer("themes");
   };
   window.__pcvPerso = { ouvrir, fermer, rendreZone, personnaliser, casino: () => CASINO() };
   const PAS_UNE_PAGE = /* @__PURE__ */ new Set(["pcv-badges", "pcv-toasts", "pcv-lancement"]);
@@ -152,7 +151,9 @@
     return !!e && !e.hidden;
   };
   const ECRANS = {
-    bienvenue: [() => !!window.__pcvBienvenue?.ouvert(), () => window.__pcvBienvenue?.fermer(false)],
+    bienvenue: [() => !!(window.__pcvBienvenue?.affichee?.() ?? window.__pcvBienvenue?.ouvert()), () => {
+      if (!window.__pcvBienvenue?.decouverte?.()) window.__pcvBienvenue?.fermer(false);
+    }],
     // (29/10, l'auteur : « toutes nos applications doivent être considérées comme une application ») le 3e terme : l'appli
     // que l'écran est, pour le menu HOME (logiciel en cours) : la clé de sa tuile de l'accueil (console.js, __pcvApplis),
     // ou [clé, nom] quand l'écran porte un autre nom que sa tuile
@@ -164,6 +165,7 @@
     themes: [() => document.getElementById("pcv-themes")?.classList.contains("on") && vu("pcv-themes"), () => window.__pcvThemes?.fermer(false), ["perso", "spaces.themes.nom"]],
     perso: [() => !!ouvert, () => fermer(true), () => ouvert === "casino" && "casino"],
     spotpassPage: [() => vu("pcv-spotpass-page"), () => window.__pcvSpotPassPage?.fermer()],
+    manettes: [() => vu("pcv-manettes"), () => window.__pcvManettes?.fermer()],
     notifs: [() => vu("pcv-notifs"), () => window.__pcvNotifsMontrer?.(false)],
     amis: [() => vu("pcv-amis"), () => window.__pcvAmisMontrer?.(false)],
     profil: [() => vu("pcv-profil"), () => window.__pcvProfilMontrer?.(false)],
@@ -186,7 +188,7 @@
       return false;
     }
   };
-  const DE_LA_BARRE = ["amis", "notifs", "profil", ...FENETRES];
+  const DE_LA_BARRE = ["amis", "notifs", "profil", "manettes", ...FENETRES];
   let actif = null, avant = /* @__PURE__ */ new Set(), dernierB = 0, route = O.location.pathname;
   const veiller = () => {
     if (O.location.pathname !== route) {

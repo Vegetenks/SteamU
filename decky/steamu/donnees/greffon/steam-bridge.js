@@ -13,6 +13,20 @@ try {
   });
 } catch (e) {
 }
+try {
+  window.__pcvAbonnementFin?.unregister?.();
+} catch (e) {
+}
+try {
+  const O = window.opener || window;
+  O.__pcvOutilsFinis ||= /* @__PURE__ */ new Set();
+  window.__pcvAbonnementFin = O.SteamClient?.GameSessions?.RegisterForAppLifetimeNotifications?.((n) => {
+    const id = Number(n?.unAppID);
+    if (n?.bRunning) O.__pcvOutilsFinis.delete(id);
+    else if (window.__pcvBridge?.unifideck?.outil?.(id)) O.__pcvOutilsFinis.add(id);
+  });
+} catch (e) {
+}
 {
   const PALIERS = [
     { fondPas: 0, fondEchelle: 1, miiLisse: true, miiBasse: false, miiIps: 0, videos: true },
@@ -111,6 +125,35 @@ window.__pcvPanneau = /* @__PURE__ */ (() => {
 })();
 window.__pcvRapide = 120;
 window.__pcvReduit = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+window.__pcvTenir = (b, pas) => {
+  const TENUE = { attente: 380, pas: 220, min: 70, acc: 0.8 };
+  clearTimeout(window.__pcvTenue?.m);
+  window.__pcvTenue = null;
+  if (!pas()) return;
+  const t = window.__pcvTenue = { b }, suite = (ms) => {
+    t.m = setTimeout(() => {
+      if (window.__pcvTenue === t && pas()) suite(Math.max(TENUE.min, ms === TENUE.attente ? TENUE.pas : ms * TENUE.acc));
+    }, ms);
+  };
+  suite(TENUE.attente);
+};
+window.__pcvTenirMot = (b, min = 14, haut = false) => {
+  b.style.fontSize = "";
+  let t = parseFloat(getComputedStyle(b).fontSize);
+  while ((b.scrollWidth > b.clientWidth + 1 || haut && b.scrollHeight > b.clientHeight + 1) && t > min) b.style.fontSize = --t + "px";
+};
+if (!window.__pcvTenueEcoute) {
+  window.__pcvTenueEcoute = true;
+  const lacher = (e) => {
+    const t = window.__pcvTenue;
+    if (t && e.type === "vgp_onbuttonup" === (e.detail?.button === t.b)) {
+      clearTimeout(t.m);
+      window.__pcvTenue = null;
+    }
+  };
+  window.addEventListener?.("vgp_onbuttonup", lacher, true);
+  window.addEventListener?.("vgp_onbuttondown", lacher, true);
+}
 window.__pcvVoile = /* @__PURE__ */ (() => {
   const ouvertes = /* @__PURE__ */ new Set();
   return (cle, oui) => {
@@ -191,14 +234,15 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
     if (relache) relache.anime = true;
     if (pointeur) pointeur.anime = true;
     let zone = null;
-    if (r) {
+    const poserZone = () => {
+      if (!r || zone || fait) return;
       zone = document.createElement("span");
       zone.setAttribute("popover", "manual");
       zone.setAttribute("aria-hidden", "true");
       zone.style.cssText = `all:initial!important;position:fixed!important;opacity:0!important;left:${r.left}px!important;top:${r.top}px!important;width:${r.width}px!important;height:${r.height}px!important;`;
       el.appendChild(zone);
       zone.showPopover();
-    }
+    };
     const a = el.animate({ scale: [1, 0.93] }, { duration: window.__pcvRapide, easing: "ease-in", fill: "forwards", composite: "add" });
     let fait = false;
     const haut = () => {
@@ -215,6 +259,7 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
       if (a.playState === "finished") a.onfinish();
     };
     haut.el = el;
+    haut.zone = poserZone;
     return tenu = haut;
   };
   window.__pcvAppui = (el) => {
@@ -225,11 +270,55 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
     }, window.__pcvRapide);
   };
   const notre = (p) => {
+    const alim = p[0]?.closest?.("[data-pcv-alim] .contextMenuItem");
+    if (alim) return alim;
     const b = p[0]?.closest?.("button, [data-a], [role=button], .pf, #pcv-console .cel[data-i], .pcv-legende > [data-b]");
     return b && !b.closest(".pcvc") && p.some((n) => n.id?.startsWith?.("pcv")) ? b : null;
   };
+  const PAS = 8;
+  let glisseA = -1e9, rendre = null;
+  const listes = (e) => {
+    rendre?.();
+    const p = e.composedPath();
+    if (e.pointerType !== "touch" || !p.some((n) => n.id?.startsWith?.("pcv"))) return;
+    const l = p.filter((n) => n.nodeType === 1 && !n.style.pointerEvents && getComputedStyle(n).pointerEvents === "none" && /auto|scroll/.test(getComputedStyle(n).overflow));
+    if (!l.length) return;
+    l.forEach((n) => n.style.pointerEvents = "auto");
+    let defile = false;
+    const vu = (v) => {
+      if (l.includes(v.target)) defile = true;
+    }, leve = () => {
+      if (!defile) rendre?.();
+    }, fini = (v) => {
+      if (l.includes(v.target)) rendre?.();
+    };
+    const ev = [["scroll", vu], ["touchend", leve], ["touchcancel", leve], ["scrollend", fini]];
+    ev.forEach(([t, f]) => window.addEventListener(t, f, true));
+    rendre = () => {
+      rendre = null;
+      l.forEach((n) => n.style.removeProperty("pointer-events"));
+      ev.forEach(([t, f]) => window.removeEventListener(t, f, true));
+    };
+  };
+  const CONTENU = "quickaccess_content_", dansContenu = (p) => p.some((n) => n.id?.startsWith?.(CONTENU));
+  const suivreContenu = (e) => {
+    const x = e.clientX, y = e.clientY;
+    let loin = false;
+    const m = (v) => {
+      if (v.pointerId === e.pointerId && Math.hypot(v.clientX - x, v.clientY - y) > PAS) loin = true;
+    };
+    const f = (v) => {
+      if (v.pointerId !== e.pointerId) return;
+      if (loin) glisseA = v.timeStamp;
+      for (const [t, g] of l) window.removeEventListener(t, g, true);
+    };
+    const l = [["pointermove", m], ["pointerup", f], ["pointercancel", f]];
+    for (const [t, g] of l) window.addEventListener(t, g, true);
+  };
   const appui = (e) => {
-    const b = notre(e.composedPath());
+    listes(e);
+    const p = e.composedPath(), b = notre(p);
+    if (e.pointerType === "touch" && (dansContenu(p) || !b && p.some((n) => n.id?.startsWith?.("pcv")))) suivreContenu(e);
     if (!b?.animate || e.isPrimary === false) return;
     const suivi = {};
     pointeur = suivi;
@@ -237,10 +326,14 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
     const r = b.getBoundingClientRect(), haut = enfoncer(b, e.pointerType === "touch" && !e.composedPath()[0]?.matches?.("input, select, textarea") ? r : null), x = e.clientX, y = e.clientY;
     const glisse = (m) => {
       if (m.pointerId !== e.pointerId) return;
-      if (Math.hypot(m.clientX - x, m.clientY - y) > 15 || m.clientX < r.left || m.clientX > r.right || m.clientY < r.top || m.clientY > r.bottom) haut();
+      const loin = Math.hypot(m.clientX - x, m.clientY - y) > PAS;
+      if (loin) suivi.glisse = true;
+      if (loin || m.clientX < r.left || m.clientX > r.right || m.clientY < r.top || m.clientY > r.bottom) haut();
     };
     const fin = (m) => {
       if (m.pointerId !== e.pointerId) return;
+      if (suivi.glisse) glisseA = m.timeStamp;
+      else if (m.type === "pointerup") haut.zone?.();
       haut();
       window.removeEventListener("pointermove", glisse, true);
       window.removeEventListener("pointerup", fin, true);
@@ -254,6 +347,11 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
     window.addEventListener("pointercancel", fin, true);
   };
   const clic = (e) => {
+    if (e.detail && e.isTrusted && e.timeStamp - glisseA < 400 && (notre(e.composedPath()) || e.composedPath().some((n) => n.id?.startsWith?.("pcv")) || dansContenu(e.composedPath()))) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      return;
+    }
     if (!e.detail) {
       const b = notre(e.composedPath());
       if (b) window.__pcvAppui(b);
@@ -305,12 +403,15 @@ window.__pcvApparition = /* @__PURE__ */ (() => {
   };
   const sansMenuNavigateur = (e) => e.preventDefault();
   window.__pcvAppuiFin?.();
-  window.addEventListener?.("pointerdown", appui, true);
-  window.addEventListener?.("click", clic, true);
-  window.addEventListener?.("contextmenu", sansMenuNavigateur, true);
-  window.addEventListener?.("vgp_onbuttondown", bouton, true);
-  window.addEventListener?.("vgp_onbuttonup", bouton, true);
+  if (!window.__pcvAvantConnexion?.()) {
+    window.addEventListener?.("pointerdown", appui, true);
+    window.addEventListener?.("click", clic, true);
+    window.addEventListener?.("contextmenu", sansMenuNavigateur, true);
+    window.addEventListener?.("vgp_onbuttondown", bouton, true);
+    window.addEventListener?.("vgp_onbuttonup", bouton, true);
+  }
   window.__pcvAppuiFin = () => {
+    rendre?.();
     window.removeEventListener("pointerdown", appui, true);
     window.removeEventListener("click", clic, true);
     window.removeEventListener("contextmenu", sansMenuNavigateur, true);
@@ -444,18 +545,27 @@ window.__pcvBridge = (() => {
       }
     },
     // Changements de fiches (raccourcis compris) et d'installation ; nettoyage à chaque réinjection.
+    // (16/11, diagnostic.py) chaque évènement est compté par source : sa fréquence se lit dans un rapport (__pcvBiblioFreq)
     ecouterBibliotheque: (cb) => {
-      const a = [];
+      const a = [], f = window.__pcvBiblioFreq ||= { total: 0, depuis: Date.now(), recents: [], sources: {} };
+      const compte = (s) => (...x) => {
+        const t = Date.now();
+        f.total++;
+        f.sources[s] = (f.sources[s] || 0) + 1;
+        f.recents.push(t);
+        if (f.recents.length > 600) f.recents.splice(0, 300);
+        return cb(...x);
+      };
       try {
-        a.push(O.SteamClient.Apps.RegisterForAppOverviewChanges(cb));
+        a.push(O.SteamClient.Apps.RegisterForAppOverviewChanges(compte("fiches")));
       } catch (e) {
       }
       try {
-        a.push(O.SteamClient.Downloads.RegisterForDownloadOverview(cb));
+        a.push(O.SteamClient.Downloads.RegisterForDownloadOverview(compte("telechargements")));
       } catch (e) {
       }
       try {
-        a.push(O.downloadsStore.RegisterForDownloadItemsUpdate(cb));
+        a.push(O.downloadsStore.RegisterForDownloadItemsUpdate(compte("elements")));
       } catch (e) {
       }
       return { unregister: () => a.forEach((x) => {
@@ -495,6 +605,15 @@ window.__pcvBridge = (() => {
       }
     },
     // (appelée sur son objet : détachée, elle ne répondait pas)
+    // (11/11, l'auteur) « Ajouter un compte » : l'appel exact du « Ajouter un compte » de Steam (son « Changer de compte »,
+    // onNewUser) : Steam redémarre sur sa connexion ; le compte mémorisé reste dans sa liste (B y revient), rien n'est oublié
+    // (à la différence de SignOutAndRestart, qui efface l'identification)
+    ajouterCompte: () => {
+      try {
+        O.SteamClient.User.RestartToLoginScreen();
+      } catch (e) {
+      }
+    },
     // (22/10) l'historique des pages de Steam (m_history de sa fenêtre principale) : page() la page actuelle, dans ses
     // propres termes ; revenirA(p) y revient SANS empiler une page de plus : comme B si la page d'avant est p, sinon en
     // remplaçant l'actuelle (lancement d'un jeu, console.js : Steam y empile la page du jeu)
@@ -557,8 +676,9 @@ window.__pcvBridge = (() => {
         return !Number.isFinite(n) ? [] : n < 0 ? [n, n + 4294967296] : n > 2147483647 ? [n, n - 4294967296] : [n];
       };
       const appliquer = (l) => {
-        const m = /* @__PURE__ */ new Map(), nuage = /* @__PURE__ */ new Set(), pc = /* @__PURE__ */ new Set();
+        const m = /* @__PURE__ */ new Map(), nuage = /* @__PURE__ */ new Set(), pc = /* @__PURE__ */ new Set(), ids = /* @__PURE__ */ new Map();
         for (const g of l) if (g && g.app_id != null && g.store && g.store !== "steam") {
+          ids.set(g.store + ":" + g.store_game_id, Number(g.app_id) >>> 0);
           const tags = Array.isArray(g.tags) ? g.tags.map((t) => String(t).toLowerCase()) : [];
           const estPC = tags.includes(TAG_PC), cloud = tags.includes(TAG_NUAGE) && !(estPC && g.installed);
           for (const id of formes(g.app_id)) {
@@ -570,7 +690,7 @@ window.__pcvBridge = (() => {
         const meme = (a, b) => a.size === b.size && [...a].every((k) => b.has(k));
         const dbl = window.__pcvDoublons?.grouper(l) || null;
         if (m.size !== u.jeux.size || !meme(nuage, u.nuage) || !meme(pc, u.pc) || dbl?.sig !== u.dbl?.sig || [...m].some(([k, v]) => u.jeux.get(k) !== v)) u.version++;
-        Object.assign(u, { jeux: m, nuage, pc, dbl, ok: true, echecs: 0, erreur: "" });
+        Object.assign(u, { jeux: m, nuage, pc, dbl, ids, ok: true, echecs: 0, erreur: "" });
       };
       const rate = (e) => {
         u.erreur = e;
@@ -647,9 +767,10 @@ window.__pcvBridge = (() => {
       };
       return {
         charger,
-        outil,
         formes,
+        outil,
         version: () => u.version,
+        id: (store, jeu) => u.ids?.get(store + ":" + jeu),
         nuage: (a) => u.nuage.has(Number(a.appid)),
         etat: (a) => {
           charger();
@@ -667,11 +788,21 @@ window.__pcvBridge = (() => {
     // the app running in the foreground (null if none) ; appOverview() : its full card (name, playtime, images...)
     runningApp: () => {
       try {
-        return O.SteamUIStore.MainRunningApp || null;
+        return O.SteamUIStore.RunningApps.find((a) => !O.__pcvOutilsFinis?.has(+a.appid)) || null;
       } catch (e) {
         return null;
       }
     },
+    outilFini: (appid) => !!O.__pcvOutilsFinis?.has(+appid),
+    // la page « jeu en cours » de Steam (celle de « Reprendre ») : sa fenêtre passe devant dès qu'elle existe
+    allerAuJeuEnCours: () => {
+      try {
+        O.SteamUIStore.NavigateToRunningApp();
+      } catch (e) {
+      }
+    },
+    // (13/11) le magasin des performances de Steam (limite d'images), trouvé comme dans acces-rapide.js (même clé, même cache)
+    perf: () => findModule("perf", "SetGameSpecificProfileEnabled", (v) => typeof v?.Get === "function" && typeof v.Get()?.SetFPSLimit === "function")?.Get(),
     appOverview: (appid) => {
       try {
         return O.appStore.GetAppOverviewByAppID(appid) || null;
@@ -722,8 +853,71 @@ window.__pcvBridge = (() => {
       } catch (e) {
       }
     },
+    // (11/11) Un greffon dont l'entrée du menu de Steam n'est pas une page mais un lanceur : sa route fait NavigateBack()
+    // tout de suite, puis ouvre sa vue 100 ms plus tard. Steamcord (route /discord, vue .sc-xv-side) : au second lancement
+    // la vue ne venait pas (correctif repris de la contribution « Steamcord shortcut », lieserlV). NavigateBack est
+    // neutralisé le temps que la vue s'ouvre (DFL est le même objet pour tous les greffons), puis rendu, et c'est nous qui
+    // revenons ; vue absente après 900 ms : retour et nouvel essai, trois au plus (Steamcord ignore un appel tant que sa
+    // vue est ouverte). Les autres greffons s'ouvrent par leur vraie entrée du menu (menu-pont.js, __pcvAller).
+    lanceurs: { "/discord": ".sc-xv-side" },
+    ouvrirLanceur: (route) => {
+      const vueSel = window.__pcvBridge.lanceurs[route];
+      let nav;
+      try {
+        nav = O.DFL.Navigation;
+      } catch (e) {
+      }
+      if (!nav || !vueSel) return;
+      const retour = () => {
+        try {
+          nav.NavigateBack();
+        } catch (e) {
+        }
+      };
+      const surRoute = () => O.location.pathname.endsWith("/routes" + route);
+      const vue = () => {
+        const docs = [O.document];
+        try {
+          docs.push(O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BrowserWindow.document);
+        } catch (e) {
+        }
+        return docs.some((d) => !!d?.querySelector(vueSel));
+      };
+      const essayer = (n) => {
+        const origine = nav.NavigateBack;
+        let garde = false;
+        try {
+          nav.NavigateBack = () => {
+          };
+          garde = true;
+        } catch (e) {
+        }
+        try {
+          nav.Navigate(route);
+        } catch (e) {
+        }
+        setTimeout(() => {
+          const ok = vue();
+          try {
+            if (garde) nav.NavigateBack = origine;
+          } catch (e) {
+          }
+          if (surRoute()) retour();
+          if (!ok && n < 3) setTimeout(() => essayer(n + 1), 600);
+        }, 900);
+      };
+      if (surRoute()) {
+        retour();
+        return void setTimeout(() => essayer(1), 400);
+      }
+      essayer(1);
+    },
     // (29/10, Paramètres lot 1, reglages.js) un réglage du client, lu et écrit comme Steam le fait (CMsgClientSettings) ;
     // le texte d'un jeton de traduction de Steam dans sa langue ; les jeux masqués (nombre, et leur collection)
+    modeAvion: () => {
+      const s = globalStore("SystemStoragStore")?.AirplaneModeEnabled;
+      return !!(s?.Value ?? s?.m_currentValue);
+    },
     reglageClient: (nom) => {
       try {
         return clientSettings()?.[nom];
@@ -890,6 +1084,20 @@ window.__pcvBridge = (() => {
     network: () => {
       const S = globalStore("SystemNetworkStore");
       let filaire = false;
+      if (typeof S?.hasNetworkConnection !== "boolean" || !S.hasNetworkConnection && !S.m_mapNetworkAccessPoints?.size) {
+        const r = O.__pcvReseauSysteme ||= { t: -Infinity, enCours: false, etat: null };
+        if (!r.enCours && Date.now() - r.t >= 5e3) {
+          r.t = Date.now();
+          r.enCours = true;
+          Promise.resolve().then(() => O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "reseau")).then((etat) => {
+            r.etat = etat;
+          }).catch(() => {
+          }).finally(() => {
+            r.enCours = false;
+          });
+        }
+        return r.etat || { connected: false, filaire: false, wifi: "" };
+      }
       try {
         filaire = [...S.m_mapNetworkAccessPoints.values()].some(({ m_DeviceInfo: d }) => d?.etype === 1 && d.estate === 5 && d.ip4?.is_default_route);
       } catch (e) {
@@ -1153,12 +1361,13 @@ window.__pcvBridge = (() => {
               vitesse: c.appid === ov.update_appid ? +ov.update_network_bytes_per_second || 0 : 0
             } : null;
             if (cours) [cours.fait, cours.total] = octets(c.appid === ov.update_appid ? ov.progress : c.update_type_info?.find((u) => u.has_update)?.progress);
+            const vus = new Set(cours ? [cours.appid] : []);
             const suivants = [
               ...file.map((x) => ({ x, etat: "file" })),
               ...l.filter((x) => !x.active && !x.completed && x.queue_index === -1 && !x.deferred_time).map((x) => ({ x, etat: "pause" })),
               ...l.filter((x) => x.queue_index === -1 && x.deferred_time && !x.completed).sort((a, b) => a.deferred_time - b.deferred_time).map((x) => ({ x, etat: "prevu" }))
-            ].filter(({ x }) => x.appid !== cours?.appid).map(({ x, etat }) => ({ appid: x.appid, etat, maj: maj(x), ...etat === "prevu" ? { quand: +x.deferred_time || 0 } : {} }));
-            const termines = [...new Set([...l.filter((x) => x.completed).sort((a, b) => b.completed_time - a.completed_time), ...s.RecentlyCompleted || []].map((x) => x.appid))].slice(0, 12);
+            ].filter(({ x }) => !vus.has(x.appid) && vus.add(x.appid)).map(({ x, etat }) => ({ appid: x.appid, etat, maj: maj(x), ...etat === "prevu" ? { quand: +x.deferred_time || 0 } : {} }));
+            const termines = [...new Set([...l.filter((x) => x.completed).sort((a, b) => b.completed_time - a.completed_time), ...s.RecentlyCompleted || []].map((x) => x.appid))].filter((id) => !vus.has(id)).slice(0, 12);
             return { cours, suivants, termines };
           } catch (e) {
             return null;
@@ -1222,8 +1431,308 @@ window.__pcvBridge = (() => {
     callPlugin: (pluginName, method, ...args) => O.DeckyBackend?.call("loader/call_plugin_method", pluginName, method, ...args) ?? Promise.reject(new Error("Decky absent"))
   };
 })();
+(() => {
+  if (typeof document === "undefined") return;
+  window.__pcvModes?.arreter();
+  const O = window.opener || window, CLE = "pcv-modes", WATTS = 5;
+  const lire = () => {
+    try {
+      return JSON.parse(O.localStorage.getItem(CLE)) || {};
+    } catch (e) {
+      return {};
+    }
+  };
+  const client = () => ({ steamos_tdp_limit: window.__pcvBridge.reglageClient("steamos_tdp_limit"), steamos_tdp_limit_enabled: window.__pcvBridge.reglageClient("steamos_tdp_limit_enabled") });
+  const reglage = (k, v) => window.__pcvBridge.ecrireReglageClient(k, v);
+  const tdp = (watts, enabled) => {
+    if (watts !== void 0) reglage("steamos_tdp_limit", watts);
+    reglage("steamos_tdp_limit_enabled", enabled);
+  };
+  let signature = "";
+  const LEGERE = { anim: true, fond: true, apercus: true, lum: true, place: false, musique: false, tdp: false, telech: false, systeme: false, noir: false, jeuW: 0, jeuIps: 0 };
+  const NORMALE = { ...LEGERE, place: true, musique: true, tdp: true, telech: true, systeme: true, jeuW: 12, jeuIps: 30 };
+  const NIVEAUX = { legere: LEGERE, normale: NORMALE, maximale: { ...NORMALE, noir: true, jeuW: 8 } };
+  const ECO = { niveau: "normale", seuil: 20, demander: true };
+  const reglages = (m = lire()) => ({ ...ECO, ...m.eco });
+  const leviers = (m = lire()) => {
+    const r = reglages(m);
+    return r.niveau === "perso" ? { ...NORMALE, ...r.leviers } : NIVEAUX[r.niveau] || NORMALE;
+  };
+  const coupe = (k, m = lire()) => !!m.economie && !!leviers(m)[k];
+  const appliquer = () => {
+    const m = lire(), sig = JSON.stringify(m);
+    if (sig === signature) return;
+    signature = sig;
+    document.documentElement.classList.toggle("pcv-sans-mouvement", coupe("anim", m));
+    document.documentElement.toggleAttribute("data-pcv-npd", !!m.npd);
+    if (coupe("anim", m)) for (const a of document.getAnimations()) {
+      if (a.effect?.target?.closest?.('[id^="pcv-"], [class^="pcv-"]')) {
+        try {
+          a.finish();
+        } catch (e) {
+          a.cancel();
+        }
+      }
+    }
+    window.dispatchEvent(new CustomEvent("pcv-modes", { detail: m }));
+  };
+  const sauver = (m) => {
+    O.localStorage.setItem(CLE, JSON.stringify(m));
+    appliquer();
+  };
+  const CRAN_LUMIERE = 0.1, B = () => window.__pcvBridge, SC = () => O.SteamClient, T = (k, v) => window.__pcvT?.(k, v) ?? k;
+  const principale = () => {
+    try {
+      return O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.m_BrowserWindow === window;
+    } catch (e) {
+      return O === window;
+    }
+  };
+  const systeme = (methode, ...a) => {
+    try {
+      return B().callPlugin(window.__pcvGreffon.nom, methode, ...a).catch(() => null);
+    } catch (e) {
+      return Promise.resolve(null);
+    }
+  };
+  const telechPause = () => O.downloadsStore?.LocalDownloadOverview?.paused;
+  const luminosite = () => new Promise((ok) => {
+    let h = null, fini = false;
+    const fin = (v) => {
+      if (fini) return;
+      fini = true;
+      ok(v);
+      try {
+        h?.unregister();
+      } catch (e) {
+      }
+    };
+    try {
+      h = SC().System.Display.RegisterForBrightnessChanges((b) => fin(b?.flBrightness));
+      if (fini) h?.unregister();
+    } catch (e) {
+      fin(void 0);
+    }
+    setTimeout(() => fin(void 0), 1e3);
+  });
+  const poserLuminosite = (v) => {
+    try {
+      SC().System.Display.SetBrightness(v);
+    } catch (e) {
+    }
+  };
+  const SHADERS = "enable_shader_background_processing";
+  const LEVIERS = {
+    telech: (on, m) => {
+      const a = m.avant;
+      if (on) {
+        if (telechPause() === false) {
+          a.telech = true;
+          B().telech?.pause(true);
+        }
+        if (B().reglageClient(SHADERS) === true) {
+          a.shaders = true;
+          reglage(SHADERS, false);
+        }
+        return;
+      }
+      if (a.telech && telechPause() === true) B().telech?.pause(false);
+      if (a.shaders && B().reglageClient(SHADERS) === false) reglage(SHADERS, true);
+      delete a.telech;
+      delete a.shaders;
+    },
+    lum: (on, m) => {
+      if (on) return void luminosite().then((v) => {
+        const n = lire();
+        if (!coupe("lum", n) || typeof v !== "number") return;
+        n.avant.lum = [v, Math.max(CRAN_LUMIERE, +(v - CRAN_LUMIERE).toFixed(3))];
+        sauver(n);
+        poserLuminosite(n.avant.lum[1]);
+      });
+      const a = m.avant.lum;
+      delete m.avant.lum;
+      if (a) luminosite().then((v) => {
+        if (typeof v === "number" && Math.abs(v - a[1]) < 0.01) poserLuminosite(a[0]);
+      });
+    },
+    // les cœurs, le Wi-Fi et les LED (main.py) : le mode y commence et y finit toujours (reprise, limite tenue) ; le levier
+    // touché pendant le mode, appliqué ou rendu sans finir le mode
+    systeme: (on, m, pendant) => {
+      if (pendant) systeme("economie_leviers", on);
+    }
+  };
+  const enJeu = () => !!B().runningApp?.();
+  const piloter = () => {
+    const m = lire();
+    if (!m.economie || !m.avant) return;
+    const l = leviers(m), a = m.avant, c = client(), x = enJeu() ? l.jeuW : l.tdp ? WATTS : 0, w = x && !(a.enabled && a.watts <= x) ? x : null;
+    const attendu = m.pose ?? (a.enabled ? a.watts : null), actuel = c.steamos_tdp_limit_enabled ? c.steamos_tdp_limit : null;
+    if (w === attendu || actuel !== attendu) return;
+    if (w) tdp(w, true);
+    else tdp(a.watts, a.enabled);
+    m.pose = w;
+    sauver(m);
+  };
+  const images = () => {
+    const p = B().perf?.(), s = p?.msgSettingsPerApp;
+    if (!s) return;
+    const m = lire(), id = enJeu() ? B().runningApp().appid : 0, n = m.economie && id ? leviers(m).jeuIps : 0;
+    const choix = (p.msgLimits?.fps_limit_options || []).filter(Boolean), sous = choix.filter((v) => v <= n);
+    const voulu = !n ? 0 : sous.length ? Math.max(...sous) : choix.length ? Math.min(...choix) : n, lim = s.is_fps_limit_enabled ? s.fps_limit : 0, r = m.ips;
+    if (r && (r.appid !== id || r.fps !== voulu)) {
+      if (lim === r.fps && (!id || id === r.appid)) {
+        p.SetFPSLimitEnabled(r.avant > 0);
+        if (r.avant) p.SetFPSLimit(false, r.avant);
+      } else if (!id) return;
+      delete m.ips;
+      return sauver(m);
+    }
+    if (voulu && !r && !(lim && lim <= voulu)) {
+      m.ips = { appid: id, fps: voulu, avant: lim };
+      p.SetFPSLimitEnabled(true);
+      p.SetFPSLimit(false, voulu);
+      sauver(m);
+    }
+  };
+  const auto = () => {
+    const m = lire(), b = B().battery?.();
+    if (!b?.present) return;
+    if (b.charging) {
+      if (m.auto) {
+        delete m.auto;
+        sauver(m);
+      }
+      return;
+    }
+    const r = reglages(m);
+    if (m.economie || m.auto || !r.seuil || b.percent * 100 > r.seuil) return;
+    if (r.demander && (enJeu() || !window.__pcvDossiers?.demander)) return;
+    m.auto = true;
+    sauver(m);
+    if (!r.demander) return window.__pcvModes.economie(true);
+    window.__pcvDossiers.demander({
+      ic: "nom",
+      svg: window.__pcvIcones?.trace?.("feuille"),
+      titre: T("eco.question", { n: r.seuil }),
+      texte: "",
+      danger: false,
+      ailleurs: true,
+      non: T("eco.plus_tard"),
+      oui: T("eco.activer"),
+      ok: () => window.__pcvModes.economie(true)
+    });
+  };
+  window.__pcvModes = {
+    lire,
+    appliquer,
+    tdp,
+    coupe,
+    leviers,
+    reglages,
+    NIVEAUX,
+    WATTS,
+    // (07/11, l'auteur) comme Android : jamais d'économie quand la console charge ; elle se coupe au branchement
+    economie: (on) => {
+      const m = lire();
+      if (!!m.economie === on || on && enCharge()) return;
+      if (on) {
+        const c2 = client(), l = leviers(m);
+        m.avant = { watts: c2.steamos_tdp_limit, enabled: !!c2.steamos_tdp_limit_enabled };
+        delete m.pose;
+        m.economie = true;
+        for (const k in LEVIERS) if (l[k]) LEVIERS[k](true, m);
+        systeme("economie_systeme", true, !!l.systeme);
+        sauver(m);
+        piloter();
+        setTimeout(() => tenir(), 2e3);
+        return;
+      }
+      const c = client();
+      if (m.avant) {
+        if (m.pose != null && c.steamos_tdp_limit_enabled && c.steamos_tdp_limit === m.pose) tdp(m.avant.watts, m.avant.enabled);
+        for (const k in LEVIERS) LEVIERS[k](false, m);
+      }
+      systeme("economie_systeme", false);
+      delete m.avant;
+      delete m.pose;
+      m.economie = false;
+      sauver(m);
+      images();
+    },
+    // (13/11) les réglages de la page (parametres.js) : un niveau, un détail (le niveau passe à « perso »), le seuil, la
+    // question ; pendant le mode, chaque levier de la console qui change entre ou rend le sien tout de suite
+    regler: (o) => {
+      const m = lire(), avant = leviers(m), r = reglages(m);
+      if (o.levier) {
+        m.eco = { ...r, niveau: "perso", leviers: { ...avant, ...o.levier } };
+      } else m.eco = { ...r, ...o };
+      if (o.seuil !== void 0) delete m.auto;
+      const apres = leviers(m);
+      if (m.economie && m.avant) {
+        for (const k in LEVIERS) if (!avant[k] !== !apres[k]) LEVIERS[k](!!apres[k], m, true);
+      }
+      sauver(m);
+      piloter();
+      images();
+    },
+    npd: (on) => {
+      sauver({ ...lire(), npd: on });
+    },
+    avion: () => {
+      const s = window.__pcvBridge.modeAvion();
+      return !!s;
+    },
+    arreter: () => {
+      clearInterval(suivi);
+      window.removeEventListener("storage", appliquer);
+    }
+  };
+  const proto = globalThis.Element?.prototype;
+  if (proto && !proto.__pcvAnimate) {
+    proto.__pcvAnimate = proto.animate;
+    proto.animate = function(images2, options) {
+      const hote = this.getRootNode()?.host;
+      if (window.__pcvModes?.coupe("anim") && (this.closest('[id^="pcv-"], [class^="pcv-"]') || hote?.closest('[id^="pcv-"]'))) options = { ...typeof options === "number" ? {} : options, duration: 0, delay: 0, iterations: 1 };
+      return proto.__pcvAnimate.call(this, images2, options);
+    };
+  }
+  window.addEventListener("storage", appliquer);
+  const enCharge = () => {
+    try {
+      return !!window.__pcvBridge.battery()?.charging;
+    } catch (e) {
+      return false;
+    }
+  };
+  const tenir = () => {
+    const c = client(), m = lire();
+    if (principale() && m.economie && m.pose && c.steamos_tdp_limit_enabled && c.steamos_tdp_limit === m.pose) systeme("economie_tdp", m.pose);
+  };
+  let tics = 0;
+  const suivi = setInterval(() => {
+    if (lire().economie && enCharge()) window.__pcvModes.economie(false);
+    appliquer();
+    if (principale()) {
+      piloter();
+      images();
+      auto();
+    }
+    if (++tics % 20 === 0) tenir();
+  }, 500);
+  appliquer();
+  if (principale() && lire().economie) systeme("economie_actif").then((actif) => {
+    if (actif === false) window.__pcvModes.economie(false);
+  });
+})();
 window.__pcvEtat = {
-  html: (cl = "", style = "") => `<div class="pilule verre etat ${cl}"${style ? ` style="${style}"` : ""}>${window.__pcvIcones.svg("wifi", { classe: "ico" })}<span class="pile" hidden></span><span class="heure"></span></div>`,
+  // (15/10 soir) l'autonomie n'est montrée que si Steam en est sûr (confiance 1) et qu'elle reste plausible (moins de 20 h) ;
+  // sa durée arrondie à 5 min sur le TOTAL (« 1 h 60 » ne peut plus sortir) ; (13/11) partagées avec les Paramètres
+  autonomie: (p) => p?.confidence === 1 && p.secondsRemaining > 0 && p.secondsRemaining < 20 * 3600 ? p.secondsRemaining : 0,
+  duree: (s) => {
+    const t = Math.round(s / 300) * 5, hh = Math.floor(t / 60), mm = t % 60;
+    return hh ? `${hh} h ${String(mm).padStart(2, "0")}` : `${mm} min`;
+  },
+  html: (cl = "", style = "") => `<div class="pilule verre etat ${cl}"${style ? ` style="${style}"` : ""}>${window.__pcvIcones.svg("wifi", { classe: "ico" })}<span class="pile" hidden></span><span class="pcv-mode-npd" hidden>${window.__pcvIcones.svg("interdit")}</span><span class="heure"></span></div>`,
   // (22/10, l'auteur : « une seule batterie ») la pile d'une manette = le MÊME dessin que la pile du système, déjà posée
   // par peindre() dans racine, remplie à pct % ; null tant qu'elle n'y est pas (machine sans batterie, avant peindre())
   // (tout l'élément de la pile, pas seulement son svg : son dessin est celui du thème, theme-wiiu.src.css, .pcv-pile-manette)
@@ -1231,14 +1740,14 @@ window.__pcvEtat = {
     const m = racine.querySelector(".pilule.etat .pile > *");
     if (!m?.querySelector("svg svg rect")) return null;
     const c = m.cloneNode(true);
-    c.querySelectorAll(".pcv-pct, .pcv-eclair").forEach((x) => x.remove());
+    c.querySelectorAll(".pcv-pct, .pcv-eclair, .pcv-mode-feuille").forEach((x) => x.remove());
     c.querySelector("svg svg rect").setAttribute("width", Math.max(0, Math.min(100, pct)) + "%");
     return `<span class="pile pcv-pile-manette">${c.outerHTML}</span>`;
   },
   peindre: (racine, s) => {
     const B = window.__pcvBridge, d = racine.ownerDocument;
     try {
-      const n = B.network(), f = n.filaire ? "filaire" : "wifi";
+      const n = B.network(), f = n.filaire ? "filaire" : window.__pcvModes.avion() ? "avion" : "wifi";
       racine.querySelectorAll(".pilule.etat .ico").forEach((i) => {
         if (i.dataset.ico !== f) {
           i.insertAdjacentHTML("beforebegin", window.__pcvIcones.svg(f, { classe: "ico" }));
@@ -1246,7 +1755,7 @@ window.__pcvEtat = {
           i.remove();
           i = j;
         }
-        i.classList.toggle("coupe", !n.connected);
+        i.classList.toggle("coupe", !n.connected && f !== "avion");
       });
     } catch (e) {
     }
@@ -1277,8 +1786,11 @@ window.__pcvEtat = {
         const r = svg.parentElement, e = r.querySelector(".pcv-eclair");
         if (charge && !e) r.appendChild(Object.assign(d.createElement("div"), { className: "pcv-eclair" }));
         else if (!charge && e) e.remove();
+        const f = r.querySelector(".pcv-mode-feuille"), eco = !charge && !!window.__pcvModes?.lire().economie;
+        if (eco && !f) r.insertAdjacentHTML("beforeend", `<span class="pcv-mode-feuille">${window.__pcvIcones.svg("feuille")}</span>`);
+        else if (!eco && f) f.remove();
       }
-      for (const r of racine.querySelectorAll(".pilule.etat .pile > *")) {
+      for (const r of racine.querySelectorAll(".pilule.etat .pile > :not(.pcv-mode-feuille)")) {
         let p = r.querySelector(":scope > .pcv-pct");
         if (!b2?.present) p?.remove();
         else {
@@ -1289,11 +1801,17 @@ window.__pcvEtat = {
       }
     } catch (e) {
     }
+    const modes = window.__pcvModes?.lire() || {};
+    racine.querySelectorAll(".pcv-mode-npd").forEach((e) => {
+      e.hidden = !modes.npd;
+    });
     window.__pcvEtat.heure(racine);
   },
   // (l'heure au format de Steam : « 8:04 », pas « 08:04 » ; seule, à l'ouverture d'un menu préparé, menus-commun.js)
+  // (12/11) heureDe(t) : une heure au même format, aussi pour l'heure de réception des notifications (notifs.js)
+  heureDe: (t = Date.now()) => new Date(t).toTimeString().slice(0, 5).replace(/^0/, ""),
   heure: (racine) => {
-    const t = (/* @__PURE__ */ new Date()).toTimeString().slice(0, 5).replace(/^0/, "");
+    const t = window.__pcvEtat.heureDe();
     racine.querySelectorAll(".pilule.etat .heure").forEach((e) => {
       if (e.textContent !== t) e.textContent = t;
     });
@@ -1307,7 +1825,7 @@ window.__pcvEtat = {
     const tic = () => {
       window.__pcvEtat.heure(racine);
       try {
-        const b = window.__pcvBridge.battery(), k = b ? Math.round(b.percent * 100) + ":" + !!b.charging + ":" + b.present : "";
+        const b = window.__pcvBridge.battery(), n = window.__pcvBridge.network(), k = [b ? Math.round(b.percent * 100) + ":" + !!b.charging + ":" + b.present : "", n.connected, n.filaire, window.__pcvModes.avion(), JSON.stringify(window.__pcvModes.lire())].join(":");
         if (k !== vu) {
           if (vu) peindreTout();
           vu = k;
@@ -1323,3 +1841,246 @@ window.__pcvEtat = {
     } });
   }
 };
+window.__pcvHomeIcones = (() => {
+  const O = window.opener || window, CLE = "pcv-home-raccourcis";
+  const MAX_GREFFONS = 3;
+  const VERROUILLEES = ["aller:accueil", "aller:parametres"];
+  const SYSTEME = [
+    ["aller:accueil", "spaces.accueil.nom", "accueil", "#5fd0ff, #1a9ae6"],
+    ["aller:bibliotheque", "spaces.bibliotheque.nom", "bibliotheque", "bibliotheque"],
+    ["appli:eshop", "spaces.boutique.nom", "boutique", "eshop"],
+    ["amis", "spaces.amis.nom", "amis", "#5fe39a, #22a85f"],
+    ["notifs", "spaces.notifs.nom", "notifications", "#ff7a7e, #e5484d"],
+    ["appli:album", "place.mediatheque", "album", "album"],
+    ["aller:telechargements", "home.telechargements", "telechargements", "telechargements"],
+    ["aller:parametres", "spaces.parametres.nom", "parametres", "parametres", "var(--pcv-parametres-dessin)"]
+  ];
+  const fond = (f, applis) => (/^(#|var|hsl)/.test(f) ? f : applis?.[f]?.fond || "#c5cdd8, #8b9098").split(/,(?![^(]*\))/).map((x) => x.trim());
+  const lire = () => {
+    try {
+      const m = JSON.parse(O.localStorage.getItem(CLE));
+      return m && typeof m === "object" ? m : {};
+    } catch (e) {
+      return {};
+    }
+  };
+  const sauver = (m) => {
+    try {
+      O.localStorage.setItem(CLE, JSON.stringify(m));
+    } catch (e) {
+    }
+  };
+  const G = "greffon:", route = (id) => id.slice(G.length);
+  const ordre = (m = lire()) => {
+    const r = (m.ordre || []).filter((a) => a.startsWith(G) ? !!m.greffons?.[route(a)] : SYSTEME.some((s) => s[0] === a));
+    SYSTEME.forEach(([a], k) => {
+      if (r.includes(a)) return;
+      const apres = SYSTEME.slice(k + 1).map((s) => r.indexOf(s[0])).find((i) => i >= 0);
+      r.splice(apres ?? r.length, 0, a);
+    });
+    return r;
+  };
+  const epingles = (m = lire()) => ordre(m).filter((a) => a.startsWith(G));
+  const rangee = (m = lire()) => ordre(m).filter((a) => a.startsWith(G) ? m.greffons[route(a)].present : !(m.retires || []).includes(a));
+  const changer = (f) => {
+    const m = lire();
+    m.greffons ||= {};
+    f(m);
+    sauver(m);
+    return m;
+  };
+  const couleur = (g) => g?.couleur || `hsl(${[...String(g?.nom || "")].reduce((h, c) => h * 31 + c.charCodeAt(0) >>> 0, 7) % 12 * 30 + 15} 72% 50%)`;
+  return {
+    MAX_GREFFONS,
+    VERROUILLEES,
+    SYSTEME,
+    fond,
+    lire,
+    ordre,
+    epingles,
+    rangee,
+    couleur,
+    route,
+    id: (r) => G + r,
+    // menu-pont.js : les greffons vus dans le menu de Steam ([{ route, nom, svg }]) ; les autres, connus, sont absents
+    signaler: (liste) => {
+      const m = lire(), g = m.greffons ||= {}, avant = JSON.stringify(g);
+      for (const r in g) g[r].present = false;
+      for (const x of liste) g[x.route] = { ...g[x.route], nom: x.nom, svg: x.svg, present: true };
+      if (JSON.stringify(g) !== avant) sauver(m);
+    },
+    // les greffons présents à qui la question n'a pas encore été posée
+    aDemander: (m = lire()) => Object.keys(m.greffons || {}).filter((r) => m.greffons[r].present && !m.greffons[r].repondu),
+    repondre: (r) => changer((m) => {
+      if (m.greffons[r]) m.greffons[r].repondu = true;
+    }),
+    colorer: (r, c) => changer((m) => {
+      if (m.greffons[r]) m.greffons[r].couleur = c;
+    }),
+    // épingler : le greffon arrive juste avant Paramètres (puis se déplace) ; refusé au-delà de la limite
+    epingler: (r, oui) => {
+      const m = lire(), o = ordre(m), a = G + r;
+      if (!m.greffons?.[r]) return false;
+      if (!oui) {
+        m.ordre = o.filter((x) => x !== a);
+        sauver(m);
+        return true;
+      }
+      if (o.includes(a)) return true;
+      if (epingles(m).length >= MAX_GREFFONS) return false;
+      const p = o.indexOf("aller:parametres");
+      o.splice(p < 0 ? o.length : p, 0, a);
+      m.ordre = o;
+      m.greffons[r].repondu = true;
+      sauver(m);
+      return true;
+    },
+    // une icône système : retirée ou remise (jamais une verrouillée)
+    basculer: (a) => {
+      if (VERROUILLEES.includes(a)) return false;
+      changer((m) => {
+        const r = new Set(m.retires);
+        r.has(a) ? r.delete(a) : r.add(a);
+        m.retires = [...r];
+      });
+      return true;
+    },
+    // le rangement d'une liste d'icônes montrées (Paramètres > SteamU > Menu HOME en colonne, le menu HOME en rangée) : celui
+    // de la grille de l'accueil (console.js : prendre, échanger avec la voisine, poser ; rien n'est enregistré avant la
+    // pose, annuler remet tout). l : les icônes montrées, dans l'ordre ; i : celle qu'on prend. À la pose, elles reprennent
+    // les places qu'elles avaient dans l'ordre complet : les icônes cachées (retirées, greffon absent) ne bougent pas
+    rangement: (l, i) => {
+      const r = {
+        l: [...l],
+        i,
+        depart: i,
+        bouger: (d) => {
+          const n = r.i + d;
+          if (n < 0 || n >= r.l.length) return false;
+          [r.l[r.i], r.l[n]] = [r.l[n], r.l[r.i]];
+          r.i = n;
+          return true;
+        },
+        poser: () => changer((m) => {
+          const o = ordre(m), k = [...r.l];
+          m.ordre = o.map((a) => r.l.includes(a) ? k.shift() : a);
+        })
+      };
+      return r;
+    }
+  };
+})();
+{
+  const D = window.document;
+  if (D) {
+    window.__pcvScQuitter = (ev) => {
+      try {
+        const s = ev.target.closest?.(".ModalOverlayContent")?.querySelector(".sc-xv-side .sc-xv-foot .sc-xv-item > span"), t = window.__pcvT?.("acces.sc_quitter");
+        if (s && !s.childElementCount && t && t !== "acces.sc_quitter" && s.textContent !== t) s.textContent = t;
+      } catch (e) {
+      }
+    };
+    D.addEventListener("focusin", window.__pcvScQuitter, true);
+  }
+}
+(() => {
+  const O = window.opener || window, dessins = /* @__PURE__ */ new WeakMap(), marques = /* @__PURE__ */ new WeakMap();
+  const liste = (masques = false) => {
+    try {
+      const L = O.DeckyPluginLoader, s = L.deckyState, tous = s._plugins?.length ? s._plugins : L.plugins || [];
+      const par = new Map(tous.map((p) => [p.name, p])), ordre = [...new Set(s._pluginOrder || [])].filter((n) => par.has(n));
+      return [...ordre, ...tous.map((p) => p.name).filter((n) => !ordre.includes(n))].filter((n) => masques || !(s._hiddenPlugins || []).includes(n)).map((n) => par.get(n));
+    } catch (e) {
+      return [];
+    }
+  };
+  const dessin = (p) => {
+    if (dessins.has(p)) return dessins.get(p);
+    let s = "";
+    try {
+      const creer = O.__pcvCreerRacine ||= (() => {
+        const req = O.__pcvReq ||= (() => {
+          let r2;
+          O.webpackChunksteamui.push([[/* @__PURE__ */ Symbol("pcv")], {}, (q) => {
+            r2 = q;
+          }]);
+          return r2;
+        })();
+        for (const id of Object.keys(req.m)) {
+          const s2 = req.m[id].toString();
+          if (s2.length > 5e4 && s2.includes("react.dev/errors") && s2.includes("createRoot") && req(id).createRoot) return req(id).createRoot;
+        }
+      })();
+      const div = document.createElement("div"), r = creer(div);
+      try {
+        O.SP_REACTDOM.flushSync(() => r.render(p.icon));
+        s = div.innerHTML;
+      } finally {
+        r.unmount();
+      }
+    } catch (e) {
+    }
+    dessins.set(p, s);
+    return s;
+  };
+  const signaler = () => window.dispatchEvent(new CustomEvent("pcv-decky-icones"));
+  const marque = (p) => {
+    if (marques.has(p)) return marques.get(p);
+    const h = [...p.name].reduce((v, c) => v * 31 + c.codePointAt(0) >>> 0, 0);
+    const m = { couleur: `hsl(${h % 360} 62% 43%)`, svg: "", masque: "", initiale: [...p.name.trim()][0] || "?" };
+    marques.set(p, m);
+    const div = document.createElement("div");
+    div.innerHTML = dessin(p);
+    const svg = div.querySelector("svg");
+    if (svg) {
+      svg.querySelectorAll("script,foreignObject,image,use,style,animate,animateTransform").forEach((n) => n.remove());
+      for (const n of [svg, ...svg.querySelectorAll("*")]) for (const a of [...n.attributes]) {
+        if (/^on|href|style|class|id/i.test(a.name)) n.removeAttribute(a.name);
+        else if ((a.name === "fill" || a.name === "stroke") && a.value !== "none") n.setAttribute(a.name, "currentColor");
+      }
+      const f = svg.getAttribute("fill"), t = svg.getAttribute("stroke"), e = svg.getAttribute("stroke-width");
+      svg.setAttribute("style", `fill:${f === "none" ? "none" : "currentColor"};stroke:${t && t !== "none" ? "currentColor" : "none"}${e ? `;stroke-width:${parseFloat(e) || 0}` : ""}`);
+      if (svg.childElementCount) m.svg = svg.outerHTML;
+    }
+    const image = div.querySelector("img")?.getAttribute("src") || p.image;
+    if (typeof image === "string" && image) {
+      const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.onload = async () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = c.height = 48;
+          const x = c.getContext("2d", { willReadFrequently: true });
+          x.drawImage(im, 0, 0, 48, 48);
+          const pixels = x.getImageData(0, 0, 48, 48).data;
+          let poids = 0, r = 0, g = 0, b = 0;
+          for (let i = 0; i < pixels.length; i += 4) {
+            const v = (Math.max(...pixels.slice(i, i + 3)) - Math.min(...pixels.slice(i, i + 3))) * pixels[i + 3];
+            poids += v;
+            r += pixels[i] * v;
+            g += pixels[i + 1] * v;
+            b += pixels[i + 2] * v;
+          }
+          if (poids) m.couleur = `rgb(${Math.round(r / poids)} ${Math.round(g / poids)} ${Math.round(b / poids)})`;
+          if (!m.svg) {
+            const blob = await new Promise((ok) => c.toBlob(ok));
+            m.masque = await window.__pcvIcones.pochoirLogo(blob) || "";
+          }
+          signaler();
+        } catch (e) {
+        }
+      };
+      im.src = image;
+    }
+    return m;
+  };
+  const relief = (p) => {
+    const m = marque(p), I = window.__pcvIcones;
+    const initiale = document.createElement("span");
+    initiale.textContent = m.initiale;
+    const dessin2 = m.svg || (m.masque ? `<svg viewBox="0 0 24 24"><foreignObject width="24" height="24"><span xmlns="http://www.w3.org/1999/xhtml" class="pcv-greffon-silhouette" style="--pcv-greffon-masque:url('${m.masque}')"></span></foreignObject></svg>` : `<svg viewBox="0 0 24 24"><text x="12" y="17" text-anchor="middle" fill="currentColor" stroke="none">${initiale.innerHTML}</text></svg>`);
+    const tuile = I.relief(dessin2, m.couleur).replace('pcv-marque-relief"', 'pcv-marque-relief pcv-marque-greffon"');
+    return tuile.slice(0, -7) + `<b class="pcv-prise-debut">${I.svg("prise")}</b><b class="pcv-prise-fin">${I.svg("prise")}</b></span>`;
+  };
+  window.__pcvDecky = { liste, dessin, marque, relief, pret: () => !!O.DeckyPluginLoader?.deckyState };
+})();

@@ -81,8 +81,7 @@
     
     
     #pcv-connexion > .pcv-fond { animation: pcvFondu .6s ease-out .6s both; }
-    #pcv-connexion .colline { position: absolute; left: -15vw; right: -15vw; top: ${u(520)}; height: ${u(600)}; border-radius: 50%; background: var(--pcv-verre);
-      box-shadow: 0 ${u(-8)} ${u(40)} rgba(120,140,170,.18); z-index: 1; animation: pcvFondu .6s ease-out .6s both; }
+    #pcv-connexion .colline { animation: pcvFondu .6s ease-out .6s both; }   
     #pcv-connexion .entree { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: var(--pcv-fond-page);
       font-size: ${u(64)}; font-weight: 900; letter-spacing: -.02em; color: var(--pcv-texte2); animation: pcvSortie .3s ease-in 1.4s both; }
     #pcv-connexion .choix { position: absolute; inset: 0; z-index: 2; animation: pcvFondu .4s ease-out .8s both; }
@@ -90,7 +89,7 @@
     #pcv-connexion .centre { position: absolute; left: 50%; top: ${u(150)}; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: ${u(18)}; }
     #pcv-connexion .bulle { position: relative; padding: ${u(10)} ${u(20)}; border-radius: ${u(20)}; font-size: ${u(17)}; font-weight: 900; background: var(--pcv-verre);
       box-shadow: var(--pcv-reflet), var(--pcv-ombre); animation: pcvFondu .2s ease-out 1.25s both; }
-    #pcv-connexion .bulle::after { content: ""; position: absolute; left: 50%; bottom: ${u(-8)}; margin-left: ${u(-8)}; width: ${u(16)}; height: ${u(16)}; background: var(--pcv-creux); transform: rotate(45deg); border-radius: 3px; }
+    #pcv-connexion .bulle::after { left: 50%; bottom: ${u(-8)}; margin-left: ${u(-8)}; width: ${u(16)}; height: ${u(16)}; }   
     #pcv-connexion button { all: unset; cursor: pointer; }
     #pcv-connexion .tuile { position: relative; width: ${u(118)}; height: ${u(118)}; border-radius: ${u(22)}; padding: ${u(6)}; background: var(--pcv-verre);
       box-shadow: inset 0 2px 0 var(--pcv-reflet-haut), 0 ${u(6)} ${u(16)} rgb(from var(--pcv-ombre-c) r g b / .2); }
@@ -99,7 +98,14 @@
     #pcv-connexion .tuile .attente-avatar { position: absolute; inset: ${u(6)}; display: grid; place-items: center; border-radius: ${u(16)};
       background: var(--pcv-cyan-plein); color: var(--pcv-sur-accent); font-size: ${u(56)}; font-weight: 900; }
     #pcv-connexion .tuile:has(img[src]) .attente-avatar { display: none; }
-    #pcv-connexion .tuile::after { content: ""; position: absolute; inset: ${u(-7)}; border-radius: ${u(27)}; border: ${u(5)} solid var(--pcv-cyan-plein); box-shadow: 0 0 0 2px var(--pcv-anneau-c); }
+    
+    #pcv-connexion :is(.tuile, .ajouter).k::after { content: ""; position: absolute; inset: ${u(-7)}; border-radius: ${u(27)}; border: ${u(5)} solid var(--pcv-cyan-plein); box-shadow: 0 0 0 2px var(--pcv-anneau-c); }
+    #pcv-connexion .ajouter { cursor: pointer; } #pcv-connexion .ajouter.k::after { border-radius: ${u(33)}; }
+    
+    #pcv-connexion .pcv-legende { position: absolute; right: ${u(34)}; bottom: ${u(24)}; z-index: 3; visibility: hidden; }
+    #pcv-connexion.sur-ajout .bulle { visibility: hidden; } #pcv-connexion.sur-ajout .pcv-legende { visibility: visible; }
+    
+    #pcv-dossiers { z-index: 9810; }
     #pcv-connexion .coins { position: absolute; inset: ${u(-7)}; border-radius: ${u(30)}; border: ${u(4)} solid #7fdcff; animation: pcvEclat .25s ease-out both; }
     #pcv-connexion .perso { position: absolute; left: ${u(70)}; top: ${u(540)}; width: ${u(70)}; height: ${u(70)}; border-radius: 50%; overflow: hidden;
       box-shadow: 0 0 0 ${u(4)} #fff, 0 4px 10px rgba(0,0,0,.18); }
@@ -114,13 +120,14 @@
   </style>
   <div class="colline"></div>
   <div class="choix">
-    <div class="ajouter"><i>${svg("plus", 2.6)}</i>${T("connexion.ajouter_compte")}</div>
+    <div class="ajouter" role="button"><i>${svg("plus", 2.6)}</i>${T("connexion.ajouter_compte")}</div>
     ${window.__pcvPiluleMachine?.() || ""}
-    <div class="centre"><div class="bulle">${window.__pcvIcones?.touche?.(1) || ""} ${T("connexion.commencer_compte")}</div>
-      <button class="tuile" aria-label="${echappe(T("connexion.commencer_aria", { pseudo }))}"><span class="attente-avatar" aria-hidden="true" data-pcv-initiale>${echappe(initiale(compte?.nom))}</span><img data-pcv-avatar ${srcAvatar} alt=""></button></div>
+    <div class="centre"><div class="bulle pcv-pointe pcv-pointe-bas">${window.__pcvIcones?.touche?.(1) || ""} ${T("connexion.commencer_compte")}</div>
+      <button class="tuile k" aria-label="${echappe(T("connexion.commencer_aria", { pseudo }))}"><span class="attente-avatar" aria-hidden="true" data-pcv-initiale>${echappe(initiale(compte?.nom))}</span><img data-pcv-avatar ${srcAvatar} alt=""></button></div>
     <div class="perso">${teteMii ? `<img src="${urlSure(teteMii)}" alt="">` : `<img data-pcv-avatar ${srcAvatar} alt="">`}</div>
     <div class="infos"><span><small>${T("connexion.pseudo_label")}</small><b data-pcv-pseudo>${echappe(pseudo)}</b></span><span style="width:2px;height:${u(56)};background:var(--pcv-texte2);opacity:.3"></span>
       <span><small>${T("connexion.bibliotheque_label")}</small><b style="color:var(--pcv-cyan-plein)" data-pcv-nbjeux>${nbJeux !== null ? jeuxTexte(nbJeux) : "\u2026"}</b></span></div>
+    <div class="pcv-legende">${window.__pcvIcones?.legende?.([[1, T("touche.choisir")]]) || ""}</div>
   </div>`;
   document.body.appendChild(racine);
   window.__pcvFond?.(racine);
@@ -216,28 +223,61 @@
     if (racine.style.visibility === "hidden") return;
     if (e.key === "Enter" || e.key === " ") {
       diagnostic.clavier++;
-      valider();
+      if (surAjout) demanderAjout();
+      else valider();
       e.stopPropagation();
       e.preventDefault();
     }
   };
   const tuile = racine.querySelector(".tuile"), DISTANCE_TOUCHER = 15;
-  let toucher = null;
-  tuile.onclick = valider;
-  tuile.onpointerdown = (e) => {
-    toucher = e.pointerType === "touch" ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null;
+  const appuyer = (el, action) => {
+    let toucher = null;
+    el.onclick = action;
+    el.onpointerdown = (e) => {
+      toucher = e.pointerType === "touch" ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null;
+    };
+    el.onpointermove = (e) => {
+      if (toucher?.id === e.pointerId && Math.hypot(e.clientX - toucher.x, e.clientY - toucher.y) > DISTANCE_TOUCHER) toucher = null;
+    };
+    el.onpointercancel = () => {
+      toucher = null;
+    };
+    el.onpointerup = (e) => {
+      const t = toucher;
+      toucher = null;
+      if (t && t.id === e.pointerId && el.contains(document.elementFromPoint(e.clientX, e.clientY))) action();
+    };
   };
-  tuile.onpointermove = (e) => {
-    if (toucher?.id === e.pointerId && Math.hypot(e.clientX - toucher.x, e.clientY - toucher.y) > DISTANCE_TOUCHER) toucher = null;
+  appuyer(tuile, valider);
+  let ajoutDemande = false, surAjout = false;
+  const ajouter = racine.querySelector(".ajouter");
+  const choisir = (oui) => {
+    surAjout = !!ajouter && oui;
+    tuile.classList.toggle("k", !surAjout);
+    ajouter?.classList.toggle("k", surAjout);
+    racine.classList.toggle("sur-ajout", surAjout);
   };
-  tuile.onpointercancel = () => {
-    toucher = null;
+  const demanderAjout = () => {
+    if (ajoutDemande || !vivant() || racine.classList.contains("part")) return;
+    if (!window.__pcvDossiers?.demander?.({
+      ailleurs: true,
+      ic: "dossier",
+      svg: window.__pcvIcones?.trace?.("plus"),
+      titre: T("connexion.ajouter_compte"),
+      texte: T("connexion.ajouter_texte"),
+      non: T("steamu.annuler"),
+      oui: T("steamu.continuer"),
+      ok: () => {
+        if (ajoutDemande || !vivant()) return;
+        ajoutDemande = true;
+        window.__pcvBridge?.ajouterCompte?.();
+      }
+    })) window.__pcvSon?.("bord");
   };
-  tuile.onpointerup = (e) => {
-    const t = toucher;
-    toucher = null;
-    if (t && t.id === e.pointerId && tuile.contains(document.elementFromPoint(e.clientX, e.clientY))) valider();
-  };
+  if (ajouter) appuyer(ajouter, () => {
+    choisir(true);
+    demanderAjout();
+  });
   window.addEventListener("keydown", touche, true);
   manette = (b) => {
     if (!vivant()) {
@@ -247,15 +287,23 @@
     if (racine.style.visibility === "hidden") return false;
     if (b === 1) {
       diagnostic.a++;
-      window.__pcvAppui?.(tuile);
-      valider();
+      window.__pcvAppui?.(surAjout ? ajouter : tuile);
+      if (surAjout) demanderAjout();
+      else valider();
+    } else if (b >= 9 && b <= 12) {
+      const vers = b === 9 || b === 12;
+      if (vers === surAjout || !ajouter) window.__pcvSon?.("bord");
+      else {
+        choisir(vers);
+        window.__pcvSon?.("bouge");
+      }
     }
     return true;
   };
   (window.__pcvManette ||= {}).connexion = manette;
   lacherTouches = window.__pcvToutesTouches?.((b, bas) => {
-    if (b !== 1 || !bas || !vivant() || racine.style.visibility === "hidden") return false;
-    const f = { detail: { button: 1 }, pris: false, stopPropagation() {
+    if (!(b === 1 || b === 2 || b >= 9 && b <= 12) || !bas || !vivant() || racine.style.visibility === "hidden") return false;
+    const f = { detail: { button: b }, pris: false, stopPropagation() {
       this.pris = true;
     }, preventDefault() {
     } };
@@ -263,9 +311,16 @@
     return f.pris;
   }) || null;
   racine.style.visibility = "hidden";
+  let preparationDepuis = null;
+  const PREPARATION_MS = 15e3;
   const montrer = (choisi) => {
     if (!vivant()) return;
     if (window.__pcvDemarrage?.video() || window.__pcvBridge?.steamDessus?.()) {
+      attenteDessus = setTimeout(() => montrer(choisi), 250);
+      return;
+    }
+    preparationDepuis ??= Date.now();
+    if (Date.now() - preparationDepuis < PREPARATION_MS && (window.__pcvPlace3D?.preparerConnexion ? !window.__pcvPlace3D.preparerConnexion() : !!window.__pcvVraisMii?.chargement)) {
       attenteDessus = setTimeout(() => montrer(choisi), 250);
       return;
     }

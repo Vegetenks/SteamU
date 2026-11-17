@@ -79,3 +79,18 @@
   };
   window.__pcvDoublons = { grouper, disponible, actif, doublons, masque, cle: CLE };
 })();
+(() => {
+  const O = window.opener || window, toaster = O.DeckyPluginLoader?.toaster;
+  if (!toaster) return;
+  const DE_UNIFIDECK = /\/plugins\/Unifideck\//i, ETAPE = /\bshowStageToast\b/;
+  O.__pcvToastUnifideck = (x, pile) => {
+    if (!x || x.onClick || x.logo || !ETAPE.test(pile) || !DE_UNIFIDECK.test(pile)) return false;
+    const L = window.__pcvLancement, e = L?.etat?.(), B = window.__pcvBridge;
+    if (!e?.jeu || B?.unifideck?.etat?.(B.appOverview(e.appid) || { appid: e.appid }) == null) return false;
+    return !!L.etape?.(x.body || x.title);
+  };
+  if (!toaster.__pcvToast0) {
+    toaster.__pcvToast0 = toaster.toast;
+    toaster.toast = new O.Function("avant", "return function (x) { try { if (window.__pcvToastUnifideck?.(x, String(new Error().stack))) return; } catch (e) {} return avant.call(this, x); }")(toaster.__pcvToast0);
+  }
+})();

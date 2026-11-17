@@ -31,7 +31,8 @@
   let universActif = null, choixEntree = 0, catalogue = null, jeux = [], enteteFaite = "";
   let contexte = null, details = /* @__PURE__ */ new Map(), demandes = /* @__PURE__ */ new Map(), sousPage = "", captureFiche = 0;
   let erreur = "", chargement = false, mort = false, session = 0, rechercheId = 0, delaiRecherche = 0, galerie = -1, pageVedette = 0, actionVedette = 0, defilement = 0, pauseVedette = false;
-  let commandesVideo = null, apercuVideo = null, attenteVideo = true, videoGalerie = null, lecteurGalerie = null, shakaPromesse = null;
+  let commandesVideo = null, apercuVideo = null, attenteVideo = true, videoGalerie = null, lecteurGalerie = null, shakaPromesse = null, choixGalerie = 2, delaiCommandes = 0;
+  const ATTENTE_COMMANDES = 3e3;
   let trouves = null, rechercheTout = 0, retourGrille = "";
   let souhaits = null;
   const services = /* @__PURE__ */ new Map();
@@ -226,7 +227,7 @@
   };
   const avantAccueil = () => {
     actionVedette = ajouter(() => ouvrirFiche(vedetteCourante(), jeux));
-    return `<div class="message" role="status">${e(message())}</div><header class="entete-jeux"><h1>${e(T("prochaine_aventure"))}</h1></header>` + (vedetteCourante() ? `<section class="vedette verre" aria-label="${e(T("vedettes"))}" aria-roledescription="${e(T("carrousel"))}"><div class="vedette-contenu">${contenuVedette()}</div><div class="commandes-vedette verre">${bouton(T("precedent"), "precedent", () => avancerVedette(-1), "commande")}${choixVedettes().map((p, i) => `<button class="commande point${i === pageVedette ? " on" : ""}" data-page-vedette="${i}" data-a="${ajouter(() => avancerVedette(i, true))}" aria-label="${e(p.nom)}" aria-pressed="${i === pageVedette}"><span></span></button>`).join("")}${bouton(T(pauseVedette ? "defiler" : "pause"), pauseVedette ? "lecture" : "pause", basculerVedette, "commande pause-vedette")}${bouton(T("suivant"), "fleche", () => avancerVedette(1), "commande")}</div></section>` : "") + `<section class="rayon"><h3><span class="pastille">${ico("bibliotheque")}</span>${e(T("comment_jouer"))}</h3><nav class="categories-jeux" aria-label="${e(T("categories"))}">${CATEGORIES.map(([k, ic]) => `<button class="categorie-jeu verre" data-g="categorie-${k}" data-a="${ajouter(() => ouvrirGrille(k))}">${I.relief(ic, "orange")}<span>${e(T(k))}</span></button>`).join("")}</nav></section>`;
+    return `<div class="message" role="status">${[T("chargement"), T("catalogue_construction")].includes(message()) ? window.__pcvChargement.html() : ""}${e(message())}</div><header class="entete-jeux"><h1>${e(T("prochaine_aventure"))}</h1></header>` + (vedetteCourante() ? `<section class="vedette verre" aria-label="${e(T("vedettes"))}" aria-roledescription="${e(T("carrousel"))}"><div class="vedette-contenu">${contenuVedette()}</div><div class="commandes-vedette verre">${bouton(T("precedent"), "precedent", () => avancerVedette(-1), "commande")}${choixVedettes().map((p, i) => `<button class="commande point${i === pageVedette ? " on" : ""}" data-page-vedette="${i}" data-a="${ajouter(() => avancerVedette(i, true))}" aria-label="${e(p.nom)}" aria-pressed="${i === pageVedette}"><span></span></button>`).join("")}${bouton(T(pauseVedette ? "defiler" : "pause"), pauseVedette ? "lecture" : "pause", basculerVedette, "commande pause-vedette")}${bouton(T("suivant"), "fleche", () => avancerVedette(1), "commande")}</div></section>` : "") + `<section class="rayon"><h3><span class="pastille">${ico("bibliotheque")}</span>${e(T("comment_jouer"))}</h3><nav class="categories-jeux" aria-label="${e(T("categories"))}">${CATEGORIES.map(([k, ic]) => `<button class="categorie-jeu verre" data-g="categorie-${k}" data-a="${ajouter(() => ouvrirGrille(k))}">${I.relief(ic, "orange")}<span>${e(T(k))}</span></button>`).join("")}</nav></section>`;
   };
   const etageresAccueil = () => [...souhaits ? ["souhaits"] : [], ...RAYONS].map((k) => {
     const l = (k === "souhaits" ? souhaits : catalogue?.[k] || []).filter(admissible);
@@ -315,14 +316,31 @@
   const liste = () => (estSouhaits() ? ((l, tri) => tri ? l.sort(tri) : l)((souhaits || []).slice(), SOUHAITS.find(([k]) => k === m.onglet)[2]) : m.texte.trim() && m.onglet === "tous" ? jeux : m.onglet === "tous" ? complet.jeux : CATS.includes(m.onglet) ? ((ids) => complet.jeux.filter((p) => p.c & 1 << CATS.indexOf(m.onglet) && (!ids || ids.has(p.id))))(m.texte.trim() && new Set(jeux.map((p) => p.id))) : (catalogue?.[m.onglet] || []).slice().sort(parNom)).filter(admissible);
   const enCours = () => !m.texte.trim() && (m.onglet === "tous" || CATS.includes(m.onglet)) && (complet.partiel || complet.etat === "construction") && complet.jeux.length;
   const entete = () => {
-    const nombre = m.lignes.length, cle = [m.onglet, m.texte, nombre, enCours() && complet.fait].join("|");
+    const nombre = m.lignes.length, cle = [m.onglet, m.texte, nombre, enCours() && complet.fait, chargement].join("|");
     if (cle === enteteFaite) return;
     enteteFaite = cle;
     const typeCategorie = CATEGORIES.find(([k]) => k === m.onglet), texte = m.texte;
-    enteteCatalogue.innerHTML = `${I.relief(texte.trim() ? "recherche" : typeCategorie?.[1] || (estSouhaits() ? "epingle" : "bibliotheque"), "orange")}<div><h1>${e(T(texte.trim() ? "resultats" : m.onglet === "tous" ? "tous_jeux" : estSouhaits() ? "ma_liste" : m.onglet))}</h1><p>${e(texte.trim() ? T("resultats_pour", { texte, n: m.lignes.length }) : nombre == null ? "" : T(estSouhaits() ? "souhaits_nombre" : "nombre_jeux", { n: nombre.toLocaleString(contexte?.langue) }))}</p>${enCours() ? `<small>${e(T("catalogue_partiel", { n: complet.fait || 0 }))}</small>` : ""}</div>`;
+    enteteCatalogue.innerHTML = `${I.relief(texte.trim() ? "recherche" : typeCategorie?.[1] || (estSouhaits() ? "epingle" : "bibliotheque"), "orange")}<div><h1>${e(texte.trim() ? T(chargement ? "recherche_en_cours" : nombre === 1 ? "resultat_pour" : "resultats_pour", { texte, n: nombre }) : T(m.onglet === "tous" ? "tous_jeux" : estSouhaits() ? "ma_liste" : m.onglet))}</h1>${texte.trim() ? "" : `<p>${e(nombre == null ? "" : T(estSouhaits() ? "souhaits_nombre" : "nombre_jeux", { n: nombre.toLocaleString(contexte?.langue) }))}</p>`}${enCours() ? `<small>${e(T("catalogue_partiel", { n: complet.fait || 0 }))}</small>` : ""}</div>`;
   };
   const onglets = () => options().map((k) => ({ cle: k, nom: T(k), icone: CATEGORIES.some(([c]) => c === k) ? I.relief(CATEGORIES.find(([c]) => c === k)[1], "orange") : ico(SOUHAITS.find(([s]) => s === k)?.[1] || (k === "tous" ? "bibliotheque" : "boutique")) }));
-  const rendreAchat = (p, d) => `<div class="achat-scene"><section class="achat-jeu">${tuile(p, tailleRayon().c, `style="${cotes(tailleRayon().c)}"`)}<span class="surtitre">${e(T("acheter"))}</span><h2>${e(p.nom)}</h2><p>${e(T(d.materiel ? "retrouver_materiel" : "retrouver_jeu"))}</p></section><section class="destination-achat verre"><span class="surtitre">${e(T("boutique_officielle"))}</span><div class="boutique-directe">${I.relief("boutique", "orange")}<h3>Steam</h3></div><div class="prix-discret">${e(d.gratuit ? T("gratuit") : d.prix.actuel || T(d.bientot ? "prix_sur_steam" : "non_disponible"))}${barre(d.prix)}</div>${bouton(T("ouvrir_boutique"), "boutique", () => O.SteamClient.URL.ExecuteSteamURL(`steam://store/${p.id}`), "gros-r")}<p>${e(T(d.materiel ? "ouvrir_steam" : d.bientot ? "jeu_a_venir" : "ouvrir_steam"))}</p></section></div>`;
+  const WEB = /^(\/routes)?\/steamweb/;
+  const ouvrirSteam = (id) => {
+    const B = window.__pcvBridge, avant = B?.page?.();
+    let vu = false, revenir = false;
+    const retour = window.__pcvRetourEshop = () => {
+      revenir = true;
+      B.revenirA(avant);
+    };
+    const fin = B?.ecouterPages?.((x) => {
+      if (WEB.test(x)) return void (vu = true);
+      if (!vu) return;
+      fin?.();
+      if (window.__pcvRetourEshop === retour) delete window.__pcvRetourEshop;
+      if (revenir) m.montrer();
+    });
+    O.SteamClient.URL.ExecuteSteamURL(`steam://store/${id}`);
+  };
+  const rendreAchat = (p, d) => `<div class="achat-scene"><section class="achat-jeu">${tuile(p, tailleRayon().c, `style="${cotes(tailleRayon().c)}"`)}<span class="surtitre">${e(T("acheter"))}</span><h2>${e(p.nom)}</h2><p>${e(T(d.materiel ? "retrouver_materiel" : "retrouver_jeu"))}</p></section><section class="destination-achat verre"><span class="surtitre">${e(T("boutique_officielle"))}</span><div class="boutique-directe">${I.relief("boutique", "orange")}<h3>Steam</h3></div><div class="prix-discret">${e(d.gratuit ? T("gratuit") : d.prix.actuel || T(d.bientot ? "prix_sur_steam" : "non_disponible"))}${barre(d.prix)}</div>${bouton(T("ouvrir_boutique"), "boutique", () => ouvrirSteam(p.id), "gros-r")}<p>${e(T(d.materiel ? "ouvrir_steam" : d.bientot ? "jeu_a_venir" : "ouvrir_steam"))}</p></section></div>`;
   const contenuFiche = (p) => {
     const d = details.get(p.id);
     if (sousPage === "achat" && d) return rendreAchat(p, d);
@@ -336,7 +354,7 @@
     })}" ${image(s.petite || s.grande, "miniature")}>${s.nom != null ? `<span class="marque-video">${ico("lecture")}</span>` : ""}</button>`).join("")}</div>` : "";
     const acheter = d ? bouton(T(d.materiel ? "ou_acheter" : "acheter"), "boutique", () => changerSousPage("achat"), "gros-r") : "";
     const dansListe = souhaits && souhaits.some((s) => s.id === p.id), souhait = d && souhaits ? bouton(T(dansListe ? "souhaits_retirer" : "souhaits_ajouter"), "epingle", () => changerSouhait(p, dansListe)) : "";
-    const infos = d ? `<div class="genres-jeu">${d.genres.map((g) => `<span>${e(g.nom)}</span>`).join("")}</div><p class="resume">${e(d.description)}</p>${P.mentionAnglais(d.description_anglaise)}<div class="modes-jeu">${modes(d)}</div><dl class="metadonnees">${[["sortie", d.date], ["developpeurs", d.developpeurs.join(", ")], ["editeurs", d.editeurs.join(", ")]].filter(([, v]) => v).map(([k, v]) => `<div><dt>${e(T(k))}</dt><dd>${e(v)}</dd></div>`).join("")}</dl>${d.note || d.avis ? `<div class="notes-jeu">${d.note ? `<span class="note-critique" aria-label="${e(T("note", { n: d.note }))}"><b>${e(d.note)}</b><small>/ 100<br>Metacritic</small></span>` : ""}${d.avis ? `<span>${e(T("avis_steam", { n: d.avis.toLocaleString(contexte.langue) }))}</span>` : ""}</div>` : ""}${bouton(T("description"), "fleche", () => changerSousPage("description"))}` : `<p class="message" role="status">${e(erreur || (details.has(p.id) ? T("fiche_indisponible") : T("chargement")))}</p>`;
+    const infos = d ? `<div class="genres-jeu">${d.genres.map((g) => `<span>${e(g.nom)}</span>`).join("")}</div><p class="resume">${e(d.description)}</p>${P.mentionAnglais(d.description_anglaise)}<div class="modes-jeu">${modes(d)}</div><dl class="metadonnees">${[["sortie", d.date], ["developpeurs", d.developpeurs.join(", ")], ["editeurs", d.editeurs.join(", ")]].filter(([, v]) => v).map(([k, v]) => `<div><dt>${e(T(k))}</dt><dd>${e(v)}</dd></div>`).join("")}</dl>${d.note || d.avis ? `<div class="notes-jeu">${d.note ? `<span class="note-critique" aria-label="${e(T("note", { n: d.note }))}"><b>${e(d.note)}</b><small>/ 100<br>Metacritic</small></span>` : ""}${d.avis ? `<span>${e(T("avis_steam", { n: d.avis.toLocaleString(contexte.langue) }))}</span>` : ""}</div>` : ""}${bouton(T("description"), "fleche", () => changerSousPage("description"))}` : `<p class="message" role="status">${!erreur && !details.has(p.id) ? window.__pcvChargement.html() : ""}${e(erreur || (details.has(p.id) ? T("fiche_indisponible") : T("chargement")))}</p>`;
     return `<header class="titre-fiche"><h1 class="nom-jeu">${e(p.nom)}</h1>${souhait}${acheter}</header><div class="detail-jeu"><section class="galerie-jeu" aria-label="${e(T("captures"))}">${grande}${miniatures}</section><section class="description-fiche">${infos}</section></div>`;
   };
   const choisirCapture = (i, calme) => {
@@ -360,7 +378,7 @@
     const capture = caps.find((x) => x.classList.contains("on")) || caps[0];
     const v = i >= 0 ? { 11: tete[i - 1], 12: tete[i + 1], 10: M || G }[b] : ici && ici === G ? { 9: tete[0], 10: capture, 12: M || tete.at(-1) }[b] : j >= 0 ? { 9: G || tete[0], 11: caps[j - 1], 12: caps[j + 1] || M }[b] : ici && ici === M ? { 9: tete[0], 11: capture || G }[b] : tete[0] || G || capture || M;
     if (!v) {
-      if (b === 9) window.__pcvBarreEntrer?.(m.marquer);
+      if (b === 9) m.versRangee();
       else window.__pcvSon?.("bord");
       return true;
     }
@@ -450,10 +468,7 @@
     .categorie-jeu .pcv-marque-relief { --pcv-relief-taille:${u(46)}; }
     
     .categorie-jeu { container-type:inline-size; } .categorie-jeu span:last-child { overflow-wrap:anywhere;font-size:min(${u(14)}, (100cqi - ${u(54)}) / 6.4); }
-    .vue-page .carrousel { top:${u(88)};height:${u(150)}; }
-    .vue-page .carrousel .cel { top:${u(12)}; }
-    .vue-page .fleche-c { top:${u(132)}; }
-    .vue-page .carte { left:${u(40)};right:${u(40)};top:${u(250)};bottom:${u(88)};padding:0;background:none;box-shadow:none;border-radius:0;display:block;overflow:visible; }
+    .vue-page .carte { left:${u(40)};right:${u(40)};top:${u(274)};bottom:${u(88)};padding:0;background:none;box-shadow:none;border-radius:0;display:block;overflow:visible; }   
     .vue-page .contenu { height:calc(100% + 2 * var(--pcv-marge-ombre));display:block; }   
     .titre-fiche { min-height:${u(58)}; }
     .titre-fiche .nom-jeu { min-width:0;flex:1;overflow-wrap:anywhere;position:static;text-align:left;font-size:${u(29)};font-weight:900;line-height:1.15;white-space:normal;overflow:visible; }
@@ -514,16 +529,20 @@
     .vue-grille .og { flex:none;display:flex;align-items:center;gap:${u(8)};height:${u(42)};font-size:${u(14)}; }
     .vue-grille .grille-g { top:${u(254)};bottom:${u(88)}; }
     .vue-grille .rail { top:${u(264)};bottom:${u(88)}; }
-    .galerie { position:absolute;inset:${u(112)} ${u(80)} ${u(40)};z-index:20;display:flex;flex-direction:column;align-items:center;gap:${u(16)};padding:${u(20)};border-radius:${u(28)};background:var(--pcv-carte); }
+    
+    .galerie { position:absolute;inset:${u(112)} ${u(80)} ${u(76)};z-index:20;display:flex;flex-direction:column;align-items:center;gap:${u(16)};padding:${u(20)};border-radius:${u(28)};background:var(--pcv-carte); }
     .galerie-image { flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center; }
     .galerie-image { position:relative;overflow:hidden;background:var(--pcv-creux);border-radius:${u(18)}; }
-    .commandes-video { position:absolute;left:${u(20)};right:${u(20)};bottom:${u(12)};display:flex;align-items:center;gap:${u(14)};padding:${u(10)};border-radius:${u(18)};background:var(--pcv-carte); }
+    .commandes-video { position:absolute;left:${u(20)};right:${u(20)};bottom:${u(12)};display:flex;align-items:center;gap:${u(14)};padding:${u(10)};border-radius:${u(18)};background:var(--pcv-carte);transition:opacity .3s; }
+    .commandes-video.cachees { opacity:0;pointer-events:none; }
+    
+    .galerie.plein { inset:0;z-index:21;padding:0;border-radius:0;background:#000; } .galerie.plein .galerie-actions { display:none; } .galerie.plein .galerie-image { border-radius:0;background:#000; } .galerie.plein .galerie-image video { width:100%;height:100%;object-fit:contain; }
     .commandes-video button { font-size:${u(24)};display:flex; } .commandes-video input { flex:1;min-width:0;height:${u(4)};appearance:none;background:linear-gradient(90deg,var(--pcv-orange) var(--progression,0%),var(--pcv-creux) var(--progression,0%));border-radius:${u(2)};cursor:pointer; }
     .commandes-video input::-webkit-slider-thumb { appearance:none;width:${u(12)};height:${u(12)};border-radius:50%;background:var(--pcv-orange); }
     .apercu-video { position:absolute;inset:0;pointer-events:none;display:grid;place-items:center;background:var(--pcv-creux); }
     .apercu-video img { position:absolute;inset:0;width:100%;height:100%;object-fit:contain; }
-    .apercu-video span { position:relative;padding:${u(12)};border-radius:${u(18)};background:var(--pcv-carte);font-size:${u(18)}; }
-    .galerie-image video { max-width:100%;max-height:100%; } .galerie-image img { max-width:100%;max-height:100%;object-fit:contain; } .galerie-actions { display:flex;gap:${u(16)}; }
+    .apercu-video > span { position:relative;padding:${u(12)};border-radius:${u(18)};background:var(--pcv-carte);font-size:${u(18)}; }
+    .galerie-image video { max-width:100%;max-height:100%; } .galerie-photo { width:100%;height:100%;display:flex;align-items:center;justify-content:center; } .galerie-image img { max-width:100%;max-height:100%;object-fit:contain; } .galerie-actions { display:flex;gap:${u(16)}; }
 `,
     autres: vues,
     porte: (vue) => vue === "etageres" ? { liste: jeux.filter(admissible), titre: T("tous_jeux"), nombre: T("selection_steam"), ouvrir: () => {
@@ -540,6 +559,7 @@
       entrer();
       return true;
     },
+    chargement: () => [T("chargement"), T("catalogue_construction")].includes(message()),
     grille: {
       onglets,
       choisir,
@@ -577,7 +597,6 @@
         erreur = "";
         chargerFiche(p);
       },
-      carrousel: [[92, 26], 126],
       page: (p, n, t) => `${ico("boutique")}${e(T("jeux"))}<small>${n} / ${t}</small>`,
       voisins: () => T("voisins"),
       quitter: () => {
@@ -609,14 +628,7 @@
     clic: (x) => {
       if (galerie < 0) return false;
       const t = x.target.closest?.("[data-g]");
-      if (!t) return true;
-      if (t.dataset.g === "son" && videoGalerie) {
-        videoGalerie.muted = !videoGalerie.muted;
-        actualiserVideo();
-        m.legende();
-      } else if (t.dataset.g === "lecture") basculerVideo();
-      else if (t.dataset.g === "fermer") fermerGalerie();
-      else ouvrirGalerie(galerie + +t.dataset.g);
+      if (t) agirGalerie(t.dataset.g);
       return true;
     },
     // (01/11, l'auteur) la sélection posée sur une vignette montre sa capture en grand, sans l'ouvrir
@@ -721,6 +733,11 @@
     })();
     resteAccueil = { generation, promesse };
     return promesse;
+  };
+  (window.__pcvVue ||= {}).galerieBoutique = () => {
+    if (galerie < 0 || !videoGalerie || racine.hidden || document.body.classList.contains("pcv-barre-main")) return false;
+    calque.touche(13);
+    return true;
   };
   window.__pcvTuilesBoutique = (id) => racine.hidden ? [] : ombre.querySelectorAll(id == null ? ".im[data-appid], .pcv-anim-dessus, video.pcv-anim" : `.im[data-appid="${id}"]`);
   let vitrinePreparee = null, preparationBoutique = null;
@@ -936,6 +953,7 @@ ${texte}
       lecteur.destroy().catch(() => {
       });
     }
+    clearTimeout(delaiCommandes);
     if (v) {
       v.pause();
       v.removeAttribute("src");
@@ -956,6 +974,19 @@ ${texte}
     p.value = p.disabled ? 0 : 100 * v.currentTime / v.duration;
     p.style.setProperty("--progression", p.value + "%");
   };
+  const reveillerCommandes = () => {
+    clearTimeout(delaiCommandes);
+    if (commandesVideo?.classList.contains("cachees")) {
+      commandesVideo.classList.remove("cachees");
+      m.legende();
+    }
+    delaiCommandes = setTimeout(() => {
+      if (videoGalerie && !videoGalerie.paused && commandesVideo) {
+        commandesVideo.classList.add("cachees");
+        m.legende();
+      }
+    }, ATTENTE_COMMANDES);
+  };
   const basculerVideo = () => {
     if (!videoGalerie) return;
     if (videoGalerie.paused) videoGalerie.play().catch(() => {
@@ -975,7 +1006,10 @@ ${texte}
     for (const n of ["play", "pause", "ended", "error", "waiting", "seeking", "canplay", "playing", "timeupdate", "volumechange", "durationchange"]) v.addEventListener(n, () => {
       if (videoGalerie !== v) return;
       if (n === "error") return indisponible();
-      if (["play", "pause", "ended"].includes(n)) window.__pcvThemes.attenuer(n === "play");
+      if (["play", "pause", "ended"].includes(n)) {
+        window.__pcvThemes.attenuer(n === "play");
+        reveillerCommandes();
+      }
       if (["waiting", "seeking"].includes(n)) attenteVideo = true;
       else if (["canplay", "playing"].includes(n)) attenteVideo = false;
       actualiserVideo();
@@ -1025,7 +1059,6 @@ ${texte}
     const media = captures[galerie], cadre = $(".galerie-image");
     cadre.innerHTML = "";
     if (media.nom != null) {
-      delete cadre.dataset.image;
       const v = document.createElement("video");
       videoGalerie = v;
       attenteVideo = true;
@@ -1038,11 +1071,11 @@ ${texte}
       apercuVideo.className = "apercu-video";
       apercuVideo.dataset.image = media.petite;
       apercuVideo.dataset.format = "galerie";
-      apercuVideo.innerHTML = `<span role="status">${e(T("chargement"))}</span>`;
+      apercuVideo.innerHTML = `<span role="status">${window.__pcvChargement.html()}${e(T("chargement"))}</span>`;
       cadre.appendChild(apercuVideo);
       commandesVideo = document.createElement("div");
       commandesVideo.className = "commandes-video";
-      commandesVideo.innerHTML = `<button data-g="lecture"></button><input type="range" min="0" max="100" step="0.1" value="0" aria-label="${e(T("video_progression"))}"><button data-g="son"></button>`;
+      commandesVideo.innerHTML = `<button data-g="lecture"></button><input type="range" min="0" max="100" step="0.1" value="0" aria-label="${e(T("video_progression"))}"><button data-g="son"></button><button data-g="plein" aria-label="${e(T("plein_ecran"))}">${ico("vue")}</button>`;
       commandesVideo.addEventListener("input", (x) => {
         if (videoGalerie === v && Number.isFinite(v.duration) && v.duration > 0) v.currentTime = Math.max(0, Math.min(100, Number(x.target.value))) * v.duration / 100;
       });
@@ -1051,10 +1084,20 @@ ${texte}
       observerImages();
       lireVideo(v, media, cadre);
     } else {
-      cadre.dataset.image = media.grande;
-      cadre.dataset.format = "galerie";
+      const photo = document.createElement("div");
+      photo.className = "galerie-photo";
+      photo.dataset.image = media.grande;
+      photo.dataset.format = "galerie";
+      cadre.appendChild(photo);
       observerImages();
+      pleinEcran(false);
     }
+    if (premiere) {
+      choixGalerie = 2;
+      $(".galerie").addEventListener("pointermove", reveillerCommandes);
+      $(".galerie").addEventListener("pointerdown", reveillerCommandes);
+    }
+    marquerGalerie();
     if (premiere) {
       m.calque = calque;
       window.__pcvApparition?.($(".menus"), false, ".galerie");
@@ -1064,6 +1107,7 @@ ${texte}
   };
   const fermerGalerie = () => {
     if (galerie < 0) return;
+    pleinEcran(false);
     libererVideo();
     window.__pcvApparition?.($(".menus"), true, ".galerie");
     window.__pcvVoile?.("galerie", false);
@@ -1073,22 +1117,53 @@ ${texte}
     observerImages();
     m.legende();
   };
+  const boutonsGalerie = () => [...$(".galerie").querySelectorAll(".galerie-actions button")];
+  const marquerGalerie = () => boutonsGalerie().forEach((b, i) => b.classList.toggle("sur-action", i === choixGalerie));
+  const pleinEcran = (on) => {
+    $(".galerie")?.classList.toggle("plein", on);
+    document.documentElement.classList.toggle("pcv-video-plein", on);
+    reveillerCommandes();
+    m.legende();
+  };
+  const agirGalerie = (g) => {
+    if (g === "son" && videoGalerie) {
+      videoGalerie.muted = !videoGalerie.muted;
+      actualiserVideo();
+      m.legende();
+    } else if (g === "lecture") basculerVideo();
+    else if (g === "fermer") fermerGalerie();
+    else if (g === "plein") pleinEcran(!$(".galerie").classList.contains("plein"));
+    else if (g === "-1" || g === "1") ouvrirGalerie(galerie + +g);
+  };
   const calque = {
     fermer: fermerGalerie,
     touche: (b) => {
-      if (b === 1 && videoGalerie) {
-        videoGalerie.muted = !videoGalerie.muted;
-        actualiserVideo();
-        m.legende();
-      } else if (b === 3 && videoGalerie) basculerVideo();
-      else if (b === 2) fermerGalerie();
-      else if ((b === 7 || b === 8) && videoGalerie) {
+      const plein = $(".galerie").classList.contains("plein");
+      reveillerCommandes();
+      if (b === 1 && !plein) {
+        const t = boutonsGalerie()[choixGalerie];
+        window.__pcvAppui?.(t);
+        agirGalerie(t?.dataset.g);
+      } else if ((b === 11 || b === 12) && !plein) {
+        const n = Math.max(0, Math.min(2, choixGalerie + (b === 12 ? 1 : -1)));
+        if (n === choixGalerie) window.__pcvSon?.("bord");
+        else {
+          choixGalerie = n;
+          marquerGalerie();
+        }
+      } else if (b === 4 && videoGalerie) agirGalerie("son");
+      else if (b === 3 && videoGalerie) basculerVideo();
+      else if (b === 13 && videoGalerie) pleinEcran(!plein);
+      else if (b === 2) {
+        if (plein) pleinEcran(false);
+        else fermerGalerie();
+      } else if ((b === 7 || b === 8) && videoGalerie) {
         videoGalerie.currentTime = Math.max(0, videoGalerie.currentTime + (b === 8 ? 10 : -10));
         actualiserVideo();
-      } else if ([5, 6, 11, 12].includes(b)) ouvrirGalerie(galerie + ([6, 12].includes(b) ? 1 : -1));
+      } else if (b === 5 || b === 6) ouvrirGalerie(galerie + (b === 6 ? 1 : -1));
       else window.__pcvSon?.("bord");
     },
-    legende: () => [[[5, 6], T("captures")], ...videoGalerie ? [[1, T(videoGalerie.muted ? "video_son" : "video_muette")], [3, T(videoGalerie.paused ? "video_lecture" : "pause")], [[7, 8], T("video_10s")]] : [], [2, T("fermer")]]
+    legende: () => $(".galerie").classList.contains("plein") ? commandesVideo?.classList.contains("cachees") ? [] : [[2, T("plein_ecran_sortir")]] : [[[5, 6], T("galerie_voisines")], ...videoGalerie ? [[4, T(videoGalerie.muted ? "video_son" : "video_muette")], [3, T(videoGalerie.paused ? "video_lecture" : "pause")], [13, T("plein_ecran")]] : [], [1, T("choisir")], [2, T("fermer")]]
   };
   const deplacer = (b, ici) => {
     if (m.vue !== "etageres" || !ici) return null;
@@ -1164,6 +1239,7 @@ ${texte}
       document.removeEventListener("visibilitychange", visibilite);
       delete window.__pcvPreparer.eshop;
       delete window.__pcvTuilesBoutique;
+      delete window.__pcvVue?.galerieBoutique;
     }
   };
 })();

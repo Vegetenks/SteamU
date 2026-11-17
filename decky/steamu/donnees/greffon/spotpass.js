@@ -8,7 +8,7 @@
     }
   });
   const T = (k2, v) => window.__pcvT?.(k2, v) ?? k2, I = window.__pcvIcones, son = (s) => window.__pcvSon?.(s);
-  const SP = () => window.__pcvSpotPass, MB = () => window.__pcvMiiBase;
+  const SP = () => window.__pcvSpotPass, MB = () => window.__pcvMiiBase, M = () => window.__pcvSteamU?.mii;
   const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const VOL = 1500, MONTRE = 2400, LENTE = 450, TOUR = 251, SALUT = 0.5, POSE = 4;
   const BLEU = "var(--pcv-c-spotpass)", GRIS = "var(--pcv-texte2)";
@@ -55,6 +55,10 @@
     #pcv-spotpass .deux span { display: block; font-size: 15u; font-weight: 800; color: var(--pcv-texte2); line-height: 1.45; }
     #pcv-spotpass .sp-note { margin: 0; text-align: center; font-size: 15u; font-weight: 800; color: var(--pcv-texte2); }
     #pcv-spotpass .sp-note.grand { font-size: 19u; color: var(--pcv-texte); }
+    
+    #pcv-spotpass .qrs { display: flex; justify-content: center; gap: 40u; }
+    #pcv-spotpass .qrs figure { margin: 0; width: 170u; display: flex; flex-direction: column; align-items: center; gap: 8u; font-size: 15u; font-weight: 900; color: var(--pcv-texte2); text-align: center; line-height: 1.25; }
+    #pcv-spotpass .qrs svg { width: 100%; height: auto; display: block; }
     
     #pcv-spotpass .lignes { display: flex; flex-direction: column; gap: 10u; }
     #pcv-spotpass .lignes > div { display: flex; align-items: center; gap: 14u; padding: 12u 18u; border-radius: 22u; background: var(--pcv-creux); font-size: 19u; font-weight: 900; line-height: 1.35; }
@@ -183,9 +187,9 @@
     if (portrait.cle === cle && autres.length) return;
     portrait.cle = cle;
     portrait.url = "";
-    window.__pcvVraisMii?.charger?.().then(async (M) => {
+    window.__pcvVraisMii?.charger?.().then(async (M2) => {
       const neufs = !autres.length;
-      if (neufs) autres.push(...(await Promise.all(M.habitantsDefaut().slice(0, 2).map((h) => window.__pcvTeteMii?.(h.donnees).catch(() => "")))).filter(Boolean));
+      if (neufs) autres.push(...(await Promise.all(M2.habitantsDefaut().slice(0, 2).map((h) => window.__pcvTeteMii?.(h.donnees).catch(() => "")))).filter(Boolean));
       if (moi && portrait.cle === cle) {
         const T3 = window.THREE, cv = document.createElement("canvas");
         cv.width = 500;
@@ -195,8 +199,8 @@
         try {
           rendu.setClearColor(0, 0);
           const scene = new T3.Scene();
-          M.eclairer(scene);
-          a = M.creer({ donnees: moi.donnees, pantalon: moi.pantalon, rendu });
+          M2.eclairer(scene);
+          a = M2.creer({ donnees: moi.donnees, pantalon: moi.pantalon, rendu });
           scene.add(a.objet);
           a.jouer(pose || "saluer", { redemarrer: true });
           for (let t = 0; t < (pose ? POSE : SALUT); t += 0.1) a.maj(Math.min(0.1, (pose ? POSE : SALUT) - t));
@@ -219,13 +223,14 @@
     }).catch((e) => console.warn("SpotPass : dessin des Mii", e));
   };
   const mii = (cl = "mii") => `<img class="${cl}" alt=""${portrait.url ? ` src="${portrait.url}"` : ""}>`;
-  const etapes = (n) => `<div class="etapes">${["accord", "pseudo", "envoi"].map((t, i) => `<span class="${i + 1 === n ? "ici" : i + 1 < n ? "fait" : ""}"><b>${i + 1 < n ? I.svg("coche") : i + 1}</b>${T("spotpass.f.etape." + t)}</span>`).join("")}</div>`;
-  const tete = (titre, n, extra = "") => `<div class="sp-tete"><span class="sp-rond">${I.svg("spotpass")}</span><h2>${titre}</h2>${extra}${n ? etapes(n) : ""}</div>`;
+  const ETAPES = ["accord", "pseudo", "envoi"].map((t) => "spotpass.f.etape." + t), ETAPES_MII = ["vie", "toi", "plus"].map((t) => "mii.etape." + t), VERT = "#2fbf71";
+  const etapes = (n, cles = ETAPES) => `<div class="etapes">${cles.map((t, i) => `<span class="${i + 1 === n ? "ici" : i + 1 < n ? "fait" : ""}"><b>${i + 1 < n ? I.svg("coche") : i + 1}</b>${T(t)}</span>`).join("")}</div>`;
+  const tete = (titre, n, extra = "", mii2) => `<div class="sp-tete"><span class="sp-rond"${mii2 ? ` style="background:${VERT}"` : ""}>${I.svg(mii2 || "spotpass")}</span><h2>${titre}</h2>${extra}${n ? etapes(n, mii2 ? ETAPES_MII : ETAPES) : ""}</div>`;
   const bouton = (a, texte, oui, court) => `<button data-a="${a}"${oui ? ' class="oui"' : ""}${court ? ` data-l="${court}"` : ""}>${texte}</button>`;
   const boutons = (...l) => `<div class="boutons">${l.join("")}</div>`;
   const cite = (t) => T("spotpass.f.citation", { t: esc(t) });
   const heure = (t) => new Date(t).toLocaleTimeString(window.__pcvLocale?.() || void 0, { hour: "2-digit", minute: "2-digit" });
-  let ecran = null, phase = 0, motif = null, debut = 0, k = 0, touches = {}, attente = 0, compte = 0;
+  let ecran = null, phase = 0, motif = null, debut = 0, k = 0, touches = {}, attente = 0, compte = 0, retourMii = "mii-vie";
   const E = {
     // 1. l'explication validée (maquette d'annonce du 29/10)
     explication: () => ({ b: ["fermer", T("touche.retour")], html: `${tete(T("spotpass.f.explication.titre"))}
@@ -284,6 +289,69 @@
         <p class="sous-envoi">${reseau ? T("spotpass.f.echec.reseau") : t.startsWith("spotpass.") ? T("spotpass.erreur.autre") : t}</p>
         <p class="pas-encore">${ic("horloge")}${T("spotpass.f.pas_encore")}</p>
         ${boutons(bouton("reessayer", T("spotpass.f.reessayer"), true, T("spotpass.f.reessayer.court")), bouton("fermer", T("spotpass.f.fermer")))}` };
+    },
+    // ---------- l'assistant des Mii (14/11, l'auteur : « un assistant pas à pas qui s'ouvre pour importer les Mii ») ----------
+    // Ouvert par la ligne « Tes Mii » (Paramètres › SteamU › Importation), le portail détruit de la place et le verrou de
+    // l'Éditeur Mii. 1 « Les Mii prennent vie » : le moteur (FFL.js) et le fichier des visages, les deux fichiers sans lesquels
+    // __pcvNintendo.mii reste faux (importer.EXIGE) ; quand les deux manquent, un seul appui : importer les visages installe
+    // aussi le moteur, et rien n'est téléchargé sans cet appui. 2 « Tes Mii sont là ! » : ton Mii, puis SpotPass. 3 « En plus,
+    // si tu veux » : les Mii de la 3DS et les tenues. L'état et les actions : steamu.js (__pcvSteamU.mii)
+    // (ce qui est fait prend la coche dans sa pastille ; ce qui reste, les boutons le disent)
+    "mii-vie": () => {
+      const e = M().etat();
+      return { b: ["fermer", T("notifs.plus_tard")], html: `${tete(T("mii.vie.titre"), 1, "", "miimaker")}
+      <div class="lignes"><div>${pa(e.moteur ? "coche" : "miimaker", VERT)}<span>${T("mii.vie.dessin")}<small>${T("mii.vie.dessin.texte")}</small></span></div>
+        <div>${pa(e.visages ? "coche" : "silhouette", VERT)}<span>${T("mii.vie.visages")}<small>${T("mii.vie.visages.texte")}</small></span></div></div>
+      <p class="sp-note">${T(e.visages ? "mii.vie.note.moteur" : "mii.vie.note.deux")}</p>
+      ${boutons(
+        e.visages ? bouton("mii-installer", T("mii.vie.installer"), true) : bouton("mii-importer", T("mii.vie.importer"), true),
+        ...e.visages ? [] : [bouton("mii-guide", T("mii.vie.ou"))],
+        bouton("fermer", T("notifs.plus_tard"))
+      )}` };
+    },
+    // où trouver le fichier des visages (et les vrais corps) : le texte du guide et ses deux QR, à lire au téléphone
+    "mii-guide": () => ({ b: [retourMii, T("touche.retour")], html: `${tete(T("mii.guide.titre"), 0, "", "livre")}
+      <p class="info">${T("steamu.guide.moteur.2")}</p>
+      <div class="qrs">${[["qr1", "https://github.com/ariankordi/FFL-Testing"], ["qr2", "https://github.com/datkat21/mii-creator"]].map(([k2, url]) => {
+      let q = "";
+      try {
+        q = window.__pcvMiiQR.genererSvg(url, "livre");
+      } catch (e) {
+        q = esc(url);
+      }
+      return `<figure>${q}${T("steamu.guide.moteur." + k2)}</figure>`;
+    }).join("")}</div>
+      ${boutons(bouton(retourMii, T("touche.retour"), true))}` }),
+    "mii-cours": () => ({ b: ["fermer", T("spotpass.f.fermer")], html: `${tete(T("mii.vie.titre"), 1, "", "miimaker")}
+      <p class="titre-envoi">${T("mii.cours")}<span class="points"><i></i><i></i><i></i></span></p><p class="sous-envoi">${T("mii.cours.texte")}</p>
+      ${boutons(bouton("fermer", T("spotpass.f.fermer")))}` }),
+    "mii-erreur": () => {
+      const k2 = "steamu.moteur.erreur." + motif, t = T(k2);
+      return { b: ["fermer", T("notifs.plus_tard")], html: `${tete(T("mii.vie.titre"), 1, "", "miimaker")}
+      <p class="titre-envoi">${T("steamu.moteur.erreur.titre")}</p><p class="sous-envoi">${t === k2 ? T("steamu.moteur.erreur.reseau") : t}</p>
+      <p class="pas-encore">${ic("cadenas")}${T("mii.erreur.rien")}</p>
+      ${boutons(bouton("mii-installer", T("spotpass.f.reessayer"), true), bouton("fermer", T("notifs.plus_tard")))}` };
+    },
+    // 2. les deux fichiers sont là : ton Mii (à créer s'il manque), puis SpotPass
+    "mii-la": () => {
+      const moi = MB().moi(), sp = SP().actif();
+      const premier = !moi ? bouton("creerMii", T("spotpass.f.creer"), true) : !sp ? bouton("accord", T("spotpass.activer"), true) : bouton("fermer", T("touche.terminer"), true);
+      return { classe: "large", b: ["fermer", T(moi && sp ? "touche.terminer" : "notifs.plus_tard")], html: `${tete(T("mii.la.titre"), 2, "", "coche")}
+      <div class="pseudo"><div class="scene-mii">${moi ? `${mii()}<span class="plaque">${esc(moi.nom)}<em>${T("spotpass.f.cest_toi")}</em></span>` : `<div class="silhouette" style="margin:auto">${I.svg("silhouette")}</div>`}</div>
+        <div class="col"><div class="lignes"><div>${pa("coche", VERT)}<span>${T("mii.etape.vie")}<small>${T("mii.la.vie")}</small></span></div>
+          <div>${pa("miimaker", moi ? VERT : GRIS)}<span>${moi ? T("mii.la.moi", { nom: esc(moi.nom) }) : T("mii.la.sans_moi")}<small>${T(moi ? "mii.la.moi.texte" : "spotpass.f.sans_mii.texte2")}</small></span></div>
+          <div>${pa("spotpass", sp ? BLEU : GRIS)}<span>${T("spotpass.nom")}<small>${T(sp ? "mii.la.sp_oui" : "mii.la.sp")}</small></span></div></div></div></div>
+      ${boutons(premier, bouton("mii-plus", T("mii.plus.titre")), ...moi && sp ? [] : [bouton("fermer", T("notifs.plus_tard"))])}` };
+    },
+    // 3. en plus, si tu veux : chaque option, son état, son guide ; un seul bouton pour les importer toutes. Les vrais corps
+    // et le logo arrivent seuls après les visages : la ligne n'est là que si leur téléchargement n'a pas abouti, avec Réessayer
+    "mii-plus": () => {
+      const e = M().etat();
+      return { b: ["mii-la", T("touche.retour")], html: `${tete(T("mii.plus.titre"), 3, "", "miimaker")}
+      <div class="lignes">${[["3ds", "miimaker", e.mii3ds, "guide:mii:0"], ...e.corps ? [] : [["corps", "silhouette", false, "mii-corps"]], ["tenues", "palette", e.tenues, "mii-guide"], ...e.logo ? [] : [["logo", "images", false, "mii-logo"]]].map(([id, n, ok, a]) => `<div>${pa(ok ? "coche" : n, ok ? VERT : GRIS)}<span>${T("mii.plus." + id)}<small>${T("mii.plus." + id + ".texte")}</small></span>
+          <span class="val"></span>${a === "mii-corps" || a === "mii-logo" ? `<button class="btn-sec" data-a="${a}">${ic("mise-a-jour")}${T("spotpass.f.reessayer.court")}</button>` : `<button class="btn-sec" data-a="${a}" data-l="${T("mii.plus.guide")}">${ic("livre")}${T("mii.plus.guide")}</button>`}</div>`).join("")}</div>
+      <p class="sp-note">${T("mii.plus.note")}</p>
+      ${boutons(bouton("mii-importer-plus", T("steamu.importer"), true), bouton("fermer", T("touche.terminer")))}` };
     }
   };
   const focs = () => [...carte.querySelectorAll("[data-a]")];
@@ -379,7 +447,36 @@
     );
     return true;
   };
-  const agir = (a) => a.startsWith("signaler:") ? SP().mii()[+a.slice(9)] && SP().signaler(SP().mii()[+a.slice(9)]) : {
+  const miiDebut = (e) => e.moteur && e.visages ? "mii-la" : "mii-vie";
+  const ouvrirMii = async (nom) => {
+    if (!M()) return false;
+    const e = await M().lire();
+    return ouvrir(nom || miiDebut(e));
+  };
+  const installerMii = async () => {
+    if (racine.hidden) ouvrir("mii-cours");
+    else montrer("mii-cours", false);
+    son("choisir");
+    const r = M().etat().moteur ? { ok: true } : await M().installer();
+    if (r?.ok && M().etat().visages && !M().etat().corps) await M().corps();
+    if (r?.ok && M().etat().visages && !M().etat().logo) await M().logo();
+    if (racine.hidden || ecran !== "mii-cours") return;
+    motif = r?.ok ? null : r?.erreur || "reseau";
+    if (r?.ok) peindre();
+    montrer(r?.ok ? "mii-la" : "mii-erreur", false);
+    son(r?.ok ? "gagne" : "erreur");
+  };
+  const importerMii = async (apres) => {
+    cacher();
+    try {
+      await M().importer();
+    } catch (e2) {
+    }
+    const e = await M().lire();
+    if (apres === "mii-vie" && e.visages && (!e.moteur || !e.corps || !e.logo)) return installerMii();
+    ouvrir(apres === "mii-vie" ? miiDebut(e) : apres);
+  };
+  const agir = (a) => a.startsWith("signaler:") ? SP().mii()[+a.slice(9)] && SP().signaler(SP().mii()[+a.slice(9)]) : a.startsWith("guide:") ? (fermer(false), window.__pcvSteamU?.ouvrir?.("g:" + a.slice(6))) : {
     fermer: () => fermer(),
     ranger,
     accord: () => montrer("accord"),
@@ -415,18 +512,53 @@
         if (!MB()?.moi?.() && id) MB().definirMoi(id);
         ouvrir(MB()?.moi?.() ? "pseudo" : "sansMii");
       });
-    }
+    },
+    // l'assistant des Mii : son Mii créé, on revient à « Tes Mii sont là ! »
+    creerMii: () => {
+      cacher();
+      window.__pcvMiiMaker?.ouvrir?.().then((id) => {
+        if (!MB()?.moi?.() && id) MB().definirMoi(id);
+        peindre();
+        ouvrir("mii-la");
+      });
+    },
+    "mii-corps": async () => {
+      montrer("mii-cours", false);
+      son("choisir");
+      const r = await M().corps();
+      if (racine.hidden) return;
+      montrer("mii-plus", false);
+      son(r?.ok ? "gagne" : "erreur");
+    },
+    "mii-logo": async () => {
+      montrer("mii-cours", false);
+      son("choisir");
+      const r = await M().logo();
+      if (racine.hidden) return;
+      montrer("mii-plus", false);
+      son(r?.ok ? "gagne" : "erreur");
+    },
+    "mii-importer": () => importerMii("mii-vie"),
+    "mii-importer-plus": () => importerMii("mii-plus"),
+    "mii-installer": installerMii,
+    "mii-guide": () => {
+      if (ecran !== "mii-guide") retourMii = ecran;
+      montrer("mii-guide");
+    },
+    "mii-vie": () => montrer("mii-vie"),
+    "mii-la": () => montrer("mii-la"),
+    "mii-plus": () => montrer("mii-plus")
   }[a]?.();
   carte.addEventListener("click", (e) => {
     const b = e.target.closest("[data-a]");
     if (b) agir(b.dataset.a);
   });
   const poser = () => {
-    const p = document.getElementById("pcv-steamu"), ici = p?.getClientRects().length ? document.body : document.querySelector(".BasicUI") || document.body;
+    const p = document.getElementById("pcv-steamu"), pl = document.getElementById("pcv-place"), ici = p?.getClientRects().length || pl && !pl.hidden ? document.body : document.querySelector(".BasicUI") || document.body;
     if (racine.parentElement !== ici) ici.append(racine);
   };
   const ouvrir = (nom) => {
-    if (!SP() || !MB() || !window.__pcvNintendo?.mii) return false;
+    if (!SP() || !MB() || !window.__pcvNintendo?.mii && !nom?.startsWith("mii-")) return false;
     if (!nom || nom === "actif" || nom === "rencontres") {
       if (!window.__pcvSpotPassPage) return false;
       window.__pcvBarreQuitter?.();
@@ -434,7 +566,7 @@
       return window.__pcvSpotPassPage.ouvrir();
     }
     window.__pcvBarreQuitter?.();
-    peindre();
+    if (window.__pcvNintendo?.mii) peindre();
     if (racine.hidden) poser();
     const entre = racine.hidden, etat = SP().etatRond();
     racine.hidden = false;
@@ -478,6 +610,7 @@
     ouvrir,
     fermer,
     envoi,
+    mii: ouvrirMii,
     ouvert: () => !racine.hidden,
     ecran: () => !racine.hidden && ecran,
     envoiEnCours: () => !racine.hidden && ecran === "envoi" && phase === 1,
@@ -609,7 +742,7 @@
       Object.assign(vif, { cle, jeton, a: null, rendu: null, pose: null });
       page.querySelector(".moi").hidden = true;
       if (!moi) return;
-      window.__pcvVraisMii?.charger?.().then((M) => {
+      window.__pcvVraisMii?.charger?.().then((M2) => {
         if (vif.jeton !== jeton) return;
         const T3 = window.THREE, cv = document.createElement("canvas");
         cv.className = "moi";
@@ -617,8 +750,8 @@
         cv.height = 640;
         const rendu = new T3.WebGLRenderer({ canvas: cv, alpha: true, antialias: true }), scene = new T3.Scene();
         rendu.setClearColor(0, 0);
-        M.eclairer(scene);
-        const a = M.creer({ donnees: moi.donnees, pantalon: moi.pantalon, rendu });
+        M2.eclairer(scene);
+        const a = M2.creer({ donnees: moi.donnees, pantalon: moi.pantalon, rendu });
         scene.add(a.objet);
         a.jouer("repos");
         const b = new T3.Box3().setFromObject(a.objet), H = (b.max.y - b.min.y) / 0.79, y = b.min.y - 0.06 * H + H / 2, cam = new T3.PerspectiveCamera(22, cv.width / cv.height, 0.05, 50);

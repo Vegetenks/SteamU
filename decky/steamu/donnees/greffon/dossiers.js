@@ -22,7 +22,7 @@
   };
   const GRIS = "#c3ccd8, #8f9bab";
   const TEINTES = { dossier: "#3fb6ff, #1a8fe0", decorer: "#ffb35c, #ff7a1f", nom: "#7fd17f, #3aa64a", suppr: GRIS, decoller: "#c9a4ff, #8a5ce6", reglages: GRIS };
-  const rond = (n, c = {}) => `<u style="background:radial-gradient(circle at 50% 35%, ${c.teinte || TEINTES[n]})">${c.svg ? svg(c.svg) : IC[n]}</u>`;
+  const rond = (n, c = {}) => window.__pcvIcones.rond(n, c.svg ? svg(c.svg) : IC[n], c.teinte || TEINTES[n]);
   const racine = document.createElement("div");
   racine.id = "pcv-dossiers";
   racine.hidden = true;
@@ -31,23 +31,15 @@
     #pcv-dossiers { position: fixed; inset: 98u 0 0 0; z-index: 8720; font-family: var(--pcv-police); color: var(--pcv-texte); user-select: none; -webkit-user-select: none; }
     #pcv-dossiers[hidden] { display: none; }
     #pcv-dossiers * { box-sizing: border-box; }
-    #pcv-dossiers button { font: inherit; color: inherit; border: 0; padding: 0; background: none; cursor: pointer; }
-    #pcv-dossiers u { text-decoration: none; flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 26u; height: 26u; padding: 0 5u; border-radius: 13u;
+    #pcv-dossiers button:not(.pcv-bulle-options > *) { font: inherit; color: inherit; border: 0; padding: 0; background: none; cursor: pointer; }
+    #pcv-dossiers u:not(.pcv-bulle-options u) { text-decoration: none; flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 26u; height: 26u; padding: 0 5u; border-radius: 13u;
       color: var(--pcv-sur-accent); font-size: 12u; font-weight: 900; }
     #pcv-dossiers .voile { position: absolute; inset: 0; background: var(--pcv-voile-fenetre); opacity: 0; transition: opacity .2s; }   
     #pcv-dossiers.boite-ouverte .voile { opacity: 1; }
     
-    #pcv-dossiers .menu { z-index: 1; position: fixed; left: 0; top: 0; min-width: 270u; padding: 8u; border-radius: 24u; display: none; flex-direction: column; gap: 6u;
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 14u 34u rgba(30,50,80,.3); transform-origin: var(--ox, 0) var(--oy, 50%); }
-    #pcv-dossiers .menu.on { display: flex; animation: pcvDosMenu .26s cubic-bezier(.3,1.5,.5,1) both; }
-    @keyframes pcvDosMenu { from { opacity: 0; transform: scale(.7) } }
-    #pcv-dossiers .menu button { display: flex; align-items: center; gap: 12u; height: 54u; padding: 0 20u 0 9u; border-radius: 18u; font-size: 19u; font-weight: 800; text-align: left; white-space: nowrap; }
-    #pcv-dossiers .menu button u { width: 38u; height: 38u; border-radius: 50%; }
-    #pcv-dossiers .menu .leg-bulle { margin-top: 4u; }
     
     #pcv-dossiers .leg-bas { position: fixed; right: 34u; bottom: 24u; z-index: 2; }
     html.pcv-question .pcv-legende { visibility: hidden; } html.pcv-question #pcv-dossiers .pcv-legende { visibility: visible; }
-    #pcv-dossiers .menu button.k { background: var(--pcv-carte); box-shadow: 0 0 0 3u var(--pcv-anneau-c), 0 0 0 7u var(--pcv-cyan-plein); }
     
     
     #pcv-dossiers .carte { position: absolute; left: 50%; top: -98u; bottom: 0; height: fit-content; margin: auto 0 auto -300u; width: 600u; padding: 24u 28u 22u; border-radius: 32u; display: none;
@@ -75,12 +67,25 @@
     #pcv-dossiers .carte.liste { left: 0; right: 0; width: fit-content; min-width: 380u; max-width: 640u; max-height: calc(100% - 140u); margin: auto; padding: 18u; flex-direction: column; }
     #pcv-dossiers .carte.liste.on { display: flex; }
     #pcv-dossiers .liste .t { font-size: 20u; margin: 0 0 4u 8u; }
-    #pcv-dossiers .liste .elts { display: flex; flex-direction: column; gap: 8u; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 8u; margin: 0 -8u -8u; }
-    #pcv-dossiers .liste .elts button { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 18u; height: 50u; padding: 0 18u; border-radius: 25u;
-      font-size: 18u; font-weight: 900; background: var(--pcv-verre); box-shadow: var(--pcv-reflet); }
+    
+    #pcv-dossiers .liste .elts { display: flex; flex-direction: column; gap: var(--pcv-ecart-choix); min-height: 0; overflow-y: auto; scrollbar-width: none; padding: var(--pcv-debord-anneau); scroll-padding: var(--pcv-debord-anneau);
+      margin: calc(8u - var(--pcv-debord-anneau)) calc(-1 * var(--pcv-debord-anneau)) calc(-1 * var(--pcv-debord-anneau)); }
+    
+    #pcv-dossiers .liste .elts button { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--pcv-ligne-ecart); min-height: var(--pcv-ligne-h);
+      padding: var(--pcv-ligne-marge); border-radius: var(--pcv-ligne-rayon); font-size: var(--pcv-ligne-texte); font-weight: 900; background: var(--pcv-verre); box-shadow: var(--pcv-reflet); }
+    #pcv-dossiers .liste:not(.tuiles) .elts button.k { outline: 0; background: var(--pcv-cyan); color: var(--pcv-sur-accent); box-shadow: var(--pcv-bombe), var(--pcv-anneau-choisi); }
     #pcv-dossiers .liste .elts i { font-style: normal; visibility: hidden; }
     #pcv-dossiers .liste .elts button[disabled] { opacity: .5; }
     #pcv-dossiers .liste .elts .oui { color: var(--pcv-cyan-plein); } #pcv-dossiers .liste .elts .oui i { visibility: visible; }
+    
+    #pcv-dossiers .liste .t small { display: block; font-size: 15u; color: var(--t2); }
+    #pcv-dossiers .liste.tuiles .elts { display: grid; grid-template-columns: repeat(6, 74u); }
+    #pcv-dossiers .liste.tuiles .elts button { position: relative; width: 74u; height: 74u; padding: 0; border-radius: 16u; display: grid; place-items: center;
+      background: var(--pcv-creux); box-shadow: 0 0 0 2u var(--pcv-lisere); font-size: 30u; color: var(--t2); }
+    #pcv-dossiers .liste.tuiles .elts img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+    #pcv-dossiers .liste.tuiles .elts i { position: absolute; right: -6u; top: -6u; width: 26u; height: 26u; border-radius: 50%; display: grid; place-items: center; font-size: 15u;
+      visibility: visible; background: #fff; color: transparent; box-shadow: 0 0 0 3u #c8d3df; }
+    #pcv-dossiers .liste.tuiles .elts .oui i { background: var(--pcv-cyan-plein); color: #fff; box-shadow: 0 0 0 3u #fff; }
     #pcv-dossiers .liste .elts button.k, #pcv-dossiers .bts button.k { outline: 4u solid var(--pcv-anneau-c); outline-offset: 2u; box-shadow: 0 0 0 9u var(--pcv-cyan-plein); }
     
     #pcv-dossiers .carte.dispo { width: 990u; margin-left: -495u; transition: opacity .2s; }
@@ -101,7 +106,7 @@
     @keyframes pcvDosAttente { to { opacity: .4 } }
     #pcv-dossiers .dispo p.info { min-height: 24u; margin-top: 8u; }
   `)}</style>
-  <div class="voile"></div><div class="menu"></div>
+  <div class="voile"></div><div class="menu pcv-bulle-options"></div>
   <div class="carte pcv-fenetre dispo"><div class="t">${rond("dossier", { svg: window.__pcvIcones.trace("dispositions") })}<span>${T("dispo.titre")}</span></div>
     <div class="fen"><div class="rang"></div></div><p class="info"></p><div class="bts leg"></div></div>
   <div class="carte pcv-fenetre nom"><div class="t">${rond("nom")}<span>${T("dossier.nom")}</span></div>
@@ -114,7 +119,7 @@
   fins.push(() => {
     racine.remove();
     document.documentElement.classList.remove("pcv-question");
-    document.body.classList.remove("pcv-dossiers-ouvert");
+    document.body.classList.remove("pcv-dossiers-ouvert", "pcv-dispositions-ouvert");
   });
   const $ = (s) => racine.querySelector(s), menuEl = $(".menu"), champ = $(".nom input");
   let ouvert = null;
@@ -141,7 +146,7 @@
     }
     racine.classList.remove("boite-ouverte");
     racine.hidden = true;
-    document.body.classList.remove("pcv-dossiers-ouvert");
+    document.body.classList.remove("pcv-dossiers-ouvert", "pcv-dispositions-ouvert");
     if (bruit) son("retour");
   };
   const couleurAppli = () => {
@@ -155,6 +160,7 @@
     couleurAppli();
     racine.hidden = false;
     document.body.classList.add("pcv-dossiers-ouvert");
+    document.body.classList.toggle("pcv-dispositions-ouvert", o.genre === "dispo" || o.dessous?.genre === "dispo");
     racine.classList.toggle("par-dessus", !!o.dessous && o.genre !== "menu");
   };
   const dessinerMenu = () => menuEl.querySelectorAll("button").forEach((b, k) => b.classList.toggle("k", k === ouvert.k));
@@ -175,18 +181,11 @@
   const choix = (i, choix2, o = {}) => {
     const a = acc();
     if (!a && !o.pres || !choix2.length) return false;
-    menuEl.innerHTML = choix2.map((c2, k) => `<button data-k="${k}">${rond(c2.ic, c2)}${echap(c2.nom)}</button>`).join("") + `<div class="pcv-legende leg-bulle">${window.__pcvIcones.legende([[1, T("touche.choisir")], [2, T("touche.retour")]])}</div>`;
+    menuEl.innerHTML = choix2.map((c, k) => `<button data-k="${k}">${rond(c.ic, c)}${echap(c.nom)}</button>`).join("");
     legendeBas(null);
     montrer({ genre: "menu", choix: choix2, k: 0, dessous: o.dessous, ailleurs: o.ailleurs });
     dessinerMenu();
-    const c = (o.pres || a.grille().children[i])?.getBoundingClientRect(), u = innerHeight / 800;
-    menuEl.classList.add("on");
-    const l = menuEl.offsetWidth, h = menuEl.offsetHeight, droite = !c || c.right + 14 * u + l < innerWidth - 16 * u, sous = o.sous && c;
-    const x = sous ? Math.min(c.left + c.width / 2 - l / 2, innerWidth - l - 16 * u) : c ? droite ? c.right + 14 * u : c.left - 14 * u - l : (innerWidth - l) / 2, y = sous ? c.bottom + 10 * u : c ? Math.min(Math.max(110 * u, c.top + c.height / 2 - h / 2), innerHeight - h - 20 * u) : 300 * u;
-    menuEl.style.left = Math.max(16 * u, x) + "px";
-    menuEl.style.top = y + "px";
-    menuEl.style.setProperty("--ox", sous ? "50%" : droite ? "0" : "100%");
-    menuEl.style.setProperty("--oy", sous ? "0" : "50%");
+    window.__pcvIcones.placerBulle(menuEl, (o.pres || a.grille().children[i])?.getBoundingClientRect(), o.sous);
     son("choisir");
     return true;
   };
@@ -303,13 +302,19 @@
     const l = $(".liste .elts").children;
     [...l].forEach((b, k) => b.classList.toggle("k", k === ouvert.k));
     l[ouvert.k]?.scrollIntoView({ block: "nearest" });
+    if (ouvert.noms) $(".liste .t small").textContent = ouvert.noms[ouvert.k] || "";
+  };
+  const parRangee = () => {
+    const l = [...$(".liste .elts").children];
+    return Math.max(1, l.filter((b) => b.offsetTop === l[0]?.offsetTop).length);
   };
   const liste = (o) => {
     if (!o.choix?.length) return false;
-    $(".liste .t").innerHTML = `${o.ic || o.svg ? rond(o.ic || "reglages", o) : ""}<span>${echap(o.titre)}</span>`;
-    $(".liste .elts").innerHTML = o.choix.map((c, k) => `<button data-k="${k}"${k === o.v || o.coches?.includes(k) ? ' class="oui"' : ""}${o.grises?.includes(k) ? " disabled" : ""}>${echap(c)}<i>\u2713</i></button>`).join("");
+    $(".liste .t").innerHTML = `${o.ic || o.svg ? rond(o.ic || "reglages", o) : ""}<span>${echap(o.titre)}${o.icones ? "<small></small>" : ""}</span>`;
+    $(".carte.liste").classList.toggle("tuiles", !!o.icones);
+    $(".liste .elts").innerHTML = o.choix.map((c, k) => `<button data-k="${k}"${k === o.v || o.coches?.includes(k) ? ' class="oui"' : ""}${o.grises?.includes(k) ? " disabled" : ""}${o.icones ? ` aria-label="${echap(c)}">${o.icones[k] || `<b>${echap([...c][0] || "?")}</b>`}` : `>${echap(c)}`}<i>\u2713</i></button>`).join("");
     legendeBas([[2, T("touche.retour")], [1, T("touche.choisir")]]);
-    montrer({ genre: "liste", k: Math.max(0, o.v ?? 0), n: o.choix.length, ok: o.ok, grises: o.grises, dessous: o.dessous, ailleurs: o.ailleurs });
+    montrer({ genre: "liste", k: Math.max(0, o.v ?? 0), n: o.choix.length, ok: o.ok, grises: o.grises, dessous: o.dessous, ailleurs: o.ailleurs, noms: o.icones && o.choix });
     racine.classList.add("boite-ouverte");
     $(".carte.liste").classList.add("on");
     window.__pcvApparition($(".carte.liste"));
@@ -321,6 +326,15 @@
     if (ouvert?.genre !== "liste") return;
     if (ouvert.grises?.includes(k)) return son("bord");
     const o = ouvert;
+    if (o.noms) {
+      $(".liste .elts").children[k]?.classList.toggle("oui");
+      if (o.k !== k) {
+        o.k = k;
+        dessinerListe();
+      }
+      son("choisir");
+      return o.ok(k);
+    }
     fermer(false);
     son("choisir");
     o.ok(k);
@@ -592,8 +606,9 @@
       return true;
     }
     if (ouvert.genre === "liste") {
-      if (b === 9 || b === 10) {
-        const k = ouvert.k + (b === 10 ? 1 : -1);
+      const pas = { 9: -1, 10: 1, ...ouvert.noms && { 9: -parRangee(), 10: parRangee(), 11: -1, 12: 1 } }[b];
+      if (pas) {
+        const k = ouvert.k + pas;
         if (k < 0 || k >= ouvert.n) son("bord");
         else {
           ouvert.k = k;

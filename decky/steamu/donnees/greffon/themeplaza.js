@@ -243,7 +243,7 @@
     boite.className = "tpzb";
     boite.innerHTML = `<div class="tpz-verif"><div class="tpz-tete"><div class="tpz-msg"><b>${T("themeplaza.verif_titre", { site: "ThemePlaza" })}</b>${T("themeplaza.verif_texte")}</div>
         <div class="bt" data-v="reessayer"><u>${o.T(1)}</u>${T("themeplaza.reessayer")}</div><div class="bt" data-v="fermer"><u>${o.T(2)}</u>${T("dispo.fermer")}</div></div>
-      <div class="tpz-site">${T("themeplaza.chargement", { site: "themeplaza.art" })}</div></div>`;
+      <div class="tpz-site" role="status">${window.__pcvChargement.html()}${T("themeplaza.chargement", { site: "themeplaza.art" })}</div></div>`;
     document.body.appendChild(boite);
     $('[data-v="reessayer"]').onclick = () => {
       o.son("choisir");

@@ -13,6 +13,7 @@
   const PACK = {
     dossier: "@steamu/",
     // geste (nom passé à __pcvSon, le même que dans SONS_SYSTEME) → fichier du pack
+    // (11/11, l'auteur) pas de zoom ici : « ouvrir » et « fermer » au zoom de la grille, horribles en défilant vite ; la 3DS garde le sien
     bruitages: {
       bouge: "curseur",
       pince: "curseur",
@@ -23,10 +24,8 @@
       capture: "valider",
       retour: "retour",
       lance: "ouvrir",
-      "zoom+": "ouvrir",
       "ouvre-dossier": "ouvrir",
       fermer: "fermer",
-      "zoom-": "fermer",
       "ferme-dossier": "fermer",
       home: "fermer",
       onglet: "onglet",
@@ -46,12 +45,13 @@
       menu: "ouvrir"
     },
     // page (écran de themes.js) → musique ; l'accueil prend l'ambiance du thème (champ « ambiance » de themes.js, 1 à 5)
-    musiques: ["place", "miimaker", "themes", "boutique", "parametres", "notifs", "amis", "bibliotheque", "medias", "telechargements", "profil", "fiche", "garde-robe", "perso"],
+    musiques: ["place", "miimaker", "themes", "boutique", "parametres", "notifs", "amis", "bibliotheque", "medias", "telechargements", "profil", "fiche", "garde-robe", "perso", "connexion", "notifs-bienvenue"],
     ambiances: 5,
     ambiance: 1
   };
   const fichierPack = (nom) => PACK.dossier + nom + ".ogg";
-  window.__pcvPackMusique = (page, ambiance) => page === "accueil" ? fichierPack("ambiance-" + (ambiance >= 1 && ambiance <= PACK.ambiances ? ambiance : PACK.ambiance)) : page === "spotpass" ? fichierPack("place") : PACK.musiques.includes(page) ? fichierPack(page) : null;
+  const EMPRUNTS = { spotpass: "place", guide: "notifs-bienvenue" };
+  window.__pcvPackMusique = (page, ambiance) => page === "accueil" ? fichierPack("ambiance-" + (ambiance >= 1 && ambiance <= PACK.ambiances ? ambiance : PACK.ambiance)) : EMPRUNTS[page] ? fichierPack(EMPRUNTS[page]) : PACK.musiques.includes(page) ? fichierPack(page) : null;
   window.__pcvSon = (nom, attendre = false) => {
     const f = PACK.bruitages[nom], v = volume();
     return f && v > 0 ? jouer(fichierPack(f), v, void 0, attendre) : false;
@@ -63,51 +63,7 @@
     if (!a || a.joues !== joues || ecran === "perso" || ecran === "place" || !TOUCHES[b]) return;
     window.__pcvSon?.(a.ouvert && !window.__pcvEcran?.ouvert?.() ? "fermer" : TOUCHES[b]);
   };
-  const appeler = (methode, ...args) => Promise.race([
-    (O?.DeckyBackend || window.DeckyBackend)?.call("loader/call_plugin_method", window.__pcvGreffon.nom, methode, ...args) ?? Promise.reject("Decky absent"),
-    new Promise((_, non) => setTimeout(() => non("Decky muet"), 4e3))
-  ]);
-  const octets = (b64) => {
-    const bin = atob(b64), oct = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) oct[i] = bin.charCodeAt(i);
-    return oct;
-  };
-  const TRANCHE = 256 * 1024;
-  const morceaux = async (chemin) => {
-    let t;
-    try {
-      t = await appeler("tranche", chemin, 0, TRANCHE);
-    } catch (e) {
-      const b64 = await appeler("ressource", chemin);
-      return b64 ? [octets(b64)] : null;
-    }
-    const m = [];
-    let lu = 0;
-    while (t?.b64) {
-      const o = octets(t.b64);
-      m.push(o);
-      lu += o.length;
-      if (lu >= t.taille) return m;
-      t = await appeler("tranche", chemin, lu, TRANCHE);
-    }
-    return null;
-  };
-  const typeContenu = (m, type) => {
-    if (!type?.startsWith("audio/")) return type;
-    const o = m[0], tete = String.fromCharCode(...o.subarray(0, 4));
-    if (tete === "RIFF") return "audio/wav";
-    if (tete === "OggS") return "audio/ogg";
-    if (tete === "fLaC") return "audio/flac";
-    if (String.fromCharCode(...o.subarray(4, 8)) === "ftyp") return "audio/mp4";
-    if (o[0] === 26 && o[1] === 69 && o[2] === 223 && o[3] === 163) return "audio/webm";
-    if (o[0] === 255 && (o[1] & 246) === 240) return "audio/aac";
-    if (tete.startsWith("ID3") || o[0] === 255 && (o[1] & 224) === 224) return "audio/mpeg";
-    return type;
-  };
-  const urls = window.__pcvBlobs ||= {}, enCours = {};
-  const blob = async (chemin, type) => urls[chemin] || (enCours[chemin] ||= morceaux(chemin).then((m) => m && (urls[chemin] ||= URL.createObjectURL(new Blob(m, { type: typeContenu(m, type) })))).finally(() => delete enCours[chemin]));
-  window.__pcvRessource = blob;
-  window.__pcvListe = (dossier) => appeler("liste", dossier).catch(() => []);
+  const blob = window.__pcvRessource, appeler = (...args) => window.__pcvRessource.appeler(...args), urls = window.__pcvBlobs;
   let badges = null;
   const attente = /* @__PURE__ */ new Set();
   window.__pcvBadges = async () => badges ||= await window.__pcvListe("badges");
@@ -145,14 +101,14 @@
         // (31/10, l'auteur : « la musique de notre pack ») la page SpotPass : le thème de StreetPass Mii Plaza (3DS), rangé par
         // l'import dans 3ds/place/ ; la Wii U n'a pas de StreetPass, c'est sa piste la plus proche (« streetpass.mp3 » n'existe nulle part)
         spotpass: "3ds/place/place.ogg",
-        accueil: "wiiu/menu/menu.ogg",
+        accueil: "wiiu/menu/menu-tv-et-gamepad.ogg",
         place: "wiiu/place/place.ogg",
         parametres: "wiiu/parametres/parametres.ogg",
         boutique: "wiiu/eshop/eshop.ogg",
         amis: "wiiu/amis/amis.ogg",
         notifs: "wiiu/notifications/notifications.ogg",
         profil: "wiiu/miiverse/reglages.ogg",
-        medias: "wiiu/miiverse/miiverse.ogg",
+        medias: "wiiu/medias/panorama.ogg",
         miimaker: "wiiu/miimaker/menu.ogg",
         connexion: "wiiu/connexion/selection-compte.ogg",
         telechargements: "wiiu/telechargements/telechargements.ogg",
@@ -165,12 +121,24 @@
         // (29/10, la page Contrôle parental : reglages.js)
         // (29/10, l'auteur : « pas le bon son de démarrage ») l'eShop de la Wii U n'a pas d'air de démarrage à lui : on
         // l'ouvre depuis le menu, dont le jingle de chargement (« (Jingle) Wii U Menu Loading », 24 s) joue jusqu'à la boutique
-        "boutique-attente": "wiiu/ui/lancement.ogg"
+        // (12/11, l'auteur) remplacé par la vraie musique de chargement de l'eShop (« eShop - Loading », Wii U System Audio)
+        "boutique-attente": "wiiu/eshop/chargement.ogg",
+        // (14/11, l'auteur) TV + GamePad partout où cette version existe ; GamePad en repli.
+        bibliotheque: "wiiu/journal/journal-tv-et-gamepad.ogg",
+        fiche: "3ds/eshop/evaluation.ogg",
+        guide: "wiiu/connexion/premier-lancement.ogg",
+        "garde-robe": "wiiu/miimaker/editeur.ogg",
+        "accueil-repos": "wiiu/menu/repos.ogg",
+        lancement: "wiiu/lancement/logiciel.ogg"
       },
+      // écrans dont la musique de chargement remplace le jingle « lance » (themes.js), quand elle est importée
+      chargements: ["lancement", "boutique-attente"],
+      // (14/11) versions GamePad si la piste TV + GamePad manque.
+      replis: { accueil: ["wiiu/menu/menu.ogg"], bibliotheque: ["wiiu/journal/journal-gamepad.ogg", "wiiu/journal/journal.ogg"] },
       // piste choisie selon la date parmi la liste (__pcvVariante), avant celle de musiques
       variantes: { boutique: ESHOP },
       // demarrage/demarrage : la piste son de la vidéo de démarrage (main.py, film_demarrage.poser), pas une page.
-      // autres pistes rangées (pas encore d'écran) : journal/journal, miiverse/jingle
+      // autres pistes rangées (pas encore d'écran) : miiverse/jingle
       // Les 42 autres échantillons d'interface (ui/echantillons/, numérotés faute de nom d'origine : voir
       // decky/steamu/donnees/sons-empreintes-wiiu.json) n'ont pas de vrai nom trouvé au 16/10 : les gestes qui leur
       // manquent (choisir, retour, onglet, erreur…) gardent le repli SteamU ; dès qu'une entrée de cette table donne
@@ -189,8 +157,8 @@
         boutique: "eshop-main.mp3",
         amis: "3ds/amis/amis.ogg",
         notifs: "3ds/notifications/notifications.ogg",
-        profil: "3ds/miiverse/miiverse.ogg",
-        medias: "3ds/medias/album.ogg",
+        profil: "3ds/nnid/nnid.ogg",
+        medias: "3ds/medias/diaporama-pop.ogg",
         miimaker: "3ds/miimaker/menu.ogg",
         connexion: "initial-setup.mp3",
         telechargements: "3ds/telechargements/telechargements.ogg",
@@ -204,10 +172,18 @@
         // la place, comme la StreetPass Mii Plaza (place3d.js) : bienvenue à l'arrivée, nouveaux visiteurs, deuxième thème
         "place-bienvenue": "3ds/place/bienvenue.ogg",
         "place-visiteur": "3ds/place/nouveau-visiteur.ogg",
-        "place-2": "3ds/place/place-2.ogg"
+        "place-2": "3ds/place/place-2.ogg",
+        // (12/11, l'auteur, page « Musiques à choisir »)
+        bibliotheque: "3ds/journal/journal.ogg",
+        fiche: "3ds/eshop/evaluation.ogg",
+        guide: "3ds/mode-emploi/mode-emploi.ogg",
+        "garde-robe": "3ds/place/lapin/details.ogg",
+        "parametres-internet": "3ds/parametres/internet.ogg"
       },
+      // (12/11, l'auteur) toutes présentes : une au hasard à chaque visite de l'écran ; sinon la piste de musiques
+      hasard: { medias: ["detente", "retro", "pop", "funk", "fantaisie", "ceremonie", "jazz", "ballade"].map((s) => `3ds/medias/diaporama-${s}.ogg`) },
       variantes: { boutique: ["3ds/eshop/variantes/2011-06.ogg", ...ESHOP.filter((c) => c >= "wiiu/eshop/variantes/2014-07")] },
-      // autres : journal/journal, nnid/nnid, mode-emploi/mode-emploi, son/son
+      // autres : medias/album, miiverse/miiverse, son/son
       bruitages: {
         commun: {
           bouge: "3ds/ui/icone-choisie.ogg",
@@ -270,19 +246,26 @@
       }
     }
   };
+  SONS_SYSTEME.wiiu.musiques["place-visiteur"] = SONS_SYSTEME["3ds"].musiques["place-visiteur"];
   window.__pcvFamilleSons = (familleDuTheme) => {
     const r = lire("pcv-sons-famille", "theme");
     return r === "steamu" ? null : SONS_SYSTEME[r] ? r : familleDuTheme;
   };
   window.__pcvVariante = (liste, d = window.__pcvDateEssai || /* @__PURE__ */ new Date()) => {
-    const mois = (c) => +c.match(/\d{4}-(\d\d)/)[1];
-    for (let k = 0; liste?.length && k < 12; k++) {
-      const m = (d.getMonth() - k + 12) % 12 + 1, l = liste.filter((c) => mois(c) === m && (!/noel/.test(c) || d.getMonth() === 11));
-      if (l.length) return l[d.getFullYear() % l.length];
+    if (!liste?.length) return null;
+    const noel = liste.filter((c) => /noel/.test(c)), autres = liste.filter((c) => !/noel/.test(c)), an = d.getFullYear();
+    if (d.getMonth() === 11 && noel.length) return noel[an % noel.length];
+    if (!autres.length) return null;
+    let g = an;
+    const o = autres.slice();
+    for (let i = o.length - 1; i > 0; i--) {
+      g = (g * 1103515245 + 12345) % 2147483648;
+      const j = g % (i + 1);
+      [o[i], o[j]] = [o[j], o[i]];
     }
-    return null;
+    return o[d.getMonth() % o.length];
   };
-  const fichiersDe = (f) => [...Object.values(f.musiques), ...Object.values(f.variantes || {}).flat(), ...Object.values(f.bruitages).flatMap((g) => Object.values(g).map((b) => b.f || b))];
+  const fichiersDe = (f) => [...Object.values(f.musiques), ...Object.values(f.replis || {}).flat(), ...Object.values(f.variantes || {}).flat(), ...Object.values(f.hasard || {}).flat(), ...Object.values(f.bruitages).flatMap((g) => Object.values(g).map((b) => b.f || b))];
   let presentsLus = null;
   const importee = (famille) => !!SONS_SYSTEME[famille] && fichiersDe(SONS_SYSTEME[famille]).some((c) => presentsLus?.has("sons/" + c));
   const choixSons = () => ["theme", "steamu", ...Object.keys(SONS_SYSTEME).filter(importee)];
@@ -379,8 +362,8 @@
     if (!chemin) return null;
     try {
       const u = await blob(chemin + ".boucle", "application/json");
-      const j = u && await (await fetch(u)).json();
-      return j && Number.isFinite(j.debut) && Number.isFinite(j.fin) && j.fin > j.debut ? j : null;
+      const j = u ? await (await fetch(u)).json() : await appeler("boucle", chemin);
+      return j && Number.isFinite(j.debut) && Number.isFinite(j.fin) && j.debut >= 0 && j.fin > j.debut ? j : null;
     } catch (e) {
       return null;
     }
@@ -450,9 +433,9 @@
     }
     async _charger(u) {
       try {
-        const c = ctx(), octets2 = await (await fetch(u)).arrayBuffer();
+        const c = ctx(), octets = await (await fetch(u)).arrayBuffer();
         const chemin = this.dataset.chemin || cheminDe(u);
-        const [buf, bornes] = await Promise.all([c.decodeAudioData(octets2), bornesDe(chemin)]);
+        const [buf, bornes] = await Promise.all([c.decodeAudioData(octets), bornesDe(chemin)]);
         if (u !== this._url) return;
         if (bornes && bornes.fin <= buf.duration + 0.01) {
           const n = Math.min(buf.length, Math.ceil(bornes.fin * buf.sampleRate) + 1), b = c.createBuffer(buf.numberOfChannels, n, buf.sampleRate);

@@ -201,7 +201,7 @@
       const o = origine();
       if (o) o.click();
       else try {
-        requis(75380).SteamUIStore.Navigate("/library/downloads");
+        window.opener.SteamUIStore.Navigate("/library/downloads");
       } catch (e) {
       }
     };
@@ -220,6 +220,12 @@
           vu = true;
           pct = +o.overall_percent_complete || 0;
           pause = !!o.paused;
+        } else {
+          const u = window.__pcvTelechUnif?.file()?.cours;
+          if (u) {
+            vu = true;
+            pct = u.pct;
+          }
         }
       } catch (e) {
       }
@@ -254,6 +260,7 @@
     }
   }
   racine.addEventListener("click", (e) => {
+    if (e.target.closest?.(".rond") && !e.target.closest(".saisie")) window.__pcvSon?.("lance");
     if (!e.target.closest?.('[data-pcv-rond="amis"], [data-pcv-rond="loupe"]')) window.__pcvAmisMontrer?.(false);
     if (!e.target.closest?.('[data-pcv-rond="notifs"], [data-pcv-rond="loupe"]')) window.__pcvNotifsMontrer?.(false);
   }, true);
@@ -262,8 +269,7 @@
   window.__pcvSpotPassRond();
   {
     const O = window.opener, delai = (ms) => new Promise((_, non) => setTimeout(() => non(new Error("d\xE9lai")), ms));
-    const appel = (m, ...a) => O.DeckyBackend?.call("loader/call_plugin_method", "Pause Games", m, ...a) ?? Promise.reject(new Error("Decky absent"));
-    const pg = O.__pcvPg = (m, ...a) => Promise.race([appel(m, ...a), delai(4e3)]);
+    const appelPCV = (m, ...a) => O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, m, ...a) ?? Promise.reject();
     const pgLa = O.__pcvPgLa = () => {
       try {
         return (O.DeckyPluginLoader?.plugins || []).some((x) => x.name === "Pause Games");
@@ -271,19 +277,66 @@
         return false;
       }
     };
+    const PAUSE = O.__pcvPauseCles = { actif: ["pcv-pause", true], veille: ["pcv-pause-veille", true], derriere: ["pcv-pause-derriere", false], jamais: ["pcv-pause-jamais", []] };
+    const reglage = O.__pcvPauseReglage = (k) => {
+      try {
+        const v = localStorage.getItem(PAUSE[k][0]);
+        return v == null ? PAUSE[k][1] : JSON.parse(v);
+      } catch (e) {
+        return PAUSE[k][1];
+      }
+    };
+    const active = O.__pcvPauseActive = () => reglage("actif") !== false && !pgLa();
+    const jamais = O.__pcvPauseJamais = (appid) => [].concat(reglage("jamais")).includes(+appid);
+    const exempter = O.__pcvPauseExempter = (appid, oui) => {
+      const l = [].concat(reglage("jamais")).filter((x) => x !== +appid);
+      try {
+        localStorage.setItem(PAUSE.jamais[0], JSON.stringify(oui ? [...l, +appid] : l));
+      } catch (e) {
+      }
+    };
+    const pidDe = O.__pcvPidJeu = (appid) => Promise.race([appelPCV("pid_jeu", appid), delai(4e3)]);
+    let pidFige = 0;
+    const publierPause = (pid) => {
+      if (pidFige === pid) return;
+      pidFige = pid;
+      window.dispatchEvent(new Event("pcv-jeu-pause"));
+    };
+    O.__pcvJeuEnPause = () => !!pidFige && pidFige === O.__pcvHomePid && !O.__pcvReprise;
+    const fige = O.__pcvJeuFige = async (pid) => {
+      const oui = await Promise.race([appelPCV("jeu_fige", pid), delai(4e3)]);
+      if (pid === O.__pcvHomePid) publierPause(oui ? pid : 0);
+      return oui;
+    };
     const appidJeu = () => window.__pcvBridge.runningApp()?.appid || 0;
+    const enCours = () => {
+      try {
+        return O.SteamUIStore.RunningApps || [];
+      } catch (e) {
+        return [];
+      }
+    };
+    const focusId = () => {
+      try {
+        return O.FocusedAppWindowStore.GetFocusedAppID();
+      } catch (e) {
+        return 0;
+      }
+    };
     O.__pcvJeuDevant = () => {
       try {
         const a = appidJeu();
-        return !!a && O.FocusedAppWindowStore.GetFocusedAppID() === a && !O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.MenuStore.m_eOpenSideMenu;
+        return !!a && focusId() === a && !O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.MenuStore.m_eOpenSideMenu;
       } catch (e) {
         return false;
       }
     };
+    appelPCV("degel_securite").catch(() => {
+    });
     O.__pcvPauser = (pid) => {
-      if (!pgLa()) return Promise.resolve();
+      if (!active()) return Promise.resolve();
       O.__pcvHomePid = pid;
-      const p = O.__pcvPauseEnVol = appel("pause", pid).then(() => appelPCV("figer_exiles", pid)).catch(() => {
+      const p = O.__pcvPauseEnVol = appelPCV("figer_jeu", pid).then(() => fige(pid)).catch(() => {
       });
       p.finally(() => {
         if (O.__pcvPauseEnVol === p) O.__pcvPauseEnVol = null;
@@ -295,17 +348,18 @@
       if (!parLaGarde) veille = Date.now() + 1e4;
       if (O.__pcvReprise) return O.__pcvReprise;
       const p = O.__pcvReprise = (async () => {
-        if (!pgLa()) return true;
         for (let i = 0; i < 10; i++) {
           if (O.__pcvPauseEnVol) {
             await Promise.race([O.__pcvPauseEnVol, new Promise((r) => setTimeout(r, 2e3))]);
             continue;
           }
           try {
-            const a = appidJeu(), pid = O.__pcvHomePid || a && await pg("pid_from_appid", a);
+            const a = appidJeu(), pid = O.__pcvHomePid || a && await pidDe(a);
             if (!pid) return true;
-            await Promise.race([appelPCV("reprendre_jeu", pid), delai(4e3)]).then((ok) => ok || pg("resume", pid)).catch(() => pg("resume", pid));
-            if (!await pg("is_paused", pid)) {
+            publierPause(0);
+            await Promise.race([appelPCV("reprendre_jeu", pid), delai(4e3)]).catch(() => {
+            });
+            if (!await fige(pid)) {
               if (O.__pcvHomePid === pid) O.__pcvHomePid = 0;
               return true;
             }
@@ -320,14 +374,39 @@
       });
       return p;
     };
+    const derriere = /* @__PURE__ */ new Map();
+    const veillerDerriere = () => {
+      const l = enCours(), f = focusId();
+      for (const [id, pid] of derriere) if (!l.some((a) => a.appid === id) || !(active() && reglage("derriere"))) {
+        derriere.delete(id);
+        if (pid) appelPCV("reprendre_jeu", pid).catch(() => {
+        });
+      }
+      if (!(active() && reglage("derriere")) || l.length < 2 || !l.some((a) => a.appid === f)) return;
+      if (derriere.has(f)) {
+        const pid = derriere.get(f);
+        derriere.delete(f);
+        if (pid) appelPCV("reprendre_jeu", pid).catch(() => {
+        });
+      }
+      for (const { appid: id } of l) if (id !== f && !derriere.has(id) && !jamais(id)) {
+        derriere.set(id, 0);
+        pidDe(id).then((pid) => {
+          if (!pid || derriere.get(id) !== 0 || focusId() === id) return void derriere.delete(id);
+          derriere.set(id, pid);
+          return appelPCV("figer_jeu", pid);
+        }).catch(() => derriere.delete(id));
+      }
+    };
     clearInterval(window.__pcvGardePause);
     let depuis = 0, tic = 0;
     window.__pcvGardePause = setInterval(() => {
       if (O.__pcvHomePid && !appidJeu()) O.__pcvHomePid = 0;
+      veillerDerriere();
       const devant = O.__pcvJeuDevant();
       if (O.__pcvHomePid && !devant && !O.__pcvReprise && !O.__pcvPauseEnVol && ++tic % 2 === 0) {
         const pid = O.__pcvHomePid;
-        pg("is_paused", pid).then((oui) => {
+        fige(pid).then((oui) => {
           if (!oui && O.__pcvHomePid === pid && !O.__pcvReprise && !O.__pcvJeuDevant()) O.__pcvPauser(pid);
         }).catch(() => {
         });
@@ -340,7 +419,59 @@
       if (Date.now() - depuis > 1e3) O.__pcvJeuReprendre(true);
     }, 500);
     window.__pcvGardePauseFin = () => clearInterval(window.__pcvGardePause);
-    const appelPCV = (m, ...a) => O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, m, ...a) ?? Promise.reject();
+    let endormis = [];
+    window.__pcvVeilleFin?.();
+    window.__pcvVeilleFin = null;
+    try {
+      const s = O.SuspendResumeStore, mobx = Object.getOwnPropertySymbols(s).find((x) => x.description?.includes("mobx administration"));
+      window.__pcvVeilleFin = s[mobx].values_.get("m_bSuspending").observe_(async ({ newValue: dort }) => {
+        if (!dort) {
+          window.dispatchEvent(new Event("pcv-reveil"));
+          const l = endormis;
+          endormis = [];
+          return l.forEach((pid) => appelPCV("reprendre_jeu", pid).catch(() => {
+          }));
+        }
+        if (!active() || !reglage("veille")) return;
+        for (const { appid } of enCours()) {
+          if (jamais(appid)) continue;
+          try {
+            const pid = await pidDe(appid);
+            if (pid && !await fige(pid)) {
+              endormis.push(pid);
+              await appelPCV("figer_jeu", pid);
+            }
+          } catch (e) {
+          }
+        }
+      });
+    } catch (e) {
+    }
+    const AVIS_PG = "pcv-pause-avis-pg";
+    O.__pcvPauseProposerPg = (toujours) => {
+      if (!pgLa()) return false;
+      Promise.race([O.DeckyBackend.call("loader/call_plugin_method", "Pause Games", "load_settings"), delai(4e3)]).then((r) => (r?.noAutoPauseSet || []).forEach((id) => exempter(id, true))).catch(() => {
+      });
+      try {
+        if (!toujours && localStorage.getItem(AVIS_PG)) return false;
+      } catch (e) {
+      }
+      const ok = window.__pcvDossiers?.demander?.({
+        ailleurs: true,
+        titre: T("steamu.pause.pg"),
+        texte: T("steamu.pause.pg.texte"),
+        non: T("steamu.pause.pg.garder"),
+        oui: T("steamu.pause.pg.retirer"),
+        ok: () => O.DeckyBackend.call("utilities/uninstall_plugin", "Pause Games")
+      });
+      if (ok) try {
+        localStorage.setItem(AVIS_PG, "1");
+      } catch (e) {
+      }
+      return !!ok;
+    };
+    clearTimeout(window.__pcvAvisPg);
+    window.__pcvAvisPg = setTimeout(() => O.__pcvPauseProposerPg(), 2e4);
     const memeJeu = O.__pcvMemeJeu = (j, a) => {
       try {
         const n = BigInt(j);
@@ -353,7 +484,7 @@
       try {
         const l = await appelPCV("lecteurs").catch(() => []) || [];
         if (l.some((x) => memeJeu(x.jeu, appid))) return true;
-        const pid = await pg("pid_from_appid", appid).catch(() => 0);
+        const pid = await pidDe(appid).catch(() => 0);
         return !!pid && l.some((x) => x.pid === pid);
       } catch (e) {
         return false;
@@ -379,15 +510,8 @@
       try {
         const l = await appelPCV("lecteurs").catch(() => null) || [];
         const miens = l.filter((x) => memeJeu(x.jeu, a));
-        if (miens.some((x) => x.statut === "Playing" && !x.video) && !((await pg("load_settings"))?.noAutoPauseSet || []).includes(+a)) {
-          await pg("add_no_auto_pause_set", +a);
-          try {
-            const L = O.DeckyPluginLoader, p = L?.plugins?.find((x) => x.name === "Pause Games");
-            if (p) L.importPlugin(p.name, p.version);
-          } catch (e) {
-          }
-        }
-        if (!miens.length && !((await pg("load_settings"))?.noAutoPauseSet || []).includes(a)) return;
+        if (miens.some((x) => x.statut === "Playing" && !x.video) && !jamais(a)) exempter(a, true);
+        if (!miens.length && !jamais(a)) return;
         const lu = miens.find((x) => x.statut === "Playing" && x.video);
         if (lu) {
           videoFigee = lu.nom;
@@ -422,7 +546,18 @@
     ["medias", /^\/routes\/media/],
     ["decky", /^(\/routes)?\/decky\//]
   ];
-  const pageDe = (p) => (PAGES.find(([, re]) => re.test(p)) || ["autre"])[0];
+  const routeGreffon = (p) => {
+    try {
+      const q = p.replace(/^\/routes/, "");
+      return [...window.opener.DeckyPluginLoader.routerHook.routerState._routes.keys()].some((r) => {
+        const b = r.split("/:")[0];
+        return !b.startsWith("/decky/") && (q === b || q.startsWith(b + "/"));
+      });
+    } catch (e) {
+      return false;
+    }
+  };
+  const pageDe = (p) => (PAGES.find(([, re]) => re.test(p)) || [routeGreffon(p) ? "greffon" : "autre"])[0];
   window.__pcvTeteMii = async (octets) => {
     const T2 = window.THREE, V = window.__pcvVraisMii?.etat;
     if (!T2 || !V) throw new Error("t\xEAte du Mii : moteur des Mii pas pr\xEAt");
@@ -566,19 +701,18 @@
     }
     return modaleVue;
   };
-  const requis = (n) => requis.req()(n);
-  requis.req = () => window.opener.__pcvReq ||= (() => {
+  const requis = { req: () => window.opener.__pcvReq ||= (() => {
     let r;
     window.opener.webpackChunksteamui.push([[/* @__PURE__ */ Symbol("pcv")], {}, (q) => {
       r = q;
     }]);
     return r;
-  })();
+  })() };
   window.__pcvClavier = (champ2) => {
     if (!champ2) return false;
     if (champ2.getRootNode().activeElement !== champ2) champ2.focus();
     try {
-      const V = (window.__pcvW ||= requis(75380).SteamUIStore.WindowStore.GamepadUIMainWindowInstance).VirtualKeyboardManager;
+      const V = (window.__pcvW ||= window.opener.SteamUIStore.WindowStore.GamepadUIMainWindowInstance).VirtualKeyboardManager;
       const ecrire = (t) => {
         const v = champ2.value, a = champ2.selectionStart ?? v.length, b = champ2.selectionEnd ?? a;
         let n, c;
@@ -638,6 +772,7 @@
     const p = window.opener.location.pathname;
     const page = pageDe(p);
     if (document.body.dataset.pcvPage !== page) document.body.dataset.pcvPage = page;
+    window.__pcvRangeeSteam?.();
     window.__pcvSteamLegende?.(page);
     teteMoi();
     window.__pcvTelechMaj?.();
@@ -661,12 +796,12 @@
       if (h.contains("pcv-steam-verrou") !== v) h.toggle("pcv-steam-verrou", v);
       if (h.contains("pcv-steam-modale") !== m) h.toggle("pcv-steam-modale", m);
     }
-    if (ui) for (const id of ["pcv-accueil", "pcv-console", "pcv-themes", "pcv-badges", "pcv-biblio-d", "pcv-miimaker", "pcv-telech", "pcv-bascule", "pcv-barre", "pcv-bulle-nom", ...window.__pcvPagesDessus || []]) {
+    if (ui) for (const id of ["pcv-accueil", "pcv-console", "pcv-themes", "pcv-badges", "pcv-biblio-d", "pcv-miimaker", "pcv-miimaker-titre", "pcv-telech", "pcv-bascule", "pcv-barre", "pcv-bulle-nom", ...window.__pcvPagesDessus || []]) {
       const el = document.getElementById(id);
       if (el && el.parentElement !== ui) ui.appendChild(el);
     }
     try {
-      window.__pcvMenus ||= requis(75380).SteamUIStore.WindowStore.GamepadUIMainWindowInstance.MenuStore;
+      window.__pcvMenus ||= window.opener.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.MenuStore;
       const m = window.__pcvMenus, ouvert = m.m_eOpenSideMenu === 2;
       racine.querySelectorAll(".rond").forEach((b) => b.classList.toggle(
         "actif",
@@ -767,6 +902,7 @@
     [/^057e:2066$/, "joycon2-d"],
     [/^057e:2068$/, "joycons2"],
     [/^2dc8:/, "manette-8bitdo"],
+    [/^18d1:9400$/, "manette-stadia"],
     [/^28de:(1102|1142)$/, "manette-steam"],
     [/^28de:(1205|12fb)$/, "integree"],
     [/^17ef:/, "integree"]
@@ -778,13 +914,14 @@
     [/dualsense/i, "manette-ps5"],
     [/dualshock|ps4/i, "manette-ps4"],
     [/8bitdo/i, "manette-8bitdo"],
+    [/stadia/i, "manette-stadia"],
     [/pro controller/i, "manette-pro"],
     [/joy-?con/i, "joycons"]
   ];
   let machine = null;
   const hex = (n) => (+n || 0).toString(16).padStart(4, "0");
   window.__pcvPictoManette = (c) => emulee(c) ? "integree" : PICTO_USB.find(([r]) => r.test(hex(c.unVendorID) + ":" + hex(c.unProductID)))?.[1] || PICTO_TYPE[c.eControllerType] || PICTO_NOM.find(([r]) => r.test(c.strName || ""))?.[1] || "manette-inconnue";
-  window.__pcvJoueurs = async (tous) => {
+  window.__pcvJoueurs = async (tous, manettes) => {
     try {
       machine = await window.opener.DeckyBackend.call("loader/call_plugin_method", window.__pcvGreffon.nom, "machine") || machine;
     } catch (e) {
@@ -797,7 +934,7 @@
     if (mode === "auto") mode = machine?.ecran || "portable";
     const dmi = machine ? [machine.sys_vendor, machine.product_name, machine.product_version, machine.board_name].join(" ") : "";
     const portable = window.__pcvPictoConsole?.(dmi) || "portable";
-    const l = window.__pcvBridge.controllers();
+    const l = manettes ? manettes.slice() : window.__pcvBridge.controllers();
     return l.sort((a, b) => (a.nXInputIndex < 0) - (b.nXInputIndex < 0) || a.nXInputIndex - b.nXInputIndex).map((c) => {
       const p = window.__pcvPictoManette(c);
       return p !== "integree" ? { c, picto: p } : { c, picto: portable, integree: true };
@@ -863,33 +1000,79 @@
       e.preventDefault();
     }, true);
   }
-  const TENUE = { attente: 380, pas: 220, min: 70, acc: 0.8 };
-  window.__pcvTenir = (b, pas) => {
-    clearTimeout(window.__pcvTenue?.m);
-    window.__pcvTenue = null;
-    if (!pas()) return;
-    const t = window.__pcvTenue = { b }, suite = (ms) => {
-      t.m = setTimeout(() => {
-        if (window.__pcvTenue === t && pas()) suite(Math.max(TENUE.min, ms === TENUE.attente ? TENUE.pas : ms * TENUE.acc));
-      }, ms);
-    };
-    suite(TENUE.attente);
-  };
-  if (!window.__pcvTenueEcoute) {
-    window.__pcvTenueEcoute = true;
-    const lacher = (e) => {
-      const t = window.__pcvTenue;
-      if (t && e.type === "vgp_onbuttonup" === (e.detail?.button === t.b)) {
-        clearTimeout(t.m);
-        window.__pcvTenue = null;
+  {
+    let vise = null, avant = "", col = null;
+    const tuiles = () => col ? [...col.querySelectorAll("[role=tab]")].filter((t) => t.style.display !== "none" && t.dataset.pcvChoix !== "retirer") : [];
+    const choisie = (l) => vise && performance.now() - vise.t < 1500 && vise.el.isConnected && vise.el.getAttribute("aria-selected") !== "true" ? vise.el : l.find((t) => t.getAttribute("aria-selected") === "true");
+    const poser = () => {
+      const l = tuiles(), c = choisie(l), i = l.indexOf(c), dessus = !!c && !!col.querySelector(".gpfocus"), sig = l.length + ":" + i + ":" + dessus;
+      if (!c || sig === avant) return;
+      avant = sig;
+      for (const t of l) t.toggleAttribute("data-pcv-vise", dessus && t === c);
+      for (const t of l) {
+        if (t.querySelector(".pcv-marque-relief")) continue;
+        const ic = t.querySelector("{{PageListItem_Icon@PageListItem_Title}}"), r = window.__pcvIcones.rubrique(t.textContent);
+        if (ic) ic.insertAdjacentHTML("beforeend", r);
+        else t.insertAdjacentHTML("beforeend", `<span class="pcv-icone-onglet">${r}</span>`);
       }
+      window.__pcvPresentation?.rangee(l, i);
     };
-    window.addEventListener("vgp_onbuttonup", lacher, true);
-    window.addEventListener("vgp_onbuttondown", lacher, true);
+    const suivi = new MutationObserver((r) => {
+      if (r.some((x) => x.type === "childList")) avant = "";
+      poser();
+    });
+    const vue = (c) => {
+      const t = c?.querySelector("[role=tab][aria-selected=true]"), r = t?.getBoundingClientRect();
+      if (!r?.width) return null;
+      const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return e && c.contains(e) ? c : null;
+    };
+    window.__pcvRangeeSteam = () => {
+      const c = document.body.dataset.pcvPage === "parametres" || window.__pcvNosPages?.() ? null : vue(document.querySelector(".PageListColumn:not(#pcv-rangee)"));
+      if (c !== col) {
+        suivi.disconnect();
+        col?.removeAttribute("data-pcv-rangee");
+        col = c;
+        avant = "";
+        vise = null;
+        if (c) {
+          c.setAttribute("data-pcv-rangee", "");
+          suivi.observe(c, { subtree: true, childList: true, attributes: true, attributeFilter: ["aria-selected", "class"] });
+        }
+      }
+      if (document.body.hasAttribute("data-pcv-onglets") !== !!c) document.body.toggleAttribute("data-pcv-onglets", !!c);
+      if (c) poser();
+      return c;
+    };
+    const aller = (j) => {
+      const l = tuiles(), a = choisie(l), t = l[j];
+      if (!t || t === a) return;
+      const f = !!col.querySelector(".gpfocus");
+      const k = [...a.classList].filter((x) => !t.classList.contains(x) && !x.startsWith("gpfocus"));
+      a.classList.remove(...k);
+      t.classList.add(...k);
+      vise = { el: t, t: performance.now() };
+      avant = "";
+      poser();
+      clearTimeout(window.__pcvRangeeSteamPose);
+      window.__pcvRangeeSteamPose = setTimeout(() => {
+        if (!t.isConnected) return;
+        vise = { el: t, t: performance.now() };
+        t.click();
+        if (f) window.__pcvNoeud?.(t)?.BTakeFocus?.(4);
+      }, window.__pcvPanneau().duration);
+    };
+    let nav = null;
+    window.__pcvRangeeSteamNav = () => nav ||= window.__pcvPresentation?.onglets({ rang: () => {
+      const l = tuiles();
+      return [l.indexOf(choisie(l)), l.length];
+    }, aller });
   }
   window.__pcvPageVoisine = (sens, curseur = true) => {
     const P = window.__pcvParametres;
     if (P?.rangee()?.isConnected) return P.voisine(sens);
+    const nav = window.__pcvRangeeSteam() && window.__pcvRangeeSteamNav();
+    if (nav) return nav.voisine(sens);
     const su = window.__pcvSteamU, pages = [...document.querySelectorAll('.PageListColumn [role=tab][id*="/settings/"]:not([data-pcv-choix=retirer])')];
     const i = su?.ouvert() ? -1 : pages.findIndex((p) => p.getAttribute("aria-selected") === "true");
     if (i + sens === -1 && su && !su.ouvert()) {
@@ -921,7 +1104,8 @@
       if (!s) return false;
       const e = suivis.get(s) || { cible: s.scrollTop, anim: 0 };
       suivis.set(s, e);
-      const marge = 80 * innerHeight / 800, r = el.getBoundingClientRect(), y = s.scrollTop;
+      const r = el.getBoundingClientRect(), y = s.scrollTop;
+      const marge = Math.min(80 * innerHeight / 800, Math.max(0, (s.clientHeight - r.height) / 2));
       const haut = r.top - s.getBoundingClientRect().top + y;
       let c = e.anim ? e.cible : y;
       if (r.height + 2 * marge > s.clientHeight || haut - marge < c) c = haut - marge;
@@ -1107,6 +1291,10 @@
         else o.__pcvAller?.("accueil");
         return true;
       }
+      if (b === 2 && window.__pcvRetourEshop && /^(\/routes)?\/steamweb/.test(window.__pcvBridge?.page?.())) {
+        window.__pcvRetourEshop();
+        return true;
+      }
       if (b === 4) {
         const p = window.__pcvLoupes.parametres();
         if (p) {
@@ -1117,6 +1305,8 @@
       }
       if ((b === 5 || b === 6) && document.body.dataset.pcvPage === "parametres" && document.querySelector('.PageListColumn [role=tab][id*="/settings/"]'))
         return window.__pcvTenir(b, () => window.__pcvPageVoisine(b === 6 ? 1 : -1)), true;
+      const nav = window.__pcvRangeeSteam?.() && window.__pcvRangeeSteamNav();
+      if ((b === 5 || b === 6) && nav) return nav.tenir(b);
       let f = null;
       try {
         window.__pcvNav ||= oy().NavigationManager;
@@ -1126,8 +1316,12 @@
       if (!f || !document.contains(f)) f = document.querySelector(".gpfocus");
       const tuile = f ? f.closest(".PageListColumn [role=tab]") : visibles(".PageListColumn [role=tab][aria-selected=true]")[0];
       if (!f && !tuile) return false;
-      if (tuile && b === 9 && document.body.dataset.pcvPage === "parametres") {
+      if (tuile && b === 9 && (document.body.dataset.pcvPage === "parametres" || nav)) {
         window.__pcvBarreEntrer?.(() => noeud(tuile)?.BTakeFocus(4));
+        return true;
+      }
+      if (tuile && nav && (b === 11 || b === 12)) {
+        nav.voisine(b === 12 ? 1 : -1);
         return true;
       }
       if (tuile && b === 10) {
@@ -1356,8 +1550,8 @@
       return true;
     };
   }
-  window.__pcvPagesDessus = ["pcv-bienvenue", "pcv-place", "pcv-profil", "pcv-amis", "pcv-notifs", "pcv-spotpass-page", "pcv-connexion", "pcv-eshop", "pcv-eshop-unifie", "pcv-eshop-themes", "pcv-medias"];
-  window.__pcvOrdre = ["connexion", "bienvenue", "bulle", "boutique", "eshop", "eshopThemes", "medias", "perso", "fiche", "choixJeu", "profil", "amis", "notifs", "spotpassPage", "telech", "biblio", "stockage", "parametres", "reglages", "pages", "barre", "deco", "place", "console", "accueil", "garde"];
+  window.__pcvPagesDessus = ["pcv-bienvenue", "pcv-place", "pcv-profil", "pcv-amis", "pcv-notifs", "pcv-spotpass-page", "pcv-manettes", "pcv-connexion", "pcv-eshop", "pcv-eshop-unifie", "pcv-eshop-themes", "pcv-medias"];
+  window.__pcvOrdre = ["connexion", "bienvenue", "bulle", "boutique", "eshop", "eshopThemes", "medias", "perso", "fiche", "choixJeu", "profil", "amis", "notifs", "spotpassPage", "manettes", "telech", "biblio", "stockage", "parametres", "reglages", "pages", "barre", "deco", "place", "console", "accueil", "garde"];
   {
     const table = window.__pcvManette?.__brute || Object.assign({}, window.__pcvManette || {});
     const menuOuvert = window.__pcvMenuOuvert = () => {
@@ -1424,6 +1618,16 @@
       })) window.__pcvSon?.("bord");
       return;
     }
+    if (b === 14 && Object.values(window.__pcvStart || {}).some((f) => {
+      try {
+        return f();
+      } catch (x) {
+        return false;
+      }
+    })) {
+      prise();
+      return;
+    }
     if (b === 14) b = 3;
     if (!(b >= 1 && b <= 12)) return;
     const aAuAppui = () => !!document.querySelector?.("#pcv-badges.on");
@@ -1478,9 +1682,15 @@
     l.className = "pcv-legende";
     document.body.appendChild(l);
     let avant = "";
-    const LEG = { parametres: [[[5, 6], "touche.onglets"], [4, "touche.rechercher"], [2, "touche.retour"], [1, "touche.choisir"]], recherche: [[2, "touche.retour"], [1, "touche.choisir"]] };
+    const LEG = (page, O = window.__pcvPresentation.ONGLETS) => ({
+      parametres: [O, [4, "touche.rechercher"], [2, "touche.retour"], [1, "touche.choisir"]],
+      recherche: [[2, "touche.retour"], [1, "touche.choisir"]],
+      "eco-niveau": [["gd", "eco.niveau"], [2, "touche.retour"], [1, "touche.choisir"]],
+      onglets: [O, [2, "touche.retour"], [1, "touche.choisir"]]
+    })[page];
     window.__pcvSteamLegende = (page) => {
-      const h = LEG[page] && window.__pcvIcones.legende(LEG[page].map(([c, k]) => [c, T(k)]));
+      if (page !== "parametres" && page !== "recherche" && document.body.hasAttribute("data-pcv-onglets")) page = "onglets";
+      const t = window.__pcvPresentation && LEG(page), h = t && window.__pcvIcones.legende(t.map(([c, k]) => [c, T(k)]));
       if (h && h !== avant) l.innerHTML = avant = h;
     };
   }
@@ -1488,31 +1698,33 @@
     window.__pcvAiguillage = true;
     window.addEventListener("vgp_onbuttondown", (e) => window.__pcvPrendre(e), true);
   }
+  window.__pcvSansCurseur?.();
+  window.__pcvBarreTouches?.();
+  window.__pcvBarreTouches = null;
+  window.__pcvSansCurseur = window.__pcvToutesTouches((b, bas) => {
+    if (!bas || window.__pcvSteamDessus()) return false;
+    if (!(window.__pcvMiiMaker?.ouvert || window.__pcvEcran?.ouvert?.() || window.__pcvSteamU?.ouvert?.() || document.body.dataset.pcvPage === "accueil" || document.body.classList.contains("pcv-barre-main"))) return false;
+    let N, t;
+    try {
+      N = oy().NavigationManager;
+      t = N.GetActiveContext()?.m_LastActiveNavTree;
+      if (!t || t.GetLastFocusedNode() || N.BGlobalGamepadButton(b)) return false;
+    } catch (x) {
+      return false;
+    }
+    window.__pcvPrendre({ detail: { button: b }, stopPropagation() {
+    }, preventDefault() {
+    } });
+    try {
+      return N.GetActiveContext()?.m_LastActiveNavTree !== t || !!t.GetLastFocusedNode();
+    } catch (x) {
+      return true;
+    }
+  });
   clearInterval(window.__pcvQamSuivi);
   window.__pcvQamSuivi = setInterval(() => {
     try {
-      window.__pcvW ||= requis(75380).SteamUIStore.WindowStore.GamepadUIMainWindowInstance;
-      window.__pcvSansCurseur?.();
-      window.__pcvSansCurseur = window.__pcvToutesTouches((b, bas) => {
-        if (!bas || window.__pcvSteamDessus()) return false;
-        if (!(window.__pcvMiiMaker?.ouvert || window.__pcvEcran?.ouvert?.() || window.__pcvSteamU?.ouvert?.() || document.body.dataset.pcvPage === "accueil" || document.body.classList.contains("pcv-barre-main"))) return false;
-        let N, t;
-        try {
-          N = oy().NavigationManager;
-          t = N.GetActiveContext()?.m_LastActiveNavTree;
-          if (!t || t.GetLastFocusedNode() || N.BGlobalGamepadButton(b)) return false;
-        } catch (x) {
-          return false;
-        }
-        window.__pcvPrendre({ detail: { button: b }, stopPropagation() {
-        }, preventDefault() {
-        } });
-        try {
-          return N.GetActiveContext()?.m_LastActiveNavTree !== t || !!t.GetLastFocusedNode();
-        } catch (x) {
-          return true;
-        }
-      });
+      window.__pcvW ||= window.opener.SteamUIStore.WindowStore.GamepadUIMainWindowInstance;
       const arbres = window.__pcvW.m_FocusNavContext?.m_rgGamepadNavigationTrees || [];
       const transparent = /bazzite|steamos|chimera|holo/i.test(appareil?.sOSName || "");
       for (const x of [window, ...arbres.map((a) => a.m_window)]) try {
@@ -1658,11 +1870,12 @@
         padding: calc(var(--u) * 6) calc(var(--u) * 16); border-radius: calc(var(--u) * 15); background: var(--pcv-bulle); color: var(--pcv-sur-accent);
         font: 900 calc(var(--u) * 15) var(--pcv-police); white-space: nowrap; box-shadow: 0 calc(var(--u) * 6) calc(var(--u) * 14) rgba(0,0,0,.18); }
       #pcv-bulle-nom.vu { opacity: 1; }
-      #pcv-bulle-nom::before { content: ""; position: absolute; left: 50%; top: calc(var(--u) * -6); margin-left: calc(var(--u) * -7);
-        border: calc(var(--u) * 7) solid transparent; border-top: 0; border-bottom-color: var(--pcv-bulle); }`;
+      #pcv-bulle-nom { --pointe-fond: var(--pcv-bulle); --pointe-bord: transparent; --pointe-reflet: transparent; }   
+      #pcv-bulle-nom::after { left: 50%; top: calc(var(--u) * -4.95); margin-left: calc(var(--u) * -4.95); width: calc(var(--u) * 9.9); height: calc(var(--u) * 9.9); }`;
     document.head.appendChild(st);
     const bulle = document.createElement("div");
     bulle.id = "pcv-bulle-nom";
+    bulle.className = "pcv-pointe pcv-pointe-haut";
     document.body.appendChild(bulle);
     let minuterie;
     document.addEventListener("mouseover", (e) => {
@@ -1724,11 +1937,11 @@
     const NOM = { [MENU]: /^MainMenu/, [ACCES]: /^QuickAccess/ };
     const VERRE = "{{BackgroundGlass@Blur}}", VISIBLE = "{{Visible@BackgroundGlass}}";
     const PLEIN_ECRAN = "#pcv-place, .pcvc, .pcv-casino, .pcv-arcade";
-    const NON_GLISSE = "{{SliderControl@SliderTrack}}, {{ToggleRail@ToggleSwitch}}, input, textarea, .pcv-pe .piste";
-    const menus = () => window.__pcvMenus ||= requis(75380).SteamUIStore.WindowStore.GamepadUIMainWindowInstance.MenuStore;
+    const NON_GLISSE = "{{SliderControl@SliderTrack}}, {{ToggleRail@ToggleSwitch}}, input, textarea, .pcv-pe .piste, #pcv-ar .bande-g";
+    const menus = () => window.__pcvMenus ||= window.opener.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.MenuStore;
     const fenetre = (cote) => {
       try {
-        window.__pcvW ||= requis(75380).SteamUIStore.WindowStore.GamepadUIMainWindowInstance;
+        window.__pcvW ||= window.opener.SteamUIStore.WindowStore.GamepadUIMainWindowInstance;
         return window.__pcvW.m_FocusNavContext.m_rgGamepadNavigationTrees.map((a) => a.m_window).find((w) => {
           try {
             return NOM[cote].test(w.name);
@@ -1778,9 +1991,15 @@
         return;
       }
       if (!m || m.__pcvGarde === fins) return;
-      const basculer = Object.getPrototypeOf(m).ToggleSideMenu;
+      const basculer = Object.getPrototypeOf(m).ToggleSideMenu, ouvrir = m.OpenSideMenu;
       m.__pcvGarde = fins;
+      const connexion = (n) => (n === MENU || n === ACCES) && !!document.getElementById("pcv-connexion") && !window.__pcvConnexionDiagnostic?.valide;
+      const garde = m.OpenSideMenu = function(n, ...a) {
+        if (connexion(n)) return;
+        return ouvrir.call(this, n, ...a);
+      };
       m.ToggleSideMenu = function(n, force) {
+        if (connexion(n)) return;
         if (force === void 0) {
           if (g?.pris || performance.now() - tGeste < GARDE_MS) {
             noter("bascule-ignoree", n, this.m_eOpenSideMenu, Math.round(performance.now() - tGeste));
@@ -1799,6 +2018,7 @@
       };
       fins.push(() => {
         if (m.__pcvGarde === fins) {
+          if (m.OpenSideMenu === garde) m.OpenSideMenu = ouvrir;
           delete m.ToggleSideMenu;
           delete m.__pcvGarde;
         }
@@ -1807,7 +2027,7 @@
     const nettoyer = (geste, verres = geste.verres) => {
       if (geste.c?.id) {
         geste.c.classList.remove("glisse");
-        for (const p of ["--pcv-glisse", "--pcv-glisse-p", "--pcv-glisse-t"]) geste.c.style.removeProperty(p);
+        for (const p of ["--pcv-glisse", "--pcv-glisse-p", "--pcv-glisse-t"]) for (const x of [geste.c, geste.c.ownerDocument.documentElement]) x.style.removeProperty(p);
       }
       for (const el of geste.c ? [geste.c, geste.c.parentElement, geste.c.parentElement?.parentElement] : []) for (const p of ["transform", "transition", "will-change", "overflow"]) el?.style.removeProperty(p);
       for (const v of verres || []) {
@@ -1831,6 +2051,8 @@
         c.style.setProperty("--pcv-glisse", ((p - 1) * geste.sens * geste.L).toFixed(1) + "px");
         c.style.setProperty("--pcv-glisse-p", p.toFixed(3));
         c.style.setProperty("--pcv-glisse-t", (ms || 0) + "ms");
+        const r = c.ownerDocument.documentElement;
+        for (const p2 of ["--pcv-glisse", "--pcv-glisse-t"]) r.style.setProperty(p2, c.style.getPropertyValue(p2));
       } else if (c) {
         const el = geste.cote === MENU && !c.id ? c.parentElement : c;
         if (el !== c) c.style.setProperty("transition", "none", "important");

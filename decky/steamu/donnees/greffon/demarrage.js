@@ -18,26 +18,20 @@
     #pcv-demarrage::before { content: ""; position: absolute; inset: 0; margin: auto; width: min(100vw, 178vh); background: center / cover no-repeat; }
     ${Object.entries(FONDS).map(([a, c]) => `html[data-pcv-apparence="${a}"] #pcv-demarrage { background: ${c}; }${IMAGE ? ` html[data-pcv-apparence="${a}"] #pcv-demarrage::before { background-image: url("${IMAGE}?${a}"); }` : ""}`).join(" ")}
     #pcv-demarrage[hidden] { display: none; }
-    #pcv-demarrage .points { position: absolute; left: 50%; top: calc(50% + 13vh); transform: translateX(-50%); display: flex; gap: 1.5vh; opacity: 0; }
-    #pcv-demarrage .points i { width: 1.5vh; height: 1.5vh; border-radius: 50%; background: var(--pcv-cyan-plein); animation: pcv-saut 1.1s ease-in-out infinite; }
-    #pcv-demarrage .points i:nth-child(2) { animation-delay: .15s; } #pcv-demarrage .points i:nth-child(3) { animation-delay: .3s; }
-    #pcv-demarrage.charge .points { animation: pcv-paraitre .5s ease 1.5s forwards; }
-    @keyframes pcv-saut { 0%, 60%, 100% { transform: translateY(0); opacity: .45; } 30% { transform: translateY(-1.2vh); opacity: 1; } }
-    @keyframes pcv-paraitre { to { opacity: 1; } }
+    #pcv-demarrage .pcv-points { position: absolute; left: 50%; top: calc(50% + 13vh); height: var(--pcv-point); transform: translateX(-50%); opacity: 0; }
+    #pcv-demarrage.charge .pcv-points { animation: pcv-paraitre .5s ease 1.5s forwards; }
     html[data-pcv-demarrage] {{GamepadToastPlaceholder@GamepadToastPlaceholder}} { visibility: hidden !important; }
     html[data-pcv-demarrage]:has({{StartupAnimationContainer@StartupAnimationContainer}}) #pcv-connexion { visibility: hidden !important; }
     html[data-pcv-demarrage] {{StartupAnimationContainer@StartupAnimationContainer}}, html[data-pcv-demarrage] .pcv-film-dessus { position: fixed; inset: 0; z-index: 2147483647 !important; }`;
-  const points = document.createElement("div");
-  points.className = "points";
-  couverture.appendChild(points);
-  for (let i = 0; i < 3; i++) points.appendChild(document.createElement("i"));
+  couverture.innerHTML = window.__pcvChargement.html();
   couverture.appendChild(style);
   document.body.appendChild(couverture);
   const nousFilm = () => window.__pcvGreffon?.film && document.querySelector(`video[src$="${window.__pcvGreffon.film}"]`);
   const video = () => !!document.querySelector("{{StartupAnimationContainer@StartupAnimationContainer}}") || !!nousFilm();
   const avantConnexion = () => {
     try {
-      return (window.opener || window).SteamUIStore?.WindowStore?.GamepadUIMainWindowInstance?.BViewingPreLoginRoute?.() === true;
+      const O = window.opener || window;
+      return O.App?.BHasCurrentUser?.() === false || O.SteamUIStore?.WindowStore?.GamepadUIMainWindowInstance?.BViewingPreLoginRoute?.() === true;
     } catch (e) {
       return false;
     }
@@ -191,7 +185,7 @@
     }
     const nf = nousFilm(), boite = nf && !nf.closest("{{StartupAnimationContainer@StartupAnimationContainer}}") && nf.parentElement;
     if (boite && !boite.classList.contains("pcv-film-dessus")) boite.classList.add("pcv-film-dessus");
-    const avant = avantConnexion() && !!document.querySelector(".gpfocus, input");
+    const avant = avantConnexion() && (!!document.body?.classList?.contains("pcv-compte-ouvert") || !!document.querySelector(".gpfocus, input"));
     if (!avant) couperFilm();
     const cachee = avant || video() && !coupee || !!window.__pcvBridge?.steamDessus?.() || connexionPrete && !!document.getElementById("pcv-connexion");
     if (couverture.hidden !== cachee) couverture.hidden = cachee;

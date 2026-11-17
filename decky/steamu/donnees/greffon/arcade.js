@@ -1035,11 +1035,13 @@
   .pcv-arcade .bulle { position: absolute; left: 172u; bottom: 70u; z-index: 41; max-width: 330u; padding: 12u 22u 14u; border-radius: 26u; background: var(--pcv-carte); font-size: 19u; font-weight: 800; line-height: 1.3;
     box-shadow: 0 6u 0 rgba(200,90,140,.16), 0 12u 26u rgba(120,40,90,.18); opacity: 0; transform: scale(.6) translateY(20u); transform-origin: 0 100%; transition: opacity .2s, transform .35s cubic-bezier(.3,1.6,.5,1); pointer-events: none; }
   .pcv-arcade .bulle.on { opacity: 1; transform: none; pointer-events: auto; }
-  .pcv-arcade .bulle::before { content: ""; position: absolute; left: -12u; bottom: 18u; border: 12u solid transparent; border-right-color: var(--pcv-carte); border-left: 0; }
+  .pcv-arcade .bulle { --pointe-fond: var(--pcv-carte); --pointe-bord: transparent; --pointe-reflet: transparent; }   
+  .pcv-arcade .bulle::after { left: -8.5u; bottom: 21.5u; width: 17u; height: 17u; }
   .pcv-arcade .bulle em { display: block; font-style: normal; font-size: 13u; font-weight: 900; color: #ff6fa3; letter-spacing: .05em; }
   .pcv-arcade .bulle p { margin: 0; min-height: 1.3em; }
   .pcv-arcade[data-vue=machine] .bulle { left: 18u; bottom: 186u; max-width: 206u; font-size: 17u; transform-origin: 30% 100%; }
-  .pcv-arcade[data-vue=machine] .bulle::before { left: 60u; bottom: -12u; border: 12u solid transparent; border-top-color: var(--pcv-carte); border-bottom: 0; }
+  .pcv-arcade[data-vue=machine] .bulle { --pointe-angle: 225deg; }
+  .pcv-arcade[data-vue=machine] .bulle::after { left: 63.5u; bottom: -8.5u; }
   
   .pcv-arcade .jeu { position: absolute; inset: 0; opacity: 0; transform: scale(.8); pointer-events: none; visibility: hidden;
     transition: opacity .35s .15s, transform .55s .1s cubic-bezier(.3,1.25,.5,1), visibility 0s .7s;
@@ -1336,7 +1338,7 @@
     racine.innerHTML = `<style>${STYLE}</style>${htmlSalle()}<div class="jeu"></div>
       <div class="hud-d"><div class="pil parties"><span class="piece">\u2605</span><span><span class="n"></span><small class="detail"></small></span></div>
         <button class="pil boite-b" data-action="boite"><span class="coffre">\u{1F3C5}</span><span><span class="n nb"></span><small>${T("arcade.ma_boite")}</small></span></button></div>
-      <div class="pipo">${PIPO}</div><div class="bulle"><em>PIPO</em><p></p></div>
+      <div class="pipo">${PIPO}</div><div class="bulle pcv-pointe pcv-pointe-gauche"><em>PIPO</em><p></p></div>
       <div class="boite"></div><div class="gain"></div>`;
     hote = $(".pipo");
     placerRail();

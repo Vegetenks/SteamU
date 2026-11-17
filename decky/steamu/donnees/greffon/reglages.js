@@ -216,7 +216,6 @@
     "steamu.moteur-mii": ["garder"],
     "steamu.musique-casino": ["garder"],
     "steamu.paroles": ["garder"],
-    "steamu.plugins-hors-store": ["garder"],
     "steamu.pieces": ["garder"],
     "steamu.reset": ["garder"],
     "steamu.signaler": ["garder"],

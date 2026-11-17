@@ -47,7 +47,7 @@
     #pcv-accueil .bulle small { display: block; font-size: calc(var(--u) * 12); font-weight: 700; color: var(--pcv-texte2); }
     #pcv-accueil .bulle img { width: calc(var(--u) * 36); height: calc(var(--u) * 36); border-radius: calc(var(--u) * 10); }
     #pcv-accueil .bulle .mii { width: calc(var(--u) * 38); height: calc(var(--u) * 38); border-radius: 50%; }
-    #pcv-accueil .bulle::after { content: ""; position: absolute; width: calc(var(--u) * 18); height: calc(var(--u) * 18); background: var(--pcv-carte); transform: rotate(45deg); border-radius: 3px; }
+    #pcv-accueil .bulle::after { width: calc(var(--u) * 18); height: calc(var(--u) * 18); }   
     #pcv-accueil .bulle.haut::after { top: calc(var(--u) * -8); left: calc(var(--u) * 34); }
     #pcv-accueil .bulle.gauche::after { left: calc(var(--u) * -8); top: 50%; margin-top: calc(var(--u) * -9); }
     @keyframes pcvBulle { 0% { opacity: 0; transform: scale(.5) } 70% { opacity: 1; transform: scale(1.04) } 100% { transform: scale(1) } }
@@ -106,14 +106,14 @@
     const deuxSem = app.minutes_playtime_last_two_weeks || 0;
     const jaq = rang.children[choix].getBoundingClientRect(), u = innerHeight / 800;
     zone.innerHTML = `
-      ${dernier ? `<div class="bulle haut" style="left:${jaq.left - 4 * u}px;top:${jaq.bottom + 18 * u - 98 * u}px"><img src="${urlSure(dernier.strImage)}" alt=""><span>${T("accueil.obtenu", { nom: echap(joli(dernier.strName)) })}<small>${ilya(dernier.rtUnlocked)}</small></span></div>` : ""}
+      ${dernier ? `<div class="bulle haut pcv-pointe pcv-pointe-haut" style="left:${jaq.left - 4 * u}px;top:${jaq.bottom + 18 * u - 98 * u}px"><img src="${urlSure(dernier.strImage)}" alt=""><span>${T("accueil.obtenu", { nom: echap(joli(dernier.strName)) })}<small>${ilya(dernier.rtUnlocked)}</small></span></div>` : ""}
       <div class="banniere" style="background-image:url('${IMG(app.appid, "library_hero.jpg")}'),url('${CDN(app.appid, "library_hero.jpg")}')">
         <img class="logo" src="${IMG(app.appid, "logo.png")}" alt="${echap(app.display_name)}" data-cdn="${CDN(app.appid, "logo.png")}" onerror="if(this.dataset.cdn){this.src=this.dataset.cdn;this.dataset.cdn=''}else{const d=document.createElement('div');d.className='logo-texte';d.textContent=this.alt;this.replaceWith(d)}">
         <div class="action"><button class="jouer">${installe ? T("accueil.jouer") : T("biblio.installer")}</button>
           <span class="meta">${T("accueil.temps_dernier", { temps: h(app.minutes_playtime_forever), date: jour(app.rt_last_time_played) })}</span></div>
       </div>
-      ${deuxSem ? `<div class="bulle gauche" style="right:calc(var(--u)*70);top:calc(var(--u)*274)"><img class="mii" src="${urlSure(avatarDe())}" alt=""><span>${T("accueil.deux_semaines", { temps: h(deuxSem) })}</span></div>` : ""}
-      ${avant ? `<div class="bulle gauche" style="right:calc(var(--u)*40);top:calc(var(--u)*352);animation-delay:.15s"><img src="${urlSure(avant.strImage)}" alt=""><span>${echap(joli(avant.strName))}<small>${ilya(avant.rtUnlocked)}</small></span></div>` : ""}
+      ${deuxSem ? `<div class="bulle gauche pcv-pointe pcv-pointe-gauche" style="right:calc(var(--u)*70);top:calc(var(--u)*274)"><img class="mii" src="${urlSure(avatarDe())}" alt=""><span>${T("accueil.deux_semaines", { temps: h(deuxSem) })}</span></div>` : ""}
+      ${avant ? `<div class="bulle gauche pcv-pointe pcv-pointe-gauche" style="right:calc(var(--u)*40);top:calc(var(--u)*352);animation-delay:.15s"><img src="${urlSure(avant.strImage)}" alt=""><span>${echap(joli(avant.strName))}<small>${ilya(avant.rtUnlocked)}</small></span></div>` : ""}
       <div class="cartes">
         <div class="carte image" data-ouvrir="${app.appid}" style="background-image:url('${IMG(app.appid, "library_hero.jpg")}'),url('${CDN(app.appid, "library_hero.jpg")}')"><span class="etiquette">${T("accueil.reprendre", { nom: echap(app.display_name) })}</span></div>
         ${s.total ? `<div class="carte" data-ouvrir="${app.appid}">${dernier ? `<img class="vign" src="${urlSure(dernier.strImage)}" alt="">` : ""}

@@ -1,0 +1,23 @@
+{
+ "id": "guerrier-1",
+ "nom": "Guerrier",
+ "categorie": "chapeau",
+ "fichier": "modele.glb",
+ "attache": "tete",
+ "position": [
+  0,
+  0,
+  0
+ ],
+ "rotation": [
+  0,
+  0,
+  0
+ ],
+ "echelle": 1,
+ "teinte": null,
+ "cache_cheveux": "tete",
+ "remplace": null,
+ "auteur": "SteamU",
+ "source": "fait main"
+}

@@ -23,6 +23,55 @@
     } catch (e) {
     }
   });
+  const colores = /* @__PURE__ */ new Set();
+  const colorer = async (m) => {
+    const H = window.__pcvHomeIcones, l = Object.keys(m.greffons || {}).filter((r) => m.greffons[r].couleur == null && !colores.has(r));
+    if (!l.length) return;
+    l.forEach((r) => colores.add(r));
+    const c = await appel("eshop_catalogues", [], 2e4), tous = c?.store || [];
+    for (const r of l) {
+      const nom = String(m.greffons[r].nom).toLowerCase(), url = tous.find((p) => p.image && String(p.nom).toLowerCase() === nom)?.image;
+      const d = url && (await appel("eshop_image", [url], 15e3))?.image;
+      const t = d ? await new Promise((ok) => {
+        const im = new Image();
+        im.onload = () => ok(window.__pcvThemes?.teinteDominante(im));
+        im.onerror = () => ok(null);
+        im.src = d;
+      }) : null;
+      if (t || c) H.colorer(r, t || "");
+    }
+  };
+  let attenteQuestion = 0;
+  const questionGreffon = () => {
+    const H = window.__pcvHomeIcones;
+    clearTimeout(attenteQuestion);
+    if (!H) return;
+    const m = H.lire(), r = H.aDemander(m)[0];
+    colorer(m);
+    if (!r) return;
+    const libre = document.body.dataset.pcvPage === "accueil" && !window.__pcvDossiers?.modal() && !window.__pcvEcran?.ouvert?.() && !window.__pcvBridge?.runningApp();
+    if (!libre || !window.__pcvDossiers) {
+      attenteQuestion = setTimeout(questionGreffon, 5e3);
+      return;
+    }
+    const g = m.greffons[r], c = H.couleur(g), plein = H.epingles(m).length >= H.MAX_GREFFONS, v = { nom: g.nom, max: H.MAX_GREFFONS };
+    H.repondre(r);
+    window.__pcvDossiers.demander({
+      svg: g.svg || window.__pcvIcones?.trace("prise"),
+      teinte: `color-mix(in srgb, ${c} 60%, #fff), ${c}`,
+      titre: T("home.greffon.titre", v),
+      texte: T(plein ? "home.greffon.plein" : "home.greffon.texte", v),
+      non: T("home.greffon.non"),
+      oui: T(plein ? "home.greffon.parametres" : "home.greffon.oui"),
+      danger: false,
+      ok: () => plein ? aller("home:" + r) : H.epingler(r, true)
+    });
+  };
+  removeEventListener("storage", window.__pcvHomeStockage);
+  addEventListener("storage", window.__pcvHomeStockage = (e) => {
+    if (e.key === "pcv-home-raccourcis") questionGreffon();
+  });
+  setTimeout(questionGreffon, 8e3);
   const ico = (d) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
   const ICO = {
     etoile: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
@@ -50,6 +99,7 @@
     prise: '<path d="M9 3v5M15 3v5"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v4"/>',
     pause: '<path d="M8 5v14M16 5v14"/>',
     cadenas: window.__pcvIcones?.trace("cadenas") || "",
+    accueil: window.__pcvIcones?.trace("accueil") || "",
     aide: window.__pcvIcones?.trace("aide") || "",
     // (registre unique : icones.js — onglet Aide et dépannage)
     poubelle: '<path d="M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13"/>',
@@ -58,7 +108,7 @@
     danger: '<path d="M12 3 2.5 20h19z"/><path d="M12 9.3v5M12 17.2h.01"/>',
     image: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>'
   };
-  for (const n of ["reglages", "info", "accueil", "bibliotheque", "manette", "soleil", "ecran", "musique", "casino", "epingle", "antenne", "crayon", "mise-a-jour"]) ICO[n] = window.__pcvIcones?.trace(n) || "";
+  for (const n of ["reglages", "info", "accueil", "bibliotheque", "manette", "soleil", "ecran", "musique", "casino", "epingle", "antenne", "crayon", "lune", "couches", "lecture", "mise-a-jour"]) ICO[n] = window.__pcvIcones?.trace(n) || "";
   const APPLIS = [["mii", "#2fbf71"], ["casino", "#e5484d"], ["badges", "#f5a000"], ["sons", "#8a63ff"]];
   const GUIDES = (imp = T("steamu.importer")) => [
     { id: "mii", c: "#2fbf71", ico: ICO.mii, pret: true, schemas: [
@@ -89,14 +139,15 @@
     // (page 2 : le fichier des visages à chercher, et des QR vers les PAGES des projets qui expliquent où le trouver ;
     // jamais un lien vers un fichier de Nintendo)
     { id: "moteur", c: "#2fbf71", ico: ICO.mii, pret: true, schemas: [
-      "  Moteur            \u2500\u2500\u25B6  [ Installer ]\n  Visages, corps    \u2500\u2500\u25B6  [ Importer ]",
+      "",
       {
         texte: `  FFLResHigh.dat      (Wii U)
   AFLResHigh_2_3.dat  (Miitomo)
            \u2193
    [ ${imp} ]`,
         qr: [["steamu.guide.moteur.qr1", "https://github.com/ariankordi/FFL-Testing"], ["steamu.guide.moteur.qr2", "https://github.com/datkat21/mii-creator"]]
-      }
+      },
+      ""
     ] },
     { id: "luigi", c: "#e5484d", ico: ICO.casino, pret: true, schemas: [
       "  [ Super Mario 64 DS ]  \u2500\u2500\u25B6  3DS",
@@ -152,10 +203,12 @@
     { id: "contrib", ic: "coeur", c: "--c-contrib", libelle: "steamu.tab.contrib" },
     { id: "import", ic: "dossier", c: "--c-import", libelle: "steamu.tab.import" },
     { id: "applis", ic: "biblio", c: "--c-applis", libelle: "steamu.applis" },
+    { id: "home", ic: "accueil", c: "--c-home", libelle: "steamu.tab.home" },
     { id: "confid", ic: "cadenas", c: "--c-confid", libelle: "steamu.tab.confid" },
+    { id: "pause", ic: "pause", c: "--c-pause", libelle: "steamu.tab.pause" },
     { id: "aide", ic: "aide", c: "--c-aide", libelle: "steamu.tab.aide" },
     { id: "maj", ic: "mise-a-jour", c: "--c-import", libelle: "steamu.maj.titre" },
-    // (14/11, l'auteur, comme en v0.3 : sa propre rubrique)
+    // (14/11, l'auteur : sorti d'Options de réinitialisation)
     { id: "danger", ic: "redemarrer", c: "--c-danger", libelle: "steamu.tab.reinit" },
     { id: "apparence", ic: "apparence", c: "--c-apparence", libelle: "steamu.apparence" },
     { id: "autres", ic: "reglages", c: "--c-autres", libelle: "steamu.tab.autres" }
@@ -186,8 +239,6 @@
   const artAutoActif = () => lireBool(CLE_ART_AUTO, true);
   const CLE_MAJ = "pcv-maj-auto";
   const majActif = () => lireBool(CLE_MAJ, true);
-  const CLE_HORS_STORE = "pcv-plugins-hors-store";
-  const horsStoreActif = () => lireBool(CLE_HORS_STORE, false);
   const CLE_FILM = "pcv-film-demarrage";
   const filmActif = () => lireBool(CLE_FILM, true);
   appel("film_demarrage", [filmActif()], 2e4);
@@ -221,18 +272,26 @@
     manette: false,
     signaler: null,
     debug: false,
-    appuis: 0
+    appuis: 0,
+    rang: null,
+    viseHome: null,
+    limite: false
   };
   const style = `<style>
     
     
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres) { --u: calc(100vh / 800); --c-contrib: #e5484d; --c-import: #1a9ae6; --c-applis: #ff8a1f; --c-confid: #2a6fe0; --c-aide: #2fbf71; --c-danger: var(--t2); --c-apparence: var(--pcv-cyan-plein, #2fb8ff); --c-autres: var(--t2); --c-debug: var(--pcv-ambre-texte);
-      position: fixed; left: calc(var(--u) * 140); right: calc(var(--u) * 140); top: calc(var(--u) * 330); bottom: calc(var(--u) * 60); z-index: 500; box-sizing: border-box;
+    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres) { --u: calc(100vh / 800); --c-contrib: #e5484d; --c-import: #1a9ae6; --c-applis: #ff8a1f; --c-confid: #2a6fe0; --c-aide: #2fbf71; --c-danger: var(--t2); --c-apparence: var(--pcv-cyan-plein, #2fb8ff); --c-home: #1a9ae6; --c-autres: var(--t2); --c-debug: var(--pcv-ambre-texte); --c-pause: #ff8a1f; --c-veille: #8a63d2;
+      position: fixed; left: calc(var(--u) * 100); right: calc(var(--u) * 100); top: calc(var(--u) * 316); bottom: calc(var(--u) * 80); z-index: 500; box-sizing: border-box;
       border-radius: calc(var(--u) * 32); background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre), var(--pcv-lumiere-carte, 0 0 0 transparent);
       font-family: var(--pcv-police, sans-serif); color: var(--pcv-texte, #2f3a4a); }
     :is(#pcv-steamu, #pcv-stockage, #pcv-parametres)[hidden] { display: none; }
+    
+    body :is(#pcv-steamu, #pcv-stockage, #pcv-parametres) .colonne { flex-basis: calc(var(--u) * 370); }
     :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker) { --t2: var(--pcv-texte2, #6b7788); }
     :is(#pcv-steamu, #pcv-stockage, #pcv-parametres) *, :is(#pcv-steamu, #pcv-stockage, #pcv-parametres) *::before, :is(#pcv-steamu, #pcv-stockage, #pcv-parametres) *::after { box-sizing: border-box; }
+    #pcv-steamu.import-seul { inset: 0; z-index: 2147483002; background: transparent; box-shadow: none; pointer-events: none; }
+    #pcv-steamu.import-seul > .panneau { display: none; }
+    #pcv-steamu.import-seul > .voile.on { pointer-events: auto; }
     body.pcv-steamu-ouvert .DialogContentTransition { visibility: hidden !important; }
     body.pcv-steamu-ouvert .PageListColumn [role=tab].gpfocus { box-shadow: var(--pcv-reflet), var(--pcv-ombre) !important; opacity: .85 !important; }
     
@@ -335,27 +394,15 @@
     #pcv-steamu .info { margin: 0; font-size: calc(var(--u) * 17); font-weight: 800; line-height: 1.3; color: var(--t2); }
     
     
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page) :is(.colonne, .contenu), #pcv-miimaker .colonne-mm { padding: var(--pcv-marge-ombre); margin: calc(var(--pcv-marge-ombre) * -1); scroll-padding: var(--pcv-marge-ombre); pointer-events: none;
-      -webkit-mask-image: var(--pcv-masque-marge); mask-image: var(--pcv-masque-marge); }
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page) :is(.colonne, .contenu) > *, #pcv-miimaker .colonne-mm > * { pointer-events: auto; }
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page) .colonne { flex: 0 0 calc(var(--u) * 316); display: flex; flex-direction: column; gap: var(--pcv-ecart-choix); overflow-y: auto; }   
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker) :is(.colonne, .colonne-mm) .onglet span { display: flex; flex-direction: column; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; }
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker) :is(.colonne, .colonne-mm) .onglet :is(b, small) { overflow: hidden; text-overflow: ellipsis; font-weight: inherit; }
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker) :is(.colonne, .colonne-mm) .onglet small { font-size: calc(var(--u) * 13); font-weight: 800; }
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker) .onglet.choisi small { color: rgba(255,255,255,.92); }
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker) :is(.colonne, .colonne-mm) .onglet { flex: none; height: calc(var(--u) * 64); border-radius: calc(var(--u) * 24); font-size: calc(var(--u) * 17); padding: 0 calc(var(--u) * 14); gap: calc(var(--u) * 12); white-space: nowrap; }
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker) :is(.colonne, .colonne-mm) .onglet .pastille { width: calc(var(--u) * 36); height: calc(var(--u) * 36); padding: calc(var(--u) * 8); }
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker) .onglet.choisi { background: var(--pcv-cyan); color: #fff; box-shadow: var(--pcv-bombe), 0 calc(var(--u) * 5) calc(var(--u) * 15) color-mix(in srgb, var(--pcv-cyan-plein) 30%, transparent); }
-    :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker) .onglet.choisi .pastille { color: #fff; background: rgba(255,255,255,.26); }
     
     :is(#pcv-steamu, #pcv-stockage, #pcv-parametres, #pcv-spotpass-page) .contenu { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; }
     
-    :is(#pcv-steamu .contenu, #pcv-spotpass-page .contenu, #pcv-miimaker .panneau) :is(.credit, .app, .confid-ligne, .danger-liste .bouton, .liste .bouton, .bouton.gros, .ligne) { flex: none; min-height: calc(var(--u) * 64); height: auto;
-      border-radius: calc(var(--u) * 24); padding: calc(var(--u) * 12) calc(var(--u) * 14) calc(var(--u) * 12) calc(var(--u) * 22); gap: calc(var(--u) * 12);
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); color: var(--pcv-texte); font-size: calc(var(--u) * 17); font-weight: 900; }
-    :is(#pcv-steamu .contenu, #pcv-spotpass-page .contenu, #pcv-miimaker .panneau) :is(small, .c-lignes span, .liste span.txt small) { font-size: calc(var(--u) * 13); font-weight: 800; }
-    #pcv-steamu .contenu :is(.c-tete b, .liste span.txt b, .app b) { font-size: calc(var(--u) * 17); }
-    :is(#pcv-steamu .contenu, #pcv-spotpass-page .contenu, #pcv-miimaker .panneau) :is(.app, .confid-ligne, .danger-liste .bouton, .liste .bouton, .bouton.gros) .pastille { width: calc(var(--u) * 36); height: calc(var(--u) * 36); padding: calc(var(--u) * 8); }
+    :is(#pcv-steamu .contenu, #pcv-spotpass-page .contenu, #pcv-miimaker .panneau) :is(.credit, .app, .confid-ligne, .danger-liste .bouton, .liste .bouton, .bouton.gros, .ligne) { flex: none; min-height: var(--pcv-ligne-h); height: auto;
+      border-radius: var(--pcv-ligne-rayon); padding: var(--pcv-ligne-marge); gap: var(--pcv-ligne-ecart);   
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); color: var(--pcv-texte); font-size: var(--pcv-ligne-texte); font-weight: 900; }
+    :is(#pcv-steamu .contenu, #pcv-spotpass-page .contenu, #pcv-miimaker .panneau) :is(small, .c-lignes span, .liste span.txt small) { font-size: var(--pcv-ligne-petit); font-weight: 800; }
+    #pcv-steamu .contenu :is(.c-tete b, .liste span.txt b, .app b) { font-size: var(--pcv-ligne-texte); }
+    :is(#pcv-steamu .contenu, #pcv-spotpass-page .contenu, #pcv-miimaker .panneau) :is(.app, .confid-ligne, .danger-liste .bouton, .liste .bouton, .bouton.gros) .pastille { width: var(--pcv-ligne-pastille); height: var(--pcv-ligne-pastille); padding: calc(var(--u) * 8); }
     
     :is(#pcv-spotpass-page .contenu, #pcv-miimaker .panneau) .confid-ligne .pastille:has(> img:not([hidden])) { padding: 0; overflow: hidden; }
     :is(#pcv-spotpass-page .contenu, #pcv-miimaker .panneau) .confid-ligne .pastille > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; }
@@ -369,10 +416,13 @@
     #pcv-steamu .contenu .imp-corps { gap: calc(var(--u) * 10); }
     
     #pcv-steamu .nouveautes > .liste { margin-top: 0; margin-bottom: 0; }
-    #pcv-steamu .contenu h3 { margin: calc(var(--u) * 8) 0 calc(var(--u) * 6); font-size: calc(var(--u) * 17); }
+    #pcv-steamu .contenu h3 { margin: var(--pcv-intertitre-marge); font-size: var(--pcv-intertitre); }
     #pcv-steamu .contenu .guide { zoom: .85; }
     
-    #pcv-steamu .contenu .vue.on { flex-direction: column; }
+    
+    #pcv-steamu .contenu .vue.on { flex-direction: column; gap: var(--pcv-ecart-choix); }
+    
+    #pcv-steamu .contenu .vue.on:not(:has(.liste, .imp-corps), .apparence) { height: auto; flex: none; }
     
     #pcv-steamu .licence-su { align-self: flex-start; flex: none; height: calc(var(--u) * 34); padding: 0 calc(var(--u) * 18); border-radius: calc(var(--u) * 17); background: rgba(0,0,0,.06); color: var(--t2); font-size: calc(var(--u) * 14); font-weight: 800; display: flex; align-items: center; }
     #pcv-steamu .ico-mini { flex: none; width: calc(var(--u) * 28); height: calc(var(--u) * 28); padding: calc(var(--u) * 6); box-sizing: border-box; border-radius: 50%; background: rgba(0,0,0,.06); color: var(--pcv-cyan-plein, #2fb8ff); }
@@ -387,20 +437,35 @@
     #pcv-steamu .imp-corps { flex: 1; min-height: 0; display: flex; flex-direction: column; }
     
     
-    :is(#pcv-steamu, #pcv-spotpass-page, #pcv-miimaker) .confid-ligne small { display: block; font-size: calc(var(--u) * 14); font-weight: 800; color: var(--t2); margin-top: calc(var(--u) * 3); }
-    :is(#pcv-steamu, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker) .inter { margin-left: auto; flex: none; width: calc(var(--u) * 64); height: calc(var(--u) * 34); border-radius: calc(var(--u) * 17); background: #dfe5ec; box-shadow: inset 0 2px 4px rgba(60,85,120,.2); position: relative; }
-    :is(#pcv-steamu, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker) .inter::after { content: ""; position: absolute; left: calc(var(--u) * 3); top: calc(var(--u) * 3); width: calc(var(--u) * 28); height: calc(var(--u) * 28); border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.2); transition: left .15s; }
-    :is(#pcv-steamu .confid-ligne, #pcv-parametres .ligne, #pcv-spotpass-page .confid-ligne, #pcv-miimaker .confid-ligne).oui .inter { background: var(--pcv-cyan); } :is(#pcv-steamu .confid-ligne, #pcv-parametres .ligne, #pcv-spotpass-page .confid-ligne, #pcv-miimaker .confid-ligne).oui .inter::after { left: calc(var(--u) * 33); }
+    :is(#pcv-steamu, #pcv-spotpass-page, #pcv-miimaker) .confid-ligne small { display: block; font-size: var(--pcv-ligne-petit); font-weight: 800; color: var(--t2); margin-top: var(--pcv-ligne-interligne); }
+    
+    #pcv-steamu .confid-ligne.eteint { opacity: .45; }
+    #pcv-steamu .pause .mini { margin-left: auto; flex: none; display: flex; gap: calc(var(--u) * 7); }
+    #pcv-steamu .pause .mini :is(img, b) { width: calc(var(--u) * 37); height: calc(var(--u) * 37); border-radius: calc(var(--u) * 8); box-shadow: 0 0 0 calc(var(--u) * 2) var(--pcv-lisere);
+      object-fit: cover; display: grid; place-items: center; background: var(--pcv-creux); font-size: calc(var(--u) * 20); color: var(--t2); }
+    :is(#pcv-steamu, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker, #pcv-bienvenue) .inter { margin-left: auto; flex: none; width: calc(var(--u) * 64); height: calc(var(--u) * 34); border-radius: calc(var(--u) * 17); background: #dfe5ec; box-shadow: inset 0 2px 4px rgba(60,85,120,.2); position: relative; }
+    :is(#pcv-steamu, #pcv-parametres, #pcv-spotpass-page, #pcv-miimaker, #pcv-bienvenue) .inter::after { content: ""; position: absolute; left: calc(var(--u) * 3); top: calc(var(--u) * 3); width: calc(var(--u) * 28); height: calc(var(--u) * 28); border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.2); transition: left .15s; }
+    :is(#pcv-steamu .confid-ligne, #pcv-parametres .ligne, #pcv-spotpass-page .confid-ligne, #pcv-miimaker .confid-ligne, #pcv-bienvenue .confid-ligne).oui .inter { background: var(--pcv-cyan); } :is(#pcv-steamu .confid-ligne, #pcv-parametres .ligne, #pcv-spotpass-page .confid-ligne, #pcv-miimaker .confid-ligne, #pcv-bienvenue .confid-ligne).oui .inter::after { left: calc(var(--u) * 33); }
     
     #pcv-steamu .vise { box-shadow: var(--pcv-reflet), 0 0 0 calc(var(--u) * 4) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 8) var(--pcv-cyan-plein, #2fb8ff) !important; }
     :is(#pcv-steamu, #pcv-spotpass-page, #pcv-miimaker) .note { font-size: calc(var(--u) * 15); font-weight: 800; color: var(--t2); line-height: 1.4; margin: 0; }
     
-    :is(#pcv-steamu, #pcv-spotpass-page, #pcv-miimaker) .danger-liste { display: flex; flex-direction: column; gap: calc(var(--u) * 14); }
+    :is(#pcv-steamu, #pcv-spotpass-page, #pcv-miimaker) .danger-liste { display: flex; flex-direction: column; gap: var(--pcv-ecart-choix); }
     
     #pcv-steamu .conflits-avis { display: flex; gap: calc(var(--u) * 12); align-items: flex-start; margin: 0 0 calc(var(--u) * 16); }
     #pcv-steamu .conflits-avis .pastille { width: calc(var(--u) * 40); height: calc(var(--u) * 40); padding: calc(var(--u) * 9); flex: none; background: var(--pcv-ambre-fond); color: var(--pcv-ambre-texte); }
     #pcv-steamu .conflits-avis b { display: block; font-size: calc(var(--u) * 15); font-weight: 900; margin-bottom: calc(var(--u) * 2); }
     #pcv-steamu .conflits-avis .note + .note { margin-top: calc(var(--u) * 6); }
+    
+    #pcv-steamu .homeicones .pcv-marque-relief { --pcv-relief-taille: var(--pcv-ligne-pastille); }
+    #pcv-steamu .homeicones h3 { display: flex; align-items: center; gap: calc(var(--u) * 8); }
+    #pcv-steamu .homeicones h3 > svg { flex: none; width: calc(var(--u) * 20); height: calc(var(--u) * 20); }
+    #pcv-steamu .homeicones h3 em { margin-left: auto; white-space: nowrap; font-style: normal; font-size: calc(var(--u) * 14); padding: calc(var(--u) * 3) calc(var(--u) * 12); border-radius: calc(var(--u) * 14); background: rgba(0,0,0,.06); color: var(--t2); }
+    #pcv-steamu .homeicones .verrou { margin-left: auto; flex: none; display: flex; align-items: center; gap: calc(var(--u) * 6); height: calc(var(--u) * 34); padding: 0 calc(var(--u) * 14) 0 calc(var(--u) * 10);
+      border-radius: calc(var(--u) * 17); background: rgba(0,0,0,.06); color: var(--t2); font-size: calc(var(--u) * 13); font-weight: 900; font-style: normal; }
+    #pcv-steamu .homeicones .verrou svg { width: calc(var(--u) * 18); height: calc(var(--u) * 18); }
+    #pcv-steamu .homeicones .confid-ligne.porte { position: relative; z-index: 2; transform: scale(1.03); box-shadow: var(--pcv-porte-ombre) !important; }
+    #pcv-steamu .homeicones .rangement { position: sticky; top: 0; z-index: 3; align-self: center; margin: 0; }   
     
     #pcv-steamu .ligne-reg em { margin-left: auto; flex: none; padding: calc(var(--u) * 6) calc(var(--u) * 16); border-radius: 999px; font-style: normal; font-size: calc(var(--u) * 15); font-weight: 900; background: rgba(0,0,0,.06); color: var(--pcv-cyan-plein); }
     #pcv-steamu .ligne-reg.f em { background: rgba(255,255,255,.25); color: inherit; }
@@ -439,14 +504,19 @@
       <div class="liste">${notes.length ? notes.map((l) => `<div class="bouton"><span class="txt">${esc(l)}</span></div>`).join("") : (window.__pcvBienvenue?.cles || []).map((c) => `<button class="bouton"><i class="pastille">${ico(ICO.etoile)}</i><span class="txt"><b>${T(`bienvenue.${c}.titre`)}</b><small>${T(`bienvenue.${c}.texte`)}</small></span></button>`).join("")}</div>`;
   };
   const dessinerImportListe = () => `<button class="bouton gros" data-a="importer"><i class="pastille">${ico(ICO.importer)}</i><span>${T("steamu.importer")}<small>${T("steamu.importer.aide")}</small></span></button>
-      <div class="liste">${dessinerMoteur()}${GUIDES().map((g) => `<button class="bouton" data-a="g:${g.id}"><i class="pastille" style="--c:${g.c}">${ico(g.ico)}</i>
+      <div class="liste">${dessinerTesMii()}${GUIDES().filter((g) => !GUIDES_MII.includes(g.id)).map((g) => `<button class="bouton" data-a="g:${g.id}"><i class="pastille" style="--c:${g.c}">${ico(g.ico)}</i>
         <span class="txt"><b>${T(`steamu.guide.${g.id}.titre`)}</b><small>${T(`steamu.guide.${g.id}.sous`)}</small></span>
         <em class="${g.pret ? "ok" : ""}">${etatGuide(g) || T(g.pret ? "steamu.a_importer" : "steamu.bientot.court")}</em></button>`).join("")}</div>`;
-  const dessinerMoteur = () => {
-    const ok = etatImport?.moteur_ffl;
-    return `<button class="bouton"${ok ? "" : ' data-a="moteur-installer"'}><i class="pastille" style="--c:#2fbf71">${ico(ICO.mii)}</i>
-        <span class="txt"><b>${T("steamu.moteur.etat", { etat: T(ok ? "steamu.moteur.la" : "steamu.moteur.manque") })}</b><small>${T("steamu.moteur.aide")}</small></span>
-        <em class="${ok ? "ok" : ""}">${T(ok ? "steamu.lisible" : S.moteurCours ? "steamu.moteur.cours" : "steamu.moteur.installer")}</em></button>`;
+  const GUIDES_MII = ["mii", "moteur"];
+  const miiEtat = () => {
+    const e = etatImport || {}, c = e.applis?.mii?.conseils || [];
+    return { moteur: !!e.moteur_ffl, visages: !!e.visages, mii3ds: !!e.mii, corps: !!e.corps, tenues: !c.includes("tenues-visiteurs"), logo: !!etat?._logo_mii };
+  };
+  const dessinerTesMii = () => {
+    const m = miiEtat(), n = m.moteur + m.visages;
+    return `<button class="bouton" data-a="mii-assistant"><i class="pastille" style="--c:#2fbf71">${ico(ICO.mii)}</i>
+        <span class="txt"><b>${T("mii.entree")}</b><small>${n < 2 ? T("mii.entree.etape", { n: n + 1 }) : T("mii.entree.plus")}</small></span>
+        <em class="${n < 2 ? "" : "ok"}">${T(n === 2 ? "steamu.etat.la" : n ? "mii.continuer" : "mii.commencer")}</em></button>`;
   };
   const etatGuide = (g) => {
     const e = etatImport, m = e?.musiques_wiiu, s3 = e?.sons?.["3ds"];
@@ -458,7 +528,7 @@
   const codeQR = (url) => {
     let svg = "";
     try {
-      svg = window.__pcvMiiQR?.genererSvg?.(url, 1) || "";
+      svg = window.__pcvMiiQR?.genererSvg?.(url, "livre") || "";
     } catch (e) {
     }
     return svg || `<small>${esc(url)}</small>`;
@@ -483,6 +553,13 @@
       <span class="etat${ok ? " ok" : ""}"><i>${ico(ok ? ICO.ok : ICO.manque)}</i>${etat2}</span></div>`;
   };
   const dessinerApplis = (m) => `<div class="vue applis${S.og === "applis" ? " on" : ""}"><h3>${T("steamu.applis.titre")}</h3><div class="grille-applis">${APPLIS.map((p) => ligneApp(p)(m)).join("")}</div></div>`;
+  const basculerConfidentialite = (c) => {
+    if (c === "paroles") ecrireBool(CLE_PAROLES, !parolesActif());
+    else if (c === "annonces") window.__pcvAnnonces?.basculer();
+    else return;
+    S.highlightConfid = false;
+    son("choisir");
+  };
   const dessinerConfid = () => `<div class="vue confid${S.og === "confid" ? " on" : ""}">
       <button class="bouton confid-ligne${artAutoActif() ? " oui" : ""}" data-a="art-auto-bascule"><i class="pastille">${ico(ICO.image)}</i>
         <span>${T("steamu.confid.art_auto")}<small>${T("steamu.confid.art_auto.aide")}</small></span><i class="inter"></i></button>
@@ -492,8 +569,6 @@
         <span>${T("steamu.confid.maj")}<small>${T("steamu.confid.maj.aide")}</small></span><i class="inter"></i></button>
       <button class="bouton confid-ligne${window.__pcvAnnonces?.actif() ? " oui" : ""}" data-a="annonces-bascule"><i class="pastille">${ico(ICO.internet)}</i>
         <span>${T("annonces.titre")}<small>${T("annonces.confidentialite")}</small></span><i class="inter"></i></button>
-      <button class="bouton confid-ligne${horsStoreActif() ? " oui" : ""}${S.highlightConfid === "hors-store-bascule" ? " vise" : ""}" data-a="hors-store-bascule"><i class="pastille">${ico(ICO.prise)}</i>
-        <span>${T("steamu.confid.hors_store")}<small>${T("steamu.confid.hors_store.aide")}</small></span><i class="inter"></i></button>
       ${dessinerSpot()}<p class="note">${T("steamu.confid.note")}</p></div>`;
   const SP = {
     cle: "pcv-spotpass",
@@ -528,6 +603,7 @@
     window.__pcvSpotPassFenetre?.maj?.();
     window.__pcvSpotPassPage?.maj?.();
     window.__pcvMiiMaker?.rafraichirSpotPass?.();
+    window.__pcvPlace?.portail?.suivre?.();
   };
   const spBon = (m) => !!m && ["cle", "mii", "pseudo", "phrase", "region"].every((k) => typeof m[k] === "string") && Array.isArray(m.tenue) && !(window.__pcvMiiBase?.valider?.(m.mii) ?? ["gestionnaire des Mii absent"]).length;
   const spCaches = () => {
@@ -669,6 +745,14 @@
     spCours = null;
     spMaj();
   });
+  const spCouper = async () => {
+    ecrireBool(SP.cle, false);
+    ecrireBool(SP.etat, {});
+    clearTimeout(window.__pcvSpotPassEssai);
+    spMaj();
+    const r = await appel("spotpass", ["effacer"], 3e4);
+    if (!r?.ok) spAvis(T("spotpass.effacement_rate"));
+  };
   const spBasculer = () => {
     const Q = window.__pcvDossiers;
     if (spActif()) return Q?.demander?.({
@@ -678,14 +762,7 @@
       texte: T("spotpass.couper.texte"),
       non: T("steamu.annuler"),
       oui: T("spotpass.couper"),
-      ok: async () => {
-        ecrireBool(SP.cle, false);
-        ecrireBool(SP.etat, {});
-        clearTimeout(window.__pcvSpotPassEssai);
-        spMaj();
-        const r = await appel("spotpass", ["effacer"], 3e4);
-        if (!r?.ok) spAvis(T("spotpass.effacement_rate"));
-      }
+      ok: spCouper
     }) || son("bord");
     if (!window.__pcvSpotPassFenetre?.ouvrir?.()) son("bord");
   };
@@ -776,6 +853,7 @@
       return Promise.resolve(spCours).then(spSync);
     },
     couper: spBasculer,
+    desactiver: spCouper,
     essai: SP.essai,
     prochainEssai: () => spProchain,
     vu: () => {
@@ -819,14 +897,14 @@
         <button class="bouton ligne-reg" data-a="maj-version"><i class="pastille" style="--c:var(--c-autres)">${ico(ICO.info)}</i><span>${T("steamu.maj.installee")}</span><em>${esc(version())} (${T("steamu.maj.canal." + canalInstalle())})</em></button>
         ${canalInstalle() === "stable" ? "" : `<button class="bouton" data-a="maj-stable"><i class="pastille">${ico(ICO.redemarrer)}</i><span>${T("steamu.maj.stable")}<small>${T("steamu.maj.stable.aide")}</small></span></button>`}
       </div></div>`;
-  const dessinerDanger = () => `<div class="vue danger${S.og === "danger" ? " on" : ""}"><h3>${T("steamu.danger.titre")}</h3>
-      <div class="danger-liste">
+  const dessinerDanger = () => `<div class="vue danger${S.og === "danger" ? " on" : ""}"><h3>${T("steamu.danger.titre")}</h3><div class="danger-liste">
         <button class="bouton" data-a="confirm:reset"><i class="pastille">${ico(ICO.redemarrer)}</i><span>${T("steamu.danger.reset")}<small>${T("steamu.danger.reset.aide")}</small></span></button>
         <button class="bouton" data-a="confirm:effacer"><i class="pastille">${ico(ICO.poubelle)}</i><span>${T("steamu.danger.effacer")}<small>${T("steamu.danger.effacer.aide")}</small></span></button>
       </div></div>`;
   const dessinerAide = () => `<div class="vue aide${S.og === "aide" ? " on" : ""}"><h3>${T("steamu.diag.titre")}</h3>
       ${dessinerConflits()}
       <div class="danger-liste">
+        <button class="bouton" data-a="guide-decouverte"><i class="pastille">${ico(ICO.etoile)}</i><span>${T("guide.revoir")}<small>${T("guide.revoir.aide")}</small></span></button>
         <button class="bouton" data-a="diagnostic"><i class="pastille">${ico(ICO.guide)}</i><span>${T("steamu.diag")}<small>${T("steamu.diag.aide")}</small></span></button>
         <button class="bouton" data-a="applis-devant"><i class="pastille">${ico(ICO.redemarrer)}</i><span>${T("steamu.applis.debut")}<small>${T("steamu.applis.debut.aide")}</small></span></button>
         <button class="bouton" data-a="signaler"><i class="pastille">${ico(ICO.internet)}</i><span>${T("steamu.signaler")}<small>${T("steamu.signaler.aide")}</small></span></button>
@@ -908,10 +986,46 @@
     }
   ];
   const valeur = (r) => lireBool(r.cle, r.def);
-  const ligneReglage = (r, a) => r.choix ? `<button class="bouton ligne-reg" data-a="${a}"><i class="pastille" style="--c:var(--c-autres)">${ico(ICO[r.ic])}</i><span>${T(r.nom)}</span><em>${T(r.nom + "." + valeur(r))}</em></button>` : `<button class="bouton confid-ligne${(r.oui ? r.oui() : valeur(r)) ? " oui" : ""}" data-a="${a}"><i class="pastille" style="--c:var(--c-autres)">${ico(ICO[r.ic])}</i>
+  const ligneReglage = (r, a) => r.choix ? `<button class="bouton ligne-reg" data-a="${a}"><i class="pastille" style="--c:var(--c-autres)">${ico(ICO[r.ic])}</i><span>${T(r.nom)}</span><em>${T(r.nom + "." + valeur(r))}</em></button>` : `<button class="bouton confid-ligne${(r.oui ? r.oui() : valeur(r)) ? " oui" : ""}${r.eteint ? " eteint" : ""}" data-a="${a}"><i class="pastille" style="--c:${r.c || "var(--c-autres)"}">${ico(ICO[r.ic])}</i>
         <span>${T(r.nom)}${r.aide ? `<small>${T(r.aide)}</small>` : ""}</span><i class="inter"></i></button>`;
   const dessinerAutres = () => `<div class="vue autres${S.og === "autres" ? " on" : ""}"><h3>${T("steamu.tab.autres")}</h3>
       <div class="danger-liste">${AUTRES().map((r, i) => ligneReglage(r, "autre:" + i)).join("")}</div></div>`;
+  const pauseOui = (k) => !!O.__pcvPauseReglage?.(k);
+  const PAUSE = () => [["actif", "pause", "var(--pcv-cyan-plein)"], ["veille", "lune", "var(--c-veille)"], ["derriere", "couches", "var(--c-pause)"]].map(([k, ic, c], i) => ({ ic, c, nom: "steamu.pause." + k, aide: `steamu.pause.${k}.aide`, eteint: i > 0 && !pauseOui("actif"), oui: () => pauseOui(k), basculer: () => ecrireBool(O.__pcvPauseCles[k][0], !pauseOui(k)) }));
+  const jamaisPause = () => [].concat(O.__pcvPauseReglage?.("jamais") || []);
+  const nomApp = (id) => window.__pcvBridge?.appOverview(id)?.display_name || String(id);
+  const iconeApp = (id) => {
+    let u = "";
+    try {
+      u = O.appStore.GetIconURLForApp(window.__pcvBridge.appOverview(id)) || "";
+    } catch (e) {
+    }
+    return u ? `<img src="${esc(u)}" alt="">` : "";
+  };
+  const dessinerPause = () => `<div class="vue pause${S.og === "pause" ? " on" : ""}"><h3>${T("steamu.tab.pause")}</h3><div class="danger-liste">
+      ${O.__pcvPgLa?.() ? `<button class="bouton confid-ligne" data-a="pause-pg"><i class="pastille" style="--c:var(--c-pause)">${ico(ICO.info)}</i><span>${T("steamu.pause.pg")}<small>${T("steamu.pause.pg.aide")}</small></span></button>` : ""}
+      ${PAUSE().map((r, i) => ligneReglage(r, "pause:" + i)).join("")}
+      <button class="bouton confid-ligne${pauseOui("actif") ? "" : " eteint"}" data-a="pause-jamais"><i class="pastille" style="--c:var(--c-aide)">${ico(ICO.lecture)}</i>
+        <span>${T("steamu.pause.jamais")}<small>${T("steamu.pause.jamais.aide", { y: window.__pcvTouche?.(4)?.[0] || "Y" })}</small></span><span class="mini">${jamaisPause().slice(0, 2).map(iconeApp).join("")}<b>+</b></span></button></div></div>`;
+  const choisirJamais = () => {
+    const l = jamaisPause(), J = window.__pcvJeux, ids = [...l, ...[...(J?.apps?.() || /* @__PURE__ */ new Map()).values()].filter((a) => J.installe(a) && !l.includes(+a.appid)).sort((a, b) => (a.display_name || "").localeCompare(b.display_name || "")).map((a) => +a.appid)];
+    if (!window.__pcvDossiers?.liste?.({
+      ailleurs: true,
+      svg: ICO.lecture,
+      titre: T("steamu.pause.jamais"),
+      choix: ids.map(nomApp),
+      coches: l.map((_, k) => k),
+      icones: ids.map(iconeApp),
+      ok: (k) => {
+        O.__pcvPauseExempter(ids[k], !jamaisPause().includes(ids[k]));
+        dessiner();
+      }
+    })) return son("bord");
+    [700, 2e3].forEach((ms) => setTimeout(() => ids.forEach((id, k) => {
+      const b = document.querySelector(`#pcv-dossiers .liste.tuiles .elts button[data-k="${k}"] > b`), h = b && iconeApp(id);
+      if (h) b.outerHTML = h;
+    }), ms));
+  };
   const choisirDans = (r) => {
     if (!window.__pcvDossiers?.liste?.({
       ailleurs: true,
@@ -1003,10 +1117,16 @@
     L.push({ nom: T("steamu.app.sombre"), val: T("steamu.app." + a.sombre), pas: (d) => ap.regler({ sombre: tourner(["gris", "noir"], a.sombre, d) }) });
     if (a.regle === "soleil") {
       const v = ap.villes(), i = v.findIndex((x) => x.tz === a.lieu);
-      L.push({ nom: T("steamu.app.ville"), val: i >= 0 ? v[i].nom : T("steamu.app.coordonnees"), pas: (d) => {
-        const n = v[((i < 0 ? 0 : i + d) + v.length) % v.length];
-        ap.regler({ lieu: n.tz, lat: n.lat, lon: n.lon });
-      } });
+      const tri = v.slice().sort((x, y) => x.nom.localeCompare(y.nom)), poser2 = (n) => ap.regler({ lieu: n.tz, lat: n.lat, lon: n.lon });
+      L.push({
+        nom: T("steamu.app.ville"),
+        val: i >= 0 ? v[i].nom : T("steamu.app.coordonnees"),
+        pas: (d) => poser2(v[((i < 0 ? 0 : i + d) + v.length) % v.length]),
+        ok: () => window.__pcvDossiers?.liste?.({ ailleurs: true, titre: T("steamu.app.ville"), choix: tri.map((x) => x.nom), v: tri.indexOf(v[i]), ok: (k) => {
+          poser2(tri[k]);
+          dessiner();
+        } })
+      });
       if (a.lat != null) {
         L.push({ nom: T("steamu.app.lat"), val: degres(a.lat, "steamu.app.nord", "steamu.app.sud"), pas: (d) => ap.regler({ lieu: null, lat: Math.max(-89.5, Math.min(89.5, Math.round((a.lat + d * 0.5) * 10) / 10)), lon: a.lon }) });
         L.push({ nom: T("steamu.app.lon"), val: degres(a.lon, "steamu.app.est", "steamu.app.ouest"), pas: (d) => ap.regler({ lieu: null, lat: a.lat, lon: (Math.round((a.lon + d * 0.5) * 10) / 10 + 540) % 360 - 180 }) });
@@ -1036,20 +1156,117 @@
   };
   const dessinerApparence = () => S.og !== "apparence" ? "" : `<div class="vue apparence on"><div class="tete"><i class="pastille" style="--c:var(--c-apparence)">${ico(ICO.apparence)}</i>${T("steamu.apparence")}</div>
       <div class="reglages">${lignesApparence().map((l, i) => `<button class="bouton ligne" data-a="r:${i}"><span>${esc(l.nom)}</span><b><i>\u25C0</i>${esc(l.val)}<i>\u25B6</i></b></button>`).join("")}</div>
-      <p class="info">${esc(infoApparence())}</p>
-      <div class="pied"><button class="bouton" data-a="retour-apparence">${touche(2)}${T("touche.retour")}</button></div></div>`;
+      <p class="info">${esc(infoApparence())}</p></div>`;
+  const HI = () => window.__pcvHomeIcones;
+  const presents = (m) => Object.keys(m.greffons || {}).filter((r) => m.greffons[r].present);
+  const rangHome = (m) => HI().ordre(m).filter((a) => !a.startsWith("greffon:") || m.greffons[HI().route(a)]?.present);
+  const iconeHome = (a, m) => {
+    const H = HI(), s = H.SYSTEME.find((x) => x[0] === a);
+    if (s) return [T(s[1]), window.__pcvIcones.relief(s[2], H.fond(s[3], window.__pcvApplis)[1])];
+    const g = m.greffons[H.route(a)];
+    return [g.nom, window.__pcvIcones.relief(g.svg || "prise", H.couleur(g))];
+  };
+  const dessinerHome = () => {
+    if (S.og !== "home") return `<div class="vue homeicones"></div>`;
+    const H = HI(), m = H.lire(), ep = H.epingles(m), l = S.rang?.l || rangHome(m), porte = S.rang ? S.rang.i : -1;
+    const ligne = (data, nom, rel, sous, fin, cl = "") => `<button class="bouton confid-ligne${cl}" data-a="${esc(data)}">${rel}<span>${esc(nom)}${sous ? `<small>${sous}</small>` : ""}</span>${fin}</button>`;
+    const inter = '<i class="inter"></i>', verrou = `<em class="verrou">${ico(ICO.cadenas)}${T("steamu.home.verrouille")}</em>`;
+    const greffons = presents(m).map((r) => {
+      const g = m.greffons[r];
+      return ligne(
+        "hg:" + r,
+        g.nom,
+        window.__pcvIcones.relief(g.svg || "prise", H.couleur(g)),
+        T("steamu.home.greffon_aide"),
+        inter,
+        (ep.includes(H.id(r)) ? " oui" : "") + (S.viseHome === r ? " vise" : "")
+      );
+    }).join("");
+    const icones = l.map((a, i) => {
+      const [nom, rel] = iconeHome(a, m), g = a.startsWith("greffon:");
+      return ligne(
+        g ? "hg:" + H.route(a) : "hi:" + a,
+        nom,
+        rel,
+        g ? T("steamu.home.greffon") : "",
+        H.VERROUILLEES.includes(a) ? verrou : inter,
+        (g || !(m.retires || []).includes(a) ? " oui" : "") + (i === porte ? " porte" : "")
+      ).replace("<button ", `<button data-i="${i}" `);
+    }).join("");
+    return `<div class="vue homeicones on">${S.rang ? `<p class="rangement pcv-aide-rangement"><span>${T("console.rangement")}</span><span>\u2725 ${T("console.deplacer")}</span><span>${touche(1)}${T("console.poser")}</span><span>${touche(2)}${T("console.annuler")}</span></p>` : ""}
+      <h3>${ico(ICO.prise)}${T("steamu.home.greffons")}<em>${T("steamu.home.compte", { n: ep.length, max: H.MAX_GREFFONS })}</em></h3>
+      ${greffons || `<p class="note">${T("steamu.home.aucun")}</p>`}
+      <p class="note${S.limite ? " vise" : ""}">${T(S.limite ? "steamu.home.limite" : "steamu.home.note", { max: H.MAX_GREFFONS })}</p>
+      <h3>${ico(ICO.accueil)}${T("steamu.home.icones")}</h3>${icones}</div>`;
+  };
+  const agirHome = (a) => {
+    const H = HI(), m = H.lire();
+    S.limite = false;
+    if (a.startsWith("hg:")) {
+      const r = a.slice(3), oui = !H.epingles(m).includes(H.id(r));
+      H.repondre(r);
+      if (!H.epingler(r, oui)) {
+        S.limite = true;
+        son("bord");
+      } else son("choisir");
+      return;
+    }
+    if (!H.basculer(a.slice(3))) son("bord");
+    else son("choisir");
+  };
+  const toucheHome = (b) => {
+    const r = S.rang;
+    if (r) {
+      if (b === 9 || b === 10) {
+        const i2 = r.i;
+        if (!r.bouger(b === 10 ? 1 : -1)) {
+          son("bord");
+          return true;
+        }
+        S.curseur += r.i - i2;
+        dessiner();
+        return true;
+      }
+      if (b === 1) {
+        r.poser();
+        S.rang = null;
+        son("poser");
+        dessiner();
+        return true;
+      }
+      if (b === 2) {
+        S.curseur -= r.i - r.depart;
+        S.rang = null;
+        son("retour");
+        dessiner();
+        return true;
+      }
+      son("bord");
+      return true;
+    }
+    if (b !== 3) return false;
+    const i = contenuBoutons()[S.curseur]?.dataset.i;
+    if (i == null) {
+      son("bord");
+      return true;
+    }
+    S.rang = HI().rangement(rangHome(HI().lire()), +i);
+    son("prendre");
+    dessiner();
+    return true;
+  };
   let etat = null, etatImport = null, resultat = null, conflitsActifs = {};
   window.__pcvOnglet = (a, choisi, c, ic, nom, sous = "") => `<button class="bouton onglet${choisi ? " choisi" : ""}" data-a="${a}">
       <i class="pastille" style="--c:${c}">${ic.includes("<") ? ic : window.__pcvIcones?.svg(ic, { attrs: 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"' }) || ""}</i><span><b>${nom}</b>${sous ? `<small>${sous}</small>` : ""}</span></button>`;
   const dessinerColonne = () => `<div class="colonne">${onglets().map((o) => window.__pcvOnglet("og:" + o.id, S.og === o.id, `var(${o.c})`, ico(ICO[o.ic]), T(o.libelle))).join("")}</div>`;
-  const SEL_CONTENU = { nouveautes: ".nouveautes .bouton", contrib: ".credit, .contrib .version", import: ".imp-corps .bouton[data-a]", applis: ".app", confid: ".confid-ligne", aide: ".aide .danger-liste [data-a]", danger: ".danger .danger-liste [data-a]", apparence: ".apparence .ligne", autres: ".autres [data-a]", debug: ".debug [data-a]" };
+  const SEL_CONTENU = { nouveautes: ".nouveautes .bouton", contrib: ".credit, .contrib .version", import: ".imp-corps .bouton[data-a]", applis: ".app", confid: ".confid-ligne", home: ".homeicones .confid-ligne", aide: ".aide .danger-liste [data-a]", danger: ".danger .danger-liste [data-a]", apparence: ".apparence .ligne", autres: ".autres [data-a]", pause: ".pause [data-a]", debug: ".debug [data-a]" };
   const contenuBoutons = () => [...page.querySelectorAll(SEL_CONTENU[S.og] || "#pcv-steamu-aucun")];
   const sansAnneau = () => document.querySelectorAll(".PageListColumn .pcv-f").forEach((t) => t.classList.remove("pcv-f"));
   let derniereLegende = null;
   const legende = () => {
     const R = [2, T("touche.retour")], O2 = [[5, 6], T("touche.onglets")], g = S.og === "import" && S.vueImport === "guide" && S.zone === "contenu";
     const da = S.zone === "contenu" && contenuBoutons()[S.curseur]?.dataset.a;
-    const html = window.__pcvIcones?.legende?.(window.__pcvLegendeDe(S.fenetre ? [resultat?.fini && [1, T("touche.fermer")], R] : S.signaler ? [[1, T("steamu.signaler.navigateur")], R] : g ? [[1, S.etape < guide().schemas.length - 1 ? T("touche.suivant") : T("touche.terminer")], R, O2] : S.zone === "onglet" ? [O2, [4, T("touche.rechercher")], R, [1, T("touche.choisir")]] : [(S.zone !== "contenu" || da) && [1, S.zone === "contenu" ? T("touche.choisir") : T("console.ouvrir")], R, O2])) || "";
+    const html = window.__pcvIcones?.legende?.(window.__pcvLegendeDe(S.fenetre ? [resultat?.fini && [1, T("touche.fermer")], R] : S.signaler ? [[1, T("steamu.signaler.navigateur")], R] : g ? [[1, S.etape < guide().schemas.length - 1 ? T("touche.suivant") : T("touche.terminer")], R, O2] : S.zone === "onglet" ? [O2, [4, T("touche.rechercher")], R, [1, T("touche.choisir")]] : S.rang ? [[1, T("console.poser")], [2, T("console.annuler")]] : S.og === "home" && S.zone === "contenu" && contenuBoutons()[S.curseur]?.dataset.i != null ? [[3, T("touche.deplacer")], [1, T("touche.choisir")], R, O2] : [(S.zone !== "contenu" || da) && [1, S.zone === "contenu" ? T("touche.choisir") : T("console.ouvrir")], R, O2])) || "";
     if (derniereLegende !== html) {
       derniereLegende = html;
       legendeEl.innerHTML = html;
@@ -1060,6 +1277,7 @@
   };
   const dessiner = (curseurSeul = false) => {
     legende();
+    window.__pcvParametres?.anneau?.();
     const vue = `${S.og} ${S.vueImport} ${S.guide}`;
     if (S.vue !== vue) {
       if (S.vue) Object.assign(S, { entree: false, entreeSel: ".contenu > .on" });
@@ -1073,7 +1291,7 @@
       window.__pcvVoile?.("steamu", etats.some(Boolean));
       const avant = [...page.children].slice(1, 3).map((v) => v.classList.contains("on"));
       const sortantes = avant.flatMap((on, i) => on && !etats[i] ? [window.__pcvApparition(page.children[i + 1], true, ".fenetre")] : []);
-      page.innerHTML = `<div class="panneau">${dessinerColonne()}<div class="contenu"><div class="vue nouveautes${S.og === "nouveautes" ? " on" : ""}"><h3>${T("bienvenue.rubrique")}</h3>${dessinerNouveautes()}</div>${dessinerContrib()}${dessinerImport()}${dessinerApplis(etat)}${dessinerConfid()}${dessinerAide()}${dessinerMaj()}${dessinerDanger()}${dessinerApparence()}${dessinerAutres()}${dessinerDebug()}</div></div><div class="voile${S.fenetre ? " on" : ""}"><div class="fenetre pcv-fenetre">${resultat ? `<h2>${resultat.titre}</h2><ul>${resultat.lignes.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` + (resultat.fini ? `<button class="bouton" data-a="fermer">${touche(1)}${T("touche.fermer")}</button>` : "") : ""}</div></div><div class="voile${S.signaler ? " on" : ""}"><div class="fenetre signaler pcv-fenetre">${S.signaler ? dessinerSignaler() : ""}</div></div>`;
+      page.innerHTML = `<div class="panneau">${dessinerColonne()}<div class="contenu"><div class="vue nouveautes${S.og === "nouveautes" ? " on" : ""}"><h3>${T("bienvenue.rubrique")}</h3>${dessinerNouveautes()}</div>${dessinerContrib()}${dessinerImport()}${dessinerApplis(etat)}${dessinerHome()}${dessinerConfid()}${dessinerPause()}${dessinerAide()}${dessinerMaj()}${dessinerDanger()}${dessinerApparence()}${dessinerAutres()}${dessinerDebug()}</div></div><div class="voile${S.fenetre ? " on" : ""}"><div class="fenetre pcv-fenetre">${resultat ? `<h2>${resultat.titre}</h2><ul>${resultat.lignes.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` + (resultat.fini ? `<button class="bouton" data-a="fermer">${touche(1)}${T("touche.fermer")}</button>` : "") : ""}</div></div><div class="voile${S.signaler ? " on" : ""}"><div class="fenetre signaler pcv-fenetre">${S.signaler ? dessinerSignaler() : ""}</div></div>`;
       [...page.children].slice(1, 3).forEach((v, i) => {
         if (etats[i] && !avant[i]) window.__pcvApparition(v, false, ".fenetre");
       });
@@ -1139,9 +1357,16 @@
     if (!cible) return;
     if (cible === "nouveautes") Object.assign(S, { og: "nouveautes", zone: "contenu", curseur: 0 });
     else if (cible === "confidentialite") Object.assign(S, { og: "confid", zone: "contenu", curseur: 0, highlightConfid: "paroles-bascule" });
-    else if (cible === "plugins") Object.assign(S, { og: "confid", zone: "contenu", curseur: 3, highlightConfid: "hors-store-bascule" });
     else if (cible === "apparence") Object.assign(S, { og: "apparence", zone: "contenu", curseur: 0 });
-    else if (cible === "import") Object.assign(S, { og: "import", zone: "contenu", curseur: 0, vueImport: "liste" });
+    else if (cible === "aide") Object.assign(S, { og: "aide", zone: "contenu", curseur: 0 });
+    else if (cible === "importation") Object.assign(S, { og: "import", zone: "contenu", curseur: 0, vueImport: "liste" });
+    else if (cible.startsWith("g:")) {
+      const [, g, n] = cible.split(":");
+      Object.assign(S, { og: "import", zone: "contenu", curseur: 0, vueImport: "guide", guide: g, etape: +n || 0 });
+    } else if (cible.startsWith("home:")) {
+      const r = cible.slice(5);
+      Object.assign(S, { og: "home", zone: "contenu", manette: true, viseHome: r, curseur: Math.max(0, presents(HI().lire()).indexOf(r)) });
+    }
     dessiner();
   };
   const ouvrir = () => {
@@ -1154,7 +1379,7 @@
       S.actifs = S.natif && autre ? [...S.natif.classList].filter((k) => !autre.classList.contains(k) && !k.startsWith("gpfocus")) : [];
       S.natif?.classList.remove(...S.actifs);
       c.classList.add(...S.actifs);
-      Object.assign(S, { entree: false, entreeSel: ".colonne > *, .contenu > .on", vue: "", actif: true, zone: "onglet", og: "contrib", vueImport: "liste", curseur: 0, fenetre: false, highlightConfid: false, manette: false });
+      Object.assign(S, { entree: false, entreeSel: ".colonne > *, .contenu > .on", vue: "", actif: true, zone: "onglet", og: "contrib", vueImport: "liste", curseur: 0, fenetre: false, highlightConfid: false, manette: false, rang: null, viseHome: null, limite: false });
       document.body.classList.add("pcv-steamu-ouvert");
       page.hidden = false;
       son("choisir");
@@ -1180,6 +1405,7 @@
     window.__pcvParametres?.rafraichir();
   };
   const aller = async (cible) => {
+    if (cible === "import") return importer();
     if (document.body.dataset.pcvPage !== "parametres") O?.__pcvAller?.("parametres");
     for (let i = 0; i < 30; i++) {
       if (natives().length && ouvrir()) {
@@ -1192,40 +1418,81 @@
     S.cibleAttente = cible;
     return false;
   };
+  let sessionImport = null;
+  const fermerImport = () => {
+    S.fenetre = false;
+    window.__pcvVoile?.("steamu", false);
+    if (S.importSeul) {
+      page.hidden = true;
+      page.classList.remove("import-seul");
+    }
+    S.importSeul = false;
+    const session = sessionImport;
+    sessionImport = null;
+    document.body.classList.remove("pcv-import-ouvert");
+    const ordre = window.__pcvOrdre;
+    if (session && ordre) {
+      const i = ordre.indexOf("steamu");
+      if (i >= 0) ordre.splice(i, 1);
+      if (session.ordre >= 0) ordre.splice(session.ordre, 0, "steamu");
+    }
+    session?.fin();
+  };
   const importer = async () => {
+    if (S.occupe || sessionImport) return;
+    const fin = new Promise((resolve) => {
+      sessionImport = { fin: resolve };
+    });
+    const session = sessionImport;
+    const ordre = window.__pcvOrdre;
+    session.ordre = ordre?.indexOf("steamu") ?? -1;
+    if (ordre) {
+      if (session.ordre >= 0) ordre.splice(session.ordre, 1);
+      ordre.unshift("steamu");
+    }
+    document.body.classList.add("pcv-import-ouvert");
+    const presenter = (titre, lignes, fini) => {
+      if (sessionImport !== session) return;
+      if (S.importSeul) page.hidden = false;
+      montrer(titre, lignes, fini);
+    };
+    S.importSeul = !S.actif;
+    page.classList.toggle("import-seul", S.importSeul);
+    effectuerImport(presenter).catch(() => {
+      S.choisit = S.occupe = false;
+      presenter(T("steamu.import.erreur"), [], true);
+    }).finally(() => {
+      if (sessionImport === session && !S.fenetre) fermerImport();
+    });
+    await fin;
+    await attendre(0);
+  };
+  const effectuerImport = async (presenter) => {
     if (S.occupe) return;
     const L = O?.DeckyPluginLoader || window.DeckyPluginLoader;
     if (!L?.openFilePicker) {
-      montrer(T("steamu.import.erreur"), [], true);
+      presenter(T("steamu.import.erreur"), [], true);
       return;
     }
     S.occupe = S.choisit = true;
     son("choisir");
-    const debut = Date.now(), veille = setInterval(() => {
-      const f = document.querySelector(".gpfocus");
-      if (Date.now() - debut > 1500 && f?.closest(".PageListColumn, .DialogContentTransition")) {
-        clearInterval(veille);
-        S.choisit = S.occupe = false;
-      }
-    }, 500);
     let choix = null;
     try {
       const depart = await appel("import_depart") || "/";
       choix = await L.openFilePicker(1, depart, true, true, void 0, void 0, false, true);
     } catch (e) {
     }
-    clearInterval(veille);
     S.choisit = false;
     if (!choix?.path) {
       S.occupe = false;
       return;
     }
     S.occupe = true;
-    montrer(T("steamu.import.cours"), [], false);
+    presenter(T("steamu.import.cours"), [], false);
     const r = await appel("importer", [choix.realpath || choix.path], 36e5);
     S.occupe = false;
     if (!r || r.erreur && r.erreur !== "introuvable") {
-      montrer(T("steamu.import.erreur"), [], true);
+      presenter(T("steamu.import.erreur"), [], true);
       son("rate");
       return;
     }
@@ -1234,6 +1501,7 @@
     if (r.mii_autres) l.push(T("steamu.import.autres", { n: r.mii_autres }));
     if (r.visages) l.push(T("steamu.import.visages"));
     if (r.cle3ds) l.push(T("steamu.import.cle"));
+    if (r.logo_mii) l.push(T("steamu.import.logo_mii"));
     for (const [f, n] of Object.entries(r.sons || {})) if (n) l.push(T("steamu.import.sons." + f, { n }));
     if (r.connus) l.push(T("steamu.import.connus", { n: r.connus }));
     if (r.luigi) l.push(T(r.luigi_mp ? "steamu.import.luigi.mp" : "steamu.import.luigi"));
@@ -1265,7 +1533,7 @@
       if (e.pret) for (const c of e.conseils || []) l.push("   " + T("steamu.conseil." + c));
     }
     if (r.vide || r.erreur) l.push(T("steamu.import.vide"));
-    montrer(T(neuf ? "steamu.import.fait" : "steamu.import.rien"), l, true);
+    presenter(T(neuf ? "steamu.import.fait" : "steamu.import.rien"), l, true);
     son(neuf ? "choisir" : "rate");
     if (neuf) window.__pcvSonsPresents?.(true);
     rafraichir();
@@ -1339,6 +1607,8 @@
     `Safe mode: ${r.pause ? "on (paused)" : "off"}`,
     `Conflicts: ${(r.conflits || []).join(", ") || "none"}`,
     "",
+    ...["puissance", "reseau", "demarrage", "connexion_steam"].map((k) => `${k}: ${r[k] || "unknown"}`),
+    "",
     "Recent errors:",
     ...r.erreurs?.length ? r.erreurs.map((e, i) => `${i + 1}. ${e}`) : ["(none)"],
     "",
@@ -1363,7 +1633,7 @@
     const url = urlSignalement(r.fichier, r.resume);
     let svg = "";
     try {
-      svg = window.__pcvMiiQR?.genererSvg?.(url, 1) || "";
+      svg = window.__pcvMiiQR?.genererSvg?.(url, "aide") || "";
     } catch (e) {
     }
     S.signaler = { fichier: r.fichier, url, svg };
@@ -1371,26 +1641,38 @@
     son("choisir");
   };
   const installerMoteur = async () => {
-    if (S.occupe) return;
-    S.occupe = S.moteurCours = true;
-    dessiner();
-    son("choisir");
+    if (S.occupe) return { erreur: "occupe" };
+    S.occupe = true;
     const r = await appel("moteur_installer", [], 12e4);
-    S.occupe = S.moteurCours = false;
-    if (r?.ok) {
-      montrer(T("steamu.moteur.ok"), [T("steamu.moteur.aide")], true);
-      son("choisir");
-    } else {
-      const k = "steamu.moteur.erreur." + (r?.erreur || "reseau"), t = T(k);
-      montrer(T("steamu.moteur.erreur.titre"), [t === k ? T("steamu.moteur.erreur.reseau") : t], true);
-      son("rate");
-    }
-    rafraichir();
+    S.occupe = false;
+    await rafraichir();
+    return r || { erreur: "reseau" };
+  };
+  const installerCorps = async () => {
+    if (S.occupe) return { erreur: "occupe" };
+    S.occupe = true;
+    const r = await appel("corps_installer", [], 12e4);
+    S.occupe = false;
+    await rafraichir();
+    return r || { erreur: "reseau" };
+  };
+  const installerLogo = async () => {
+    if (S.occupe) return { erreur: "occupe" };
+    S.occupe = true;
+    const r = await appel("logo_installer", [], 12e4);
+    S.occupe = false;
+    await rafraichir();
+    return r || { erreur: "reseau" };
   };
   const agir = (a) => {
+    if (/^h[gi]:/.test(a)) {
+      agirHome(a);
+      return dessiner();
+    }
+    if (a === "guide-decouverte") return window.__pcvBienvenue?.guide();
     if (a === "revoir-nouveautes") return window.__pcvQuoiDeNeuf?.notes().length ? window.__pcvQuoiDeNeuf.ouvrir() : window.__pcvBienvenue?.ouvrir();
     if (a === "importer") return importer();
-    if (a === "moteur-installer") return installerMoteur();
+    if (a === "mii-assistant") return window.__pcvSpotPassFenetre?.mii?.() || son("bord");
     if (a === "diagnostic") return diagnostiquer();
     if (a === "applis-devant") {
       const ok = window.__pcvGrille?.remettreApplisDevant?.();
@@ -1426,15 +1708,12 @@
         son("bouge");
       } else return agir("retour-import");
     } else if (a.startsWith("r:")) {
-      lignesApparence()[+a.slice(2)]?.pas(1);
+      const l = lignesApparence()[+a.slice(2)];
+      if (l?.ok?.()) return;
+      l?.pas(1);
       son("bouge");
-    } else if (a === "retour-apparence") {
-      Object.assign(S, { zone: "colonne", curseur: Math.max(0, onglets().findIndex((o) => o.id === "apparence")) });
-      son("retour");
     } else if (a === "paroles-bascule") {
-      ecrireBool(CLE_PAROLES, !parolesActif());
-      S.highlightConfid = false;
-      son("choisir");
+      basculerConfidentialite("paroles");
     } else if (a === "art-auto-bascule") {
       ecrireBool(CLE_ART_AUTO, !artAutoActif());
       son("choisir");
@@ -1442,25 +1721,25 @@
       ecrireBool(CLE_MAJ, !majActif());
       son("choisir");
     } else if (a === "annonces-bascule") {
-      window.__pcvAnnonces?.basculer();
-      son("choisir");
+      basculerConfidentialite("annonces");
     } else if (a === "sp-ouvrir") return window.__pcvSpotPassPage?.ouvrir?.();
-    else if (a === "hors-store-bascule") {
-      ecrireBool(CLE_HORS_STORE, !horsStoreActif());
-      S.highlightConfid = false;
-      son("choisir");
-    } else if (a.startsWith("confirm:")) confirmer(a.slice(8));
+    else if (a.startsWith("confirm:")) confirmer(a.slice(8));
     else if (a === "maj-canal") choisirDans(CANAL_MAJ);
     else if (a === "maj-stable") return revenirStable();
     else if (a === "fermer") {
       if (!resultat?.fini) return;
-      S.fenetre = false;
+      if (sessionImport) fermerImport();
+      else S.fenetre = false;
       son("retour");
     } else if (a.startsWith("autre:")) {
       const r = AUTRES()[+a.slice(6)];
       if (r?.choix) choisirDans(r);
       else if (r) basculerAutre(r);
-    } else if (a === "debug-arcade") ouvrirArcade();
+    } else if (a.startsWith("pause") && page.querySelector(`[data-a="${a}"]`)?.classList.contains("eteint")) son("bord");
+    else if (a.startsWith("pause:")) basculerAutre(PAUSE()[+a.slice(6)]);
+    else if (a === "pause-jamais") choisirJamais();
+    else if (a === "pause-pg") O.__pcvPauseProposerPg?.(true);
+    else if (a === "debug-arcade") ouvrirArcade();
     else if (a.startsWith("debug:")) {
       const r = DEBUG[+a.slice(6)];
       if (r) basculerAutre(r);
@@ -1476,7 +1755,16 @@
     agir(a);
   });
   (window.__pcvManette ||= {}).steamu = (b) => {
-    if (document.body.dataset.pcvPage !== "parametres" || S.choisit) return false;
+    if (S.choisit) return false;
+    if (sessionImport && S.fenetre) {
+      if (b === 2 || b === 1 && resultat?.fini) {
+        fermerImport();
+        son("retour");
+        dessiner();
+      }
+      return true;
+    }
+    if (document.body.dataset.pcvPage !== "parametres") return false;
     if (!S.actif) {
       if (b !== 11 || window.__pcvParametres?.couvre?.()) return false;
       let f = null;
@@ -1543,6 +1831,7 @@
         S.curseur = c;
         S.og = onglets()[c].id;
         if (S.og !== "confid") S.highlightConfid = false;
+        if (S.og !== "home") S.viseHome = null;
         if (S.og === "import") S.vueImport = "liste";
         dessiner();
         return true;
@@ -1591,13 +1880,16 @@
         return true;
       }
       if (b === 1) {
-        lignesApparence()[S.curseur]?.pas(1);
+        const l3 = lignesApparence()[S.curseur];
+        if (l3?.ok?.()) return true;
+        l3?.pas(1);
         son("bouge");
         dessiner();
         return true;
       }
       return true;
     }
+    if (S.og === "home" && toucheHome(b)) return true;
     const l = contenuBoutons();
     const voisin = () => {
       const a = l[S.curseur]?.getBoundingClientRect();
@@ -1640,7 +1932,7 @@
     return true;
   };
   const quitterPage = () => {
-    if (S.actif && (document.body.dataset.pcvPage !== "parametres" || window.__pcvEcran?.ouvert?.())) fermer();
+    if (S.actif && (document.body.dataset.pcvPage !== "parametres" || window.__pcvEcran?.ouvert?.() && !window.__pcvSpotPassFenetre?.ouvert?.())) fermer();
   };
   window.__pcvSteamUSortie?.disconnect();
   window.__pcvSteamUSortie = new MutationObserver(quitterPage);
@@ -1667,6 +1959,19 @@
   document.addEventListener("click", window.__pcvSteamUClic = (e) => {
     if (S.actif && e.target.closest?.('.PageListColumn [role=tab][id*="/settings/"]')) fermer();
   }, true);
-  window.__pcvSteamU = { ouvrir: aller, fermer, ouvert: () => S.actif, etat: () => ({ ...S }), paroles: parolesActif, horsStore: horsStoreActif };
+  window.__pcvSteamU = {
+    ouvrir: aller,
+    importer,
+    fermer,
+    ouvert: () => S.actif,
+    etat: () => ({ ...S }),
+    paroles: parolesActif,
+    basculerConfidentialite,
+    // l'assistant des Mii (spotpass.js) : l'état connu, l'état relu, l'import commun, le moteur
+    mii: { etat: miiEtat, lire: async () => {
+      await rafraichir();
+      return miiEtat();
+    }, importer, installer: installerMoteur, corps: installerCorps, logo: installerLogo }
+  };
   return "onglet SteamU : pr\xEAt";
 })();

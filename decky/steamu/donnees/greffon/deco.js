@@ -44,9 +44,13 @@
       background: radial-gradient(circle at 50% 35%, #5c6678, #2f3a4a); color: var(--pcv-sur-accent); font-size: 12u; font-weight: 900; }
     
     #pcv-deco .tiroir { position: absolute; left: 14u; right: 14u; bottom: 0; height: 166u; pointer-events: auto; border-radius: 34u 34u 0 0;
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 -6u 28u rgba(40,60,95,.22); transform: translateY(104%); transition: transform .42s cubic-bezier(.3,1.15,.5,1), box-shadow .2s; }
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet); transform: translateY(104%); transition: transform .42s cubic-bezier(.3,1.15,.5,1); }
+    
+    #pcv-deco .tiroir::before, #pcv-deco .tiroir::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; transition: opacity .2s; }
+    #pcv-deco .tiroir::before { box-shadow: 0 -6u 28u rgba(40,60,95,.22); }
+    #pcv-deco .tiroir::after { box-shadow: 0 0 0 5u var(--pcv-anneau-c), 0 0 0 10u #ff8a1f, 0 -6u 34u rgba(255,138,31,.45); opacity: 0; }
+    #pcv-deco .tiroir.depot::before { opacity: 0; } #pcv-deco .tiroir.depot::after { opacity: 1; }
     #pcv-deco.on .tiroir { transform: none; }
-    #pcv-deco .tiroir.depot { box-shadow: var(--pcv-reflet), 0 0 0 5u var(--pcv-anneau-c), 0 0 0 10u #ff8a1f, 0 -6u 34u rgba(255,138,31,.45); }
     #pcv-deco .poignee { position: absolute; left: 50%; top: 7u; width: 60u; height: 6u; margin-left: -30u; border-radius: 3u; background: rgba(120,135,155,.35); }
     #pcv-deco .haut { position: absolute; left: 16u; right: 16u; top: 15u; height: 48u; display: flex; align-items: center; gap: 10u; }
     #pcv-deco .onglets { position: relative; flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 8u; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; padding: 0 4u; }

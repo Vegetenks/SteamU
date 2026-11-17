@@ -111,7 +111,7 @@
     const d = donnees(t.site);
     if (!d || enCours(t)) return window.__pcvSon?.("bord");
     if (installe(t)) {
-      window.__pcvThemes?.appliquer(d.theme(t.id));
+      window.__pcvThemes?.choisir(d.theme(t.id));
       window.__pcvSon?.("theme");
       return m.rendreFiche();
     }
@@ -183,11 +183,12 @@
         ouvrir: (t) => ouvrirFiche(t, l),
         tout: () => ouvrirGrille(k),
         toutNombre: listes.get(k)?.total || l.length,
-        vide: `<div class="message">${e(msg)}</div>${listes.get(k)?.verification ? `<button class="og verre" data-g="verifier-${s}" data-a="${m.action(verifier)}">${e(T("verifier"))}</button>` : ""}`
+        vide: `<div class="message" role="status">${msg === T("chargement") ? window.__pcvChargement.html() : ""}${e(msg)}</div>${listes.get(k)?.verification ? `<button class="og verre" data-g="verifier-${s}" data-a="${m.action(verifier)}">${e(T("verifier"))}</button>` : ""}`
       };
     }),
     fin: () => T("credit"),
     peindre: () => peindre(),
+    chargement: () => message(ici()) === T("chargement"),
     grille: {
       onglets: () => options().map((k) => ({ cle: k, nom: siteDe(k) === "tous" ? window.__pcvT?.("eshop.tous") : nomRayon(k) })),
       choisir: (k) => {

@@ -4,7 +4,7 @@
   if (!T) return "garde-robe : three.js absent";
   const DOSSIER = "garde-robe/", CLE = "pcv-mii-tenues", VERSION = 1;
   const CATEGORIES = ["chapeau", "visage", "haut", "accessoire", "bas"];
-  const CACHES = { aucun: 0, haut: 1, tout: 2 };
+  const CACHES = { aucun: 0, haut: 1, tout: 2, tete: 3 };
   const ID = /^\w[\w.-]*$/;
   const ANCRES = { cou: ["chest", "head"], torse: ["chest", "chest"], bassin: ["hip", "hip"] };
   const PARTIES = { haut: /^body_/, bas: /^legs_/ };
@@ -336,6 +336,13 @@
     }
     etat.caches = [];
     etat.pris = [];
+    if (niveau === 3 && cm.meshes) {
+      for (const x of cm.meshes.children) if (x.isMesh && !x.userData.pcvArticle) {
+        x.visible = false;
+        etat.caches.push(x);
+      }
+      return;
+    }
     const F = window.FFLjs;
     if (!niveau || !F || !cm.meshes) return;
     let pris = [];
@@ -510,7 +517,7 @@
     const l = ids ?? tenue(id);
     if (!l.length && !porte(m).length) return;
     const faire = () => m.tete?.meshes ? habiller(m, l) : null;
-    (lus ? faire() || Promise.resolve() : liste().then(faire)).catch((e) => console.warn("garde-robe : Mii non habill\xE9", e));
+    return m.tenuePrete = (lus ? faire() || Promise.resolve() : liste().then(faire)).catch((e) => console.warn("garde-robe : Mii non habill\xE9", e));
   };
   const precharger = () => {
     for (const id of new Set(Object.values(lireTenues().mii).flat())) if (typeof id === "string") charger(id).catch(() => {
@@ -621,6 +628,7 @@
   window.__pcvGardeRobe = {
     liste,
     charger,
+    script,
     inscrire,
     horsCatalogue,
     habiller,

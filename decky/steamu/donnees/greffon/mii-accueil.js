@@ -35,7 +35,7 @@
       { sel: "#pcv-console .bas span", genre: "socle" }
     ],
     // la liste des notifications : des cartes larges (une affiche à gauche, un bouton cyan à droite), « Aperçu rapide »
-    notifs: [{ sel: "#pcv-notifs .n", genre: "tuile" }, { sel: "#pcv-notifs .n .agir", genre: "bulle" }, { sel: "#pcv-notifs .apercu", genre: "socle" }],
+    notifs: [{ sel: "#pcv-notifs .pile", genre: "tuile" }, { sel: "#pcv-notifs .apercu", genre: "socle" }],
     // la grille des amis (tuiles avec avatar) et les deux onglets
     amis: [{ sel: "#pcv-amis .ami", genre: "tuile" }, { sel: "#pcv-amis .onglet", genre: "socle" }],
     // le panneau Thèmes : les cartes de l'étagère, la grande vitrine, les pastilles de couleur, le titre et les onglets
@@ -43,7 +43,7 @@
       { sel: "#pcv-themes .pcvth .carte", genre: "tuile", clip: ".etagere" },
       { sel: "#pcv-themes .pcvth .vitrine", genre: "vitrine" },
       { sel: "#pcv-themes .pcvth .esp i", genre: "pastille" },
-      { sel: "#pcv-themes .pcvth .tete", genre: "socle" },
+      { sel: "#pcv-themes .pcvth .pcv-titre-appli", genre: "socle" },
       { sel: "#pcv-themes .pcvth .onglets b[data-cat]", genre: "socle" }
     ]
   };
@@ -4231,7 +4231,7 @@
       pages: ["notifs"],
       poids: 2.4,
       duree: "9\u201312 s",
-      preparer: (sup) => avecChemin({ sup, l: posables(sup).filter((s) => s.el.matches("#pcv-notifs .n")).slice(0, 3) }, (T2) => (s) => s === T2),
+      preparer: (sup) => avecChemin({ sup, l: posables(sup).filter((s) => s.el.matches("#pcv-notifs .pile")).slice(0, 3) }, (T2) => (s) => s === T2),
       jouer: async (a, p) => {
         const T2 = p.cible, h = hMii();
         const env = prendreObjet(a, "enveloppe");
@@ -4268,7 +4268,7 @@
       pages: ["notifs"],
       poids: 2.2,
       duree: "9\u201312 s",
-      preparer: (sup) => avecChemin({ sup, l: posables(sup).filter((s) => s.el.matches("#pcv-notifs .n")) }, (T2) => (s) => s === T2),
+      preparer: (sup) => avecChemin({ sup, l: posables(sup).filter((s) => s.el.matches("#pcv-notifs .pile")) }, (T2) => (s) => s === T2),
       jouer: async (a, p) => {
         const T2 = p.cible, h = hMii();
         await allerA(a, p.chemin, alea(0.3, 0.6));
@@ -4656,7 +4656,7 @@
     try {
       const j = await (await fetch(url)).json(), ok = (x) => typeof x === "string" && /^[\w.-]{1,40}$/.test(x);
       const dossier = chemin2 === VISITES.livres ? "@visiteurs/" : VISITES.dossier;
-      return (Array.isArray(j?.visiteurs) ? j.visiteurs : []).filter((v) => ok(v?.id) && typeof v.donnees === "string" && Array.isArray(v.tenue) && v.tenue.every(ok) && Array.isArray(v.scenes) && v.scenes.some((n) => SCENES[n]?.rare)).map((v) => ({
+      const tous = (Array.isArray(j?.visiteurs) ? j.visiteurs : []).filter((v) => ok(v?.id) && typeof v.donnees === "string" && Array.isArray(v.tenue) && v.tenue.every(ok) && (v.figurant === true || Array.isArray(v.scenes) && v.scenes.some((n) => SCENES[n]?.rare))).map((v) => ({
         cle: "visiteur:" + v.id,
         id: v.id,
         nom: "",
@@ -4666,10 +4666,13 @@
         deuxMains: typeof v.deux_mains === "string" ? v.deux_mains : void 0,
         tenue: v.tenue.slice(),
         dossier,
+        figurant: v.figurant === true,
+        figurants: Array.isArray(v.figurants) ? v.figurants.filter(ok) : [],
         option: Array.isArray(v.tenue_option) ? v.tenue_option.filter(ok) : [],
-        scenes: v.scenes.filter((n) => SCENES[n]?.rare),
+        scenes: (v.scenes || []).filter((n) => SCENES[n]?.rare),
         poids: 1
       }));
+      return Object.assign(tous.filter((v) => !v.figurant), { figurants: tous.filter((v) => v.figurant) });
     } catch (e) {
       setTimeout(() => {
         visiteurs = null;
@@ -4708,17 +4711,22 @@
     }
   };
   let visiteEnCours = false;
+  const preparerVisiteur = async (v) => {
+    const G = window.__pcvGardeRobe;
+    if (!G) return null;
+    const cat = new Set((await G.liste().catch(() => [])).map((x) => x.id)), hors = v.tenue.filter((id) => !cat.has(id));
+    const ids = [...v.tenue.filter((id) => cat.has(id)), ...await G.inscrire(v.dossier, hors)];
+    if (ids.length !== v.tenue.length) return null;
+    if (v.option.length) ids.push(...await G.inscrire(VISITES.dossier, v.option));
+    await Promise.all(ids.map((id) => G.charger(id)));
+    return ids;
+  };
   const lancerVisiteur = async (v, nom = null) => {
     if (visiteEnCours) return null;
     visiteEnCours = true;
     try {
-      const G = window.__pcvGardeRobe;
-      if (!G) return null;
-      const cat = new Set((await G.liste().catch(() => [])).map((x) => x.id)), hors = v.tenue.filter((id) => !cat.has(id));
-      const ids = [...v.tenue.filter((id) => cat.has(id)), ...await G.inscrire(v.dossier, hors)];
-      if (ids.length !== v.tenue.length) return null;
-      if (v.option.length) ids.push(...await G.inscrire(VISITES.dossier, v.option));
-      await Promise.all(ids.map((id) => G.charger(id)));
+      const ids = await preparerVisiteur(v);
+      if (!ids) return null;
       if (!demarre || !actif() || !calme() || vivants() >= REG.max) return null;
       const l = await listeVisiteurs();
       for (const n of nom ? [nom] : melanger(v.scenes)) {
@@ -4852,7 +4860,17 @@
   window.addEventListener("vgp_onbuttondown", window.__pcvMiiAppui = () => {
     appui = performance.now();
   }, true);
+  let attenteEconomie = 0;
   const tour = (t) => {
+    if (window.__pcvModes?.coupe("place")) {
+      actif();
+      raf = 0;
+      if (!attenteEconomie) attenteEconomie = setTimeout(() => {
+        attenteEconomie = 0;
+        if (demarre) demarrerBoucle();
+      }, 500);
+      return;
+    }
     raf = requestAnimationFrame(tour);
     window.__pcvGrilleAvantImage?.(t);
     const C = window.__pcvCharge, plafond = REG.plafond || C?.reglage().miiIps || (t - appui < 300 && C?.palier() ? 30 : 0);
@@ -4894,12 +4912,14 @@
   };
   const mesure = { n: 0, logique: 0, rendu: 0 };
   const demarrerBoucle = () => {
-    if (raf) return;
+    if (raf || attenteEconomie) return;
     toile.classList.add("vu");
     dernier = performance.now();
     raf = requestAnimationFrame(tour);
   };
   const arreterBoucle = () => {
+    clearTimeout(attenteEconomie);
+    attenteEconomie = 0;
     cancelAnimationFrame(raf);
     raf = 0;
     if (rendu) {
@@ -4988,6 +5008,10 @@
         programmer(2);
         return;
       }
+      if (window.__pcvModes?.coupe("place")) {
+        programmer(1);
+        return;
+      }
       if (!pret()) moteur().then((m) => {
         if (m && demarre && preparerRendu()) programmerMiiAvance();
       });
@@ -5035,7 +5059,7 @@
       return;
     }
     if (!minuterie) programmer(alea(...REG.premier));
-    if (pret()) {
+    if (pret() && !window.__pcvModes?.coupe("place")) {
       suivreJoueur();
       programmerMiiAvance();
     }
@@ -5129,6 +5153,25 @@
     },
     // essais
     visiteurs: () => listeVisiteurs().then((l) => l.map((v) => ({ id: v.id, scenes: v.scenes }))),
+    // (13/11) pour la place : un visiteur habillé (ses données, sa tenue prête, ses scènes), et les objets de ses scènes, à
+    // l'échelle d'un Mii d'une unité de haut ; libererObjetVisiteur quand la place n'en a plus besoin
+    preparerVisiteur: async (id) => {
+      const l = await listeVisiteurs(), v = [...l, ...l.figurants || []].find((x) => x.id === id);
+      const ids = v && await preparerVisiteur(v);
+      return ids ? { id: v.id, donnees: v.donnees, pantalon: v.pantalon, couleursSwitch: v.couleursSwitch, tenue: ids, scenes: v.scenes, deuxMains: v.deuxMains, figurants: v.figurants } : null;
+    },
+    objetVisiteur: (nom) => {
+      const o = FABRIQUES[nom]?.();
+      if (!o) return null;
+      const g = new T.Group();
+      g.add(o);
+      g.scale.setScalar(1 / hMii());
+      return g;
+    },
+    libererObjetVisiteur: (o) => {
+      for (const c of [...o.children]) jeter(c);
+      o.removeFromParent();
+    },
     // essais : charger le moteur tout de suite (sinon : au premier tour du metteur en scène)
     habitants: () => habitants?.map((h) => ({ cle: h.cle, nom: h.nom, pantalon: h.pantalon, moi: !!h.moi })) ?? null,
     etat: () => acteurs.map((a) => ({ scene: a.nom, mode: a.mode, bord: a.bord, appui: a.appui?.cle, anim: a.mii.anim, x: Math.round(a.x), y: Math.round(a.y), salto: +a.mii.salto.rotation.x.toFixed(2), tache: !!a.tache, objets: a.objets.map((o) => (o.userData.nom || (o.isSprite ? "marque" : "?")) + "@" + Math.round(o.position.x) + "," + Math.round(-o.position.y) + (o.visible ? "" : " cach\xE9")) })),

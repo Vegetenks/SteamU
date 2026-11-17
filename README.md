@@ -82,7 +82,8 @@ status.
 ## What works out of the box
 
 Grid home screen, HOME menu, quick settings, themes (light/grey/black variants), the music player, notifications,
-and SteamU's own original sounds and music. No extra files needed.
+SteamU's own original interface sounds, and music by temcandoanything (see [Music credits](#music-credits)).
+No extra files needed.
 
 ## What needs YOUR OWN files
 
@@ -202,6 +203,17 @@ AGPL-3.0-or-later, see [`LICENSE`](LICENSE). Third-party code bundled for conven
 WebSocket client, a screen-colour sampler) keeps its own license notice in its own files/folder.
 
 Rare visitors are fan-made tributes; all trademarks belong to their respective owners.
+
+### Music credits
+
+The menu, app, login, welcome and boot music comes from **The Soundtrack Of Frutiger Aero** and **The Soundtrack Of
+Frutiger Aero 2** by **temcandoanything** ([temcandoanything.bandcamp.com](https://temcandoanything.bandcamp.com)),
+used with the artist's permission under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The tracks are
+**modified** by SteamU: in each one, a sound effect layered over the music is removed (start or end trimmed on a bar,
+or bars cut and joined with an 80 ms crossfade), loudness is normalized and the files are re-encoded to Ogg Vorbis;
+the boot ambience is an excerpt of "Our Promised Future" stretched into a 2-minute ambient pad. The exact changes, file
+by file, are listed in [`decky/steamu/donnees/sons-steamu/SOURCES.md`](decky/steamu/donnees/sons-steamu/SOURCES.md).
+The artist does not endorse SteamU. SteamU's interface sounds are original and released under the AGPL-3.0.
 
 ## Translations
 

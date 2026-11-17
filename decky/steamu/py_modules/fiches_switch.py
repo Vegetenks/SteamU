@@ -412,7 +412,7 @@ def raccourcis_utilisateur(dossier_userdata):
         appid = _champ(entree, "appid")
         if not isinstance(appid, int) or isinstance(appid, bool):
             continue
-        sortie[appid & 0xFFFFFFFF] = {"exe": _champ(entree, "exe"), "options": _champ(entree, "LaunchOptions")}
+        sortie[appid & 0xFFFFFFFF] = {"exe": _champ(entree, "exe"), "options": _champ(entree, "LaunchOptions"), "icone": _champ(entree, "icon"), "nom": _champ(entree, "AppName")}
     return sortie
 
 def titleid_pour_appid(steam_userdata_dir, appid):

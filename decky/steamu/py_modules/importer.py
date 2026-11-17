@@ -172,6 +172,19 @@ def _ranger_aes(chemin, nom, x):
     if _poser(chemin, x["prive"] / "cles" / "aes_keys.txt"): x["r"]["cle3ds"] += 1
     else: x["r"]["deja"] += 1
 
+LOGO_MII = "icones/mii.png"
+
+def _veut_logo(tete, taille, nom):
+    if taille > 2 << 20 or _nom(nom).lower() != "logo-mii.png" or tete[:8] != b"\x89PNG\r\n\x1a\n" or tete[12:16] != b"IHDR": return False
+    w, h = struct.unpack(">II", tete[16:24])
+    return 0 < w <= 4096 and 0 < h <= 4096
+
+def _ranger_logo(chemin, nom, x):
+    cible = x["prive"] / LOGO_MII
+    if cible.is_file() and _empreinte(cible) == _empreinte(chemin): x["r"]["deja"] += 1; return
+    cible.unlink(missing_ok=True)
+    if _poser(chemin, cible): x["r"]["logo_mii"] += 1
+
 def _table_connus():
     global _connus
     if _connus is None:
@@ -333,6 +346,7 @@ RECONNAISSEURS = [
     (_veut_ffl, _ranger_ffl),
     (_sha_exacte(CLE_3DS), _ranger_exact(CLE_3DS, "cles", "cle3ds")),
     (_veut_aes, _ranger_aes),
+    (_veut_logo, _ranger_logo),
     (_veut_base, _ranger_base),
     (_veut_3ds, _ranger_3ds),
     (_veut_nds, _ranger_nds),
@@ -823,13 +837,15 @@ def etat(prive, references=None):
             or any(not (prive / e["vers"]).is_file() for e in _tenues_importees())): c.append("tenues-visiteurs")
     for f in ("3ds", "wiiu", "switch"):
         if sons.get(f, {}).get("n", 0) < sons.get(f, {}).get("sur", 0): applis["sons"]["conseils"].append("sons-" + f)
-    return {"musiques_wiiu": {"n": len(wiiu) - len(manquent), "sur": len(wiiu), "manquent": manquent},
+    return {"importe": any(_plein(prive, d) for d in ("sons", "mii", "badges", "badge-arcade", "luigi", "casino-luigi", "cles", "themes")),
+            "musiques_wiiu": {"n": len(wiiu) - len(manquent), "sur": len(wiiu), "manquent": manquent},
             "sons": {f: {"n": s["n"], "sur": s["sur"]} for f, s in sons.items()},
             "cle3ds": (prive / "cles" / CLE_3DS[0]).is_file(),
             "mii": any((prive / "mii" / "cfl_db").glob("*.json")) if (prive / "mii" / "cfl_db").is_dir() else False,
             "visages": (prive / "mii" / VISAGES[0]).is_file(),
             "luigi": (prive / LUIGI).is_file(), "badge_arcade": _plein(prive, "badge-arcade/modeles/romfs"),
-            "moteur_ffl": moteur_ffl.installe(prive), "applis": applis}
+            "moteur_ffl": moteur_ffl.installe(prive), "applis": applis,
+            "corps": moteur_ffl.installe(prive, dossier=moteur_ffl.CORPS_DOSSIER, fichiers=moteur_ffl.CORPS)}
 
 def _tenues_importees():
     return [e for t in _table_connus().values() for e in t.values() if str(e.get("role", "")).startswith(TENUE) and isinstance(e.get("vers"), str)]
@@ -852,7 +868,7 @@ def _index_garde_robe(prive):
 
 def importer(source, prive):
     source, prive = os.path.realpath(source), pathlib.Path(prive)
-    r = {"mii": 0, "mii_autres": 0, "visages": 0, "cle3ds": 0, "musiques": 0, "sons": {}, "connus": 0, "badge_arcade": 0, "themes": 0,
+    r = {"mii": 0, "mii_autres": 0, "visages": 0, "cle3ds": 0, "logo_mii": 0, "musiques": 0, "sons": {}, "connus": 0, "badge_arcade": 0, "themes": 0,
          "badges": 0, "luigi": 0, "luigi_mp": False, "casino": 0, "romfs": 0, "deja": 0, "abimes": [], "abimes_n": 0,
          "mauvaise": [], "mauvaise_n": 0, "pas_wiiu": 0, "verrouilles": 0, "autrement": 0, "autre_rom": [], "mpds_seul": False,
          "sans_semaine": False, "archives_fermees": 0, "wiiu_chiffre": 0, "inconnus": 0, "trop": 0, "refuses": 0, "audio_impossible": False, "vide": True}

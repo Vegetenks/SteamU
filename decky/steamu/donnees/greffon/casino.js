@@ -12949,6 +12949,32 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     return r.map(([a, b]) => [a * E_, b * E_]);
   };
   const dansChute = (m, x) => trouesVraies(m).some(([a, b]) => x > a - 20 && x < b + 20);
+  const RAMPE = { largeur: 32, hauteur: 18 };
+  const rampesVraies = (m) => {
+    const objets = m.vraie.objets.length ? m.vraie.objets : [SOL_VRAI], trous = trouesVraies(m).map(([a, b]) => [a / E_, b / E_]);
+    const appui = (x) => {
+      let y = ECRAN.h;
+      for (const o of objets) for (const p of o.polys || []) {
+        if (Math.max(...p.map((v) => v[1])) < ECRAN.h - BAS_TOUCHE) continue;
+        p.forEach((a, i) => {
+          const b = p[(i + 1) % p.length];
+          if (a[0] === b[0] || x < Math.min(a[0], b[0]) || x > Math.max(a[0], b[0])) return;
+          y = Math.min(y, a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]));
+        });
+      }
+      return y;
+    };
+    const r = [], ajouter = (x, sens) => {
+      const bout = x + sens * RAMPE.largeur, milieu = (x + bout) / 2;
+      if (bout < 0 || bout > ECRAN.l || trous.some(([a, b]) => milieu > a && milieu < b)) return;
+      const y = appui(milieu);
+      if (y < ECRAN.h * 0.6) return;
+      r.push([[x, y - RAMPE.hauteur], [bout, y], [x, y]]);
+    };
+    ajouter(0, 1);
+    ajouter(ECRAN.l, -1);
+    return r;
+  };
   const creerMondeVrai = (m) => {
     const mo = { parts: [], corps: [], segs: [], cines: [], cinesPrec: null, vrai: true };
     const seg = (ax, ay, bx, by, rr, mus, muk) => mo.segs.push({ ax, ay, bx, by, r: rr, mus, muk });
@@ -12971,7 +12997,7 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     if (xg < L_ + 30) seg(xg, H + r, L_ + 30, H + r, r, 0.7, 0.45);
     if (avecPhysique(m)) {
       mo.phys = PH.creer();
-      mo.phys.decor(m.vraie.objets.length ? m.vraie.objets : [SOL_VRAI]);
+      mo.phys.decor([...m.vraie.objets.length ? m.vraie.objets : [SOL_VRAI], { polys: rampesVraies(m), glisse: true }]);
       mo.pince = mo.phys.pince({ sansBras: estBombe(m) });
       mo.accs = (m.vraie.accessoires || []).map((a) => mo.phys.accessoire({ ...a, rot: a.rot * Math.PI / 180, fige: !a.grav, genre: genreAccessoire(a.nom) }));
     }
@@ -13681,6 +13707,11 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     m.monde.prise = PRISE_COMPTE.has(m.jeu.etat);
     pas(m.monde, dt);
     ramasser(m);
+    if (m.monde.phys && !m.monde.preroule) {
+      const repos2 = m.monde.corps.every((c) => !c.pb?.corps.isAwake());
+      if (repos2 && !m.monde.verifieAuRepos) verifierBorne(m);
+      m.monde.verifieAuRepos = repos2;
+    }
     const mo = m.monde;
     if (m === mJeu && vue === "machine") {
       if (mo.chocs && !SANS_CHOC.has(m.jeu.etat)) sonPince("choc", null, 0.8);
@@ -13716,11 +13747,14 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
   };
   const image = (id) => {
     let im = images.get(id);
-    if (im) return im;
+    if (im) {
+      preparer(im.pcvPrete);
+      return im;
+    }
     im = new Image();
     images.set(id, im);
     const chemin = "badges/" + id;
-    preparer(new Promise((ok) => {
+    preparer(im.pcvPrete = new Promise((ok) => {
       im.onload = im.onerror = ok;
       (opts.lire ? opts.lire(chemin).then((b) => URL.createObjectURL(new Blob([b], { type: "image/png" }))) : Promise.resolve(window.__pcvRessource?.(chemin, "image/png"))).then((u) => {
         if (u) im.src = u;
@@ -15047,7 +15081,7 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     } }
   };
   const decorDe = (m) => DECORS[m.theme] || null;
-  const BORD_AUTOCOLLANT = 8;
+  const BORD_AUTOCOLLANT = 6;
   const BORD_BORNE = 3;
   const autocollant = (im, carton, z = 4, largeur = BORD_AUTOCOLLANT) => {
     const s = agrandir(im, Math.round(Math.log2(z)), false), w = s.width, h = s.height, m = largeur * z, [c, x] = toile(w + 2 * m, h + 2 * m), sx = s.getContext("2d");
@@ -17370,9 +17404,14 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     g.name = "fronton";
     groupe.add(g);
     const [c] = toile(1024, 256), t = texture(c, { bord: true, flipY: true }), face = physique({ map: t, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.1, emissive: 16777215, emissiveMap: t, emissiveIntensity: FRONTON_LUEUR });
-    const avant = new T.Mesh(garder(new T.BoxGeometry(2 * F_.demi, h, F_.fond)), [MATS.laque, MATS.laque, MATS.laque, MATS.laque, face, MATS.laque]);
+    const caisse = garder(new T.BoxGeometry(2 * F_.demi, h, F_.fond)), etiquette2 = garder(caisse.clone());
+    etiquette2.setDrawRange(24, 6);
+    caisse.setIndex([...caisse.index.array].filter((_, i) => i < 24 || i >= 30));
+    caisse.clearGroups();
+    const avant = new T.Mesh(etiquette2, face), dos = new T.Mesh(caisse, MATS.laque);
     avant.position.set(0, (F_.y0 + F_.y1) / 2, F_.avant);
-    g.add(avant);
+    dos.position.copy(avant.position);
+    g.add(avant, dos);
     for (const s_ of [-1, 1]) {
       const a = vec(s_ * F_.demi, 0, F_.avant), b = vec(s_ * F_.coin[0], 0, F_.coin[1]), d = b.clone().sub(a), l = d.length();
       const cote_ = boite3(l, h, F_.fond, MATS.laque);
@@ -17661,6 +17700,8 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
   const basique = (o) => garder(new T.MeshBasicMaterial(o));
   const garnir = (bo, m) => {
     if (bo.interieur) return;
+    defaireRepos(bo);
+    bo.repos = null;
     const I = new T.Group();
     I.name = "int\xE9rieur";
     bo.groupe.add(I);
@@ -17921,7 +17962,10 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     const im = new Image(), salle = racine;
     const fini = (image2) => {
       try {
-        if (salle === racine && ouvert) f(image2);
+        if (salle === racine && ouvert) {
+          f(image2);
+          for (const bo of bornes) bo.repos = null;
+        }
         ok();
       } catch (e) {
         ko(e);
@@ -17950,6 +17994,12 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     bo.tapis = null;
     bo.profondeurs = [];
     const I0 = I;
+    for (const points of rampesVraies(m)) {
+      const forme2 = new T.Shape(points.map(([x, y]) => new T.Vector2(...versLocal(...ecranVersMonde(x, y)))));
+      const rampe = new T.Mesh(garder(new T.ExtrudeGeometry(forme2, { depth: 0.15, bevelEnabled: false })), MATS.or);
+      rampe.position.z = Z.badges + Z_OBJETS;
+      I.add(rampe);
+    }
     for (const o of m.vraie.objets) {
       if (o.invisible) continue;
       texPrivee(PRIVE_BA.bornes + o.img, (t) => {
@@ -18285,14 +18335,102 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     b.scale.y = ech;
     b.position.y = BOUTON.y - (BOUTON.ech - ech) * 1.3;
   };
+  const defaireRepos = (bo) => {
+    const f = bo.fusionRepos;
+    if (!f) return;
+    f.groupe.removeFromParent();
+    for (const [o, visible] of f.originaux) o.visible = visible;
+    for (const x of f.jetables) x.dispose();
+    bo.fusionRepos = null;
+  };
+  const fusionnerRepos = (bo) => {
+    if (!E.mergeGeometries || opts.fusion === false || opts.repos === false) return;
+    const liste = [], images2 = /* @__PURE__ */ new Map(), I = bo.interieur;
+    I.traverseVisible((o) => {
+      const m = o.material, t = m?.map;
+      if (!o.isMesh || o.isInstancedMesh || !m?.isMeshBasicMaterial || !t || !t.image || t.colorSpace !== T.SRGBColorSpace || t.offset.lengthSq() || t.repeat.x !== 1 || t.repeat.y !== 1 || t.rotation || m.alphaMap || m.envMap) return;
+      liste.push(o);
+      images2.set(t, t.image);
+    });
+    if (liste.length < 2) return;
+    const bord = 16, cote = Math.max(...[...images2.values()].map((im) => Math.max(im.width, im.height))) + bord * 2;
+    const cols = Math.ceil(Math.sqrt(images2.size)), taille = 2 ** Math.ceil(Math.log2(cols * cote));
+    if (taille > rendu.capabilities.maxTextureSize) return;
+    const [cv, cx] = toile(taille, taille), cases = /* @__PURE__ */ new Map();
+    let i = 0;
+    for (const [t, im] of images2) {
+      const x = i % cols * cote + bord, y = Math.floor(i++ / cols) * cote + bord, w = im.width, h = im.height;
+      cx.drawImage(im, x, y);
+      cx.drawImage(im, 0, 0, w, 1, x, y - bord, w, bord);
+      cx.drawImage(im, 0, h - 1, w, 1, x, y + h, w, bord);
+      cx.drawImage(cv, x, y - bord, 1, h + 2 * bord, x - bord, y - bord, bord, h + 2 * bord);
+      cx.drawImage(cv, x + w - 1, y - bord, 1, h + 2 * bord, x + w, y - bord, bord, h + 2 * bord);
+      cases.set(t, { x, y, w, h });
+    }
+    const atlas2 = new T.CanvasTexture(cv);
+    atlas2.colorSpace = T.SRGBColorSpace;
+    atlas2.anisotropy = 4;
+    const parMat = /* @__PURE__ */ new Map(), groupe = new T.Group(), jet = [atlas2], originaux = [];
+    I.updateWorldMatrix(true, true);
+    const inv = I.matrixWorld.clone().invert();
+    for (const o of liste) {
+      const m = o.material, cle = [
+        o.renderOrder,
+        m.color.getHex(),
+        m.opacity,
+        m.transparent,
+        m.alphaTest,
+        m.side,
+        m.depthWrite,
+        m.depthTest,
+        m.blending,
+        m.toneMapped
+      ].join("|");
+      if (!parMat.has(cle)) parMat.set(cle, []);
+      parMat.get(cle).push(o);
+    }
+    for (const l of parMat.values()) {
+      if (l.length < 2) continue;
+      const geos = l.map((o) => {
+        const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+        g.applyMatrix4(new T.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+        const uv = g.attributes.uv, t = o.material.map, c = cases.get(t);
+        for (let k = 0; k < uv.count; k++) uv.setXY(k, (c.x + uv.getX(k) * c.w) / taille, 1 - (c.y + (t.flipY ? 1 - uv.getY(k) : uv.getY(k)) * c.h) / taille);
+        g.clearGroups();
+        return g;
+      });
+      const geo = E.mergeGeometries(geos, false);
+      geos.forEach((g) => g.dispose());
+      if (!geo) continue;
+      const mat = l[0].material.clone();
+      mat.map = atlas2;
+      const mesh = new T.Mesh(geo, mat);
+      mesh.renderOrder = l[0].renderOrder;
+      groupe.add(mesh);
+      jet.push(geo, mat);
+      for (const o of l) {
+        originaux.push([o, o.visible]);
+        o.visible = false;
+      }
+    }
+    if (!originaux.length) {
+      atlas2.dispose();
+      return;
+    }
+    groupe.name = "int\xE9rieur au repos";
+    I.add(groupe);
+    groupe.updateMatrixWorld(true);
+    bo.fusionRepos = { groupe, originaux, jetables: jet };
+  };
   const majInterieur = (bo, m) => {
     if (!bo.interieur || !m.monde) return;
     animerBouton(bo, m);
     if (bo.reflet) bo.reflet.visible = !(vue === "machine" && bornes[sel] === bo);
     const mo = m.monde, vus = /* @__PURE__ */ new Set(), proche = bornes[sel] === bo && vue !== "salle";
-    const calme2 = !mo.preroule && m.jeu.etat === "attente" && (m.entrainement || totalParties() !== 1) && mo.corps.every((c) => c.nait == null && (c.pb ? !c.pb.corps.isAwake() : c.parts.every((p) => p.dort)));
+    const calme2 = !mo.preroule && m.jeu.etat === "attente" && (m.entrainement || totalParties() !== 1) && mo.corps.every((c) => c.nait == null && (m !== mJeu || (c.pb ? !c.pb.corps.isAwake() : c.parts.every((p) => p.dort))));
     const cle = calme2 ? [proche, totalParties(), mo.corps.length, mo.corps.filter((c) => c.o3).length].join("|") : null;
     if (calme2 && bo.repos === cle) return;
+    defaireRepos(bo);
     bo.repos = cle;
     bo.interieur.matrixWorldAutoUpdate = !calme2;
     for (const o of bo.profondeurs || []) o.visible = proche;
@@ -18344,7 +18482,10 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     const w = (p) => versLocal(p[0], p[1]), nb = m.entrainement ? null : j.surprise ? "coeur" : totalParties();
     P.poser({ j, D, w, z: Z.pince, n: nb, clignote: j.etat === "deplacement" || j.etat === "transport" ? 0.5 + 0.5 * Math.sin(horloge * 14) : 0 });
     majCompteur(bo, m.entrainement ? null : totalParties());
-    if (calme2) bo.interieur.updateMatrixWorld(true);
+    if (calme2) {
+      bo.interieur.updateMatrixWorld(true);
+      if (!proche) fusionnerRepos(bo);
+    }
   };
   const CLIGNOTE = new T.Color("#fff3a0");
   const poserPinceDessinee = (P, { j, D, w, z, n, clignote }) => {
@@ -18722,7 +18863,7 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
   };
   const poserLuigi = async () => {
     const voulu = opts.luigi || lire("pcv-casino-luigi", "ds"), modeles = [voulu === "ds" ? null : window.__pcvLuigiWonder, window.__pcvLuigiVrai].filter(Boolean);
-    luigiObj = new T.Group();
+    const parent = luigiObj = new T.Group();
     luigiObj.name = "Luigi";
     luigiObj.position.copy(LUIGI.pos);
     scene.add(luigiObj);
@@ -18733,8 +18874,8 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     } catch (e) {
     }
     const enMii = async () => {
-      const l = await fabriquerLuigiMii(luigiObj);
-      if (!ouvert) {
+      const l = await fabriquerLuigiMii(parent);
+      if (!ouvert || luigiObj !== parent) {
         l.liberer();
         return null;
       }
@@ -18750,9 +18891,10 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
       console.warn("casino : le Luigi en Mii n'a pas pu venir", e);
     }
     for (const V of modeles) {
+      if (!ouvert || luigiObj !== parent) return null;
       const ds = V === window.__pcvLuigiVrai;
       try {
-        const l = await V.fabriquer(rendu, luigiObj, {
+        const l = await V.fabriquer(rendu, parent, {
           lire: opts.lire,
           taille: LUIGI.taille,
           appui: (TABLE - LUIGI.pos.y) / LUIGI.taille,
@@ -18761,7 +18903,7 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
           teint: { lumiere: new T.Color(0.9, 0.88, 0.86), propre: ds ? ACCORD.luigi.propre : 0.32 },
           matiere: ds ? ACCORD.luigi.matiere : null
         });
-        if (!ouvert) {
+        if (!ouvert || luigiObj !== parent) {
           l.liberer();
           return null;
         }
@@ -18784,13 +18926,14 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
         console.warn("casino : un mod\xE8le de Luigi manque", e);
       }
     }
+    if (!ouvert || luigiObj !== parent) return null;
     if (window.__pcvVraisMii) try {
       return await enMii();
     } catch (e) {
       console.warn("casino : ni croupier de la DS ni Luigi en Mii", e);
     }
-    luigiObj.removeFromParent();
-    luigiObj = null;
+    parent.removeFromParent();
+    if (luigiObj === parent) luigiObj = null;
     return null;
   };
   const GESTES_MII = {
@@ -18815,12 +18958,18 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     const V = window.__pcvVraisMii, M = window.__pcvMii3D?.vrais ? window.__pcvMii3D : await V?.charger?.();
     if (!M) throw new Error("moteur des Mii absent");
     const j = JSON.parse(new TextDecoder().decode(await octets("mii/luigi-switch.json", "application/json")));
+    if (!ouvert || luigiObj !== parent) throw new Error("casino ferm\xE9 pendant la pr\xE9paration de Luigi");
     let ecl = "wiiu";
     try {
       ecl = localStorage.getItem("pcv-casino-luigi-mii-eclairage") || ecl;
     } catch (e) {
     }
     const m = M.creer({ donnees: j.donnees, couleursSwitch: j.couleurs_switch, rendu, eclairage: ecl, tenue: TENUE_LUIGI_MII, resolution: 512 });
+    await m.tenuePrete;
+    if (!ouvert || luigiObj !== parent) {
+      m.liberer();
+      throw new Error("casino ferm\xE9 pendant la pr\xE9paration de Luigi");
+    }
     parent.add(m.objet);
     m.regler(LUIGI.taille);
     m.jouer("repos");
@@ -18837,7 +18986,6 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
       }
     });
     lineariser();
-    setTimeout(lineariser, 1500);
     accorderMii(m.objet, { ombre: false });
     const L = { objet: m.objet, m, appui: null, porte: false, geste: null, avant: null, allure: "repos", tGeste: 0 };
     const vp = new T.Vector3();
@@ -19478,7 +19626,8 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
       opacity: 0; transform: translateY(-1.2cqh) scale(.98); transition: opacity .16s, transform .16s; pointer-events: none; }
     .pcvc .bulle.on { opacity: 1; transform: none; }
     .pcvc .bulle::before { content: attr(data-qui); position: absolute; left: 18.7u; top: -14.7u; padding: 4u 12u; border-radius: 12u; background: #2fae4c; color: #fff; font-size: 14.7u; font-weight: 900; line-height: 1.2; box-shadow: var(--pcv-bombe); }
-    .pcvc .bulle::after { content: ""; position: absolute; left: clamp(16u, calc(var(--qx, .5) * 100cqw - var(--bx) - 14.7u), calc(100% - 45.3u)); bottom: -16u; width: 29.3u; height: 20u; background: var(--h2-fond); clip-path: polygon(0 0, 100% 0, 30% 100%); }
+    .pcvc .bulle::after { left: clamp(16u, calc(var(--qx, .5) * 100cqw - var(--bx) - 14.7u), calc(100% - 45.3u)); bottom: -16u; width: 29.3u; height: 20u; }   
+    .pcvc .bulle { --pointe-fond: var(--h2-fond); }
     .pcvc .bulle.bas { left: var(--h2-marge); bottom: calc(var(--h2-bas) + 72u); width: auto; max-width: 54cqw; padding-right: 22.7u; }
     .pcvc .bulle.bas::after { display: none; }
     .pcvc .bulle .rouge { color: var(--h2-or); } .pcvc .bulle .bleu { color: #8fd0ff; }
@@ -20101,6 +20250,8 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
   const jouer = () => {
     const m = mJeu, j = m?.jeu;
     if (vue !== "machine" || !j || j.etat !== "attente" || gain) return;
+    verifierBorne(m);
+    if (j.etat !== "attente") return;
     if (!m.monde.corps.length) return refus();
     if (!m.entrainement && !depenser()) {
       geste("rate");
@@ -20979,19 +21130,23 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
   const JEU_TABLE_SEUL = { nom: JEUX[0].nom, cam: JEUX[0].cam, cible: JEUX[0].cible, fov: JEUX[0].fov, fovPartie: JEUX[0].fovPartie };
   const VISEE_TABLE = new T.Sphere(POKER.centre.clone().setY(6), POKER.rayon + 9), champ = new T.Frustum(), mChamp = new T.Matrix4();
   const venueDesMii = async () => {
-    const V = window.__pcvVraisMii;
+    const V = window.__pcvVraisMii, salle = racine;
     if (!V || !decor || miiTable.length || !ouvert) return;
+    const l = [], fini = () => {
+      for (const e of l) e.m.liberer();
+    };
     try {
       const M = window.__pcvMii3D?.vrais ? window.__pcvMii3D : await V.charger?.();
       const n = M?.invites?.length || 0;
-      if (!n || !ouvert) return;
-      const S2 = TABLE_MII, l = [], fini = () => {
-        for (const e of l) e.m.liberer();
-      };
+      if (!n || !ouvert || racine !== salle) return;
+      const S2 = TABLE_MII;
       for (const [k, [x, z]] of S2.sieges.entries()) {
         await new Promise((ok) => requestAnimationFrame(() => setTimeout(ok, 0)));
-        if (!ouvert || !scene) return fini();
+        if (!ouvert || racine !== salle) return fini();
         const i = S2.invites[k] % n, m = M.creer({ donnees: M.invite(i), rendu, resolution: S2.resolution, expressions: S2.etats, pantalon: "gris" });
+        l.push({ m });
+        await m.tenuePrete;
+        if (!ouvert || racine !== salle) return fini();
         const p = POKER.centre.clone().add(vec(x, S2.assise, z)), regard = POKER.centre.clone().add(vec(x * S2.regard, 5.5, z * S2.regard));
         m.regler(S2.taille);
         m.objet.position.copy(p);
@@ -21002,10 +21157,10 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
         m.expression(S2.expressions[k]);
         m.maj(0);
         const e = { m, k, nom: M.invites[i].nom || Tr("casino.invite_n", { n: k + 1 }), dir: [x / Math.hypot(x, z), z / Math.hypot(x, z)], regard, expr: S2.expressions[k], a: accorderMii(m.objet) };
-        l.push(e);
+        l[l.length - 1] = e;
         await rendu.compileAsync?.(m.objet, camera, scene).catch(() => {
         });
-        if (!ouvert || !scene) return fini();
+        if (!ouvert || racine !== salle) return fini();
         scene.add(m.objet);
       }
       miiTable = l;
@@ -21019,6 +21174,7 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
       if (vue === "jeu" && jeu === 0 && !jeuOuvert) allerA("jeu", 0, 1);
       majHud();
     } catch (e) {
+      fini();
       console.warn("casino : les Mii de la grande table ne sont pas venus", e);
     }
   };
@@ -21585,9 +21741,19 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     for (let p = racine; p?.parentElement && p !== document.body; p = p.parentElement)
       for (const f of p.parentElement.children) if (f !== p && !/^(STYLE|SCRIPT|LINK)$/.test(f.tagName) && !f.matches(GARDER_PAR_DESSUS)) f.setAttribute(SOUS_APPLI, "");
   };
-  const QUALITE = { max: 1.5, min: 0.6, pas: 0.85, gpuHaut: 13, gpuBas: 7.5, intervalleHaut: 19, attente: 1500, fenetre: 1e3 };
+  const QUALITE = { max: 1.5, min: 0.6, pas: 0.85, gpuHaut: 13, gpuBas: 7.5, intervalleHaut: 19, fenetre: 1e3 };
   let qualite = null;
-  const qualiteNeuve = () => ({ r: Math.min(QUALITE.max, devicePixelRatio || 1), plafond: Math.min(QUALITE.max, devicePixelRatio || 1), requetes: [], libres: [], gpu: [], dts: [], cpu: [], change: 0, t0: 0, ext: null, aff: null, bilan: null });
+  const PALIER_CLE = "pcv-casino-palier";
+  const qualiteNeuve = () => {
+    const plafond = Math.min(QUALITE.max, devicePixelRatio || 1);
+    let p = 0;
+    try {
+      p = Math.max(0, +localStorage.getItem(PALIER_CLE) | 0);
+    } catch (e) {
+    }
+    p = Math.min(p, Math.ceil(Math.log(QUALITE.min / plafond) / Math.log(QUALITE.pas)));
+    return { ...window.__pcvCharge.etatQualite(p), r: Math.max(QUALITE.min, plafond * QUALITE.pas ** p), plafond, requetes: [], libres: [], gpu: [], dts: [], cpu: [], t0: 0, ext: null, aff: null, bilan: null };
+  };
   const gpuDebut = () => {
     const Q = qualite;
     if (!Q?.ext) return null;
@@ -21617,6 +21783,10 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     rendu.setPixelRatio(r);
     ajuster();
     rendreImage();
+    try {
+      localStorage.setItem(PALIER_CLE, Q.palier);
+    } catch (e) {
+    }
   };
   const suivreQualite = (t, dt, cpu) => {
     const Q = qualite;
@@ -21640,20 +21810,17 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
       Q.aff.remove();
       Q.aff = null;
     }
-    if (t - Q.change < QUALITE.attente || window.__pcvCasinoPerf?.echelle) {
-      if (window.__pcvCasinoPerf?.echelle) regler(window.__pcvCasinoPerf.echelle);
+    if (window.__pcvCasinoPerf?.echelle) {
+      regler(window.__pcvCasinoPerf.echelle);
       return;
     }
-    const k = Math.min(1, (Q.ecran || 17) * 0.06);
+    const budget = Math.max(1e3 / 60, Q.ecran || 0), k = budget * 0.06;
     const trop = gpu > QUALITE.gpuHaut * k || inter > QUALITE.intervalleHaut * k;
-    const large = Q.bilan.gpu != null && gpu < QUALITE.gpuBas * k && inter < (Q.ecran || 17) * 1.05;
-    if (trop && Q.r > QUALITE.min) {
-      regler(Q.r * QUALITE.pas);
-      Q.change = t;
-    } else if (large && Q.r < Q.plafond) {
-      regler(Q.r / QUALITE.pas);
-      Q.change = t;
-    }
+    const large = inter > 0 && inter <= budget * 1.08 && Q.bilan.cpu < budget * window.__pcvCharge.QUALITE.marge && (Q.bilan.gpu == null || gpu < QUALITE.gpuBas * k);
+    const sature = Q.bilan.cpu > budget * 0.9 || gpu > QUALITE.gpuHaut * k;
+    const n = Math.ceil(Math.log(QUALITE.min / Q.plafond) / Math.log(QUALITE.pas)) + 1;
+    if (window.__pcvCharge.juger(Q, t, Math.max(inter / budget, gpu / (QUALITE.gpuHaut * k)), trop, large, sature, n))
+      regler(Q.plafond * QUALITE.pas ** Q.palier);
   };
   let observateur = null;
   let ambiance = null;
@@ -21676,7 +21843,7 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
       <div class="boite"><div class="cadre-or"><div class="tableau-serie"></div></div>
         <div class="pupitre-boite"><div class="fiche"><b></b><hr><span></span></div><div class="carrousel"></div>
           <div class="bas-boite"><span class="retour" data-acte="b"><span class="bt" data-touche="2"></span>${Tr("casino.retour")}</span><span class="poser"><span class="bt" data-touche="1"></span>${Tr("casino.poser_sur_accueil")}</span><span class="total"><span>${Tr("casino.serie_complete")} :</span><b></b></span></div></div></div>
-      <div class="bulle verre2" data-qui="Luigi"><div class="texte"></div><div class="choix"></div><span class="suite"></span></div>
+      <div class="bulle verre2 pcv-pointe pcv-pointe-queue" data-qui="Luigi"><div class="texte"></div><div class="choix"></div><span class="suite"></span></div>
       <div class="voile noir"><div class="chargement"><i>\u2605</i>${Tr("casino.chargement")}</div></div>`;
       conteneur.appendChild(racine);
       toileGL = racine.querySelector("canvas");
@@ -21812,14 +21979,25 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
       } while (c.attentes.size || machines.some((m) => m.monde?.preroule));
       for (const bo of bornes) bo.cadre = new T.Box3().setFromObject(bo.groupe).expandByScalar(3);
       if (meuble) meuble.cadre = new T.Box3().setFromObject(meuble.groupe).expandByScalar(3);
-      try {
-        rendu.compile(scene, camera);
-        image_(0);
-      } catch (e) {
-        console.warn("casino : pr\xE9compilation", e);
-      }
+      await rendu.compileAsync(scene, camera);
+      if (!ouvert || chargement !== c) return false;
+      const textures = /* @__PURE__ */ new Set(), voir = (t) => {
+        if (t?.isTexture && !t.isRenderTargetTexture) textures.add(t);
+      };
+      scene.traverse((o2) => {
+        for (const m of [o2.material].flat()) if (m) {
+          Object.values(m).forEach(voir);
+          for (const u of Object.values(m.uniforms || {})) {
+            if (Array.isArray(u.value)) u.value.forEach(voir);
+            else voir(u.value);
+          }
+        }
+      });
+      for (const t of textures) rendu.initTexture(t);
+      image_(0);
       await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
-      if (!ouvert) return false;
+      if (!ouvert || chargement !== c) return false;
+      qualite.grace = performance.now() + window.__pcvCharge.QUALITE.grace;
       c.pret = true;
       c.ms = Math.round(performance.now() - c.debut);
       racine.querySelector(".voile").classList.remove("noir");
@@ -21901,6 +22079,7 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
     coffre = null;
     meuble = null;
     retour = null;
+    for (const bo of bornes) defaireRepos(bo);
     for (const m of machines) {
       m.monde = null;
       m.jeu = null;
@@ -22200,6 +22379,13 @@ if (window.__pcvCasinoPhysique?.version !== "417cd8e3405c") {
       ST: (s_, t, y = 0) => ST(s_, t, y).toArray(),
       // profilage (skill threejs-debug-profiler : couper un poste à la fois) : rendu final, anticrénelage, ombre, lumières
       reglage: (o = {}) => {
+        if ("repos" in o) {
+          opts.repos = o.repos;
+          for (const bo of bornes) {
+            defaireRepos(bo);
+            bo.repos = null;
+          }
+        }
         if ("post" in o) {
           post = o.post ? preparerPost() : null;
           taillePost();

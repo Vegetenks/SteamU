@@ -1,6 +1,6 @@
 (() => {
   window.__pcvHomeFin?.();
-  const { O, principale, devant, esc, flouSuspendre, ico, pastille, etat, bouton, ecran } = window.__pcvPE, d = document;
+  const { O, principale, devant, esc, flouSuspendre, brute, apresEntree, floue, ico, pastille, etat, bouton, ecran } = window.__pcvPE, d = document;
   const B = window.__pcvBridge;
   const T = (k, f, vars) => {
     try {
@@ -10,29 +10,51 @@
     }
   };
   const PLACE_VIDE = "manette-inconnue";
-  const APPLIS = [
-    ["aller:accueil", T("spaces.accueil.nom", "Accueil"), "accueil", "#5fd0ff, #1a9ae6"],
-    ["aller:bibliotheque", T("spaces.bibliotheque.nom", "Biblioth\xE8que"), "bibliotheque", "bibliotheque"],
-    ["appli:eshop", T("spaces.boutique.nom", "Boutique"), "boutique", "eshop"],
-    ["amis", T("spaces.amis.nom", "Amis"), "amis", "#5fe39a, #22a85f"],
-    ["notifs", T("spaces.notifs.nom", "Notifications"), "notifications", "#ff7a7e, #e5484d"],
-    ["appli:album", T("home.captures", "Captures"), "album", "album"],
-    ["aller:telechargements", T("home.telechargements", "T\xE9l\xE9chargements"), "telechargements", "var(--pcv-c-telech-clair), var(--pcv-c-telech)"],
-    ["aller:parametres", T("spaces.parametres.nom", "Param\xE8tres"), "parametres", "parametres"]
-  ];
+  const H = window.__pcvHomeIcones;
+  const applis = () => {
+    const m = H.lire();
+    return H.rangee(m).map((a) => {
+      const s = H.SYSTEME.find((x) => x[0] === a);
+      if (s) return [a, T(s[1], ""), s[2], s[3], s[4]];
+      const g = m.greffons[H.route(a)], c = H.couleur(g);
+      return [a, g.nom, g.svg || "prise", c + ", " + c];
+    });
+  };
+  let APPLIS = applis();
+  const icones = () => APPLIS.map(([a, n, p, , dessin], i) => `<div class="icone entre" style="--d:${(0.22 + i * 0.03).toFixed(2)}s" data-a="${esc(a)}">${window.__pcvIcones.relief(p, "var(--pcv-email-bas)", dessin)}<span class="nom">${esc(n)}</span></div>`).join("");
   const fondDe = (f) => {
     let F = {};
     try {
       F = principale().m_BrowserWindow.__pcvApplis || {};
     } catch (x) {
     }
-    return (/^(#|var)/.test(f) ? f : F[f]?.fond || "#c5cdd8, #8b9098").split(/,(?![^(]*\))/);
+    return H.fond(f, F);
   };
   const peindreFonds = () => e.racine.querySelectorAll(".icone").forEach((el, i) => {
     const [haut, bas] = fondDe(APPLIS[i][3]);
     el.style.setProperty("--pcv-email-haut", haut);
     el.style.setProperty("--pcv-email-bas", bas);
   });
+  const ajuster = () => {
+    const l = [...e.racine.querySelectorAll(".icones .icone")].filter((x) => getComputedStyle(x).display !== "none");
+    e.$(".icones").classList.toggle("serre", l.length > 9);
+    const noms = l.map((x) => x.querySelector(".nom"));
+    noms.forEach((n) => window.__pcvTenirMot(n));
+    const t = Math.min(...noms.map((n) => parseFloat(getComputedStyle(n).fontSize)));
+    noms.forEach((n) => {
+      n.style.fontSize = t + "px";
+    });
+  };
+  const son = (g) => {
+    try {
+      principale().m_BrowserWindow.__pcvSon?.(g);
+    } catch (x) {
+    }
+  };
+  const rangerIcone = (el) => el.matches(".icones .icone") && { verbe: T("touche.deplacer", "D\xE9placer"), poser: (ordre) => {
+    H.rangement(ordre, 0).poser();
+    APPLIS = applis();
+  } };
   const html = `<div class="pilule verre moi entre" style="--d:.15s" data-a="amis"><span class="photo"></span><div><b class="pseudo"></b><small>\u25CF ${T("home.en_ligne", "En ligne")}</small></div></div>
     <div class="pilule verre titre entre" style="--d:.15s">${ico("accueil")}${T("home.titre_menu", "Menu HOME")}</div>${etat()}
     <div class="jeu verre entre"><div class="instantane"><div class="enpause">${ico("pause")}${T("home.en_pause", "En pause")}</div><div class="logo"></div></div>
@@ -45,7 +67,7 @@
     <div class="aucun"><p class="entre" style="--d:.06s">${T("home.aucun_jeu", "Aucun jeu en cours.")}</p><div class="choix-h">
       ${bouton("aller:accueil", "", 0.1, "var(--c-accueil)", "accueil", T("home.accueil", "Accueil"))}
       ${bouton("mode-emploi", "", 0.14, "var(--c-param)", "aide", `<div>${T("home.mode_emploi", "Mode d'emploi")}<small>${T("home.mode_emploi.aide", "l'aide de SteamU")}</small></div>`)}</div></div>
-    <div class="icones">${APPLIS.map(([a, n, p, f], i) => `<div class="icone entre" style="--d:${(0.22 + i * 0.03).toFixed(2)}s" data-a="${a}">${window.__pcvIcones.relief(p, "var(--pcv-email-bas)")}${n}</div>`).join("")}</div>
+    <div class="icones">${icones()}</div><p class="rangement pcv-aide-rangement" hidden></p>
     <div class="bas-g"><div class="pilule verre alim entre" style="--d:.46s" data-a="aller:alimentation">${pastille("alimentation")}${T("home.alimentation", "Alimentation")}</div>
       <div class="joueurs entre" style="--d:.46s" data-a="manettes">${[1, 2, 3, 4].map((n) => `<span class="joueur vide"><b>${n}</b>${ico(PLACE_VIDE)}<i></i></span>`).join("")}</div></div>
     <div class="voile fermer" hidden><div class="fenetre verre pcv-fenetre"><span class="pastille grosse">${ico("sortie")}</span><h2></h2><p>${T("home.fermer_perte", "Les donn\xE9es non sauvegard\xE9es seront perdues.")}</p>
@@ -115,7 +137,7 @@
     e.$(".fermer h2").textContent = T("home.fermer_titre", "Fermer {nom} ?", { nom: p.nom });
     e.$(".logo").innerHTML = p.html;
     d.documentElement.style.removeProperty("--pcv-home-logo");
-    d.documentElement.style.setProperty("--pcv-home-image", `linear-gradient(160deg, ${p.fond})`);
+    vignetteImage(`linear-gradient(160deg, ${p.fond})`);
   };
   let appVue = null;
   const peindreJeu = (a) => {
@@ -131,49 +153,48 @@
     poserImage("--pcv-home-logo", [...perso("GetCustomLogoImageURLs", a), IMG(a.appid, "logo.png"), CDN(a.appid, "logo.png")], LOGO_MAX);
   };
   const LOGO_MAX = 640;
-  const PAUSE_VUE = "pcv-pause-games-vu";
-  const aidePause = () => T("home.pause_games.aide", "Ton jeu continue derri\xE8re ce menu. Pour le mettre vraiment en pause, installe Pause Games.");
-  const proposerPause = (a) => {
-    const badge = e.$(".enpause"), manque = !!a && !O.__pcvPgLa?.();
-    let premiere2 = false;
-    if (manque) {
-      try {
-        const stockage = principale().m_BrowserWindow.localStorage;
-        premiere2 = !stockage.getItem(PAUSE_VUE);
-        if (premiere2) stockage.setItem(PAUSE_VUE, "true");
-      } catch (x) {
-      }
-    }
-    e.racine.classList.toggle("sans-pause", manque);
-    badge.classList.toggle("premiere-pause", premiere2);
-    if (manque) badge.dataset.a = "pause-games";
-    else delete badge.dataset.a;
-    badge.innerHTML = manque ? `${ico("info")}<span>${T("home.pause_games.continue", "Le jeu continue")}</span><div class="bulle">${esc(aidePause())}</div>` : `${ico("pause")}${T("home.en_pause", "En pause")}`;
+  const etatPause = (gele) => {
+    const a = jeu();
+    e.racine.classList.toggle("continue", gele === false);
+    e.$(".enpause").innerHTML = gele === null ? "" : gele === false ? `${ico("lecture")}${T("home.continue", "Le jeu continue")}` : `${ico("pause")}${T("home.en_pause", "En pause")}`;
+    e.racine.classList.toggle("sans-y", !O.__pcvPauseActive?.());
+    e.$(".pause-txt").textContent = a && O.__pcvPauseJamais?.(a.appid) ? T("home.pause_mettre", "Mettre en pause") : T("home.pause_laisser", "Laisser tourner");
   };
-  const SEUIL_IPS = 55, PALIERS_IPS = [30, 15], ATTENTE_DIRECT_MS = 2e3;
+  const basculerPause = async () => {
+    const a = jeu();
+    if (!a || !O.__pcvPauseActive?.() || e.racine.querySelector(".voile:not([hidden])")) return;
+    const libre = !O.__pcvPauseJamais(a.appid);
+    O.__pcvPauseExempter(a.appid, libre);
+    son("choisir");
+    etatPause(null);
+    if (!libre) {
+      couper();
+      return figer(a.appid);
+    }
+    await O.__pcvJeuReprendre?.(true);
+    fige(false);
+    etatPause(false);
+    enDirect(a);
+  };
+  const SEUIL_IPS = 55, SEUIL_EFFONDRE = 20, PALIERS_IPS = [30, 15, 8, 4], ATTENTE_DIRECT_MS = 2e3, EN_VOL = 2;
   let direct = null, directs = 0;
   const apercu = (m, ...a) => B.callPlugin(window.__pcvGreffon.nom, m, ...a).catch(() => null);
   const garder = (im) => {
-    if (!im?.naturalWidth || !menuOuvert()) return;
-    const c = d.createElement("canvas");
-    c.width = im.naturalWidth;
-    c.height = im.naturalHeight;
-    c.getContext("2d").drawImage(im, 0, 0);
-    image = { w: c.width, h: c.height };
-    c.toBlob((b) => b && d.documentElement.style.setProperty("--pcv-home-image", `url(${JSON.stringify(URL.createObjectURL(b))})`), "image/jpeg", 0.9);
+    if (!im?.vu || !menuOuvert()) return;
+    image = { w: im.width, h: im.height };
+    im.toBlob((b) => b && d.documentElement.style.setProperty("--pcv-home-image", `url(${JSON.stringify(URL.createObjectURL(b))})`), "image/jpeg", 0.9);
+  };
+  const etatApercu = (x) => {
+    const w = window.opener || window;
+    w.__pcvHomeApercuEtat = { ...w.__pcvHomeApercuEtat, ...x, t: Date.now() };
   };
   const couper = () => {
     directs++;
+    etatApercu({ direct: false });
     e.racine.classList.remove("en-direct");
     garder(direct);
-    if (direct) apercu("apercu_fin", direct.src);
     direct = null;
-    d.querySelectorAll("img.direct").forEach(lacher);
-  };
-  const lacher = (im) => {
-    im.onerror = null;
-    im.removeAttribute("src");
-    im.remove();
+    d.querySelectorAll("canvas.direct").forEach((x) => x.remove());
   };
   const noire = (im) => {
     const c = d.createElement("canvas");
@@ -183,32 +204,54 @@
     x.drawImage(im, 0, 0, 16, 9);
     return x.getImageData(0, 0, 16, 9).data.every((v, i) => i % 4 === 3 || v < 4);
   };
-  const enDirect = async (a, palier = 0) => {
-    if (!palier) couper();
-    const n = ++directs, u = await apercu("apercu", a.appid, PALIERS_IPS[palier]);
+  const enDirect = async (a) => {
+    couper();
+    if (econome()) return;
+    const n = ++directs, u = await apercu("apercu");
+    if (u) O.__pcvApercu ||= u.replace(/\/direct$/, "");
+    await apresEntree();
     if (n !== directs || !u || !menuOuvert() || e.racine.classList.contains("fige")) {
-      if (u) apercu("apercu_fin", u);
       if (n === directs) couper();
       return;
     }
-    const im = direct = Object.assign(d.createElement("img"), { className: "direct", crossOrigin: "anonymous", onerror: couper, src: u });
+    const im = direct = Object.assign(d.createElement("canvas"), { className: "direct" });
     e.$(".instantane").prepend(im);
+    const r = e.$(".instantane").getBoundingClientRect(), cible = { w: Math.round(r.width * devicePixelRatio) || 730, h: Math.round(r.height * devicePixelRatio) || 410 };
+    let palier = 0, demandes = 0, peinte = 0;
+    for (let v = 0; v < EN_VOL; v++) (async () => {
+      while (n === directs) {
+        const t = performance.now(), m = ++demandes;
+        try {
+          if (await brute(`${u}?l=${cible.w}`, im, () => n === directs && m > peinte && (peinte = m), cible)) im.vu = true;
+        } catch (x) {
+          if (n === directs) couper();
+          return;
+        }
+        await new Promise((ok) => setTimeout(ok, EN_VOL * 1e3 / PALIERS_IPS[palier] - (performance.now() - t)));
+      }
+    })();
     const t0 = performance.now();
     let vu = false, juge = false, lent = 0, t1 = 0, k = 0;
     const veiller = (t) => {
       if (n !== directs) return;
       if (!vu) {
-        if (im.naturalWidth) {
+        if (im.vu) {
           if (noire(im)) return couper();
           vu = true;
           t1 = t;
-          d.querySelectorAll("img.direct").forEach((x) => x !== im && lacher(x));
           e.racine.classList.add("en-direct");
+          d.querySelectorAll(".instantane canvas.brute:not(.flou)").forEach((x) => x.remove());
         } else if (t - t0 > ATTENTE_DIRECT_MS) return couper();
       } else if (++k, t - t1 >= 1e3) {
-        lent = juge && k * 1e3 / (t - t1) < SEUIL_IPS ? lent + 1 : 0;
-        if (lent >= 2) return palier + 1 < PALIERS_IPS.length ? enDirect(a, palier + 1) : couper();
-        juge = true;
+        const ips = k * 1e3 / (t - t1);
+        etatApercu({ direct: true, ips: Math.round(ips), palier, vise: PALIERS_IPS[palier], econome: eco });
+        lent = juge && ips < (palier < PALIERS_IPS.length - 1 ? SEUIL_IPS : SEUIL_EFFONDRE) ? lent + 1 : 0;
+        if (lent >= (palier === PALIERS_IPS.length - 1 ? 2 : 1)) {
+          if (palier === PALIERS_IPS.length - 1) return couper();
+          palier++;
+          lent = 0;
+          juge = false;
+        } else juge = true;
         t1 = t;
         k = 0;
       }
@@ -219,45 +262,103 @@
   const vignette = (a) => {
     const n = ++vignettes;
     image = null;
-    const vieille = O.__pcvPhotoJeu?.appid === a.appid ? O.__pcvPhotoJeu.net : null;
-    if (vieille) d.documentElement.style.setProperty("--pcv-home-image", `url(${JSON.stringify(vieille)})`);
-    else d.documentElement.style.removeProperty("--pcv-home-image");
+    eco = econome();
+    if (econome()) {
+      heros(a);
+      e.entrer();
+      return Promise.resolve();
+    }
+    const ancienne = O.__pcvPhotoJeu?.appid === a.appid ? O.__pcvPhotoJeu : null, vieille = ancienne?.net;
+    vignetteImage(vieille && `url(${JSON.stringify(vieille)})`, ancienne?.flou);
+    d.querySelectorAll(".instantane canvas.brute").forEach((x) => x.remove());
+    const poser = (p) => {
+      if (n === vignettes && p.net) vignetteImage(`url(${JSON.stringify(p.net)})`, p.flou);
+    };
     return e.fondJeu(true).then((p) => {
       if (!p) throw 0;
-      if (n === vignettes) {
-        d.documentElement.style.setProperty("--pcv-home-image", `url(${JSON.stringify(p.net)})`);
-        retrecir(p.net);
+      if (n !== vignettes) return;
+      if (!p.pret) {
+        poser(p);
+        return retrecir(p.net);
       }
+      if (!p.toile) return p.pret.then(() => {
+        if (!p.net) throw 0;
+        poser(p);
+        retrecir(p.net);
+      });
+      const fl = Object.assign(floue(p.toile), { className: "brute flou" });
+      p.toile.className = "brute";
+      e.$(".instantane").append(fl, p.toile);
+      retrecir(p.toile);
+      p.pret.then(() => {
+        if (!p.net) return;
+        const j = new Image();
+        j.src = p.net;
+        return j.decode().catch(() => {
+        }).then(() => {
+          poser(p);
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            for (const x of [fl, p.toile]) if (x.classList.contains("brute")) x.remove();
+          }));
+        });
+      });
     }).catch(() => {
       if (n !== vignettes) return;
       image = null;
-      if (!vieille && !devant()) poserImage("--pcv-home-image", [...perso("GetCustomHeroImageURLs", a), IMG(a.appid, "library_hero.jpg"), CDN(a.appid, "library_hero.jpg")]);
+      if (!vieille && !devant()) heros(a);
       e.entrer();
     });
   };
+  const heros = (a) => {
+    vignetteImage();
+    poserImage("--pcv-home-image", [...perso("GetCustomHeroImageURLs", a), IMG(a.appid, "library_hero.jpg"), CDN(a.appid, "library_hero.jpg")]);
+  };
+  const vignetteImage = (image2, flou2) => {
+    const s = d.documentElement.style;
+    if (image2) s.setProperty("--pcv-home-image", image2);
+    else s.removeProperty("--pcv-home-image");
+    if (flou2) {
+      s.setProperty("--pcv-home-flou", `url(${JSON.stringify(flou2)})`);
+      s.setProperty("--pcv-home-taille", "contain");
+    } else {
+      s.removeProperty("--pcv-home-flou");
+      s.removeProperty("--pcv-home-taille");
+    }
+  };
   let vignettes = 0, image = null;
+  const econome = () => !!window.__pcvModes?.coupe("apercus");
+  let eco = false;
+  const surModes = () => {
+    const a = jeu();
+    if (!menuOuvert() || !a || eco === econome()) return;
+    eco = econome();
+    couper();
+    vignette(a).then(() => {
+      if (!eco && !e.racine.classList.contains("fige")) enDirect(a);
+    });
+  };
+  addEventListener("pcv-modes", surModes);
   const menuOuvert = () => B.menuState() === 1;
   const fige = (oui) => e.racine.classList.toggle("fige", oui);
   const figer = async (appid) => {
-    const pg = O.__pcvPg;
+    let gele = false;
     try {
-      if (!pg) return;
       if (!menuOuvert()) return;
-      if (((await pg("load_settings"))?.noAutoPauseSet || []).includes(Number(appid))) return;
-      if (await O.__pcvAMprisActif?.(appid)) return;
-      const pid = await apercu("pid_jeu", appid);
+      const pid = await O.__pcvPidJeu(appid);
       if (!pid) return;
-      if (O.__pcvHomePid === pid || await pg("is_paused", pid)) {
+      if (O.__pcvHomePid === pid || await O.__pcvJeuFige(pid)) {
         O.__pcvHomePid = pid;
-        fige(true);
-        return;
+        return void (gele = true);
       }
+      if (!O.__pcvPauseActive() || O.__pcvPauseJamais(appid) || await O.__pcvAMprisActif?.(appid)) return;
       if (d.visibilityState !== "visible" || !menuOuvert()) return;
       await O.__pcvPauser(pid).catch(() => {
       });
-      fige(!!await pg("is_paused", pid));
+      gele = !!await O.__pcvJeuFige(pid);
     } catch (x) {
     } finally {
+      fige(gele);
+      if (menuOuvert()) etatPause(gele);
       if (d.visibilityState !== "visible" || !menuOuvert()) relacher();
     }
   };
@@ -322,32 +423,36 @@
     return Math.min(1, Math.max(FONDU_FIN, (g.W / (couvre * ecran2) * SURECHELLE_MAX - g.w) / (g.W - g.w)));
   };
   let attenteEntree = 0;
-  const retrecir = (url) => {
+  const retrecir = (src) => {
     const attend = e.racine.classList.contains("attente");
     if (attend) clearTimeout(attenteEntree);
-    const im = new Image();
-    im.onload = im.onerror = () => {
-      image = { w: im.naturalWidth, h: im.naturalHeight };
+    const poser = (iw, ih) => {
+      image = { w: iw, h: ih };
       if (!attend || !e.racine.classList.contains("attente")) return;
       try {
-        const { x, y, w, h: ht, W: W2, H } = placerZoom(), z = scene.firstChild, i = z.firstChild, sx = W2 / w, sy = H / ht, k = w / W2, dy = (ht - H * k) / 2;
-        i.style.backgroundImage = `url(${JSON.stringify(url)})`;
+        const { x, y, w, h: ht, W: W2, H: H2 } = placerZoom(), z = scene.firstChild, i = z.firstChild, sx = W2 / w, sy = H2 / ht, k = w / W2, dy = (ht - H2 * k) / 2;
+        const copies = src.getContext ? [Object.assign(floue(src), { className: "direct flou" }), Object.assign(d.createElement("canvas"), { className: "direct", width: iw, height: ih })] : [];
+        copies[1]?.getContext("2d").drawImage(src, 0, 0);
+        i.append(...copies);
         scene.style.opacity = 1;
         const o = { duration: ZOOM_MS, easing: "cubic-bezier(.3,.9,.3,1)", fill: "forwards" };
         const a = z.animate([{ transform: `translate(${-x}px, ${-y}px) scale(${sx}, ${sy})`, borderRadius: "0" }, { transform: "none", borderRadius: "30px" }], o);
         zooms.push(a, i.animate([{ transform: `scale(${1 / sx}, ${1 / sy})` }, { transform: `translateY(${dy}px) scale(${k})` }], o));
-        const p = nette({ w, W: W2, H });
-        if (p < 1) zooms.push(scene.animate([{ opacity: 0 }, { opacity: 0, offset: 1 - p }, { opacity: 1, offset: Math.min(1, 1.2 - p) }, { opacity: 1 }], { ...o, fill: "none" }));
+        const p = Math.min(FONDU_FIN, nette({ w, W: W2, H: H2 }));
+        zooms.push(scene.animate([{ opacity: 0 }, { opacity: 0, offset: 1 - p }, { opacity: 1, offset: Math.min(1, 1.2 - p) }, { opacity: 1 }], { ...o, fill: "none" }));
+        const ranger = () => copies.forEach((c) => c.remove());
         a.finished.then(() => {
           scene.style.opacity = 0;
-          i.style.removeProperty("background-image");
-        }, () => {
-        });
+          ranger();
+        }, ranger);
       } catch (x) {
       }
       e.entrer();
     };
-    im.src = url;
+    if (src.getContext) return poser(src.width, src.height);
+    const im = new Image();
+    im.onload = im.onerror = () => poser(im.naturalWidth, im.naturalHeight);
+    im.src = src;
   };
   let sortie = 0;
   const agrandirPuisReprendre = () => {
@@ -360,10 +465,19 @@
     try {
       if (!e.racine.classList.contains("en-jeu")) return;
       flou(false);
-      const { x, y, w, h: ht, W: W2, H } = placerZoom(), z = scene.firstChild, i = z.firstChild, sx = W2 / w, sy = H / ht, k = w / W2, dy = (ht - H * k) / 2;
+      const { x, y, w, h: ht, W: W2, H: H2 } = placerZoom(), z = scene.firstChild, i = z.firstChild, sx = W2 / w, sy = H2 / ht, k = w / W2, dy = (ht - H2 * k) / 2;
       const o = { duration: ZOOM_MS, easing: "cubic-bezier(.45,0,.2,1)", fill: "forwards" };
-      const vive = direct && e.racine.classList.contains("en-direct"), p = nette({ w, W: W2, H }, vive ? { w: direct.naturalWidth, h: direct.naturalHeight } : image);
+      const vive = direct && e.racine.classList.contains("en-direct"), b = !vive && e.$(".instantane canvas.brute"), p = nette({ w, W: W2, H: H2 }, vive ? { w: direct.width, h: direct.height } : image);
       if (vive && p > 0) i.appendChild(direct);
+      else if (b && p > 0) {
+        const fl = e.$(".instantane canvas.brute.flou");
+        if (fl) {
+          fl.className = "direct flou";
+          i.appendChild(fl);
+        }
+        b.className = "direct";
+        i.appendChild(b);
+      }
       scene.style.opacity = 1;
       scene.style.setProperty("--pcv-jeu-flou", e.racine.style.getPropertyValue("--pcv-jeu-flou") || "var(--pcv-home-image)");
       scene.classList.add("reprise");
@@ -375,7 +489,7 @@
         z.animate([{ transform: "none", borderRadius: "30px" }, { transform: `translate(${-x}px, ${-y}px) scale(${sx}, ${sy})`, borderRadius: "0" }], o),
         i.animate([{ transform: `translateY(${dy}px) scale(${k})` }, { transform: `scale(${1 / sx}, ${1 / sy})` }], o)
       );
-      if (p < 1) zooms.push(scene.animate([{ opacity: 1 }, { opacity: 1, offset: p }, { opacity: 0 }], o));
+      zooms.push(scene.animate([{ opacity: 1 }, { opacity: 1, offset: Math.min(p, FONDU_FIN) }, { opacity: 0 }], o));
       e.racine.classList.add("sortie");
     } catch (x) {
     }
@@ -410,13 +524,17 @@
       return;
     }
     try {
-      const pid = await O.__pcvPg?.("pid_from_appid", a.appid);
-      if (pid && await O.__pcvPg("is_paused", pid)) O.__pcvHomePid = pid;
+      const pid = await O.__pcvPidJeu(a.appid);
+      if (pid && await O.__pcvJeuFige(pid)) O.__pcvHomePid = pid;
     } catch (x) {
     }
     if (!await Promise.race([O.__pcvJeuReprendre?.() ?? true, new Promise((r) => setTimeout(() => r(false), 4e3))])) return e.bulle(T("home.jeu_bloque", "Le jeu ne r\xE9pond pas : il n'a pas pu \xEAtre repris pour \xEAtre ferm\xE9."));
     fermerMenu();
     B.closeApp(a.GetGameID?.() || a.m_gameid || String(a.appid));
+    try {
+      principale().m_BrowserWindow.__pcvFermerJeu?.(a.appid);
+    } catch (x) {
+    }
   };
   const peindreManettes = async () => {
     let l = [];
@@ -439,19 +557,22 @@
     // B ramène au jeu s'il était à l'écran ; sinon il referme le menu, on reste où l'on était (comme Steam)
     // (17/10) de la barre du haut (profil), ▼ va au premier bouton (Reprendre, ou Accueil s'il n'y a pas d'appli) : le
     // voisin géométrique, qui pénalise l'écart de côté, préférait l'icône Accueil, juste dessous, au large Reprendre
-    voisin: (f, dx, dy) => dy > 0 && f.matches(".moi") ? [...e.racine.querySelectorAll(".reprendre, .aucun .bouton")].find((x) => x.offsetWidth) || void 0 : void 0,
+    // (11/11, l'auteur) ▼ depuis Accueil : l'icône la plus à gauche ; depuis Mode d'emploi : la plus à droite (pas Téléchargements, sous lui)
+    touche: (b) => {
+      if (b === 4) basculerPause();
+    },
+    ranger: rangerIcone,
+    voisin: (f, dx, dy) => {
+      if (!(dy > 0)) return void 0;
+      if (f.matches(".moi")) return [...e.racine.querySelectorAll(".reprendre, .aucun .bouton")].find((x) => x.offsetWidth) || void 0;
+      if (!f.matches(".aucun .bouton")) return void 0;
+      const ic = [...e.racine.querySelectorAll(".icones .icone")].filter((x) => x.offsetWidth), b = [...e.racine.querySelectorAll(".aucun .bouton")];
+      return (b.indexOf(f) === 0 ? ic[0] : ic.at(-1)) || void 0;
+    },
     legende: () => devant() && T("home.retour_jeu", "Retour au jeu"),
     retour: () => devant() ? agrandirPuisReprendre() : fermerMenu(),
     agir: (k, v) => {
-      if (k === "pause-games") {
-        O.__pcvAller?.("accueil");
-        return setTimeout(() => {
-          try {
-            principale().m_BrowserWindow.__pcvBoutique?.ouvrirPlugin("Pause Games");
-          } catch (x) {
-          }
-        }, 400);
-      }
+      if (k === "pause") return basculerPause();
       if (k === "reprendre") return agrandirPuisReprendre();
       if (k === "appli") {
         if (appli()?.cle === v) return fermerMenu();
@@ -471,18 +592,25 @@
         }
       }
       if (k === "aller") return O.__pcvAller?.(v);
+      if (k === "greffon") {
+        if (!B.lanceurs[v]) return O.__pcvAller?.(v);
+        fermerMenu();
+        return setTimeout(() => B.ouvrirLanceur(v), 300);
+      }
       if (k === "mode-emploi") {
         fermerMenu();
         return setTimeout(() => {
           try {
-            principale().m_BrowserWindow.__pcvSteamU?.ouvrir();
+            principale().m_BrowserWindow.__pcvBienvenue?.guide();
           } catch (x) {
           }
         }, 300);
       }
       if (k === "manettes") {
-        fermerMenu();
-        return B.navigate("Controller");
+        const p = principale().m_BrowserWindow.__pcvManettes;
+        if (p) p.ouvrir();
+        else B.navigate("Controller");
+        return fermerMenu();
       }
       if (k === "controleur") {
         B.controllerConfig(jeu().appid);
@@ -507,6 +635,11 @@
     },
     // (hors jeu, le fond est l'accueil derrière, photographié et flouté comme le jeu : menus-commun.js, fondJeu)
     ouvrir: () => {
+      const l = applis();
+      if (JSON.stringify(l) !== JSON.stringify(APPLIS)) {
+        APPLIS = l;
+        e.$(".icones").innerHTML = icones();
+      }
       remettre();
       peindreFonds();
       peindreManettes();
@@ -514,7 +647,9 @@
       e.racine.classList.toggle("en-jeu", !!a);
       e.racine.classList.toggle("en-appli", !!p);
       fige(false);
-      proposerPause(a);
+      etatPause(null);
+      ajuster();
+      requestAnimationFrame(ajuster);
       if (p) {
         peindreAppli(p);
         e.fondJeu();
@@ -535,7 +670,7 @@
     // repeint juste après la première image (menus-commun.js)
     differer: () => !jeu() && !appli() && !e.racine.matches(".en-jeu, .en-appli, .sortie"),
     attendre: () => {
-      if (!jeu() || !devant()) return false;
+      if (!jeu() || !devant() || econome()) return false;
       clearTimeout(attenteEntree);
       attenteEntree = setTimeout(() => e.entrer(), 900);
       return true;
@@ -550,9 +685,13 @@
       flou(true);
     }
   });
+  e.racine.querySelector('.legende [data-a="retour"]').insertAdjacentHTML("beforebegin", `<div class="pilule verre pause-leg" data-a="pause"><span class="tch" data-t="4">${window.__pcvIcones?.touche?.(4) || ""}</span><span class="pause-txt"></span></div>`);
   e.demarrer();
+  addEventListener("resize", ajuster);
   window.__pcvHomeFin = () => {
     clearTimeout(sortie);
+    removeEventListener("pcv-modes", surModes);
+    removeEventListener("resize", ajuster);
     couper();
     scene.remove();
     e.fin();

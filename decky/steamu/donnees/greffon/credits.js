@@ -34,7 +34,23 @@ window.__pcvCredits = {
     { "nom": "FFmpeg", "ico": "livre", "auteurs": "FFmpeg developers", "licence": "LGPL 2.1", "lien": "ffmpeg.org" },
     { "nom": "jsQR", "ico": "livre", "auteurs": "cozmo", "licence": "Apache 2.0", "lien": "github.com/cozmo/jsQR" },
     { "nom": "jeepney", "ico": "livre", "auteurs": "Thomas Kluyver", "licence": "MIT", "lien": "gitlab.com/takluyver/jeepney" },
-    { "nom": "websocket-client", "ico": "livre", "auteurs": "engn33r", "licence": "Apache 2.0", "lien": "github.com/websocket-client/websocket-client" }
+    { "nom": "websocket-client", "ico": "livre", "auteurs": "engn33r", "licence": "Apache 2.0", "lien": "github.com/websocket-client/websocket-client" },
+    {
+      "nom": "Tabler Icons",
+      "ico": "livre",
+      "auteurs": "Pawe\u0142 Kuna",
+      "licence": "MIT",
+      "lien": "github.com/tabler/tabler-icons",
+      "detail": "Version 3.51.0 : device-airpods, device-airpods-case, headset et wind, les \xE9couteurs de MagicPods dans l'acc\xE8s rapide (greffon/icones.js), \xE0 notre \xE9paisseur de trait ; licence fournie dans greffon/vendor/tabler-icons-LICENSE.txt."
+    },
+    {
+      "nom": "Fluent UI System Icons",
+      "ico": "livre",
+      "auteurs": "Microsoft",
+      "licence": "MIT",
+      "lien": "github.com/microsoft/fluentui-system-icons",
+      "detail": "Version 1.1.345 : surface_earbuds_20_regular, les \xE9couteurs intra ronds de MagicPods dans l'acc\xE8s rapide (greffon/icones.js), redessin\xE9s au trait ; licence fournie dans greffon/vendor/fluentui-system-icons-LICENSE.txt."
+    }
   ],
   "mii": [
     {
@@ -56,7 +72,6 @@ window.__pcvCredits = {
     }
   ],
   "communautes": [
-    { "nom": "Decky Plugins Explorer", "ico": "internet", "auteurs": "Safet Zahirovic", "lien": "safetzahirovic.github.io/decky-plugins-explorer/" },
     { "nom": "ThemePlaza", "ico": "internet", "lien": "themeplaza.art" },
     { "nom": "Themezer", "ico": "internet", "lien": "themezer.net" },
     { "nom": "InfiniMii", "ico": "internet", "lien": "infinimii.com" },
@@ -65,6 +80,23 @@ window.__pcvCredits = {
     { "nom": "lrcmux", "ico": "paroles", "cheznous": "credits.lrclib.cheznous", "lien": "lrcmux.dev" }
   ],
   "divers": [
+    {
+      "nom": "The Soundtrack Of Frutiger Aero 1 & 2",
+      "ico": "sons",
+      "auteurs": "temcandoanything",
+      "cheznous": "credits.musique.cheznous",
+      "licence": "CC BY 4.0 (creativecommons.org/licenses/by/4.0)",
+      "lien": "temcandoanything.bandcamp.com",
+      "detail": "Les musiques du pack SteamU (decky/steamu/donnees/sons-steamu/, SOURCES.md), avec l'accord \xE9crit de l'artiste (09/11/2026) : cr\xE9dit \xAB temcandoanything \xBB, licence CC BY 4.0. Morceaux modifi\xE9s par SteamU : dans chacun, l'effet sonore ajout\xE9 par-dessus la musique est retir\xE9 (d\xE9but ou fin raccourcis \xE0 la mesure, ou mesures coup\xE9es et raccord\xE9es par un fondu de 80 ms), volume \xE9galis\xE9 \xE0 -20 LUFS, encodage Ogg Vorbis ; le fond du d\xE9marrage est un extrait de 12 s de Our Promised Future \xE9tir\xE9 10 fois en nappe de 2 min. Le d\xE9tail fichier par fichier (morceau, album, positions des coupes) est dans SOURCES.md."
+    },
+    {
+      "nom": "credits.logos.nom",
+      "ico": "manette",
+      "cheznous": "credits.logos.marques",
+      "licence": "credits.logos.licence",
+      "lien": "github.com/simple-icons/simple-icons",
+      "detail": "SVG et sources par plateforme : greffon/logos-plateformes/SOURCES.md. Simple Icons, CC0 1.0 ; logotype 3DS de Steam ROM Manager, GPL-3.0 ; les droits de marque restent \xE0 leurs propri\xE9taires."
+    },
     {
       "nom": "Input Prompts",
       "ico": "manette",

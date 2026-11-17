@@ -84,8 +84,18 @@
     return c.total > 0 ? T("telech.quantite", { pct: p, fait: taille(c.fait), total: taille(c.total) }) : p;
   };
   const vitesseDe = (c) => c.pause || !(c.vitesse > 0) ? "" : T("telech.vitesse", { n: (c.vitesse / 1e6).toLocaleString(loc(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) });
-  const prevuDe = (x) => x.quand > 0 ? T("telech.prevu_a", { h: new Date(x.quand * 1e3).toLocaleTimeString(loc(), { hour: "numeric", ...new Date(x.quand * 1e3).getMinutes() ? { minute: "2-digit" } : {} }) }) : T("telech.prevue");
-  const avancement = (c) => `<div class="avance"><span class="bulle verre"><span class="pastille">${ico(c.pause ? "pause" : "horloge")}</span><span class="reste">${e(resteDe(c))}</span></span><span class="qte">${e(chiffresDe(c))}</span><span class="puce gris vit"${vitesseDe(c) ? "" : " hidden"}><i>${ico("telechargements")}</i><span>${e(vitesseDe(c))}</span></span></div>`;
+  const prevuDe = (x) => {
+    if (!(x.quand > 0)) return T("telech.prevue");
+    const maintenant = /* @__PURE__ */ new Date(), date = new Date(x.quand * 1e3);
+    if (!(date > maintenant)) return "";
+    const h = date.toLocaleTimeString(loc(), { hour: "numeric", ...date.getMinutes() ? { minute: "2-digit" } : {} });
+    const jour = new Date(date).setHours(0, 0, 0, 0), demain = new Date(maintenant);
+    if (jour === maintenant.setHours(0, 0, 0, 0)) return T("telech.prevu_a", { h });
+    demain.setDate(demain.getDate() + 1);
+    if (jour === demain.setHours(0, 0, 0, 0)) return T("telech.prevu_demain_a", { h });
+    return T("telech.prevu_jour_a", { jour: date.toLocaleDateString(loc(), { weekday: "long", day: "numeric" }), h });
+  };
+  const avancement = (c) => `<div class="avance"><span class="bulle verre pcv-pointe pcv-pointe-haut"><span class="pastille">${ico(c.pause ? "pause" : "horloge")}</span><span class="reste">${e(resteDe(c))}</span></span><span class="qte">${e(chiffresDe(c))}</span><span class="puce gris vit"${vitesseDe(c) ? "" : " hidden"}><i>${ico("telechargements")}</i><span>${e(vitesseDe(c))}</span></span></div>`;
   const decor = (appid) => {
     const x = etatDe(appid);
     if (!x) return "";
@@ -133,10 +143,16 @@
     ${DECOR("")}
     .legende-bas { position: absolute; right: ${u(28)}; bottom: ${u(16)}; left: ${u(28)}; }
     .titre { position: absolute; left: ${u(28)}; bottom: ${u(16)}; }
-    .titre small { margin-left: ${u(8)}; color: var(--pcv-texte2); }
     .titre svg { font-size: ${u(22)}; color: var(--pcv-cyan-plein); }
-    .etageres { position: absolute; left: ${u(40)}; right: 0; top: ${u(92)}; display: flex; flex-direction: column; gap: ${u(20)}; }
-    h3 { margin: 0 0 ${u(10)}; height: ${u(34)}; display: flex; align-items: center; gap: ${u(10)}; font-size: ${u(19)}; font-weight: 900; white-space: nowrap; }
+    
+    .etageres { position: absolute; left: calc(${u(40)} - var(--pcv-marge-ombre)); right: 0; top: calc(${u(90 + 48)} + var(--pcv-ecart-choix) - var(--pcv-marge-ombre));
+      bottom: calc(${u(16 + 40)} + var(--pcv-ecart-choix) - var(--pcv-marge-ombre)); display: flex; flex-direction: column; gap: var(--pcv-ecart-choix);
+      padding: var(--pcv-marge-ombre); scroll-padding: var(--pcv-marge-ombre); overflow: hidden auto; scrollbar-width: none; pointer-events: none;
+      -webkit-mask-image: var(--pcv-masque-marge); mask-image: var(--pcv-masque-marge); }
+    .etageres > * { flex: none; pointer-events: auto; }
+    .etageres h3 { margin: var(--pcv-intertitre-marge); } .etageres > section:first-child h3 { margin-top: 0; }
+    .etageres :is(.rang, .courant) { margin: calc(var(--u) * var(--g)) 0; }
+    h3 { margin: 0 0 ${u(10)}; height: ${u(34)}; display: flex; align-items: center; gap: var(--pcv-ecart-choix); font-size: ${u(19)}; font-weight: 900; white-space: nowrap; }
     h3 .pastille { width: ${u(34)}; height: ${u(34)}; font-size: ${u(18)}; }
     h3 > small { font-size: ${u(15)}; font-weight: 800; color: var(--pcv-texte2); }
     h3 .nom { margin-left: ${u(6)}; padding: ${u(5)} ${u(14)}; border-radius: ${u(14)}; background: var(--pcv-bulle); color: var(--pcv-sur-accent); font-size: ${u(15)}; font-weight: 900; }
@@ -146,7 +162,7 @@
     h2 { margin: 0; font-size: ${u(30)}; font-weight: 900; max-width: ${u(820)}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ligne { display: flex; gap: ${u(14)}; align-items: center; margin-top: ${u(6)}; }
     .bulle { position: relative; display: inline-flex; align-items: center; gap: ${u(10)}; padding: ${u(9)} ${u(18)} ${u(9)} ${u(9)}; border-radius: ${u(24)}; font-size: ${u(19)}; font-weight: 900; white-space: nowrap; }
-    .bulle::after { content: ""; position: absolute; top: ${u(-7)}; left: ${u(30)}; width: ${u(16)}; height: ${u(16)}; background: var(--pcv-carte); transform: rotate(45deg); border-radius: 3px; }
+    .bulle::after { top: ${u(-7)}; left: ${u(30)}; width: ${u(16)}; height: ${u(16)}; }   
     .bulle .pastille { position: relative; z-index: 1; width: ${u(36)}; height: ${u(36)}; font-size: ${u(19)}; }
     .bulle span { position: relative; z-index: 1; }
     .avance { display: flex; flex-wrap: wrap; align-items: center; gap: ${u(10)} ${u(16)}; }
@@ -157,14 +173,19 @@
     .puce i { width: ${u(28)}; height: ${u(28)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: ${u(15)}; color: var(--pcv-sur-accent); background: var(--pcv-cyan-plein); flex: none; }
     .puce.gris i { background: var(--pcv-touche-neutre); }
     
-    .pcv-pe { position: relative; width: auto; height: auto; overflow: visible; contain: none; z-index: auto; display: flex; gap: 20px; align-items: center; }
-    .pcv-pe .bouton, .pcv-pe .bouton.reprendre { flex: none; }   
-    .pcv-pe .bouton.reprendre svg[data-ico="pause"] { stroke-width: 3; }   
+    .pcv-pe { position: relative; width: auto; height: auto; overflow: visible; contain: none; z-index: auto; display: flex; gap: ${u(14)}; align-items: center; }
+    
+    .pcv-pe { --u: inherit; --reflet: var(--pcv-reflet); --ombre: var(--pcv-ombre); }
+    
+    .courant > .pcv-pe.droite { margin-left: auto; margin-right: ${u(56)}; }   
+    .ligne-g { font-size: ${u(17)}; font-weight: 800; color: var(--pcv-texte2); }
+    
+    .cel .im.nomme { overflow: hidden; }
+    .cel .im.nomme > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border-radius: inherit; z-index: 0; }
+    .cel .im.nomme:has(> img) > :is(b, svg) { visibility: hidden; }
     
     .cel.app .im.nomme > .pcv-dl-coin { bottom: auto; top: 6%; }
     .cel.app .im.nomme > .pcv-dl-coin svg { width: 100%; height: 100%; }
-    :host-context(body.pcv-barre-main) .pcv-pe .bouton.f { box-shadow: var(--reflet), var(--ombre); }
-    :host-context(body.pcv-barre-main) .pcv-pe .bouton.reprendre.f { box-shadow: var(--pcv-bombe), var(--curseur-ombre); }
     .vide { display: flex; align-items: center; gap: ${u(24)}; height: ${u(214)}; padding-left: ${u(4)}; }
     .vide > .pastille { width: ${u(110)}; height: ${u(110)}; font-size: ${u(52)}; }
     .vide h2 { margin: 0 0 ${u(8)}; font-size: ${u(28)}; }
@@ -190,19 +211,19 @@
       } catch (x) {
         return [];
       }
-    }).filter((r2) => /^\.pcv-(touche|legende|fenetre)\b/.test(r2.selectorText || ""));
+    }).filter((r2) => /^\.pcv-(touche|legende|fenetre|pointe|bouton-r)\b/.test(r2.selectorText || ""));
     const accueil = [...document.querySelector("#pcv-console > style")?.sheet?.cssRules || []].filter((r2) => /\.(cel|chem)\b/.test(r2.selectorText || "") && !/#pcv-console[.:[]/.test(r2.selectorText)).map((r2) => r2.cssText.replace(/body\.pcv-zone-jaquettes #pcv-console/g, ":host-context(body:not(.pcv-barre-main))").replace(/body:not\(\.pcv-zone-jaquettes\) #pcv-console/g, ":host-context(body.pcv-barre-main)").replace(/(html\[[^\]]*\]) #pcv-console/g, ":host-context($1)").replace(/#pcv-console/g, ":host"));
-    const biblio = [...document.getElementById("pcv-biblio-d")?.shadowRoot?.querySelector("style:not(.emprunt)")?.sheet?.cssRules || []].filter((r2) => /^\.cel\.app\b/.test(r2.selectorText || ""));
+    const biblio = [...document.getElementById("pcv-biblio-d")?.shadowRoot?.querySelectorAll("style:not(.emprunt)") || []].flatMap((f) => [...f.sheet?.cssRules || []]).filter((r2) => /^\.(?:cel\.app|onglets|og-l|og)\b/.test(r2.selectorText || ""));
     const home = [...document.styleSheets].flatMap((f) => {
       try {
         return [...f.cssRules];
       } catch (x) {
         return [];
       }
-    }).filter((r2) => /^(?:\.pcv-pe|#pcv-home)(?:$| \*$| svg\.ico$| \.(?:verre|pastille|f:not\(\.icone\))$| \.bouton\b)/.test(r2.selectorText || "")).map((r2) => r2.cssText.replace(/#pcv-home/g, ".pcv-pe"));
+    }).filter((r2) => /^(?:\.pcv-pe|#pcv-home)(?:$| \*$| svg\.ico$| \.(?:verre|pastille)$)/.test(r2.selectorText || "")).map((r2) => r2.cssText.replace(/#pcv-home/g, ".pcv-pe"));
     em.textContent = theme.map((r2) => r2.cssText).concat(accueil, biblio.map((r2) => r2.cssText), home).join("\n");
   };
-  const boutons = (l, k, cl = "") => `<div class="pcv-pe ${cl}" style="zoom:${(U * 800 / 1200).toFixed(4)}">` + l.map((b, j) => `<div class="bouton verre${b.principal ? " reprendre" : ""}${b.danger ? " quitter" : ""}${j === k ? " f" : ""}" data-a="${b.a}"><span class="pastille"${b.c ? ` style="color:${b.c}"` : ""}>${I.svg(b.ic, { classe: "ico" })}</span>${e(b.nom)}</div>`).join("") + `</div>`;
+  const boutons = (l, k, cl = "") => `<div class="pcv-pe ${cl}">` + l.map((b, j) => `<div class="bouton pcv-bouton-r blanc${j === k ? " f" : ""}" data-a="${b.a}">${e(b.nom)}</div>`).join("") + `</div>`;
   const coter = () => {
     U = innerHeight / 800;
     CS = Object.fromEntries(Object.entries(TUILES).map(([k, [c, g]]) => [k, Object.entries(window.__pcvJeux.cotes(c, g)).map(([n, v]) => `--${n}:${+(+v).toFixed(3)}`).join(";")]));
@@ -229,12 +250,125 @@
     derniereLegende = l;
     if (el) el.innerHTML = I.legende(window.__pcvLegendeDe(l));
   };
-  const btsDe = (x, page) => x === F.cours ? [
+  const btsDe = (x, page) => x?.unif ? [x === F.cours ? { a: "annuler", ic: "supprimer", nom: T("telech.annuler"), danger: true } : { a: "retirer", ic: "supprimer", nom: T("telech.retirer"), danger: true }] : x === F.cours ? [
     { a: "pause", ic: x.pause ? "lecture" : "pause", nom: T(x.pause ? "telech.reprendre" : "telech.pause"), principal: true },
     { a: "annuler", ic: "supprimer", nom: T("telech.annuler"), danger: true },
-    ...page ? [{ a: "reglages", ic: "reglages", nom: T("telech.reglages"), c: "var(--c-param)" }] : []
+    ...page ? [{ a: "reglages", ic: "reglages", nom: T("telech.reglages") }] : []
   ] : [{ a: "premier", ic: "telechargements", nom: T("telech.premier"), principal: true }, { a: "retirer", ic: "supprimer", nom: T("telech.retirer"), danger: true }];
-  let vue = false, casse = false, rangs = [], r = 0, i = 0, bt = 0;
+  const E = () => window.__pcvEshop;
+  const G = { maj: [], connus: /* @__PURE__ */ new Map(), file: [], cours: null, faits: [], echecs: [], total: 0, pause: false, actif: false };
+  const pDe = (nom) => G.connus.get(nom) || { nom, versions: [] };
+  const chargerG = async () => {
+    try {
+      G.maj = await E()?.majs(true) || [];
+    } catch (x) {
+      G.maj = [];
+    }
+    for (const p of G.maj) G.connus.set(p.nom, p);
+    if (vue) rendrePage();
+  };
+  const pctG = () => {
+    const o = E()?.operation?.();
+    return o?.nom === G.cours ? o.pct : null;
+  };
+  const derouler = async () => {
+    if (G.actif) return;
+    G.actif = true;
+    try {
+      while (G.file.length && !G.pause) {
+        G.cours = G.file.shift();
+        if (vue) rendrePage();
+        const r2 = await E().installer(G.cours).catch(() => ({ erreur: T("eshop.erreur") }));
+        if (r2?.ok) G.faits.unshift(G.cours);
+        else G.echecs.push({ nom: G.cours, erreur: r2?.erreur || T("eshop.erreur") });
+        window.__pcvSon?.(r2?.ok ? "choisir" : "bord");
+        G.cours = null;
+      }
+    } finally {
+      G.cours = null;
+      G.actif = false;
+      await chargerG();
+    }
+  };
+  const lancer = (l) => {
+    G.file = l.map((p) => p.nom);
+    G.total = G.file.length;
+    G.echecs = [];
+    G.pause = false;
+    if (G.file.length) derouler();
+  };
+  const toutMettreAJour = () => {
+    const l = G.maj.filter((p) => !G.echecs.some((x) => x.nom === p.nom)).concat(G.maj.filter((p) => G.echecs.some((x) => x.nom === p.nom)));
+    const roots = l.filter((p) => p.root), doubles = l.filter((p) => p.copies?.length > 1), noms = (x) => x.map((p) => p.nom).join(", ");
+    if (!roots.length && !doubles.length) return lancer(l);
+    const texte = [roots.length && T("telech.g_root_texte", { n: roots.length, noms: noms(roots) }), doubles.length && T("telech.g_doublons", { noms: noms(doubles) })].filter(Boolean).join(" ");
+    if (!window.__pcvDossiers?.demander?.({
+      titre: T(roots.length ? "telech.g_root_titre" : "telech.g_doublons_titre"),
+      texte,
+      non: T("eshop.annuler"),
+      oui: T("telech.g_tous"),
+      danger: true,
+      ailleurs: true,
+      ...roots.length && roots.length < l.length ? { autre: { texte: T("telech.g_sans_root"), ok: () => lancer(l.filter((p) => !p.root)) } } : {},
+      ok: () => lancer(l)
+    })) window.__pcvSon?.("bord");
+  };
+  const reessayer = () => {
+    const x = G.echecs.shift();
+    if (!x) return;
+    G.file = [x.nom];
+    G.total = 1;
+    G.pause = false;
+    derouler();
+  };
+  const versionsDe = (p) => p.versions?.[0]?.version && p.installee ? T("telech.g_versions", { de: p.installee, a: p.versions[0].version }) : p.installee || "";
+  const tuileG = (nom, taille2, attrs = "") => (E()?.tuile(pDe(nom), TUILES[taille2][0], attrs) || "").replace('class="cel"', 'class="cel app"');
+  const btsG = (cle2) => cle2 === "gcours" ? [{ a: "gpause", ic: G.pause ? "lecture" : "pause", nom: T(G.pause ? "telech.reprendre" : "telech.pause"), principal: true }] : cle2 === "gechec" ? [{ a: "greessayer", ic: "mise-a-jour", nom: T("telech.g_reessayer"), principal: true }] : cle2 === "gtete" ? [G.maj.length ? { a: "gtout", ic: "mise-a-jour", nom: T(G.file.length ? "telech.reprendre" : "telech.g_tout"), principal: true } : { a: "geshop", ic: "boutique", nom: T("telech.g_eshop"), principal: true }] : null;
+  const btsRang = (g) => g?.cle === "cours" ? btsDe(F.cours, true) : g?.cle === "vide" ? [{ a: "biblio", ic: "bibliotheque", nom: T("spaces.bibliotheque.nom"), principal: true }] : btsG(g?.cle);
+  const avanceG = () => {
+    const p = pctG(), n = G.total - G.file.length;
+    return `<div class="avance"><span class="bulle verre"><span class="pastille">${ico(G.pause ? "pause" : "mise-a-jour")}</span><span class="reste">${e(G.pause ? T("telech.g_pause_apres") : T("telech.g_rang", { n, total: G.total }))}</span></span><span class="qte">${e(p == null ? T("telech.en_cours") : T("telech.pct", { n: Math.round(p) }))}</span></div>`;
+  };
+  const decorG = (p) => `<i class="pcv-dl${G.pause ? " pause" : ""}" style="--pct:${Math.round(p || 0)}%"><b><i></i></b></i>`;
+  window.__pcvEshopSuivi = () => {
+    if (!vue || onglet !== "greffons" || !G.cours) return;
+    const p = pctG();
+    for (const b of pageEl.querySelectorAll(".pcv-dl")) b.style.setProperty("--pct", Math.round(p || 0) + "%");
+    for (const q of pageEl.querySelectorAll(".qte")) q.textContent = p == null ? T("telech.en_cours") : T("telech.pct", { n: Math.round(p) });
+  };
+  const rangsG = () => {
+    const suivre = G.actif || G.file.length ? G.file : G.maj.map((p) => p.nom).filter((n) => !G.echecs.some((x) => x.nom === n));
+    return [
+      G.cours ? { cle: "gcours", l: [G.cours] } : G.echecs.length ? { cle: "gechec", l: [G.echecs[0].nom] } : { cle: "gtete", l: [0] },
+      ...suivre.length ? [{ cle: "gsuivre", l: suivre }] : [],
+      ...G.faits.length ? [{ cle: "gtermine", l: G.faits }] : []
+    ];
+  };
+  const sectionG = (g, k, et2) => g.cle === "gtete" ? `<section class="vide" data-r="${k}"><span class="pastille">${ico(G.maj.length ? "mise-a-jour" : "coche")}</span><div><h2>${e(G.maj.length ? T("telech.g_n_maj", { n: G.maj.length }) : T("telech.g_a_jour"))}</h2><p>${e(T(G.maj.length ? "telech.g_aide" : "telech.g_a_jour_aide"))}</p>` + boutons(btsG("gtete"), 0) + `</div></section>` : g.cle === "gcours" ? et2(k, "mise-a-jour", T("telech.en_cours"), 0, `<div class="courant" style="${CS.grand}">${tuileG(G.cours, "grand", `data-k="${k}" data-j="0"`)}<div class="infos"><h2>${e(G.cours)}</h2>${avanceG()}<span class="ligne-g">${e(versionsDe(pDe(G.cours)))}</span></div>` + boutons(btsG("gcours"), -1, "droite") + `</div>`) : g.cle === "gechec" ? et2(k, "info", T("telech.g_echec_titre"), 0, `<div class="courant" style="${CS.grand}">${tuileG(G.echecs[0].nom, "grand", `data-k="${k}" data-j="0"`)}<div class="infos"><h2>${e(T("telech.g_echec", { nom: G.echecs[0].nom }))}</h2><span class="ligne-g">${e(G.echecs[0].erreur)}</span>` + (G.faits.length ? `<span class="ligne-g">${e(T("telech.g_bilan", { n: G.faits.length, total: G.faits.length + G.echecs.length }))}</span>` : "") + `</div>` + boutons(btsG("gechec"), -1, "droite") + `</div>`) : et2(
+    k,
+    g.cle === "gsuivre" ? "horloge" : "coche",
+    T(g.cle === "gtermine" ? "telech.termine" : G.actif || G.file.length ? "telech.a_suivre" : "telech.g_a_mettre"),
+    g.cle === "gsuivre" ? g.l.length : 0,
+    `<div class="rang" style="${CS.rang}">` + g.l.map((nom, j) => tuileG(nom, "rang", `data-k="${k}" data-j="${j}"`)).join("") + `</div>`
+  );
+  const ongletsHtml = () => `<div class="onglets"><div class="og-l">${[["jeux", "telech.o_jeux", (F.cours ? 1 : 0) + F.suivants.length], ["greffons", "telech.o_greffons", G.cours ? G.file.length + 1 : G.maj.length]].map(([o, k, n]) => `<button class="og verre${o === onglet ? " on" : ""}" data-o="${o}">${e(T(k))}${n ? ` <small>${n}</small>` : ""}</button>`).join("")}</div></div>`;
+  const changerOnglet = (o) => {
+    if (o === onglet) return;
+    onglet = o;
+    r = i = bt = 0;
+    decal.clear();
+    window.__pcvSon?.("bouge");
+    if (o === "greffons") chargerG();
+    rendrePage();
+  };
+  window.__pcvTelechOnglet = (o) => {
+    onglet = o;
+    r = i = bt = 0;
+    decal.clear();
+    if (o === "greffons") chargerG();
+    if (vue) rendrePage();
+  };
+  let vue = false, casse = false, rangs = [], r = 0, i = 0, bt = 0, onglet = "jeux";
   const pas = () => TUILES.rang[0] + TUILES.rang[1], parEcran = () => Math.max(1, Math.floor((innerWidth / U - 80) / pas()));
   const decaler = (r2, d) => {
     decal.set(rangs[r2].cle, d);
@@ -242,49 +376,59 @@
     if (rg) rg.style.transform = d ? `translateX(calc(var(--u) * ${-d * pas()}))` : "";
   };
   const decal = /* @__PURE__ */ new Map();
-  const nomDe = (id) => appDe(id)?.display_name || "";
+  const nomDe = (id) => typeof id === "string" ? id : appDe(id)?.display_name || "";
+  const et = (k, ic, titre, n, corps) => `<section data-r="${k}"><h3><span class="pastille">${ico(ic)}</span>${e(titre)}${n ? `<small>${n}</small>` : ""}</h3>${corps}</section>`;
   const rendrePage = () => {
     const c = F.cours, choisi = rangs[r]?.l[i];
-    rangs = [
-      ...c ? [{ cle: "cours", l: [c.appid] }] : [],
-      ...F.suivants.length ? [{ cle: "suivants", l: F.suivants.map((x) => x.appid) }] : [],
-      ...F.termines.length ? [{ cle: "termines", l: F.termines }] : []
-    ];
-    if (!c && !F.suivants.length) rangs.unshift({ cle: "vide", l: [0] });
-    r = Math.max(0, rangs.findIndex((g) => g.l.includes(choisi)));
-    i = Math.max(0, rangs[r].l.indexOf(choisi));
-    const et = (k, ic, titre, n, corps) => `<section data-r="${k}"><h3><span class="pastille">${ico(ic)}</span>${e(titre)}${n ? `<small>${n}</small>` : ""}</h3>${corps}</section>`;
-    pageEl.innerHTML = `<div class="etageres">` + rangs.map((g, k) => g.cle === "vide" ? `<section class="vide" data-r="${k}"><span class="pastille">${ico("telechargements")}</span><div><h2>${e(T("telech.rien"))}</h2><p>${e(T("telech.rien_aide"))}</p>` + boutons([{ a: "biblio", ic: "bibliotheque", nom: T("spaces.bibliotheque.nom"), principal: true }], 0) + `</div></section>` : g.cle === "cours" ? et(k, "telechargements", T("telech.en_cours"), 0, `<div class="courant" style="${CS.grand}">${tuile(c.appid, "grand", `data-k="${k}" data-j="0"`)}<div class="infos"><h2>${e(nomDe(c.appid))}</h2>${avancement(c)}` + boutons(btsDe(c, true), -1, "ligne") + `</div></div>`) : et(
+    if (onglet === "greffons") rangs = rangsG();
+    else {
+      rangs = [
+        ...c ? [{ cle: "cours", l: [c.appid] }] : [],
+        ...F.suivants.length ? [{ cle: "suivants", l: F.suivants.map((x) => x.appid) }] : [],
+        ...F.termines.length ? [{ cle: "termines", l: F.termines }] : []
+      ];
+      if (!c && !F.suivants.length) rangs.unshift({ cle: "vide", l: [0] });
+    }
+    const enHaut = onglet === "greffons" && r === 0;
+    r = enHaut ? 0 : Math.max(0, rangs.findIndex((g) => g.l.includes(choisi)));
+    i = enHaut ? 0 : Math.max(0, rangs[r].l.indexOf(choisi));
+    bt = Math.min(bt, (btsRang(rangs[r])?.length || 1) - 1);
+    pageEl.innerHTML = ongletsHtml() + `<div class="etageres">` + rangs.map((g, k) => onglet === "greffons" ? sectionG(g, k, et) : g.cle === "vide" ? `<section class="vide" data-r="${k}"><span class="pastille">${ico("telechargements")}</span><div><h2>${e(T("telech.rien"))}</h2><p>${e(T("telech.rien_aide"))}</p>` + boutons(btsRang(g), 0) + `</div></section>` : g.cle === "cours" ? et(k, "telechargements", T("telech.en_cours"), 0, `<div class="courant" style="${CS.grand}">${tuile(c.appid, "grand", `data-k="${k}" data-j="0"`)}<div class="infos"><h2>${e(nomDe(c.appid))}</h2>${avancement(c)}` + boutons(btsDe(c, true), -1, "ligne") + `</div></div>`) : et(
       k,
       g.cle === "suivants" ? "horloge" : "manette",
       T(g.cle === "suivants" ? "telech.a_suivre" : "telech.termine"),
       g.cle === "suivants" ? g.l.length : 0,
       `<div class="rang" style="${CS.rang}">` + g.l.map((id, j) => tuile(id, "rang", `data-k="${k}" data-j="${j}"`)).join("") + `</div>`
-    )).join("") + `</div><div class="titre pcv-legende"><span>${ico("telechargements")}${e(T("barre.telechargements"))}${F.suivants.length ? `<small>${e(T("telech.n_suivre", { n: F.suivants.length }))}</small>` : ""}</span></div><div class="legende-bas pcv-legende"></div>`;
+    )).join("") + `</div><div class="titre pcv-legende"><span>${ico("telechargements")}${e(T("barre.telechargements"))}${onglet === "jeux" && F.suivants.length ? `<small>${e(T("telech.n_suivre", { n: F.suivants.length }))}</small>` : ""}</span></div><div class="legende-bas pcv-legende"></div>`;
+    if (onglet === "greffons") {
+      if (G.cours) pageEl.querySelector('[data-r="0"] .im')?.insertAdjacentHTML("afterbegin", decorG(pctG()));
+      (imagesG ||= window.__pcvPresentation?.images({ racine, ombre, charger: (url) => E().image(url), resoudre: (nom) => E()?.resoudre(nom) }))?.observer();
+    }
     peindre(pageEl);
     marquer();
   };
+  let imagesG = null;
   const marquer = () => {
     const g = rangs[r];
     if (!g) return;
+    const bts = btsRang(g);
+    bt = Math.max(0, Math.min(bt, (bts?.length || 1) - 1));
     for (const x2 of pageEl.querySelectorAll(".sel, .f")) x2.classList.remove("sel", "f");
     for (const x2 of pageEl.querySelectorAll("h3 .nom")) x2.remove();
     const s = pageEl.querySelector(`[data-k="${r}"][data-j="${i}"]`);
     s?.classList.add("sel");
-    if (g.cle === "vide" || g.cle === "cours") pageEl.querySelectorAll(`[data-r="${r}"] .bouton`)[g.cle === "cours" ? bt : 0]?.classList.add("f");
+    if (bts) pageEl.querySelectorAll(`[data-r="${r}"] .bouton`)[bt]?.classList.add("f");
     const x = g.cle === "suivants" ? F.suivants[i] : null;
-    if (g.cle === "suivants" || g.cle === "termines") {
-      pageEl.querySelector(`[data-r="${r}"] h3`)?.insertAdjacentHTML("beforeend", `<span class="nom">${e(nomDe(g.l[i]))}</span>` + (x?.etat === "prevu" ? `<span class="puce nom"><i>${ico("calendrier")}</i>${e(prevuDe(x))}</span>` : ""));
+    if (!bts) {
+      pageEl.querySelector(`[data-r="${r}"] h3`)?.insertAdjacentHTML("beforeend", `<span class="nom">${e(nomDe(g.l[i]))}</span>` + (x?.etat === "prevu" && prevuDe(x) ? `<span class="puce nom"><i>${ico("calendrier")}</i>${e(prevuDe(x))}</span>` : ""));
       const n = parEcran();
       let d = decal.get(g.cle) || 0;
       d = Math.max(Math.min(d, i), i - n + 1);
       decaler(r, d);
     }
-    legende([
-      [1, g.cle === "vide" ? T("spaces.bibliotheque.nom") : g.cle === "cours" ? btsDe(F.cours, true)[bt].nom : x ? T("telech.premier") : T("biblio.jouer")],
-      ...g.cle === "vide" ? [] : [[3, g.cle === "termines" ? T("console.page_jeu") : T("biblio.options")]],
-      [2, T("biblio.retour")]
-    ]);
+    pageEl.querySelector(`[data-r="${r}"]`)?.scrollIntoView({ block: "nearest" });
+    const og = [[5, 6], T("touche.onglets")];
+    legende(bts ? [[1, bts[bt].nom], ...g.cle === "cours" ? [[3, T("biblio.options")]] : [], og, [2, T("biblio.retour")]] : onglet === "greffons" ? [[1, T("telech.voir")], og, [2, T("biblio.retour")]] : [[1, x ? T(x.unif ? "telech.retirer" : "telech.premier") : T("biblio.jouer")], [3, g.cle === "termines" ? T("console.page_jeu") : T("biblio.options")], og, [2, T("biblio.retour")]]);
   };
   const confirmer = (a, appid) => {
     const nom = nomDe(appid), oui = T(a === "annuler" ? "telech.annuler" : "telech.retirer");
@@ -295,17 +439,21 @@
       oui,
       ok: () => {
         window.__pcvSon?.("choisir");
-        a === "annuler" ? B.telech.retirer(F.cours?.appid) : B.telech.retirer(appid);
+        retirer(a === "annuler" ? F.cours?.appid : appid);
       },
       ailleurs: true
     })) window.__pcvSon?.("bord");
+  };
+  const retirer = (appid) => {
+    const x = etatDe(appid);
+    x?.unif ? window.__pcvTelechUnif?.annuler(x) : B.telech.retirer(appid);
   };
   const options = (g, appid) => {
     const el = pageEl.querySelector(".cel.sel") || pageEl;
     const l = [
       g.cle === "cours" && { ic: "suppr", nom: T("telech.annuler"), faire: () => confirmer("annuler", appid) },
       g.cle === "suivants" && { ic: "suppr", nom: T("telech.retirer"), faire: () => confirmer("retirer", appid) },
-      { ic: "reglages", svg: I.trace("reglages"), nom: T("telech.reglages"), faire: () => agir("reglages") }
+      !etatDe(appid)?.unif && { ic: "reglages", svg: I.trace("reglages"), nom: T("telech.reglages"), faire: () => agir("reglages") }
     ].filter(Boolean);
     if (!window.__pcvDossiers?.choix(-1, l, { pres: el, ailleurs: true })) agir("reglages");
   };
@@ -320,16 +468,31 @@
     else if (a === "jouer") {
       const j = appDe(appid);
       if (j) window.__pcvJeux.jouer(j, pageEl.querySelector(".cel.sel"));
-    }
+    } else if (a === "gpause") {
+      G.pause = !G.pause;
+      if (!G.pause) derouler();
+      rendrePage();
+    } else if (a === "gtout") {
+      if (G.file.length) {
+        G.pause = false;
+        derouler();
+      } else toutMettreAJour();
+    } else if (a === "greessayer") reessayer();
+    else if (a === "geshop" || a === "gvoir") E()?.ouvrir(a === "gvoir" ? appid : null);
   };
   const agirPage = (b) => {
     const g = rangs[r];
     if (!g) return;
+    if (onglet === "greffons") {
+      if (b !== 1) return window.__pcvSon?.("bord");
+      const l = btsG(g.cle);
+      return agir(l ? l[bt].a : "gvoir", g.l[i]);
+    }
     if (b === 3 && g.cle !== "vide") return g.cle === "termines" ? window.__pcvPageJeu?.(g.l[i], null, "telechargements") || window.__pcvJeux?.ouvrir?.(g.l[i]) : options(g, g.l[i]);
     if (b !== 1) return window.__pcvSon?.("bord");
     if (g.cle === "vide") return agir("biblio");
-    if (g.cle === "cours") return agir(btsDe(F.cours, true)[bt].a, g.l[i]);
-    if (g.cle === "suivants") return agir("premier", g.l[i]);
+    if (g.cle === "cours") return agir(btsRang(g)[bt].a, g.l[i]);
+    if (g.cle === "suivants") return agir(etatDe(g.l[i])?.unif ? "retirer" : "premier", g.l[i]);
     agir("jouer", g.l[i]);
   };
   let fen = null, fbt = 0;
@@ -338,11 +501,11 @@
     if (!x) return fermerFen();
     const c = x === F.cours, avant = c ? F.suivants : [F.cours, ...F.suivants.slice(0, F.suivants.indexOf(x))].filter(Boolean);
     const n = F.suivants.filter((y) => y.etat === "file").indexOf(x) + 1 + (F.cours ? 1 : 0);
-    const rang = x.etat === "prevu" ? `<span class="puce"><i>${ico("calendrier")}</i>${e(prevuDe(x))}</span>` : x.etat === "pause" ? `<span class="puce gris"><i>${ico("pause")}</i>${e(T("telech.arretee"))}</span>` : `<span class="puce"><i>${ico("horloge")}</i>${e(n === 1 ? T("telech.rang1") : T("telech.rang", { n }))}</span>`;
+    const rang = x.etat === "prevu" ? prevuDe(x) && `<span class="puce"><i>${ico("calendrier")}</i>${e(prevuDe(x))}</span>` : x.etat === "pause" ? `<span class="puce gris"><i>${ico("pause")}</i>${e(T("telech.arretee"))}</span>` : `<span class="puce"><i>${ico("horloge")}</i>${e(n === 1 ? T("telech.rang1") : T("telech.rang", { n }))}</span>`;
     const l = btsDe(x, false);
     fenEl.innerHTML = `<div class="voile"></div><div class="fen pcv-fenetre"><div class="haut-f" style="${CS.fen}">${tuile(fen, "fen")}<div class="infos"><h2>${e(nomDe(fen))}</h2>` + (c ? avancement(x) : rang + `<span class="puce gris"><i>${ico("telechargements")}</i>${e(T(x.maj ? "telech.maj" : "telech.installation"))}</span>`) + `</div></div>` + boutons(l, fbt, "boutons") + (avant.length ? `<div class="suite"><h3><span class="pastille">${ico("horloge")}</span>${e(T(c ? "telech.ensuite" : "telech.avant_lui"))}<small>${avant.length}</small></h3><div class="rang" style="${CS.mini}">${avant.slice(0, 8).map((z) => tuile(z.appid, "mini")).join("")}</div></div>` : "") + `</div><div class="legende-bas pcv-legende fen-leg"></div>`;
     peindre(fenEl);
-    legende([[1, l[fbt].nom], ...fbt ? [] : [[3, l[1].nom]], [2, T("biblio.retour")]]);
+    legende([[1, l[fbt].nom], ...fbt || !l[1] ? [] : [[3, l[1].nom]], [2, T("biblio.retour")]]);
   };
   const ouvrirFen = (appid) => {
     if (!etatDe(appid)) return false;
@@ -387,7 +550,7 @@
         rendreFen();
       }
     } else if (b === 1 || b === 3) {
-      const a = l[b === 3 ? 1 : fbt].a;
+      const a = l[b === 3 ? l.length - 1 : fbt].a;
       if (a !== "pause") fermerFen();
       agir(a, id);
     } else if (b === 2) fermerFen();
@@ -408,7 +571,13 @@
     else racine.__pcvSortie?.cancel();
   };
   const lire = () => {
-    const f = B.telech.file() || { cours: null, suivants: [], termines: [] }, J = window.__pcvJeux;
+    const f = B.telech.file() || { cours: null, suivants: [], termines: [] }, u2 = window.__pcvTelechUnif?.file(), J = window.__pcvJeux;
+    if (u2) {
+      if (!f.cours) f.cours = u2.cours;
+      else if (u2.cours) f.suivants.push({ ...u2.cours, etat: "file" });
+      f.suivants.push(...u2.suivants);
+      f.termines = [.../* @__PURE__ */ new Set([...u2.termines, ...f.termines])].slice(0, 12);
+    }
     if (J) f.termines = f.termines.filter((id) => J.apps().has(id));
     return f;
   };
@@ -428,6 +597,7 @@
   };
   const maj = () => {
     F = lire();
+    window.__pcvTelechMaj?.();
     if (window.__pcvTelechBanc) window.__pcvTelechFactice = F.cours ? { pct: F.cours.pct, pause: F.cours.pause } : void 0;
     const k = JSON.stringify([F.cours?.appid, F.cours?.pause, F.suivants, F.termines]);
     if (k !== cle) {
@@ -470,10 +640,12 @@
   const abonner = () => {
     try {
       window.__pcvTelechAbo?.unregister();
+      window.__pcvTelechUnifAbo?.unregister();
     } catch (x) {
     }
     cle = "";
     window.__pcvTelechAbo = B.telech.abonner(changer);
+    window.__pcvTelechUnifAbo = window.__pcvTelechUnif?.abonner(changer);
   };
   let banc = false;
   try {
@@ -497,6 +669,7 @@
     if (oui === vue) return;
     vue = oui;
     if (oui) try {
+      window.__pcvTelechUnif?.relancer();
       emprunter();
       coter();
       decal.clear();
@@ -504,6 +677,7 @@
       pageEl.hidden = false;
       window.__pcvFond?.($("#pcv-telech-fond"));
       rendrePage();
+      chargerG();
     } catch (x) {
       console.error("t\xE9l\xE9chargements SteamU : repli sur la page de Steam", x);
       casse = true;
@@ -550,9 +724,14 @@
     } else if (b === 10) {
       if (r >= rangs.length - 1) return true;
       r++;
-    } else if ((b === 11 || b === 12) && g.cle === "cours") {
+    } else if (b === 5 || b === 6) {
+      const o = b === 5 ? "jeux" : "greffons";
+      if (o === onglet) window.__pcvSon?.("bord");
+      else changerOnglet(o);
+      return true;
+    } else if ((b === 11 || b === 12) && btsRang(g)) {
       const k = bt + (b === 12 ? 1 : -1);
-      if (k < 0 || k >= btsDe(F.cours, true).length) return true;
+      if (k < 0 || k >= btsRang(g).length) return true;
       bt = k;
     } else if (b === 11) {
       if (i <= 0) return true;
@@ -574,7 +753,7 @@
   let glisse = null;
   ombre.addEventListener("pointerdown", (x) => {
     const k = +x.target.closest(".rang")?.closest("[data-r]")?.dataset.r, g = rangs[k];
-    glisse = g?.cle === "suivants" || g?.cle === "termines" ? { x: x.clientX, k, d0: decal.get(g.cle) || 0, bouge: false } : null;
+    glisse = g && !btsRang(g) ? { x: x.clientX, k, d0: decal.get(g.cle) || 0, bouge: false } : null;
   });
   ombre.addEventListener("pointermove", (x) => {
     const s = glisse;
@@ -598,6 +777,8 @@
       } else if (t.closest(".voile")) fermerFen();
       return;
     }
+    const o = t.closest("[data-o]");
+    if (o) return changerOnglet(o.dataset.o);
     const a = t.closest("[data-a]");
     if (a) return agir(a.dataset.a, F.cours?.appid);
     const c = t.closest("[data-k][data-j]");

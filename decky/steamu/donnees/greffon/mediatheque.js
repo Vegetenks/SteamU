@@ -227,7 +227,8 @@
     .visionneuse .fleche-v.g { left:${u(24)}; } .visionneuse .fleche-v.g svg { transform:scaleX(-1); } .visionneuse .fleche-v.d { right:${u(24)}; }`,
     // la porte : toutes les captures ; une étagère par jeu (sa jaquette, puis ses captures), du plus récent
     porte: () => ({ liste: toutes, titre: T("toutes"), nombre: T("nb", { n: toutes.length }), ouvrir: () => ouvrirGrille(toutes, T("toutes"), true) }),
-    avant: () => message() ? `<div class="message">${e(message())}</div>` : "",
+    chargement: () => chargement,
+    avant: () => message() ? `<div class="message" role="status">${chargement ? window.__pcvChargement.html() : ""}${e(message())}</div>` : "",
     etageres: () => jeux.map((j) => ({
       cle: j.id,
       titre: j.nom,

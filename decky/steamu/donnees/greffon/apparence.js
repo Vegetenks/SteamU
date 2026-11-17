@@ -110,9 +110,10 @@
   };
   let actuelle = null;
   let filmVoulu = null;
+  window.__pcvFilmSons = () => actuelle && film(actuelle);
   const film = (a, n = 6) => {
     filmVoulu = a;
-    appel("film_apparence", 5e3, a, Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)).then((r) => {
+    appel("film_apparence", 5e3, a, Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio), lire("pcv-sons-famille", "theme") === "steamu" ? "steamu" : "nintendo").then((r) => {
       if (r === null && n > 1 && filmVoulu === a) setTimeout(() => film(a, n - 1), 3e3);
     });
   };
@@ -137,7 +138,7 @@
       }
     } else changer();
   };
-  const evaluer = (fondu = true) => mettre(calculer(choix(), auto(), contexte()), fondu);
+  const evaluer = (fondu = true) => mettre(window.__pcvModes?.coupe?.("noir") ? "noir" : calculer(choix(), auto(), contexte()), fondu);
   let minute = 0;
   const tic = async () => {
     clearTimeout(minute);
@@ -147,8 +148,8 @@
         const e = await appel("economie");
         eco = typeof e === "boolean" ? e : null;
       }
-      evaluer();
     }
+    evaluer();
     minute = setTimeout(tic, 6e4 - Date.now() % 6e4 + 50);
   };
   const surTheme = (e) => {
@@ -156,6 +157,7 @@
     if (choix() === "auto") evaluer();
   };
   window.addEventListener("pcv-theme", surTheme);
+  window.addEventListener("pcv-modes", tic);
   const choisir = (c) => {
     ecrire("pcv-apparence", ["clair", "gris", "noir", "auto"].includes(c) ? c : "clair");
     tic();
@@ -169,6 +171,7 @@
   window.__pcvApparenceFin = () => {
     clearTimeout(minute);
     window.removeEventListener("pcv-theme", surTheme);
+    window.removeEventListener("pcv-modes", tic);
   };
   window.__pcvApparence = { actuelle: () => actuelle, choix, choisir, auto, regler, villes: () => villes, lieuParDefaut, soleilDuJour, calculer, soleil };
   evaluer(false);

@@ -13,13 +13,12 @@
       padding: calc(var(--u) * 10) calc(var(--u) * 14) calc(var(--u) * 10) calc(var(--u) * 10); border-radius: calc(var(--u) * 22);
       background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); color: var(--pcv-texte);
       font: 800 calc(var(--u) * 15) var(--pcv-police); white-space: nowrap; animation: pcvBulle .3s ease-out both; transform-origin: calc(var(--u) * 30) 0; }
-    #pcv-biblio .bulle::after { content: ""; position: absolute; top: calc(var(--u) * -8); left: calc(var(--u) * 34); width: calc(var(--u) * 18); height: calc(var(--u) * 18);
-      background: var(--pcv-carte); transform: rotate(45deg); border-radius: 3px; }
+    #pcv-biblio .bulle::after { top: calc(var(--u) * -8); left: calc(var(--u) * 34); width: calc(var(--u) * 18); height: calc(var(--u) * 18); }   
     #pcv-biblio .bulle img { position: relative; z-index: 1; width: calc(var(--u) * 38); height: calc(var(--u) * 38); border-radius: 50%; box-shadow: inset 0 -3px 0 rgba(0,0,0,.08); }
     #pcv-biblio .bulle span { position: relative; z-index: 1; }
     @keyframes pcvBulle { 0% { opacity: 0; transform: scale(.5); } 70% { opacity: 1; transform: scale(1.04); } 100% { transform: scale(1); } }
     #pcv-biblio [hidden] { display: none !important; }   
-  </style><div class="etiq" hidden></div><div class="bulle" hidden><img alt=""><span></span></div>`;
+  </style><div class="etiq" hidden></div><div class="bulle pcv-pointe pcv-pointe-haut" hidden><img alt=""><span></span></div>`;
   document.body.appendChild(racine);
   const etiq = racine.querySelector(".etiq"), bulle = racine.querySelector(".bulle");
   bulle.querySelector("img").src = AVATAR;
@@ -38,14 +37,7 @@
     const focus = /^\/routes\/library\/?$|^\/routes\/library\/(?:collection|tab)/.test(p) ? document.querySelector("._3vHkmRShhzwd67_MtEq8-n .gpfocus") : null;
     let menuOuvert = false;
     try {
-      const req = window.opener.__pcvReq ||= (() => {
-        let r2;
-        window.opener.webpackChunksteamui.push([[/* @__PURE__ */ Symbol("pcv")], {}, (q) => {
-          r2 = q;
-        }]);
-        return r2;
-      })();
-      menuOuvert = req(75380).SteamUIStore.WindowStore.GamepadUIMainWindowInstance.MenuStore.IsAnySideMenuVisible();
+      menuOuvert = window.opener.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.MenuStore.IsAnySideMenuVisible();
     } catch (e) {
     }
     const app = !menuOuvert && focus && !nouvelle() && appDe(focus);
@@ -564,6 +556,11 @@
       else jouer(g, m.$(".carrousel .cel.sel"));
     };
     const rubrique = () => rubriquesDe(m.fiche)[m.rubrique]?.[0] || "jouer";
+    const teteJeu = (g) => {
+      const s = estUnifideck(g.id) ? UF.etat(g) : null, ici = s ? s === "inst" : g.inst;
+      const etat = s === "dl" ? T2("telech.en_cours") : ici ? [T2("biblio.installe"), g.taille && taille(g.taille)].filter(Boolean).join(", ") : T2(loinDe(g) ? "biblio.pas_ici" : "biblio.pas_installe");
+      return tuile(g, 80, `style="${P.cotes(80)}"`) + `<span>${e(g.nom)}<small style="--k:${ici ? "var(--pcv-vert)" : "var(--pcv-texte2)"}">${e(etat)}</small></span>`;
+    };
     const rg = (ic, t, s, droite = "", f = null) => `<${f ? `button class="rg verre act" data-a="${m.action(f)}"` : `div class="rg verre"`} style="--k:${COULEURS[rubrique()]}"><span class="pastille">${ico(ic)}</span><div class="t"><b>${e(t)}</b>${s ? `<small>${e(s)}</small>` : ""}</div>${droite}</${f ? "button" : "div"}>`;
     const val = (t, cl = "") => `<span class="val ${cl}">${e(t)}</span>`;
     const inter = (oui) => `<span class="inter${oui ? "" : " non"}"></span>`;
@@ -572,8 +569,8 @@
       // la bannière (une capture du jeu, sinon son décor), le Mii et le temps de jeu, le gros A ; dessous les captures, ou
       // pour un jeu installé sur un autre PC seulement, l'installation ici
       jouer: (g) => {
-        const b = BOUTIQUE.get(g.id) || {}, caps = b.captures || [], loin = loinDe(g);
-        return `<div class="banniere" style="background-image:${fondCSS([b.banniere, ...window.__pcvJeux.hero(g.a)])}"></div><div class="sous-b"><div class="bulle-r"><img class="mii-r" src="${e(window.__pcvImageMoi?.() || "")}" alt=""><span><b>${e(duree2(g.min))}</b>${g.der ? `<small>${e(T2("biblio.der_le", { date: date2(g.der) }))}</small>` : ""}</span></div><button class="gros-r" data-jouer>${e(motJouer(g))}</button></div>` + (loin ? rg("telechargements", T2("biblio.installer_ici"), T2("biblio.sur_pc", { pc: loin.nom }), val(T2("biblio.installer")), () => window.__pcvJeux.installer(g.a)) : caps.length > 1 ? `<div class="tete-r">${e(T2("biblio.captures"))}<small>${e(T2("biblio.captures_s"))}</small></div><div class="caps">${caps.slice(1, 4).map((c) => `<img src="${e(c)}" alt="">`).join("")}</div>` : "");
+        const b = BOUTIQUE.get(g.id) || {}, caps = b.captures || [], loin = loinDe(g), heros = window.__pcvJeux.hero(g.a);
+        return `<div class="banniere" style="background-image:${fondCSS([...heros.filter((u) => u.includes("/customimages/")), b.banniere, ...heros])}"></div><div class="sous-b"><div class="bulle-r"><img class="mii-r" src="${e(window.__pcvImageMoi?.() || "")}" alt=""><span><b>${e(duree2(g.min))}</b>${g.der ? `<small>${e(T2("biblio.der_le", { date: date2(g.der) }))}</small>` : ""}</span></div><button class="pcv-bouton-r" data-a="${m.action(faireJouer)}">${e(motJouer(g))}</button></div>` + (loin ? rg("telechargements", T2("biblio.installer_ici"), T2("biblio.sur_pc", { pc: loin.nom }), val(T2("biblio.installer")), () => window.__pcvJeux.installer(g.a)) : caps.length > 1 ? `<div class="tete-r">${e(T2("biblio.captures"))}<small>${e(T2("biblio.captures_s"))}</small></div><div class="caps">${caps.slice(1, 4).map((c) => `<img src="${e(c)}" alt="">`).join("")}</div>` : "");
       },
       // l'image du jeu en fond, le résumé et les pastilles dans un verre
       infos: (g) => {
@@ -1144,7 +1141,7 @@
       },
       // (B : d'abord la recherche, puis les étagères)
       fiche: {
-        rubriques: (g) => rubriquesDe(g).map(([k, ic]) => [k, ic, k === "jouer" ? motJouer(g) : T2(NOMS[k]), COULEURS[k]]),
+        rubriques: (g) => rubriquesDe(g).map(([k, ic]) => [k, ic, k === "jouer" ? motJouer(g) : T2(NOMS[k]), COULEURS[k], k === "jouer" && teteJeu(g)]),
         contenu: (g, k) => CONTENUS[k || "jouer"](g),
         classe: (k) => RICHES.has(k) ? "riche" : "",
         touche: (b) => {
@@ -1170,7 +1167,7 @@
       },
       // A dit ce qu'il fera : Jouer, Installer (pas installé ici), Ouvrir (la porte), Tout voir ; X la page du jeu (Options)
       libelles: (m2) => {
-        if (m2.vue === "fiche") return { a: !m2.dedans && m2.rubrique === 0 ? motJouer(m2.fiche) : T2("biblio.choisir"), x: T2("jeu.plus_options") };
+        if (m2.vue === "fiche") return { a: m2.rubrique === 0 && (!m2.dedans || m2.sel === 0) ? motJouer(m2.fiche) : T2("biblio.choisir"), x: T2("jeu.plus_options") };
         const g = m2.vue === "grille" ? m2.lignes[m2.sel] : jeuIci();
         if (g) return { a: motA(g), x: T2("biblio.options") };
         return { a: m2.vue === "grille" ? motA({ inst: true }) : T2(m2.courant() === m2.porte ? "biblio.ouvrir" : "biblio.tout_voir"), x: m2.courant()?.dataset?.g?.startsWith("tout-") ? T2("biblio.options") : "" };
@@ -1190,10 +1187,6 @@
           else if (t.closest?.(".voile, [data-menu]")) fermerMenu();
           return !!(l || t.closest?.(".voile, [data-menu]"));
         }
-        if (t.closest?.(".gros-r[data-jouer]")) {
-          faireJouer();
-          return true;
-        }
         return false;
       },
       ferme: () => {
@@ -1202,6 +1195,10 @@
       }
     });
     const { racine: racine2 } = m;
+    window.removeEventListener("pcv-images-jeu", window.__pcvBiblioImages);
+    window.addEventListener("pcv-images-jeu", window.__pcvBiblioImages = ({ detail }) => {
+      if (m.fiche?.id === detail.id) m.rendreFiche();
+    });
     if (window.__pcvBiblioStart) window.removeEventListener("vgp_onbuttondown", window.__pcvBiblioStart, true);
     const remettre = () => {
       if (!m.fiche) return;
@@ -1228,7 +1225,7 @@
       } catch (x) {
         console.error("biblioth\xE8que SteamU : repli sur celle de Steam", x);
         casse = true;
-        racine2.hidden = true;
+        m.cacher();
       }
     };
     let attente = null;

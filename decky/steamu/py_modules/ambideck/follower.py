@@ -1,5 +1,6 @@
-# Repris tel quel d'Ambideck v1.1.0 (Michael Palma, licence MIT : voir __init__.py).
-"""While a game runs: capture → colour → lights. Re-sends every 2 s and retries a lost stream every 5 s."""
+# Modifications SteamU : plafond 5 Hz, fondu continu, arrêt sans relance après échec.
+# Repris d'Ambideck v1.1.0 (Michael Palma, licence MIT : voir __init__.py).
+"""While a game runs: capture → colour → lights. Re-sends every 2 s; a lost stream stops until the next game."""
 from __future__ import annotations
 
 import logging
@@ -31,21 +32,18 @@ def clean_settings(raw) -> dict:
 
 class Follower:
     RESEND_S = 2.0
-    RETRY_S = 5.0
-    MIN_GAP_S = 1.0 / 30
+    MIN_GAP_S = 1.0 / 5
     START_TIMEOUT_S = 10.0  # connected but never streaming: treat as lost
 
     def __init__(self, make_capture: Callable, lights, emit: Callable, clock: Callable[[], float] = time.monotonic):
         self._make_capture, self._lights, self._emit, self._clock = make_capture, lights, emit, clock
         self._lock = threading.Lock()  # settings and sends
-        self._life = threading.Lock()  # capture ownership: start/stop/reconnect
-        self._generation = 0  # bumped by stop(): a reconnect that finishes later sees it and backs out
+        self._life = threading.Lock()  # capture ownership: start/stop
         self._settings = dict(DEFAULTS)
         self._capture = None
         self._wanted = False
-        self._state = "stopped"  # stopped | connecting | following | waiting
+        self._state = "stopped"  # stopped | connecting | following
         self._lost = False
-        self._retry_at = 0.0
         self._connected_at = 0.0
         self._smoother = Smoother()
         self._dark = DarkGate()
@@ -60,62 +58,45 @@ class Follower:
     def update(self, settings) -> None:
         with self._lock:
             self._settings = clean_settings(settings)
-            hz = SPEEDS[self._settings["speed"]][1]
+            hz = min(5, SPEEDS[self._settings["speed"]][1])
         if self._capture is not None:
             self._capture.set_max_hz(hz)
 
     def start(self) -> None:
-        with self._life:
+        with self._life:  # keep teardown and startup exclusive, including slow pw-dump
             if self._wanted:
                 return
             self._wanted = True
-        self._connect()
+            self._lost = False
+            self._state = "connecting"
+            self._connected_at = self._clock()
+            hz = min(5, SPEEDS[self._settings["speed"]][1])
+            try:
+                self._capture = self._make_capture(self.on_frame, self.on_state, hz)
+                if not self._capture.start() or self._lost:
+                    raise RuntimeError("capture indisponible")
+            except Exception:
+                self._stop()
+                raise
 
     def stop(self) -> None:
         with self._life:
-            self._wanted = False
-            self._generation += 1
-            capture, self._capture = self._capture, None
-        if capture is not None:
-            capture.stop()
-        self._state = "stopped"
-        self._lost = False
-        self._smoother.reset()
-        self._dark.reset()
-        self._prev_level = None
-        self._last_leds = None
+            self._stop()
 
-    def _connect(self, due: float | None = None) -> None:
-        with self._life:
-            generation = self._generation
-        hz = SPEEDS[self._settings["speed"]][1]
-        capture = self._make_capture(self.on_frame, self.on_state, hz)
-        self._state = "connecting"
-        self._connected_at = self._clock()  # before start(): a tick during pw-dump must see a fresh timestamp
-        started = capture.start()  # runs pw-dump: slow enough for stop() to happen meanwhile
-        previous = None
-        with self._life:
-            current = self._wanted and generation == self._generation
-            if started and current:
-                previous, self._capture = self._capture, capture  # never drop a running capture unstopped
-                self._connected_at = self._clock()
-        if started and current:
-            if previous is not None:
-                previous.stop()
-            return
-        if started:
-            capture.stop()
-        if current:
-            self._to_waiting(due)
-
-    def _to_waiting(self, due: float | None = None) -> None:
-        """due: when the failed retry was scheduled, so retries stay RETRY_S apart however late the tick was."""
-        now = self._clock()
-        self._retry_at = now + self.RETRY_S if due is None else max(due + self.RETRY_S, now)
-        if self._state != "waiting":
-            self._state = "waiting"
-            log.info("[ambideck] waiting for gamescope's stream")
-            self._emit("follow_state", "waiting")
+    def _stop(self) -> None:
+        self._wanted = False
+        capture, self._capture = self._capture, None
+        try:
+            if capture is not None:
+                capture.stop()
+        finally:
+            self._state = "stopped"
+            self._lost = False
+            self._smoother.reset()
+            self._dark.reset()
+            self._prev_level = None
+            self._last_leds = None
+            self._last_sent = float("-inf")
 
     def on_state(self, state: str) -> None:  # PipeWire thread: never stop the capture here
         if state == "streaming" and self._state != "following":
@@ -124,15 +105,18 @@ class Follower:
             self._emit("follow_state", "following")
         elif state in ("error", "unconnected") and self._wanted:
             self._lost = True
+            self._emit("follow_state", "error")
 
     def on_frame(self, data: bytes, width: int, height: int, stride: int) -> None:  # PipeWire thread
-        if not self._wanted:
+        if not self._wanted or self._lost:
             return
         with self._lock:
             s = dict(self._settings)
+        now = self._clock()
+        if now - self._last_sent < self.MIN_GAP_S: return
         a = analyse(data, width, height, stride, s["layout"], s["boost"], s["brightness"])
         now = self._clock()
-        cut = is_cut(self._prev_level, a.frame_level)
+        cut = False
         self._prev_level = a.frame_level
         targets = a.targets
         if s["dark"] == "off":
@@ -162,13 +146,7 @@ class Follower:
         if self._state == "connecting" and now - self._connected_at >= self.START_TIMEOUT_S:
             self._lost = True
         if self._lost:
-            self._lost = False
-            with self._life:
-                capture, self._capture = self._capture, None
-            if capture is not None:
-                capture.stop()
-            self._to_waiting()
-        if self._state == "waiting" and now >= self._retry_at:
-            self._connect(due=self._retry_at)
+            self.stop()
+            raise RuntimeError("capture interrompue")
         if self._state == "following" and self._last_leds is not None and now - self._last_sent >= self.RESEND_S:
             self._send(self._last_leds, now, force=True)

@@ -1,4 +1,4 @@
-import base64, json, os, pathlib, re, shutil, sys, threading
+import base64, hashlib, json, os, pathlib, re, shutil, sys, threading
 import decky
 
 ICI = pathlib.Path(__file__).resolve().parent
@@ -14,7 +14,7 @@ BIENVENUE = "@bienvenue/"
 MII_DEFAUT = "@mii-defaut/"         
 MOTEUR = "mii/moteur/"               
 DISPOSITIONS_MAX = 8 * 1024 * 1024  
-LARGEUR_VIGNETTE = 728              
+FIGES = "pause-figes.json"          
 
 def pid_reaper(appid, proc="/proc"):
     trouves = []
@@ -27,7 +27,7 @@ def pid_reaper(appid, proc="/proc"):
         if a[0].endswith(b"/reaper") and b"SteamLaunch" in a[:3] and f"AppId={appid}".encode() in a[:4]: trouves.append((debut, int(d)))
     return max(trouves)[1] if trouves else 0
 
-def processus_du_jeu(pid, exiles_seuls=False):
+def processus_du_jeu(pid):
     import os
     enfants, porteurs = {}, set()
     try: marque = next((l.split(b"=", 1)[1] for l in open(f"/proc/{int(pid)}/environ", "rb").read().split(b"\0") if l.startswith(b"SteamGameId=")), None)
@@ -46,7 +46,61 @@ def processus_du_jeu(pid, exiles_seuls=False):
     dedans = set(descendance([int(pid)]))
     exiles = [p for p in porteurs if p not in dedans and p != int(pid)]
     exiles = set(exiles) | set(descendance(exiles))
-    return sorted(exiles) if exiles_seuls else sorted(dedans | exiles)
+    return sorted(dedans | exiles)
+
+def _debut(p):
+    try: return int(pathlib.Path(f"/proc/{p}/stat").read_text().rsplit(")", 1)[1].split()[19])
+    except Exception: return None
+
+def _lire_figes(registre):
+    try: return {int(k): v for k, v in json.loads(pathlib.Path(registre).read_text()).items()}
+    except Exception: return {}
+
+def _ecrire_figes(registre, figes):
+    try: pathlib.Path(registre).write_text(json.dumps(figes))
+    except Exception: pass
+
+def figer_jeu(pid, registre):
+    import signal
+    try: a = pathlib.Path(f"/proc/{int(pid)}/cmdline").read_bytes().split(b"\0")
+    except Exception: return 0
+    if int(pid) <= 1 or not (a[0].endswith(b"/reaper") and b"SteamLaunch" in a[:3]): return 0
+    l = [(p, _debut(p)) for p in processus_du_jeu(pid)]
+    figes = _lire_figes(registre); figes[int(pid)] = [[p, d] for p, d in l if d is not None]; _ecrire_figes(registre, figes)
+    n = 0
+    for p, d in l:
+        try: os.kill(p, signal.SIGSTOP); n += 1
+        except Exception: pass
+    return n
+
+def reprendre_jeu(pid, registre):
+    import signal
+    figes = _lire_figes(registre)
+    l = set(processus_du_jeu(pid) if int(pid) > 1 else []) | {p for p, d in figes.pop(int(pid), []) if _debut(p) == d}   
+    if figes or pathlib.Path(registre).exists(): _ecrire_figes(registre, figes)
+    n = 0
+    for p in l:
+        try: os.kill(p, signal.SIGCONT); n += 1
+        except Exception: pass
+    return n
+
+def jeu_fige(pid):
+    etats = []
+    for p in processus_du_jeu(pid):
+        try: etats.append(pathlib.Path(f"/proc/{p}/stat").read_text().rsplit(")", 1)[1].split()[0])
+        except Exception: pass
+    return bool(etats) and all(e in "tT" for e in etats)
+
+def degeler(registre):
+    import signal
+    n = 0
+    for l in _lire_figes(registre).values():
+        for p, d in l:
+            if _debut(p) != d: continue
+            try: os.kill(p, signal.SIGCONT); n += 1
+            except Exception: pass
+    pathlib.Path(registre).unlink(missing_ok=True)
+    return n
 
 def sortie_bornee(dernier=None, delai=1.5):
     import signal
@@ -68,6 +122,7 @@ class Plugin:
         import asyncio, moteur, reprise
         import paquet
         import reseau; reseau.borner_resolution()
+        if n := degeler(self._figes()): decky.logger.warning(f"SteamU : dégel de sécurité, {n} processus repris")
         try: decky.logger.info("SteamU : entrée Decky " + json.dumps(paquet.verifier(ICI)))
         except ValueError as e: decky.logger.error("SteamU : " + str(e))
         v = re.sub(r"^(\d+\.\d+\.\d+)\.\d+$", r"\1", json.loads((ICI / "package.json").read_text())["version"])   
@@ -79,6 +134,7 @@ class Plugin:
         except Exception as e: decky.logger.warning(f"reprise de l'ancien greffon manquée : {type(e).__name__}")
         moteur.secours = moteur.Secours(pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "secours.json")
         if moteur.secours.pause: decky.logger.warning(f"{moteur.NOM} : en pause ({moteur.secours.pause}), rien n'est posé")
+        moteur.FICHIER_CLASSES = pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "classes-introuvables.json"
         moteur.secours.au_plantage = lambda: threading.Thread(target=self._rapport_plantage, name="pcv-plantage", daemon=True).start()
         f = ICI / "donnees" / "outils" / "ffmpeg"
         if f.exists() and not shutil.which("ffmpeg"):
@@ -88,9 +144,18 @@ class Plugin:
         threading.Thread(target=self._poser_film, args=(self._film_apparence.read_text() if self._film_apparence.exists() else "clair",),
                          name="pcv-film", daemon=True).start()
         moteur.GREFFON_JS += ";window.__pcvGreffon.film = " + json.dumps(film_demarrage.NOTRE) + ";window.__pcvGreffon.image = " + json.dumps(film_demarrage.NOTRE_IMAGE) + ";window.__pcvGreffon.musique = " + json.dumps(film_demarrage.NOTRE_MUSIQUE)
+        reg = pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR)
+        self.guide_fichier = reg / "guide.json"
+        try:
+            decouverte = json.loads(self.guide_fichier.read_text())["attendu"] if self.guide_fichier.exists() else not (reg / "conflits.json").exists()
+            self.guide_fichier.write_text(json.dumps({"attendu": decouverte}))
+        except (OSError, ValueError, KeyError): decouverte = False
+        moteur.GREFFON_JS += ";window.__pcvGreffon.decouverte = " + json.dumps(bool(decouverte))
         self.fil = threading.Thread(target=moteur.boucle, args=(pathlib.Path(os.environ["PCV_DOSSIER"]), decky.logger.info), daemon=True)
         self.fil.start()
         decky.logger.info(f"{moteur.NOM} : moteur lancé")
+        try: self._eco().reprendre()
+        except Exception as e: decky.logger.warning(f"économie : reprise manquée ({type(e).__name__})")
         self.lumiere = None
         threading.Thread(target=self._led, name="pcv-led-attente", daemon=True).start()
         try:
@@ -105,8 +170,9 @@ class Plugin:
     async def themes_reglages(self, cle=None, valeur=None, effacer=False):
         import tempfile, math
         cles = {"pcv-musique", "pcv-volume-musique", "pcv-bruitages", "pcv-fond-anime",
-                "pcv-apparence", "pcv-sons-famille"}
+                "pcv-apparence", "pcv-sons-famille", "pcv-theme-alea", "pcv-musique-disque", "pcv-musique-alea"}
         def valide(k, v):
+            if k in ("pcv-themes-alea", "pcv-musiques-alea"): return type(v) is list and all(type(x) is str for x in v) and len(json.dumps(v)) <= 4096
             return k in cles and (type(v) in (bool, str, int) or type(v) is float and math.isfinite(v)) and len(json.dumps(v)) <= 128
         if cle is not None and not valide(cle, valeur): raise ValueError("réglage de thème invalide")
         dossier = pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR)
@@ -142,16 +208,17 @@ class Plugin:
 
     def _poser_film(self, choix):
         import film_demarrage
-        apparence, _, haut = choix.partition(" ")
+        apparence, haut, sons = (choix.split(" ") + ["", ""])[:3]
+        wiiu = pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "prive/sons/wiiu/demarrage/demarrage.ogg"
         try: film_demarrage.poser(ICI / "donnees", pathlib.Path(decky.DECKY_USER_HOME) / ".steam/steam/config/uioverrides/movies", apparence,
-                                  pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "prive/sons/wiiu/demarrage/demarrage.ogg",
+                                  wiiu if sons != "steamu" and wiiu.is_file() else ICI / "donnees/sons-steamu/demarrage.ogg",
                                   int(haut) if haut.isdigit() else film_demarrage.DEFAUT)
         except Exception as e: decky.logger.warning(f"vidéo de démarrage non copiée : {e}")
 
-    async def film_apparence(self, apparence, largeur=None, hauteur=None):
+    async def film_apparence(self, apparence, largeur=None, hauteur=None, sons=None):
         import asyncio, film_demarrage
         apparence = apparence if apparence in film_demarrage.APPARENCES else "clair"
-        choix = f"{apparence} {film_demarrage.hauteur(largeur, hauteur)}"
+        choix = f"{apparence} {film_demarrage.hauteur(largeur, hauteur)} {'steamu' if sons == 'steamu' else 'nintendo'}"
         if self._film_apparence.exists() and self._film_apparence.read_text() == choix: return False
         self._film_apparence.write_text(choix)
         await asyncio.get_running_loop().run_in_executor(None, self._poser_film, choix)
@@ -175,11 +242,12 @@ class Plugin:
         if moteur.arreter: return
         try:
             import lumiere
-            from ambideck.capture import session_env   
-            for k, v in session_env(os.stat(decky.DECKY_USER_HOME).st_uid).items(): os.environ.setdefault(k, v)
             led = lumiere.Lumiere(marque=pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "led-en-main", journal=decky.logger.info,
-                                  huesync=pathlib.Path(decky.DECKY_USER_HOME) / "homebrew/settings/HueSync/config.json")
+                                  huesync=pathlib.Path(decky.DECKY_USER_HOME) / "homebrew/settings/HueSync/config.json",
+                                  plugins=pathlib.Path(decky.DECKY_USER_HOME) / "homebrew/plugins",
+                                  settings=pathlib.Path(decky.DECKY_USER_HOME) / "homebrew/settings")
             led.demarrer(); self.lumiere = led
+            if self._eco().etat(): led.economie(True)   
         except Exception as e:
             decky.logger.warning(f"LED : non disponibles ({type(e).__name__})")
 
@@ -202,13 +270,25 @@ class Plugin:
         return sorted(f.name for f in d.iterdir() if f.is_file())
 
     async def nintendo(self):
-        import importer
+        import importer, moteur_ffl
         def plein(chemin):   
             d = self._dedans(chemin)
             return bool(d and importer.plein(d))
         r = {appli: importer.manquants(appli, plein) for appli in importer.EXIGE}
         if IMPORT.locked(): r["_import"] = True
+        visages = self._dedans("mii/" + importer.VISAGES[0])
+        if visages and visages.is_file():
+            for chemin in (importer.LOGO_MII, moteur_ffl.LOGO_DOSSIER + "/" + next(iter(moteur_ffl.LOGO))):
+                logo = self._dedans(chemin)
+                if logo and logo.is_file():
+                    r["_logo_mii"] = hashlib.sha256(logo.read_bytes()).hexdigest()[:16]
+                    r["_logo_mii_fichier"] = chemin
+                    break
         return r
+
+    async def guide_vu(self):
+        self.guide_fichier.write_text(json.dumps({"attendu": False}))
+        return True
 
     async def import_depart(self):
         media = pathlib.Path("/run/media")
@@ -243,6 +323,26 @@ class Plugin:
         except Exception as e: decky.logger.warning(f"moteur des Mii : {type(e).__name__}"); return {"erreur": "reseau"}
         finally: IMPORT.release()
 
+    async def corps_installer(self):
+        import asyncio, importer, moteur_ffl
+        prive = self._dedans(".")
+        if not prive or not (prive / "mii" / importer.VISAGES[0]).is_file(): return {"erreur": "visages"}
+        if not IMPORT.acquire(blocking=False): return {"erreur": "occupe"}
+        try: return await asyncio.get_running_loop().run_in_executor(None, moteur_ffl.installer_corps, prive)
+        except moteur_ffl.Refus as e: decky.logger.warning(f"corps des Mii : refusé ({e})"); return {"erreur": str(e)}
+        except Exception as e: decky.logger.warning(f"corps des Mii : {type(e).__name__}"); return {"erreur": "reseau"}
+        finally: IMPORT.release()
+
+    async def logo_installer(self):
+        import asyncio, importer, moteur_ffl
+        prive = self._dedans(".")
+        if not prive or not (prive / "mii" / importer.VISAGES[0]).is_file(): return {"erreur": "visages"}
+        if not IMPORT.acquire(blocking=False): return {"erreur": "occupe"}
+        try: return await asyncio.get_running_loop().run_in_executor(None, moteur_ffl.installer_logo, prive)
+        except moteur_ffl.Refus as e: decky.logger.warning(f"logo des Mii : refusé ({e})"); return {"erreur": str(e)}
+        except Exception as e: decky.logger.warning(f"logo des Mii : {type(e).__name__}"); return {"erreur": "reseau"}
+        finally: IMPORT.release()
+
     async def vider_prive(self):
         import datetime
         base = pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR)
@@ -256,6 +356,26 @@ class Plugin:
         except Exception as e:
             decky.logger.warning(f"SteamU : déplacement de prive/ a échoué ({type(e).__name__})")
             return {"erreur": type(e).__name__}
+
+    async def boucle(self, chemin):
+        f = self._dedans(chemin)
+        b = self._dedans(chemin + ".boucle") if f else None
+        if not f or not f.is_file(): return None
+        if b and b.is_file():
+            if b.stat().st_size > RESSOURCE_MAX: return None
+            return json.loads(b.read_text(encoding="utf-8"))
+        if not chemin.startswith("sons/"): return None
+        refs = json.loads((ICI / "donnees/empreintes-sons.json").read_text(encoding="utf-8"))
+        ref = next((p for p in refs["pistes"] if p["chemin"] == chemin[len("sons/"):] and p.get("boucle")), None)
+        if not ref: return None
+        candidats = [o for o in ref.get("octets", []) if o["taille"] == f.stat().st_size
+                     and not o.get("decalage") and o.get("echelle", 1) == 1]
+        if not candidats: return None
+        h = hashlib.sha256()
+        with f.open("rb") as flux:
+            for bloc in iter(lambda: flux.read(1 << 20), b""): h.update(bloc)
+        empreinte = h.hexdigest()
+        return ref["boucle"] if any(o["sha256"] == empreinte for o in candidats) else None
 
     async def ressource(self, chemin):
         f = self._dedans(chemin)
@@ -273,6 +393,15 @@ class Plugin:
 
     async def led(self, intention, couleur=None):
         return bool(getattr(self, "lumiere", None) and self.lumiere.intention(intention, couleur))
+
+    async def led_etat(self):
+        return self.lumiere.etat() if getattr(self, "lumiere", None) else None
+
+    async def led_appliquer(self, reglage, appid=None):
+        return self.lumiere.appliquer_reglage(reglage, appid) if getattr(self, "lumiere", None) else None
+
+    async def led_jeu(self, appid=None):
+        return bool(getattr(self, "lumiere", None) and self.lumiere.jeu_actif(appid))
 
     async def led_reglage(self, mode):
         return bool(getattr(self, "lumiere", None) and self.lumiere.reglage(mode))
@@ -299,13 +428,20 @@ class Plugin:
     async def annonces(self):
         import asyncio, spotpass
         try:
-            r = await asyncio.get_running_loop().run_in_executor(None, spotpass._requete, "GET", "/annonces")
+            r = await asyncio.get_running_loop().run_in_executor(None, spotpass.annonces, decky.DECKY_PLUGIN_SETTINGS_DIR)
             if isinstance(r, dict) and "annonces" in r:
                 import eshop, maj
                 r["annonces"] = maj.annonces_sures(r["annonces"], json.loads((ICI / "package.json").read_text()).get("version", ""), eshop.CLE_SOURCES)
             return r
         except Exception:
             return {}  
+
+    async def visiteurs_rares(self):
+        import asyncio, spotpass
+        try:
+            return await asyncio.get_running_loop().run_in_executor(None, spotpass.visiteurs_rares, decky.DECKY_PLUGIN_SETTINGS_DIR)
+        except Exception:
+            return {"visiteurs": []}
 
     async def paroles(self, artiste, titre, album="", duree=0):
         import asyncio, paroles
@@ -315,6 +451,10 @@ class Plugin:
     async def plein_ecran(self, appid):
         import asyncio, pleinecran
         return await asyncio.get_running_loop().run_in_executor(None, pleinecran.corriger, appid)
+
+    async def reseau(self):
+        import reseau
+        return reseau.etat()
 
     async def batterie(self):
         d = next(iter(sorted(pathlib.Path("/sys/class/power_supply").glob("BAT*"))), pathlib.Path("/sys/class/power_supply/BAT0"))
@@ -351,9 +491,79 @@ class Plugin:
         return {**{n: lire(dmi / n) for n in ("sys_vendor", "product_name", "product_version", "board_name")},
                 "ecran": ("tele" if externe else "portable") if sorties else None, "legion": legion, "systeme": systeme}
 
+    async def heroic_boutique(self, exe=""):
+        exe = str(exe).strip().strip('"')
+        if not exe: return None
+        def lire(f):
+            try: return json.loads(f.read_text())
+            except Exception: return None
+        for base in (pathlib.Path.home() / ".config/heroic", pathlib.Path.home() / ".var/app/com.heroicgameslauncher.hgl/config/heroic"):
+            leg = lire(base / "legendaryConfig/legendary/installed.json") or {}
+            gog = (lire(base / "gog_store/installed.json") or {}).get("installed", [])
+            nile = lire(base / "nile_config/nile/installed.json") or []
+            for boutique, chemins in (("epic", [g.get("install_path") for g in leg.values() if isinstance(g, dict)]),
+                                      ("gog", [g.get("install_path") for g in gog if isinstance(g, dict)]),
+                                      ("amazon", [g.get("path") or g.get("install_path") for g in nile if isinstance(g, dict)])):
+                if any(c and exe.startswith(c.rstrip("/") + "/") for c in chemins): return boutique
+        return None
+
+    async def editeur_jeu(self, nom=""):
+        import asyncio, re, unicodedata, urllib.parse, urllib.request
+        net = lambda t: re.sub(r"[^a-z0-9]+", " ", unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode().lower()).strip()
+        propre = re.sub(r"\s+", " ", re.sub(r"\([^)]*\)|\bdecrypted\b|[™®©]", " ", str(nom))).strip()[:120]
+        cle = net(propre)
+        if not cle: return None
+        fichier = pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "editeurs.json"
+        try: cache = json.loads(fichier.read_text())
+        except Exception: cache = {}
+        if cle in cache: return cache[cle]
+        def chercher():
+            lire = lambda u: json.loads(urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "SteamU"}), timeout=6).read())
+            items = lire("https://store.steampowered.com/api/storesearch/?l=english&cc=FR&term=" + urllib.parse.quote(propre)).get("items") or []
+            items = [i for i in items if net(i.get("name", "")) == cle] + [i for i in items if net(i.get("name", "")).startswith(cle)]
+            for jeu in items[:3]:   
+                d = lire(f"https://store.steampowered.com/api/appdetails?l=english&appids={jeu['id']}").get(str(jeu["id"]), {})
+                editeur = ((d.get("data") or {}).get("publishers") or [""])[0]
+                if editeur: return editeur
+            return ""
+        try: editeur = await asyncio.get_running_loop().run_in_executor(None, chercher)
+        except Exception: return None   
+        cache[cle] = editeur
+        try: fichier.write_text(json.dumps(cache, ensure_ascii=False))
+        except Exception: pass
+        return editeur or None
+
     async def economie(self):
+        if self._eco().etat(): return True   
         try: return pathlib.Path("/sys/firmware/acpi/platform_profile").read_text().strip() == "low-power"
         except Exception: return None
+
+    def _eco(self):
+        import economie
+        if not hasattr(self, "eco"): self.eco = economie.Economie(pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "economie.json")
+        return self.eco
+
+    async def economie_systeme(self, on, systeme=True):
+        import asyncio
+        e = self._eco(); r = await asyncio.get_running_loop().run_in_executor(None, (lambda: e.entrer(systeme is not False)) if on is True else e.sortir)
+        if getattr(self, "lumiere", None): self.lumiere.economie(on is True and systeme is not False)
+        decky.logger.info(f"économie : {'entrée' if on is True else 'sortie'} {json.dumps(r)}")
+        return r
+
+    async def economie_leviers(self, systeme):
+        import asyncio
+        e = self._eco()
+        if not e.etat(): return None
+        r = await asyncio.get_running_loop().run_in_executor(None, (lambda: e.entrer(True)) if systeme is True else e.rendre)
+        if getattr(self, "lumiere", None): self.lumiere.economie(systeme is True)
+        return r
+
+    async def economie_actif(self): return self._eco().etat() is not None
+
+    async def economie_tdp(self, watts):
+        import asyncio
+        if not isinstance(watts, int) or not 3 <= watts <= 35 or not self._eco().etat(): return None
+        return await asyncio.get_running_loop().run_in_executor(None, self._eco().tenir_tdp, watts)
 
     async def instantane(self, appid=0):
         import asyncio, shutil, subprocess, time
@@ -362,18 +572,9 @@ class Plugin:
             f, env = pathlib.Path("/tmp/gamescope.png"), environnement()
             try:
                 if appid:
-                    from apercu import _fenetre
-                    cible, gris = _fenetre(int(appid)), pathlib.Path(f"/tmp/steamu-noir-{os.getpid()}.gray")
-                    if cible:
-                        try:
-                            jpg = subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "x11grab", "-draw_mouse", "0", "-window_id", str(cible[1]), "-i", cible[0],
-                                                  "-filter_complex", "[0:v]split[a][b];[b]scale=16:9,format=gray[c]",
-                                                  "-map", "[a]", "-frames:v", "1", "-q:v", "3", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1",
-                                                  "-map", "[c]", "-frames:v", "1", "-f", "rawvideo", str(gris)], env=env, timeout=3, capture_output=True).stdout
-                            if jpg and gris.exists() and max(gris.read_bytes() or b"\0") >= 16:
-                                return "data:image/jpeg;base64," + base64.b64encode(jpg).decode()
-                        finally:
-                            gris.unlink(missing_ok=True)
+                    import apercu
+                    adresse = apercu.photo()
+                    if adresse or apercu.steam_devant(): return adresse
                 f.unlink(missing_ok=True)
                 subprocess.run(["xprop", "-root", "-f", "GAMESCOPECTRL_DEBUG_REQUEST_SCREENSHOT", "32c", "-set", "GAMESCOPECTRL_DEBUG_REQUEST_SCREENSHOT", "1"],
                                env=env, timeout=2, check=True, capture_output=True)
@@ -396,29 +597,23 @@ class Plugin:
     async def pid_jeu(self, appid):
         return pid_reaper(int(appid))
 
+    async def figer_jeu(self, pid):
+        return figer_jeu(pid, self._figes())
+
     async def reprendre_jeu(self, pid):
-        import os, signal
-        repris = 0
-        for e in processus_du_jeu(pid):
-            try: os.kill(e, signal.SIGCONT); repris += 1
-            except Exception: pass
-        return repris > 0
+        return reprendre_jeu(pid, self._figes()) > 0
 
-    async def figer_exiles(self, pid):
-        import os, signal
-        figes = 0
-        for e in processus_du_jeu(pid, exiles_seuls=True):
-            try: os.kill(e, signal.SIGSTOP); figes += 1
-            except Exception: pass
-        return figes
+    async def jeu_fige(self, pid):
+        return jeu_fige(pid)
 
-    async def apercu(self, appid, ips):
-        import asyncio, apercu
-        return await asyncio.get_running_loop().run_in_executor(None, apercu.debut, appid, LARGEUR_VIGNETTE, ips)
+    async def degel_securite(self):
+        return degeler(self._figes())
 
-    async def apercu_fin(self, adresse=None):
-        import asyncio, apercu
-        await asyncio.get_running_loop().run_in_executor(None, apercu.fin, adresse)
+    def _figes(self): return pathlib.Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / FIGES
+
+    async def apercu(self):
+        import apercu
+        return apercu.direct()
 
     @staticmethod
     def _raison(e):
@@ -588,13 +783,18 @@ class Plugin:
             decky.logger.warning(f"fiche_switch : {type(e).__name__} {e}")
             return None
 
+    async def icone_raccourci(self, appid, nom=""):
+        import asyncio, icones_programmes
+        return await asyncio.to_thread(icones_programmes.chercher,
+            pathlib.Path(decky.DECKY_USER_HOME), int(appid), str(nom)[:200])
+
     async def art_auto_chercher(self, nom):
         import asyncio, art_auto
         try:
             return await asyncio.get_running_loop().run_in_executor(None, art_auto.preparer, nom if isinstance(nom, str) else "")
         except Exception as e:
             decky.logger.warning(f"Art auto : {type(e).__name__} {str(e)[:160]}")
-            return {"trouve": False}
+            return {"trouve": False, "temporaire": True}
 
     async def fiche_boutique(self, appid, langue="fr"):
         import asyncio, art_auto
@@ -621,14 +821,6 @@ class Plugin:
         try:
             return await asyncio.to_thread(eshop.image, str(url)[:2048])
         except Exception:
-            return {}
-
-    async def eshop_github(self, source):
-        import asyncio, eshop
-        try:
-            return await asyncio.to_thread(eshop.github, str(source)[:400])
-        except Exception as e:
-            decky.logger.warning(f"eShop GitHub : {type(e).__name__} {str(e)[:160]}")
             return {}
 
     async def eshop_installes(self):
@@ -679,7 +871,7 @@ class Plugin:
                     import importer; prive = self._dedans("."); return importer.etat(prive) if prive else {}
                 except Exception as e: return {"erreur": type(e).__name__}
             nom, resume = await asyncio.get_running_loop().run_in_executor(None, lambda: diagnostic.rapport(
-                decky.DECKY_USER_HOME, ICI, decky.DECKY_PLUGIN_LOG_DIR, moteur.secours, moteur.etat_scripts, moteur.DEBOGUEUR, moteur.local, imports=imports()))
+                decky.DECKY_USER_HOME, ICI, decky.DECKY_PLUGIN_LOG_DIR, moteur.secours, moteur.etat_scripts, moteur.DEBOGUEUR, moteur.local, imports=imports(), classes=moteur.classes_perdues))
             decky.logger.info(f"SteamU : rapport de diagnostic écrit ({nom})")
             return {"fichier": nom, "resume": resume}
         except Exception as e:
@@ -703,7 +895,7 @@ class Plugin:
         import diagnostic, moteur
         try:
             nom, _ = diagnostic.rapport(decky.DECKY_USER_HOME, ICI, decky.DECKY_PLUGIN_LOG_DIR, moteur.secours, moteur.etat_scripts,
-                                        moteur.DEBOGUEUR, moteur.local, court=True)
+                                        moteur.DEBOGUEUR, moteur.local, court=True, classes=moteur.classes_perdues)
             (pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "plantage.json").write_text(json.dumps({"fichier": nom}))
             decky.logger.warning(f"SteamU : rapport de plantage écrit ({nom})")
         except Exception as e:
@@ -712,6 +904,13 @@ class Plugin:
     async def plantage(self):
         try: return json.loads((pathlib.Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "plantage.json").read_text())
         except Exception: return {}
+
+    async def journal(self, texte):
+        decky.logger.info("SteamU : " + str(texte)[:300])
+
+    async def classes_perdues(self):
+        import moteur
+        return moteur.classes_perdues
 
     async def conflits(self):
         import asyncio, conflits, diagnostic, moteur
@@ -749,6 +948,8 @@ class Plugin:
     async def _uninstall(self):
         if sys.platform != "linux": return
         await self.film_demarrage(False)   
+        try: self._eco().sortir()   
+        except Exception: pass
         import film_demarrage
         f = pathlib.Path(decky.DECKY_USER_HOME) / ".steam/steam/config/uioverrides/movies" / film_demarrage.FILM
         try: f.unlink(missing_ok=True); f.with_name(film_demarrage.IMAGE).unlink(missing_ok=True); f.with_name(film_demarrage.MUSIQUE).unlink(missing_ok=True); decky.logger.info("SteamU : vidéo de démarrage retirée")
@@ -756,6 +957,7 @@ class Plugin:
 
     async def _unload(self):
         if sys.platform != "linux": return
+        degeler(self._figes())   
         import moteur
         moteur.arreter = True
         import apercu; apercu.fin()

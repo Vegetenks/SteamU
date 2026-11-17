@@ -119,6 +119,32 @@
   const MENU = "{{BasicContextMenuContainer@contextMenuContents}}", TETE = "{{BasicContextMenuHeader@contextMenuContents}}";
   const menus = document.getElementsByClassName("BasicUIContextMenu");
   const boites = document.getElementsByClassName("GenericConfirmDialog");
+  const ajouterRestart = (m, items) => {
+    const titre = net(loc("#RestartSteam"));
+    if (!titre || titre === "#RestartSteam") return;
+    const propre = m.querySelector("[data-pcv-restart-steam]");
+    if ([...items].some((it2) => it2 !== propre && net(it2.textContent) === titre)) {
+      propre?.remove();
+      return;
+    }
+    if (propre) return;
+    const it = document.createElement("button");
+    it.type = "button";
+    it.className = "contextMenuItem";
+    it.dataset.pcvAutre = "";
+    it.dataset.pcvRestartSteam = "";
+    it.textContent = titre;
+    it.onclick = () => {
+      const R = O.SP_REACT, D = O.DFL;
+      it.classList.remove("gpfocus");
+      D.showModal(R.createElement(D.ConfirmModal, {
+        strTitle: titre,
+        strDescription: lire().sur,
+        onOK: () => O.SteamClient.User.StartRestart(false)
+      }));
+    };
+    items[0].parentElement.appendChild(it);
+  };
   const marquerMenu = (m) => {
     const carte = m.querySelector(MENU), items = m.querySelectorAll(".contextMenuItem");
     if (!carte || !items.length) return;
@@ -136,8 +162,9 @@
       carte.dataset.pcvAlimCarte = "";
       carte.dataset.pcvBatterie = batterie;
     }
+    ajouterRestart(m, items);
     let pilules = 0;
-    for (const it of items) {
+    for (const it of m.querySelectorAll(".contextMenuItem")) {
       const d = it.dataset;
       if (!d.pcvIco && !("pcvAutre" in d) && !("pcvAnnuler" in d)) {
         const s = sorteDe(it.textContent);
@@ -203,13 +230,42 @@
     for (let f = el[k]; f; f = f.return) for (const p of [f.memoizedProps, f.pendingProps]) if (p?.node && typeof p.node.BTakeFocus === "function") return p.node;
     return null;
   };
+  let transmission = false;
+  const activer = (it) => {
+    if ("pcvRestartSteam" in it.dataset) return it.click();
+    const cible = [it, ...it.querySelectorAll("*")].find((el) => {
+      const k = Object.keys(el).find((x) => x.startsWith("__reactProps"));
+      return typeof el[k]?.onClick === "function";
+    }) || it;
+    transmission = true;
+    try {
+      cible.click();
+    } finally {
+      transmission = false;
+    }
+  };
+  const clic = (e) => {
+    const it = e.target.closest?.("[data-pcv-alim] .contextMenuItem");
+    if (transmission || !it || "pcvRestartSteam" in it.dataset) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    activer(it);
+  };
+  window.addEventListener("click", clic, true);
   const centre = (e) => {
     const r = e.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2, h: r.height, w: r.width };
   };
   const deplacer = (b) => {
+    if ([...boites].some((x) => x.dataset.pcvConf)) return false;
+    if (b === 1) {
+      const it = document.querySelector("[data-pcv-restart-steam].gpfocus") || document.querySelector("[data-pcv-alim] .contextMenuItem.gpfocus");
+      if (!it) return false;
+      window.__pcvAuRelacher(() => activer(it), it);
+      return true;
+    }
     if (b < 9 || b > 12) return false;
-    const m = [...menus].find((x) => "pcvAlim" in x.dataset), f = m?.querySelector(".contextMenuItem.gpfocus");
+    const m = [...menus].find((x) => "pcvAlim" in x.dataset), f = m?.querySelector("[data-pcv-restart-steam].gpfocus") || m?.querySelector(".contextMenuItem.gpfocus");
     if (!f) return false;
     const ici = centre(f), autres = [...m.querySelectorAll(".contextMenuItem[data-pcv-ico], .contextMenuItem[data-pcv-autre]")].filter((e) => e !== f).map((e) => [e, centre(e)]).filter(([, c]) => c.w > 0 && c.h > 0);
     const memeRang = ([, c]) => Math.abs(c.y - ici.y) < ici.h / 2;
@@ -218,14 +274,21 @@
     else {
       const bas = b === 10, loin = autres.filter((a) => !memeRang(a) && (bas ? a[1].y > ici.y : a[1].y < ici.y));
       const dy = Math.min(...loin.map(([, c]) => Math.abs(c.y - ici.y)));
-      cands = loin.filter(([, c]) => Math.abs(Math.abs(c.y - ici.y) - dy) < ici.h / 2).sort((a, z) => Math.abs(a[1].x - ici.x) - Math.abs(z[1].x - ici.x));
+      cands = loin.filter(([, c]) => Math.abs(Math.abs(c.y - ici.y) - dy) < c.h / 2).sort((a, z) => Math.abs(a[1].x - ici.x) - Math.abs(z[1].x - ici.x));
     }
-    const n = cands.length ? noeud(cands[0][0]) : null;
-    if (n) {
-      n.BTakeFocus(4);
+    const cible = cands[0]?.[0], n = noeud(cible);
+    if (cible?.hasAttribute("data-pcv-restart-steam")) {
+      f.classList.remove("gpfocus");
+      cible.classList.add("gpfocus");
       return true;
     }
-    return false;
+    if (n) {
+      f.classList.remove("gpfocus");
+      n.BTakeFocus(4);
+      cible.classList.add("gpfocus");
+      return true;
+    }
+    return "pcvRestartSteam" in f.dataset;
   };
   (window.__pcvManette ||= {}).alim = deplacer;
   const ordre = () => {
@@ -245,6 +308,8 @@
   obs.observe(document.body, { childList: true, subtree: true });
   window.__pcvAlimFin = () => {
     obs.disconnect();
+    window.removeEventListener("click", clic, true);
+    document.querySelectorAll("[data-pcv-restart-steam]").forEach((it) => it.remove());
     try {
       abonnement?.unregister?.();
     } catch (e) {

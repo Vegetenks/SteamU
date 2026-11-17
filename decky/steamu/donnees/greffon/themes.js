@@ -102,7 +102,7 @@
     // des fichiers Nintendo, qui prenait déjà ce fond par défaut)
     bibliotheque: { nom: Tr("spaces.bibliotheque.nom"), pages: ["bibliotheque", "telechargements", "recherche"], hotes: ["pcv-biblio-d", "pcv-telech", "pcv-telech-fond", "pcv-verrou"], symboles: ["cartouche", "disque", "manette", "etoile"] },
     fiche: { nom: Tr("spaces.fiche.nom"), pages: ["fiche", "succes"], symboles: ["play", "trophee", "etoile", "manette"] },
-    parametres: { nom: Tr("spaces.parametres.nom"), pages: ["parametres", "couleurs", "manette", "clavier", "configurateur", "apropos"], symboles: ["engrenage", "cle", "curseurs"] },
+    parametres: { nom: Tr("spaces.parametres.nom"), pages: ["parametres", "couleurs", "manette", "clavier", "configurateur", "apropos"], hotes: ["pcv-manettes"], symboles: ["engrenage", "cle", "curseurs"] },
     boutique: { nom: Tr("spaces.boutique.nom"), pages: ["magasin", "web", "atelier"], hotes: ["pcv-eshop", "pcv-eshop-unifie", "pcv-eshop-themes"], symboles: ["sac", "piece", "etiquette", "etoile"] },
     amis: { nom: Tr("spaces.amis.nom"), pages: ["amis", "invitations"], hotes: ["pcv-amis"], symboles: ["sourire", "personnes", "coeur"] },
     spotpass: { nom: Tr("spotpass.nom"), hotes: ["pcv-spotpass-page"], symboles: ["enveloppe", "personnes", "coeur"] },
@@ -207,7 +207,7 @@
     t.famille = familleDe(t);
     t.style ||= FAMILLES[t.famille].style;
   });
-  const CATS = [["wiiu", Tr("categories.wiiu")], ["3ds", Tr("categories.ds3")], ["couleurs", Tr("categories.couleurs")], ["fonds", Tr("categories.fonds")], ["importes", Tr("categories.importes")]];
+  const CATS = [["wiiu", Tr("categories.wiiu")], ["3ds", Tr("categories.ds3")], ["couleurs", Tr("categories.couleurs")], ["importes", Tr("categories.importes")], ["musiques", Tr("categories.musiques")]];
   const urls = {};
   const TYPES = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif", avif: "image/avif", mp3: "audio/mpeg", ogg: "audio/ogg", json: "application/json" };
   const typeDe = (c) => TYPES[c.split(".").pop().toLowerCase()] || "application/octet-stream";
@@ -219,16 +219,22 @@
       delete enCharge[chemin];
     });
   };
-  let pistes = null, mesFonds = [], importes = [];
+  let pistes = null, mesFonds = [], importes = [], ressourcesPretes = false;
   const joli = (n) => n.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase());
   const accents = lire("pcv-fonds-accents", {});
   const secours = (f) => THEMES.find((t) => t.id === (f === "wiiu" ? "verre" : "3ds-blanc")).fond;
-  const themeFond = (nom) => ({ id: "fond:" + nom, cat: "fonds", famille: "wiiu", style: "verre", nom: joli(nom), sous: "fond personnel", accent: accents[nom] || "#2fb8ff", image: "fonds/" + nom, fichier: nom, fond: secours("wiiu") });
+  const themeFond = (nom) => ({ id: "fond:" + nom, cat: "couleurs", famille: "wiiu", style: "verre", nom: joli(nom), sous: Tr("themes.fond_perso"), accent: accents[nom] || "#2fb8ff", image: "fonds/" + nom, fichier: nom, fond: secours("wiiu") });
   const couleurSure = (c, d) => typeof c === "string" && /^#[0-9a-f]{3,8}$/i.test(c) ? c : d;
   const fichierTz = (f) => typeof f === "string" && /^themezer\/[\w-]+\.(png|jpe?g|webp)$/i.test(f) ? "themes/" + f : void 0;
   const ICONES_THEME = ["parametres", "album", "boutique", "manette", "alimentation", "notifications", "dossier", "dossier-ouvert"];
   const fichierIc = (f) => typeof f === "string" && /^(themezer\/)?[\w-]+\.(png|jpe?g|webp)$/i.test(f) ? "themes/" + f : void 0;
   const iconesDe = (o) => Object.fromEntries(ICONES_THEME.filter((a) => fichierIc(o?.[a])).map((a) => [a, fichierIc(o[a])]));
+  const CONSOLES = { wiiu: Tr("families.wiiu.nom"), "3ds": Tr("families.ds3.nom"), switch: Tr("families.switch.nom") };
+  const consoleImportee = (j) => {
+    const c = j.source === "Themezer" ? j.origine : j.famille;
+    return Object.hasOwn(CONSOLES, c) ? CONSOLES[c] : "";
+  };
+  const consoleNom = (t) => t.console ?? FAMILLES[t.famille].nom;
   const themeImporte = (id, j = {}) => {
     const f = j.famille === "wiiu" ? "wiiu" : "3ds", tz = j.source === "Themezer";
     const auto = !couleurSure(j.accent);
@@ -236,6 +242,7 @@
       id: "importe:" + id,
       cat: "importes",
       famille: f,
+      console: consoleImportee(j),
       style: FAMILLES[f].style,
       nom: j.nom || joli(id),
       sous: j.sous || Tr("themes.importe_sous"),
@@ -250,6 +257,8 @@
       image: j.image && "themes/" + j.image,
       couleur: couleurSure(j.couleur),
       musiques: j.musique ? { accueil: "themes/" + j.musique } : {},
+      // (12/11) « cadrage » : [x, y] en % (0 à 100), le point de l'image à garder quand elle est recadrée ; sinon calculé
+      cadrage: Array.isArray(j.cadrage) && j.cadrage.length === 2 && j.cadrage.every((v) => typeof v === "number" && v >= 0 && v <= 100) ? j.cadrage.map(Math.round) : void 0,
       verre: Array.isArray(j.verre) && j.verre.length === 2 && j.verre.every((c) => couleurSure(c)) ? j.verre : void 0,
       fond: secours(f)
     };
@@ -293,8 +302,10 @@
       pistes = l.sons.length ? l.sons : null;
       mesFonds = l.fonds.filter((n) => /\.(jpe?g|png|webp|gif|avif)$/i.test(n)).map(themeFond);
       importes = l.themes;
+      ressourcesPretes = true;
       const voulu = lire("pcv-theme", "verre");
       if (courant && !essai && courant.id !== voulu && tous().some((t) => t.id === voulu)) appliquer(voulu);
+      if (l.sons.length && !fini) premierTirage();
       return l;
     });
   };
@@ -499,13 +510,75 @@
   const sourceAccueil = (t) => t.illustration ? illustration(t) : nets[t.id] || img(t.haut) || img(t.image) || img(t.tele) || img(t.manette) || img(t.bas);
   const sourceDouce = (t) => t.illustration ? illustration(t) : img(t.bas) || img(t.manette) || img(t.haut) || img(t.image) || img(t.tele);
   const plaqueDe = (t) => !t.plaque ? null : img(t.manette) ? `linear-gradient(rgba(255,255,255,.12), rgba(255,255,255,.12)), url("${img(t.manette)}") center / cover no-repeat` : typeof doux[t.id] === "string" ? "transparent" : null;
+  const FONDS_3DS = { "3ds-blanc": "A", herbe: "B", "3ds-rouge": "C", rose: "D", "3ds-aqua": "E", luigi: "pois" };
+  const LUIGI_GRANDS_POIS = false;
+  const fond3ds = (t, u) => {
+    const v = FONDS_3DS[t.id];
+    if (!v || aImage(t)) return null;
+    const pal = paletteDe(t, "accueil"), sa = apparenceSombre(), sol = sa ? pal.fond[1] : "#fff";
+    const mix = (p) => `color-mix(in srgb, ${t.accent} ${p}%, ${sol})`, carre = (n) => `0 0 / ${u(n)} ${u(n)}`;
+    if (v === "pois") {
+      const cote = LUIGI_GRANDS_POIS ? 480 : 240;
+      return {
+        couches: [`linear-gradient(180deg, ${pal.fond[0]}, ${pal.fond[1]})`],
+        couleur: pal.fond[1],
+        pas: [cote, -cote],
+        duree: cote / 4,
+        motif: [`${svgURI(`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">${TEXTURES.pois(pal.texture[1])}</svg>`)} ${carre(cote)}`]
+      };
+    }
+    if (v === "A") {
+      const g = sa ? "rgb(255 255 255 / .05)" : "#e8ecef", w = `max(1px, ${u(1.2)})`;
+      return { couches: [`linear-gradient(90deg, ${g} ${w}, transparent ${w}) ${carre(32)}`, `linear-gradient(${g} ${w}, transparent ${w}) ${carre(32)}`], couleur: sa ? sol : "#fbfcfc" };
+    }
+    if (v === "B") return {
+      couches: [],
+      couleur: mix(sa ? 16 : 13),
+      pas: [80, 0],
+      duree: 12,
+      motif: [`linear-gradient(-45deg, ${mix(sa ? 23 : 20)} 25%, transparent 25% 50%, ${mix(sa ? 23 : 20)} 50% 75%, transparent 75%) ${carre(80)}`]
+    };
+    if (v === "C") {
+      const sy = symbolesDe(t, "accueil"), s = 1.5;
+      const corps = [[40, 34, -12], [156, 150, 10]].map(([x, y, r], i) => `<path transform="translate(${x} ${y}) rotate(${r} ${12 * s} ${12 * s}) scale(${s})" d="${SYMBOLES[sy[i % sy.length]] || SYMBOLES.etoile}"/>`).join("");
+      const svg = (c) => svgURI(`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">${c}</svg>`);
+      const tex = pal.texture && TEXTURES[pal.texture[0]] ? [`${svg(TEXTURES[pal.texture[0]](pal.texture[1], alea(1)))} ${carre(240)}`] : [];
+      return {
+        couches: [...tex, `linear-gradient(180deg, ${pal.fond[0]}, ${pal.fond[1]})`],
+        couleur: pal.fond[1],
+        pas: [240, -240],
+        duree: 34,
+        motif: [`${svg(`<g fill="${pal.motif}" fill-opacity="${sa ? 0.32 : 0.4}" fill-rule="evenodd">${corps}</g>`)} ${carre(240)}`]
+      };
+    }
+    if (v === "D") {
+      const w = sa ? sol : "#fdfdfd";
+      return { couches: [`linear-gradient(180deg, transparent 0%, ${w} 62%)`, `conic-gradient(${mix(22)} 25%, ${mix(sa ? 14 : 12)} 0 50%, ${mix(22)} 0 75%, ${mix(sa ? 14 : 12)} 0) ${carre(96)}`], couleur: w };
+    }
+    if (v === "E") return {
+      couches: [],
+      couleur: mix(sa ? 12 : 10),
+      pas: [200, 0],
+      duree: 40,
+      motif: [
+        `linear-gradient(180deg, ${sa ? "rgb(255 255 255 / .04)" : "rgb(255 255 255 / .6)"}, transparent 70%)`,
+        `conic-gradient(from 45deg, transparent 25%, ${mix(sa ? 17 : 16)} 0 50%, transparent 0 75%, ${mix(sa ? 17 : 16)} 0) ${carre(200)}`
+      ]
+    };
+    return null;
+  };
   const tuiles = /* @__PURE__ */ new Map();
   const fondsDe = (t, e, o = {}) => {
     const k = o.k || 1, fx = o.fixe === false ? "" : " fixed";
+    const f3 = e === "accueil" && fond3ds(t, (n) => U(n * k));
+    if (f3) {
+      const base2 = [...f3.couches.map((c) => c + fx), f3.couleur].join(", ");
+      return { base: base2, complet: [...(f3.motif || []).map((c) => c + fx), base2].join(", "), style: "fond3ds" };
+    }
     if (e === "accueil" && aImage(t)) {
       const i = o.reduit ? reduits[t.id] : sourceAccueil(t), motif2 = !o.reduit && t.teleMotif && i === img(t.tele);
       const a = !o.reduit && apparenceSombre(), vl = a ? voileImage(t, a, true) + fx + ", " : "";
-      const v = `${vl}${i ? `url("${i}") ${motif2 ? `0 0 / ${U(MOTIF_TELE * (o.k || 1))} auto repeat` : "center / cover no-repeat"}${fx}, ` : ""}${t.couleur || paletteDe(t, e).fond[1]}`;
+      const v = `${vl}${i ? `url("${i}") ${motif2 ? `0 0 / ${U(MOTIF_TELE * (o.k || 1))} auto repeat` : `${cadrageDe(t)} / cover no-repeat`}${fx}, ` : ""}${t.couleur || paletteDe(t, e).fond[1]}`;
       return { base: v, complet: v, style: "image" };
     }
     const pal = paletteDe(t, e), st = styleDe(t, e), cle = t.id + "|" + e;
@@ -569,6 +642,64 @@
     await i.decode();
     return i;
   };
+  const foyer = (d, l, h) => {
+    const at = (i) => [d[i], d[i + 1], d[i + 2]], lum = (i) => d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11;
+    let f = [0, 0, 0], n = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < l; x++) if (!x || !y || x === l - 1 || y === h - 1) {
+      const c2 = at((y * l + x) * 4);
+      f = f.map((v, k) => v + c2[k]);
+      n++;
+    }
+    f = f.map((v) => v / n);
+    const col = new Float64Array(l), lig = new Float64Array(h);
+    for (let y = 0; y < h - 1; y++) for (let x = 0; x < l - 1; x++) {
+      const i = (y * l + x) * 4, [r, g, b] = at(i), mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+      const bord = Math.abs(lum(i) - lum(i + 4)) + Math.abs(lum(i) - lum(i + l * 4)), sat = mx ? (mx - mn) / mx : 0, ecart2 = Math.hypot(r - f[0], g - f[1], b - f[2]) / 441;
+      const v = bord / 255 + 0.5 * sat * (mx / 255) + ecart2;
+      col[x] += v;
+      lig[y] += v;
+    }
+    const meilleur = (s, c2) => {
+      if (c2 >= s.length) return 50;
+      let t = 0;
+      for (let k = 0; k < c2; k++) t += s[k];
+      let m = t, a = 0;
+      for (let k = c2; k < s.length; k++) {
+        t += s[k] - s[k - c2];
+        if (t > m) {
+          m = t;
+          a = k - c2 + 1;
+        }
+      }
+      return Math.round(a / (s.length - c2) * 100);
+    };
+    const c = Math.min(l, h);
+    return [meilleur(col, c), meilleur(lig, c)];
+  };
+  const cadrages = lire("pcv-cadrages", {});
+  const clesCadrage = {};
+  const cadrageDe = (t) => {
+    const c = t.cadrage || cadrages[clesCadrage[t.id]];
+    return Array.isArray(c) ? `${c[0]}% ${c[1]}%` : "center";
+  };
+  const calculerCadrage = async (t, src) => {
+    if (t.cadrage || !src) return;
+    try {
+      const b = await (await fetch(src)).blob(), im = await createImageBitmap(b, { resizeWidth: 64, resizeQuality: "low" });
+      const cle = (t.haut || t.image || t.tele || t.id) + "|" + b.size;
+      clesCadrage[t.id] = cle;
+      if (cadrages[cle]) {
+        im.close();
+        return;
+      }
+      const x = toile(im.width, im.height);
+      x.drawImage(im, 0, 0);
+      im.close();
+      cadrages[cle] = foyer(x.getImageData(0, 0, x.canvas.width, x.canvas.height).data, x.canvas.width, x.canvas.height);
+      ecrire("pcv-cadrages", cadrages);
+    } catch (e) {
+    }
+  };
   const enBlob = (x, q) => new Promise((ok) => x.canvas.toBlob((b) => ok(b ? URL.createObjectURL(b) : null), "image/jpeg", q));
   const traiterImages = async (t) => {
     await Promise.all(fichiersImage(t).map(urlDe));
@@ -623,6 +754,7 @@
         const cle = t.fichier || t.id, dejaBon = accents[cle] && !estFaible(accents[cle]);
         if ((t.fichier || t.accentAuto || estFaible(t.accent) || t.cat === "importes" && etrangere(t.accent, b)) && !dejaBon && !fini) accentDe(t, b);
       }
+      if (t.cat === "importes" && reduits[t.id]) await calculerCadrage(t, reduits[t.id]);
     } catch (e) {
     } finally {
       a?.close?.();
@@ -767,6 +899,56 @@
     musique();
     return t.id;
   };
+  const aleatoire = (o) => Object.assign(o, {
+    marques: () => {
+      const l = lire(o.cleMarques, []);
+      return Array.isArray(l) ? l : [];
+    },
+    actif: () => lire(o.cleActif, false) === true,
+    tirer: () => {
+      if (!o.actif() || essai) return;
+      const l = o.marques().filter(o.existe), autres = l.filter((id) => id !== o.porte()), p = autres.length ? autres : l;
+      if (p.length) o.poser(p[Math.floor(Math.random() * p.length)]);
+    },
+    // un choix précis (Appliquer, Garder, l'eShop ; Mettre ce disque) : la lecture aléatoire s'arrête
+    choisir: (id) => {
+      if (o.actif()) garderReglage(o.cleActif, false);
+      return o.poser(id);
+    }
+  });
+  const ALEA = aleatoire({ max: 10, cleMarques: "pcv-themes-alea", cleActif: "pcv-theme-alea", existe: (id) => tous().some((t) => t.id === id), porte: () => courant?.id, poser: (id) => appliquer(id) });
+  const MUS_ALEA = aleatoire({
+    max: ALEA.max,
+    cleMarques: "pcv-musiques-alea",
+    cleActif: "pcv-musique-alea",
+    existe: (id) => disques().some((x) => x.id === id && !x.absent),
+    porte: () => "disque:" + disque(),
+    poser: (id) => mettreDisque(id.slice(7))
+  });
+  const { marques, actif: aleaActif, tirer, choisir: choisirTheme } = ALEA;
+  const garderReglage = (cle, v) => {
+    ecrire(cle, v);
+    appelerBackend("themes_reglages", cle, v);
+  };
+  const TUILE_ALEA = { id: "aleatoire", alea: true, nom: Tr("themes.aleatoire"), get sous() {
+    const A = aleaVu();
+    return Tr("themes.aleatoire_sous", { n: A.marques().length, max: A.max });
+  } };
+  const libreDeChanger = () => {
+    try {
+      return !O.SteamUIStore?.RunningApps?.length;
+    } catch (e) {
+      return false;
+    }
+  };
+  const premierTirage = () => {
+    if (avantConnexion || listes.tire) return;
+    listes.tire = true;
+    if (libreDeChanger()) {
+      tirer();
+      MUS_ALEA.tirer();
+    }
+  };
   const teintes = (im) => {
     const x = toile(32, 32);
     x.drawImage(im, 0, 0, 32, 32);
@@ -788,12 +970,15 @@
     const { poids } = teintes(im), tot = poids.reduce((a, b) => a + b, 0);
     return tot > 0 && poids[Math.floor(x[0] / 30) % 12] / tot < 0.08;
   };
+  const teinteDominante = (im) => {
+    const { poids, somme } = teintes(im), k = poids.indexOf(Math.max(...poids));
+    return poids[k] ? `hsl(${Math.round(somme[k] / poids[k])} 72% 50%)` : null;
+  };
   const accentDe = (t, im) => {
     try {
-      const { poids, somme } = teintes(im);
-      const k = poids.indexOf(Math.max(...poids));
-      if (!poids[k]) return;
-      const a = accents[t.fichier || t.id] = `hsl(${Math.round(somme[k] / poids[k])} 72% 50%)`;
+      const d = teinteDominante(im);
+      if (!d) return;
+      const a = accents[t.fichier || t.id] = d;
       ecrire("pcv-fonds-accents", accents);
       for (const o of [t, courant, vu, ...mesFonds, ...importes]) if (o?.id === t.id) o.accent = a;
       if (courant?.id === t.id) appliquer(t.id, !!essai);
@@ -811,7 +996,7 @@
       return false;
     }
   })();
-  const anime = () => !renduLogiciel && lire("pcv-fond-anime", true);
+  const anime = () => !window.__pcvModes?.coupe("fond") && !renduLogiciel && lire("pcv-fond-anime", true);
   const HOTES = Object.values(ESPACES).flatMap((d) => d.hotes || []);
   const SEL_HOTES = HOTES.map((h) => "#" + h).join(", ") + ", .pcv-panneau";
   const visible = (h) => {
@@ -832,12 +1017,13 @@
     return r.left <= 1 && r.right >= innerWidth - 1 && r.bottom >= innerHeight - 1 && r.top > 0 && r.top <= 99 * u;
   };
   const sprites = /* @__PURE__ */ new Map();
+  const toileHors = (w, h) => typeof OffscreenCanvas === "function" ? new OffscreenCanvas(w, h) : Object.assign(document.createElement("canvas"), { width: w, height: h });
+  const figer = (c) => c.transferToImageBitmap?.() || c;
   const lutin = (cle, cote, dessin) => {
     if (!sprites.has(cle)) {
-      const c = document.createElement("canvas");
-      c.width = c.height = Math.max(4, Math.ceil(cote));
-      dessin(c.getContext("2d"), c.width);
-      sprites.set(cle, c);
+      const n = Math.max(4, Math.ceil(cote)), c = toileHors(n, n);
+      dessin(c.getContext("2d"), n);
+      sprites.set(cle, figer(c));
     }
     return sprites.get(cle);
   };
@@ -881,8 +1067,24 @@
   const espaceDeDecor = (d) => d.espace || d.hote.dataset.pcvEspace || Object.keys(ESPACES).find((x) => ESPACES[x].hotes?.includes(d.hote.id)) || espaceDePage(document.body.dataset.pcvPage) || "accueil";
   const preparer = (d, t, e, K) => {
     d.objets = [];
-    d.places = null;
+    d.places = d.motif = null;
     d.sens = ESPACES[e]?.sens || SENS;
+    d.couche?.remove();
+    d.couche = d.anim = null;
+    d.css = false;
+    const px = K / d.ech, f3 = e === "accueil" && fond3ds(t, (n) => `${(n * px).toFixed(2)}px`);
+    if (f3) {
+      d.style = "fond3ds";
+      d.css = true;
+      d.pas = FOND.pasMax;
+      if (!f3.motif) return;
+      const [dx, dy] = f3.pas.map((n) => n * px), c = d.couche = document.createElement("div");
+      c.className = "pcv-fond-motif" + (d.plein ? " pcv-fond-plein" : "");
+      c.style.cssText = `position:absolute;inset:${-Math.abs(dy)}px ${-Math.abs(dx)}px;z-index:-1;pointer-events:none;background:${f3.motif.join(", ")}`;
+      d.cv.after(c);
+      d.anim = c.animate([{ transform: "translate(0, 0)" }, { transform: `translate(${dx}px, ${dy}px)` }], { duration: f3.duree * 1e3, iterations: Infinity });
+      return;
+    }
     const st = e === "accueil" && aImage(t) ? t.image ? "bulles" : "etincelles" : styleDe(t, e), r = alea(graine(t.id + e + "decor")), pal = paletteDe(t, e);
     d.style = st;
     if (st === "plat") {
@@ -893,12 +1095,10 @@
         const taille = 24 * p.s * K, sp = aplat(p.n, pal.motif, taille, p.rot);
         return { sp, x: p.x * K + taille / 2 - sp.width / 2, y: p.y * K + taille / 2 - sp.height / 2 };
       });
-      const tuile2 = document.createElement("canvas");
-      tuile2.width = Math.max(1, Math.ceil(d.tl));
-      tuile2.height = Math.max(1, Math.ceil(d.th));
+      const tuile2 = toileHors(Math.max(1, Math.ceil(d.tl)), Math.max(1, Math.ceil(d.th)));
       const xt = tuile2.getContext("2d");
       for (const p of d.places) xt.drawImage(p.sp, p.x, p.y);
-      d.motif = tuile2;
+      d.motif = figer(tuile2);
       d.pas = pasDe(Math.hypot(0.014, 9e-3) * K / d.ech);
       return;
     }
@@ -932,29 +1132,29 @@
     if (cle !== d.cle) {
       if (!d.apercu) d.hote.style.setProperty("--pcv-fond-page", `var(--pcv-fond-${e}-base)`);
       d.cle = cle;
-      d.cv.width = W;
-      d.cv.height = H;
+      if (!d.off) {
+        d.cv.width = W;
+        d.cv.height = H;
+      }
       const avant = d.objets, kAvant = d.K;
       preparer(d, t, e, K);
       d.K = K;
-      if (avant?.length === d.objets.length) d.objets.forEach((o, i) => {
-        o.x = avant[i].x;
-        o.y = avant[i].y;
-        o.r = avant[i].r;
-        o.tw = avant[i].tw;
-      });
-      if (kAvant) {
-        d.ox = (d.ox || 0) * K / kAvant;
-        d.oy = (d.oy || 0) * K / kAvant;
-      }
+      d.W = W;
+      d.H = H;
+      reprendre(d, avant, kAvant);
       d.force = d.apercu ? 1 : +getComputedStyle(document.documentElement).getPropertyValue("--pcv-decor") || 1;
+      if (d.off) fil.postMessage({ id: d.off, W, H, K, force: d.force, css: d.css, sens: d.sens, motif: d.motif, tl: d.tl, th: d.th, objets: d.objets });
     }
     if (!d.apercu && !d.hote.classList.contains("pcv-fond-vivant")) d.hote.classList.add("pcv-fond-vivant");
-    const x = d.x;
+    if (d.css || d.off) return;
+    peindre(d, dt);
+  };
+  const peindre = (d, dt) => {
+    const x = d.x, W = d.W, H = d.H, K = d.K;
     x.setTransform(1, 0, 0, 1, 0, 0);
     x.clearRect(0, 0, W, H);
     x.globalAlpha = d.force;
-    if (d.places) {
+    if (d.motif) {
       d.ox = ((d.ox || 0) + dt * 0.014 * K * d.sens[0]) % d.tl;
       d.oy = ((d.oy || 0) - dt * 0.015 * K * d.sens[1]) % d.th;
       const motif = x.createPattern(d.motif, "repeat");
@@ -979,6 +1179,18 @@
       x.restore();
     }
   };
+  const reprendre = (d, avant, kAvant) => {
+    if (avant?.length === d.objets.length) d.objets.forEach((o, i) => {
+      o.x = avant[i].x;
+      o.y = avant[i].y;
+      o.r = avant[i].r;
+      o.tw = avant[i].tw;
+    });
+    if (kAvant) {
+      d.ox = (d.ox || 0) * d.K / kAvant;
+      d.oy = (d.oy || 0) * d.K / kAvant;
+    }
+  };
   const FOND = { pas: 33, pasMax: 66, avance: 12 };
   const SENS = [1, -0.6];
   const pasDe = (pxParMs) => (
@@ -986,6 +1198,73 @@
     Math.min(FOND.pasMax, Math.max(FOND.pas, Math.floor(1 / pxParMs) || FOND.pas))
   );
   let boucleId = 0, attente = 0, derImage = 0;
+  const filDuDecor = () => {
+    const D = /* @__PURE__ */ new Map(), notes = [];
+    let raf = 0, att = 0, der = 0, envoi = 0;
+    const tour2 = (t) => {
+      raf = 0;
+      let actif = false, prochaine = Infinity, voulu = Infinity;
+      const t0 = performance.now();
+      for (const d of D.values()) {
+        if (!d.vu || d.css || !d.W) continue;
+        actif = true;
+        const dt = Math.min(100, t - (d.der || t - d.pas));
+        d.der = t;
+        peindre(d, dt);
+        prochaine = Math.min(prochaine, d.der + d.pas);
+        voulu = Math.min(voulu, d.pas);
+      }
+      if (!actif) {
+        der = 0;
+        return;
+      }
+      notes.push([t + DECALAGE, voulu, der && t - der, performance.now() - t0]);
+      der = t;
+      if (t - envoi > 500) {
+        envoi = t;
+        postMessage(notes.splice(0));
+      }
+      att = setTimeout(() => {
+        att = 0;
+        raf = requestAnimationFrame(tour2);
+      }, Math.max(0, prochaine - performance.now() - AVANCE));
+    };
+    onmessage = ({ data: n }) => {
+      let d = D.get(n.id);
+      if (n.toile) D.set(n.id, d = { cv: n.toile, x: n.toile.getContext("2d") });
+      if (!d) return;
+      if (n.fin) return void D.delete(n.id);
+      const avant = d.objets, kAvant = d.K;
+      Object.assign(d, n);
+      if (n.objets) {
+        reprendre(d, avant, kAvant);
+        d.cv.width = d.W;
+        d.cv.height = d.H;
+        if (!d.css && d.W) peindre(d, 0);
+      }
+      if (!raf && !att) raf = requestAnimationFrame(tour2);
+    };
+  };
+  let fil = null, nFil = 0;
+  try {
+    const url = URL.createObjectURL(new Blob([`"use strict"; const peindre = ${peindre}, reprendre = ${reprendre}, AVANCE = ${FOND.avance}, DECALAGE = performance.timeOrigin - ${performance.timeOrigin}; (${filDuDecor})();`], { type: "text/javascript" }));
+    fil = new Worker(url);
+    fil.onmessage = (e) => {
+      for (const n of e.data) window.__pcvCharge?.noter(...n);
+    };
+    fins.push(() => {
+      fil.terminate();
+      URL.revokeObjectURL(url);
+    });
+  } catch (e) {
+    fil = null;
+  }
+  const montrer = (d, pas) => {
+    if (d.off && d.montre !== pas) {
+      d.montre = pas;
+      fil.postMessage({ id: d.off, vu: !!pas, pas });
+    }
+  };
   const eteindre = (d) => {
     if (d.apercu) return;
     d.hote.classList.remove("pcv-fond-vivant");
@@ -1000,10 +1279,13 @@
       if (!d.cv.isConnected) {
         decors.delete(d);
         eteindre(d);
+        d.couche?.remove();
+        if (d.off) fil.postMessage({ id: d.off, fin: true });
         continue;
       }
-      if (sousMenu || d.hote.closest("[data-pcvp-sous]")) {
+      if (sousMenu || window.__pcvPresentation?.dessous?.(d.hote) || d.hote.closest("[data-pcvp-sous], [data-pcvc-sous]")) {
         d.vu = void 0;
+        montrer(d, 0);
         continue;
       }
       if (t - d.verif > 500 && !window.__pcvLancement?.etat?.() || d.vu === void 0) {
@@ -1021,15 +1303,34 @@
         d.cv.style.display = vivant || d.plein ? "" : "none";
         if (!vivant) {
           eteindre(d);
-          if (d.cv.width) {
-            d.cv.width = 0;
+          if (d.off ? d.W !== 0 : d.cv.width) {
             d.cle = "";
+            d.W = d.H = 0;
+            if (d.off) fil.postMessage({ id: d.off, W: 0, H: 0, objets: [] });
+            else d.cv.width = 0;
           }
         }
+        if (d.couche) {
+          d.couche.style.display = vivant ? "" : "none";
+          if (d.vu) d.anim.play();
+          else d.anim.pause();
+        }
       }
-      if (!d.vu) continue;
-      actif = true;
+      if (!d.vu) {
+        montrer(d, 0);
+        continue;
+      }
+      if (d.css && d.cle) {
+        dessiner(d, 0);
+        continue;
+      }
       const pas = Math.max(d.pas || FOND.pas, R.fondPas || 0);
+      if (d.off) {
+        dessiner(d, 0);
+        montrer(d, pas);
+        continue;
+      }
+      actif = true;
       {
         const dt = Math.min(100, t - (d.der || t - pas));
         d.der = t;
@@ -1051,7 +1352,11 @@
     }
   };
   const relancer = () => {
-    if (!boucleId && !attente) boucleId = requestAnimationFrame(boucle);
+    if (!boucleId) {
+      clearTimeout(attente);
+      attente = 0;
+      boucleId = requestAnimationFrame(boucle);
+    }
   };
   const verifier = () => {
     decors.forEach((d) => {
@@ -1076,13 +1381,20 @@
   const monter = (hote2, o = {}) => {
     if (!hote2) return null;
     const dans2 = hote2.shadowRoot || hote2;
-    [...dans2.children].find((c) => c.classList.contains("pcv-fond"))?.remove();
+    [...dans2.children].filter((c) => c.matches(".pcv-fond, .pcv-fond-motif")).forEach((c) => c.remove());
     const cv = document.createElement("canvas");
     cv.className = "pcv-fond";
     cv.style.cssText = "position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none";
     hote2.style.isolation = "isolate";
     dans2.prepend(cv);
-    const d = { hote: hote2, cv, x: cv.getContext("2d"), espace: o.espace, theme: o.theme, apercu: o.apercu, cle: "", verif: 0, der: 0 };
+    let off = 0;
+    if (fil && cv.transferControlToOffscreen) try {
+      const t = cv.transferControlToOffscreen();
+      fil.postMessage({ id: off = ++nFil, toile: t }, [t]);
+    } catch (e) {
+      off = 0;
+    }
+    const d = { hote: hote2, cv, off, x: off ? null : cv.getContext("2d"), espace: o.espace, theme: o.theme, apercu: o.apercu, cle: "", verif: 0, der: 0 };
     d.plein = !d.apercu && pleine(hote2);
     cv.classList.toggle("pcv-fond-plein", d.plein);
     decors.add(d);
@@ -1128,6 +1440,8 @@
   let demandee = null;
   const consoleDe = (t) => t?.sons || t?.famille;
   const familleSons = (t = courant) => window.__pcvFamilleSons ? window.__pcvFamilleSons(consoleDe(t)) : consoleDe(t);
+  const DISQUE = "pcv-musique-disque", disque = () => String(lire(DISQUE, "theme"));
+  const familleMusique = (t = courant, d = disque()) => d === "steamu" ? null : window.__pcvSonsSysteme?.[d] ? d : consoleDe(t);
   let sysPresents = null, sysSource = null, sysEssai = 0, sysRelances = 0;
   const lireSys = () => {
     if (!window.__pcvSonsPresents || !sysSource && Date.now() - sysEssai < 5e3) return;
@@ -1160,11 +1474,15 @@
     "boutique-souhaits": ['pcv-eshop-unifie[data-ecran="souhaits"]'],
     // (31/10, l'auteur) l'écran de bienvenue des nouveautés (bienvenue.js) : une appli à lui, la musique des Notifications
     // (la Wii U et la 3DS n'ont pas de musique de nouveautés, seulement le jingle « nouveauté » de la 3DS, joué à l'arrivée : musique())
-    "notifs-bienvenue": ["pcv-bienvenue"]
-  }, PAGES_SONS = ["telechargements", "boutique-reglages", "parametres-controle-parental"];
-  const sysMusique = (e, t) => {
-    const f = window.__pcvSonsSysteme?.[familleSons(t)];
-    return systeme(window.__pcvVariante?.(f?.variantes?.[e]?.filter(systeme))) || systeme(f?.musiques?.[e]);
+    "notifs-bienvenue": ["pcv-bienvenue"],
+    // (12/11, l'auteur) le guide de démarrage, qui est aussi le Mode d'emploi du menu HOME (bienvenue.js) : une musique à lui
+    guide: ["pcv-bienvenue.guide"]
+  }, PAGES_SONS = ["telechargements", "boutique-reglages", "parametres-controle-parental", "lancement", "accueil-repos", "parametres-internet"];
+  const tirages = {};
+  const sysMusique = (e, t, d) => {
+    const f = window.__pcvSonsSysteme?.[familleMusique(t, d)], h = f?.hasard?.[e];
+    if (h?.length && h.every(systeme)) return "sons/" + (h.includes(tirages[e]) ? tirages[e] : tirages[e] = h[Math.floor(Math.random() * h.length)]);
+    return systeme(window.__pcvVariante?.(f?.variantes?.[e]?.filter(systeme))) || systeme(f?.musiques?.[e]) || f?.replis?.[e]?.map(systeme).find(Boolean) || null;
   };
   let annivJour = "", annivOui = false;
   const anniversaire = () => {
@@ -1179,26 +1497,34 @@
   };
   window.addEventListener("pcv-mii-base", annivRelire);
   fins.push(() => window.removeEventListener("pcv-mii-base", annivRelire));
-  const musiqueDe = (page, t = courant) => {
-    const sys = window.__pcvSonsSysteme?.[familleSons(t)]?.musiques;
+  const musiqueDe = (page, t = courant, d = disque()) => {
+    const sys = window.__pcvSonsSysteme?.[familleMusique(t, d)]?.musiques;
     const e = ESPACES[page] || ECRANS_SONS[page] || PAGES_SONS.includes(page) ? page : espaceDePage(page);
     if (!e || !t) return void 0;
     const pack = () => window.__pcvPackMusique?.(e, t.ambiance), parent = e.replace(/-[^-]*$/, "");
-    if (!ESPACES[e]) return sysMusique(e, t) || (parent !== e && (ESPACES[parent] || ECRANS_SONS[parent]) ? musiqueDe(parent, t) : pack() || musiqueDe(espaceDePage(e) || "accueil", t));
+    if (!ESPACES[e]) return sysMusique(e, t, d) || (parent !== e && (ESPACES[parent] || ECRANS_SONS[parent]) ? musiqueDe(parent, t, d) : pack() || musiqueDe(espaceDePage(e) || "accueil", t, d));
     if (e === "accueil" && anniversaire()) {
-      const a = sysMusique("accueil-anniversaire", t);
+      const a = sysMusique("accueil-anniversaire", t, d);
       if (a) return a;
     }
-    const propre = t.musiques?.[e] ?? (["bibliotheque", "fiche"].includes(e) ? t.musiques?.accueil : void 0);
+    const imp = /^importe:/.test(d) && importes.find((x) => x.id === d), m = imp ? imp.musiques : d === "theme" || /^importe:/.test(d) ? t.musiques : null;
+    const propre = m?.[e] ?? (["bibliotheque", "fiche"].includes(e) ? m?.accueil : void 0);
     if (propre) return propre;
     if (["place", "badges"].includes(e) && demandee === false) return null;
     if (["place", "badges"].includes(e) && demandee) {
-      const d = sys && demandee in sys ? systeme(sys[demandee]) : piste(demandee) || (demandee.includes("/") ? "sons/" + demandee + ".mp3" : null);
-      if (d) return d;
+      const d2 = sys && demandee in sys ? systeme(sys[demandee]) : piste(demandee) || (demandee.includes("/") ? "sons/" + demandee + ".mp3" : null);
+      if (d2) return d2;
     }
-    const c = sysMusique(e, t) || sys && (MUSIQUES[t.famille]?.[e] || []).map(piste).find(Boolean) || pack();
+    const c = sysMusique(e, t, d) || sys && (MUSIQUES[window.__pcvSonsSysteme?.[d] ? d : t.famille]?.[e] || []).map(piste).find(Boolean) || pack();
     if (c) return c;
-    return e === "accueil" ? null : musiqueDe("accueil", t);
+    return e === "accueil" ? null : musiqueDe("accueil", t, d);
+  };
+  window.__pcvMusiquePrete = (demande) => {
+    const avant = demandee;
+    demandee = demande;
+    const c = musiqueDe("place");
+    demandee = avant;
+    urlDe(c);
   };
   const L = window.__pcvThemesLecteurs ||= [new Audio(), new Audio()];
   L.forEach((a) => {
@@ -1207,8 +1533,9 @@
     if (a.paused) a.volume = 0;
   });
   const etat = window.__pcvThemesMusique ||= { actif: 0, enCours: null, positions: {}, jeton: 0 };
-  const cibles = /* @__PURE__ */ new Map(), FONDU = 1400;
+  const cibles = /* @__PURE__ */ new Map(), FONDU = 300;
   let attenuation = 1;
+  const ATTENUATION_VIDEO = 0.06;
   const volMusique = () => lire("pcv-volume-musique", 0.3) * attenuation;
   let fonduId = 0;
   const viser = (a, v) => {
@@ -1302,7 +1629,7 @@
   fins.push(() => clearInterval(suivreMedias));
   const jeuEnCours = () => {
     try {
-      return !!O.SteamUIStore?.MainRunningApp && !mediasMuets;
+      return !!O.SteamUIStore?.MainRunningApp && !O.__pcvJeuEnPause?.() && !mediasMuets;
     } catch (e) {
       return false;
     }
@@ -1312,15 +1639,19 @@
     return !!el && !el.hidden && (!el.matches(".pcv-panneau, .pcvth-hote") || el.classList.contains("on")) && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
   };
   const espaceActuel = () => {
+    if (document.body.classList.contains("pcv-compte-ouvert")) return "connexion";
+    if (avantConnexion) return null;
     if (ouvert && !essai) return "themes";
-    for (const e of ["boutique-attente", "boutique-souhaits", "notifs-bienvenue"]) if (ECRANS_SONS[e].some(ouvertEl)) return e;
-    for (const e of ["themes", "badges", "place", "profil", "spotpass", "notifs", "amis", "boutique", "medias"]) if ((!essai || e !== "themes") && ESPACES[e].hotes.some(ouvertEl)) return e;
+    if (ouvertEl("pcv-lancement.jeu") && sysMusique("lancement")) return "lancement";
+    for (const e of ["boutique-attente", "boutique-souhaits", "guide", "notifs-bienvenue"]) if (ECRANS_SONS[e].some(ouvertEl)) return e;
+    for (const e of ["themes", "badges", "place", "profil", "spotpass", "notifs", "amis", "boutique", "medias", "parametres"]) if ((!essai || e !== "themes") && ESPACES[e].hotes.some(ouvertEl)) return e;
     for (const e in ECRANS_SONS) if (ECRANS_SONS[e].some(ouvertEl)) return e;
     const p = document.body.dataset.pcvPage;
     if (p === "parametres") {
       const route = (/\/settings\/([^/]+)/.exec(window.__pcvBridge?.page?.() || O.location?.pathname || "") || [])[1], R = window.__pcvReglages?.PAGES || {};
       if (route && route === R.eshop) return "boutique-reglages";
       if (route && route === R["controle-parental"]) return "parametres-controle-parental";
+      if (route && route === R.internet) return "parametres-internet";
     }
     return PAGES_SONS.includes(p) ? p : espaceDePage(p);
   };
@@ -1337,33 +1668,36 @@
     }
     etat.enCours = void 0;
   };
+  const REPOS_MS = 6e4;
+  let derniereTouche = Date.now();
   let ecoute = null;
   let prechargee = null, ecranSon = null;
   const musique = () => {
-    if (!courant || avantConnexion) return;
+    lireSys();
+    if (!courant || !ressourcesPretes || !sysPresents) return;
     let neuve = false;
     const ec = espaceActuel();
     if (ec !== ecranSon) {
       const avant = ecranSon;
       ecranSon = ec;
+      delete tirages[avant];
       neuve = ec !== "accueil" && String(ec).split("-")[0] !== String(avant).split("-")[0];
       const vol = +lire("pcv-bruitages", 1) || 0;
       if (avant === "boutique-attente" && ec === "boutique") attendreJingle(vraiSon("pret", vol, true));
-      else if (ec === "notifs-bienvenue") attendreJingle(monSon("nouveaute", true));
+      else if (!window.__pcvBienvenue?.decouverte?.() && ec === "notifs-bienvenue") attendreJingle(monSon("nouveaute", true));
       else {
         son("ouverture");
         const o = window.__pcvSonsSysteme?.[familleSons()]?.bruitages?.[ec]?.ouverture;
         if (vol > 0 && o?.d && systeme(o.f)) silenceJusqua = Date.now() + o.d * 1e3;
       }
     }
-    lireSys();
     const fs = familleSons();
     if (fs !== prechargee && window.__pcvPrechargerSons) {
       prechargee = fs;
       window.__pcvPrechargerSons(fs);
     }
-    const libre = !document.hidden && !jeuEnCours() && !document.body.classList.contains("pcv-ouvert-home") && !window.__pcvDemarrage?.video?.();
-    const voulu = !libre ? null : ecoute !== null ? ecoute : !lire("pcv-musique", true) ? null : musiqueDe(ec);
+    const libre = !document.hidden && (!jeuEnCours() || ec === "lancement") && (!document.body.classList.contains("pcv-ouvert-home") || O.__pcvJeuEnPause?.()) && (ec !== "accueil" || window.__pcvDemarrage?.connexionPassee?.() !== false) && !window.__pcvDemarrage?.video?.();
+    const voulu = !libre || ec === null ? null : ecoute !== null ? ecoute : !lire("pcv-musique", true) || window.__pcvModes?.coupe("musique") ? null : musiqueDe(ec === "accueil" && Date.now() - derniereTouche > REPOS_MS ? "accueil-repos" : ec);
     if (voulu !== void 0) changer(voulu);
     if (neuve) {
       const a = musiqueDe("accueil");
@@ -1374,6 +1708,15 @@
     demandee = p === false ? false : p || null;
     musique();
   };
+  const toucheRepos = () => {
+    const repos = Date.now() - derniereTouche > REPOS_MS;
+    derniereTouche = Date.now();
+    if (repos) musique();
+  };
+  for (const ev of avantConnexion ? [] : ["vgp_onbuttondown", "keydown", "pointerdown"]) {
+    addEventListener(ev, toucheRepos, true);
+    fins.push(() => removeEventListener(ev, toucheRepos, true));
+  }
   maMusique.pcvThemes = true;
   let sonOrigine = null;
   let espaceSon = { t: -1e9, e: "" };
@@ -1397,9 +1740,9 @@
     return false;
   };
   const lanceeParLaMusique = (nom) => {
-    if (nom !== "lance" || espaceActuel() !== "boutique-attente" || !lire("pcv-musique", true)) return false;
-    const s = window.__pcvSonsSysteme?.[familleSons()]?.bruitages?.commun?.lance;
-    return !!s && sysMusique("boutique-attente") === "sons/" + (s.f || s);
+    if (nom !== "lance" || !lire("pcv-musique", true)) return false;
+    const l = document.getElementById("pcv-lancement"), e = l?.classList.contains("jeu") ? "lancement" : l?.dataset.appli === "eshop" ? "boutique-attente" : null;
+    return !!e && !!window.__pcvSonsSysteme?.[familleMusique()]?.chargements?.includes(e) && !!sysMusique(e);
   };
   const monSon = (nom, attendre = false) => {
     const vol = +lire("pcv-bruitages", 1) || 0;
@@ -1411,7 +1754,6 @@
   const pictoReg = (d) => `<svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="#5b6676" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
   const APPARENCES = { clair: Tr("themes.app_clair"), gris: Tr("themes.app_gris"), noir: Tr("themes.app_noir"), auto: Tr("themes.app_auto") };
   const REGLAGES = [
-    { cle: "pcv-musique", def: true, ic: pictoReg('<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>'), nom: Tr("themes.reg.musique"), val: (v) => v ? Tr("steamu.app.oui") : Tr("steamu.app.non"), suivant: (v) => !v },
     { cle: "pcv-volume-musique", def: 0.3, ic: pictoReg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>'), nom: Tr("themes.reg.volume"), niveaux: [0.15, 0.3, 0.5, 0.75], noms: ["themes.niv.faible", "themes.niv.moyen", "themes.niv.fort", "themes.niv.tres_fort"] },
     { cle: "pcv-bruitages", def: 1, ic: pictoReg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>'), nom: Tr("themes.reg.bruitages"), niveaux: [0, 0.4, 0.7, 1], noms: ["themes.niv.coupes", "themes.niv.faible", "themes.niv.moyen", "themes.niv.fort"] },
     { cle: "pcv-fond-anime", def: true, ic: pictoReg('<path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>'), nom: Tr("themes.reg.fond_anime"), val: (v) => v ? Tr("steamu.app.oui") : Tr("steamu.app.non"), suivant: (v) => !v },
@@ -1425,8 +1767,9 @@
       choix: () => Object.keys(APPARENCES),
       nomChoix: (c) => Tr("steamu.app." + c)
     },
-    // sons (sons.js, __pcvSonsReglage) : le pack SteamU, ou les vrais sons de la console de la famille du thème (repli sur le
-    // pack, emplacement par emplacement) ; « theme » par défaut : la console si ses sons sont importés, sinon SteamU
+    // bruitages (sons.js, __pcvSonsReglage) : le pack SteamU, ou les vrais sons de la console de la famille du thème (repli sur le
+    // pack, emplacement par emplacement) ; « theme » par défaut : la console si ses sons sont importés, sinon SteamU.
+    // (12/11, l'auteur) les bruitages seulement : la musique vient du disque (ligne Musique, plus bas)
     {
       cle: "pcv-sons-famille",
       def: "theme",
@@ -1439,17 +1782,28 @@
       suivant: (v) => window.__pcvSonsReglage?.suivant(v, consoleDe(courant)) ?? v,
       choix: () => window.__pcvSonsReglage?.choix() || [],
       nomChoix: (c) => window.__pcvSonsReglage?.val(c, consoleDe(courant)) ?? c
+    },
+    // (12/11, l'auteur) la musique : le disque mis (ou Aléatoire) ; A ouvre l'onglet Musiques sur lui, pas de seconde liste
+    {
+      cle: DISQUE,
+      def: "theme",
+      nom: Tr("themes.reg.disque"),
+      ic: pictoReg('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/>'),
+      val: () => MUS_ALEA.actif() ? Tr("themes.aleatoire") : disqueMis().nom,
+      ouvrir: () => allerAuxMusiques()
     }
   ];
   const PLAQUE = { cote: 30, haut: -12, bas: -10, rayon: 30, fondu: 18 };
+  const GRILLE_THEMES = { largeur: 568, colonnes: 4 };
   const CSS = `
     
-    .pcvth-hote { position: fixed; inset: ${U(98)} 0 0 0; z-index: 8600; background: var(--pcv-fond-page); }
+    .pcvth-hote { --pcv-themes-entete: ${U(98)}; position: fixed; inset: var(--pcv-themes-entete) 0 0 0; z-index: 8600; background: var(--pcv-fond-page); }
     .pcvth-hote.on { transform: none; } .pcvth-hote:not(.on) { display: none; }
     
     .pcvth-essai { background: transparent !important; }
-    .pcvth-essai > .pcv-fond { display: none; }
+    .pcvth-essai > :is(.pcv-fond, .pcv-fond-motif) { display: none; }
     
+    .pcv-fond-motif.pcv-fond-plein { position: fixed !important; }
     canvas.pcv-fond.pcv-fond-plein { position: fixed !important; inset: 0 !important; background: linear-gradient(transparent, transparent), var(--pcv-fond-page); }
     
     html[data-pcv-plaque] #pcv-console:not(.dans-dossier) .zone {
@@ -1462,49 +1816,84 @@
     .pcvth { position: absolute; inset: 0; z-index: 2; font-family: var(--pcv-police); color: var(--pcv-texte); user-select: none; -webkit-user-select: none; isolation: isolate; }
     .pcvth * { box-sizing: border-box; }
     .pcvth .pf { cursor: pointer; transition: transform .1s, box-shadow .1s; }
-    .pcvth .sel:not(.pcv-choix-relief) { box-shadow: 0 0 0 ${U(4)} #fff, 0 0 0 ${U(9)} var(--pcv-cyan-plein), 0 ${U(10)} ${U(24)} rgba(0,0,0,.22) !important; transform: scale(1.04); z-index: 2; }
-    .pcvth .tete { position: absolute; left: ${U(64)}; top: ${U(10)}; height: ${U(56)}; display: flex; align-items: center; gap: ${U(12)}; padding: 0 ${U(22)} 0 ${U(7)};
-      border-radius: ${U(28)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(26)}; font-weight: 900; }
-    .pcvth .tete i { width: ${U(42)}; height: ${U(42)}; border-radius: 50%; background: #fff; box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; }
-    .pcvth .tete i::before { content: ""; width: ${U(24)}; height: ${U(24)}; background: var(--pcv-cyan-plein); -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
-    
-    .pcvth .onglets { position: absolute; left: ${U(250)}; top: ${U(14)}; height: ${U(48)}; max-width: calc(100vw - ${U(274)}); display: flex; align-items: center; gap: ${U(4)}; padding: ${U(4)}; border-radius: ${U(24)};
+    .pcvth .sel:not(.pcv-choix-relief):not(.carte) { box-shadow: 0 0 0 ${U(4)} var(--pcv-anneau-c), 0 0 0 ${U(9)} var(--pcv-cyan-plein), 0 ${U(10)} ${U(24)} rgba(0,0,0,.22) !important; transform: scale(1.04); z-index: 2; }
+    .pcvth .onglets { position: absolute; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - ${U(48)}); top: ${U(10)}; height: ${U(56)}; display: flex; align-items: center; justify-content: center; gap: var(--pcv-ecart-choix); padding: ${U(4)}; border-radius: ${U(28)};
       background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); }
     .pcvth .onglets b { height: ${U(48)}; padding: 0 ${U(11)}; border-radius: ${U(20)}; display: flex; align-items: center; gap: ${U(6)}; font-size: ${U(15)}; font-weight: 800; white-space: nowrap; }
     .pcvth .onglets b small { min-width: ${U(20)}; height: ${U(20)}; padding: 0 ${U(5)}; border-radius: ${U(10)}; background: rgba(120,135,155,.16); font-size: ${U(11)}; font-weight: 900; display: flex; align-items: center; justify-content: center; }
     
-    .pcvth .onglets .defile { position: relative; flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: ${U(4)}; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; scroll-behavior: smooth;
-      padding: ${U(12)} ${U(10)}; margin: ${U(-12)} 0; }
+    .pcvth .onglets .defile { position: relative; flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: var(--pcv-ecart-choix); overflow-x: auto; scrollbar-width: none; touch-action: pan-x; scroll-behavior: smooth;
+      padding: ${U(12)} ${U(26)}; margin: ${U(-12)} 0; }
     .pcvth .onglets .defile.deborde { -webkit-mask: linear-gradient(90deg, transparent, #000 ${U(14)}, #000 calc(100% - ${U(14)}), transparent); mask: linear-gradient(90deg, transparent, #000 ${U(14)}, #000 calc(100% - ${U(14)}), transparent); }
     .pcvth .onglets .defile::-webkit-scrollbar { display: none; }
     .pcvth .onglets [data-eshop] { flex: none; margin-left: ${U(6)}; color: var(--pcv-cyan-plein); } .pcvth .onglets [data-eshop] svg { width: ${U(22)}; height: ${U(22)}; }
     .pcvth .onglets b.actif { background: var(--pcv-cyan); color: var(--pcv-sur-accent); }   
     .pcvth .onglets b.actif small { background: rgba(255,255,255,.22); }
+    .pcvth .onglets.vers-eshop b.actif { background: none; color: inherit; } .pcvth .onglets.vers-eshop b.actif small { background: rgba(120,135,155,.16); }
     .pcvth .onglets b.sel { transform: none; background: var(--pcv-cyan-plein); color: var(--pcv-sur-accent); }
-    
-    .pcvth .etagere { position: absolute; left: calc(${U(64)} - var(--pcv-marge-ombre)); top: ${U(80)}; width: calc(${U(568)} + 2 * var(--pcv-marge-ombre)); height: ${U(500)}; overflow-y: auto; overflow-x: hidden; padding: ${U(14)} var(--pcv-marge-ombre) ${U(40)};
-      scroll-padding: ${U(14)} 0 ${U(40)}; scrollbar-width: none; touch-action: pan-y; -webkit-mask: linear-gradient(180deg, transparent 0, #000 ${U(14)}, #000 calc(100% - ${U(30)}), transparent); mask: linear-gradient(180deg, transparent 0, #000 ${U(14)}, #000 calc(100% - ${U(30)}), transparent); }
+    .pcvth .etagere { position: absolute; left: calc(${U(64)} - var(--pcv-marge-ombre)); top: ${U(80)}; width: calc(${U(GRILLE_THEMES.largeur)} + 2 * var(--pcv-marge-ombre)); bottom: ${U(80)}; overflow-y: auto; overflow-x: hidden; padding: ${U(56)} var(--pcv-marge-ombre) ${U(40)};
+      
+      scroll-padding: ${U(56)} 0 ${U(40)}; scrollbar-width: none; touch-action: pan-y; -webkit-mask: linear-gradient(180deg, transparent, #000 ${U(16)}, #000 calc(100% - ${U(30)}), transparent); }
     .pcvth .etagere::-webkit-scrollbar { display: none; }
-    
     .pcvth .chapeau { margin: 0 ${U(6)} ${U(14)}; font-size: ${U(16)}; font-weight: 800; color: var(--pcv-texte2); }
     .pcvth .chapeau:empty { display: none; }
-    .pcvth .rail { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: ${U(22)} ${U(20)}; }   
-    .pcvth .carte { position: relative; border-radius: ${U(22)}; padding: ${U(6)} ${U(6)} 0; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); }
-    .pcvth .carte .vig { position: relative; height: ${U(108)}; border-radius: ${U(17)}; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
-    .pcvth .vig .mp { position: absolute; left: 50%; top: ${U(8)}; width: ${U(56)}; height: ${U(10)}; margin-left: ${U(-28)}; border-radius: ${U(5)}; background: rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
-    .pcvth .vig .mr { position: absolute; top: ${U(7)}; width: ${U(12)}; height: ${U(12)}; border-radius: 50%; background: rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
-    .pcvth .vig .mt { position: absolute; top: ${U(36)}; width: ${U(42)}; height: ${U(42)}; border-radius: ${U(9)}; padding: ${U(2)}; background: rgba(255,255,255,.95); box-shadow: 0 ${U(3)} ${U(6)} rgba(0,0,0,.16); }
-    .pcvth .vig .mt i { display: block; width: 100%; height: 100%; border-radius: ${U(7)}; background: #dfe6ee center 18% / cover; }
-    .pcvth .vig .mt:first-of-type { box-shadow: 0 0 0 ${U(2)} #fff, 0 0 0 ${U(4)} var(--a); }
-    .pcvth .vig .mt.p { width: ${U(26)}; height: ${U(26)}; border-radius: ${U(5)}; padding: ${U(1.5)}; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
-    .pcvth .vig .mt.p i { border-radius: ${U(4)}; }
-    .pcvth .vig > .pcv-contenu { position: absolute; right: ${U(6)}; bottom: ${U(6)}; font-size: ${U(12)}; }
-    .pcvth .vig .mt.p:first-of-type { box-shadow: 0 0 0 ${U(1.5)} #fff, 0 0 0 ${U(3)} var(--a); }
-    .pcvth .carte .nm { display: flex; align-items: center; justify-content: space-between; gap: ${U(6)}; height: ${U(38)}; padding: 0 ${U(8)}; font-size: ${U(15)}; font-weight: 900; white-space: nowrap; }
+    .pcvth .rail { position: relative; display: grid; grid-template-columns: repeat(var(--pcv-themes-colonnes), calc(var(--u) * var(--c))); justify-content: center; gap: calc(var(--u) * var(--g) * 2); }
+    .pcvth .carte { position: relative; min-width: 0; text-align: center; }
+    .pcvth .carte .vig { position: relative; width: 100%; aspect-ratio: 1; border-radius: var(--pcv-tuile-rayon); background: var(--pcv-theme-fond); box-shadow: var(--pcv-tuile-ombre); transition: transform .1s; }
+    .pcvth .carte.sel { z-index: 3; }
+    .pcvth .carte.sel .vig { transform: scale(var(--sk, var(--pcv-tuile-grandit))); box-shadow: 0 0 0 ${U(4)} var(--pcv-anneau-c), 0 0 0 ${U(9)} var(--pcv-cyan-plein), 0 ${U(10)} ${U(24)} rgba(0,0,0,.22); }
+    .pcvth .vig .note { position: absolute; left: ${U(6)}; bottom: ${U(6)}; z-index: 2; width: ${U(24)}; height: ${U(24)}; border-radius: 50%; background: var(--pcv-lisere); color: var(--pcv-texte); display: grid; place-items: center; font-weight: 900; font-size: ${U(14)}; box-shadow: var(--pcv-ombre); }
+    .pcvth .vig .note svg { width: 62%; height: 62%; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }   
+    
+    .pcvth .vig .note.marque { bottom: auto; top: ${U(6)}; }
+    .pcvth .vig.alea { background: none; box-shadow: none; --pcv-relief-taille: calc(var(--u) * var(--c)); }
+    
+    .pcvth .vig.disque { background: var(--pcv-verre); }
+    .pcvth .dq { position: absolute; inset: 15%; border-radius: 50%; background: var(--dq); box-shadow: inset 0 0 0 ${U(3)} rgba(255,255,255,.35), 0 ${U(3)} ${U(6)} rgba(0,0,0,.15); }
+    .pcvth .dq > i { position: absolute; inset: 20%; border-radius: 50%; background: var(--dq-et); }
+    .pcvth .dq > i::after { content: ""; position: absolute; inset: 30%; border-radius: 50%; background: var(--pcv-creux); }
+    
+    .pcvth .vig.disque .dq { inset: auto; right: 5%; top: 17%; width: 66%; height: 66%; }
+    .pcvth .pochette { position: absolute; left: 9%; top: 14%; width: 72%; height: 72%; border-radius: 7%; background: var(--po); box-shadow: 0 ${U(3)} ${U(8)} rgba(0,0,0,.22), inset 0 0 0 ${U(1)} var(--pcv-bord);
+      display: grid; place-items: center; overflow: hidden; }
+    
+    .pcvth .pochette.scellee { left: 14%; }
+    .pcvth .pochette.scellee::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(118deg, transparent 28%, rgba(255,255,255,.38) 40%, transparent 50%, transparent 66%, rgba(255,255,255,.2) 73%, transparent 80%); }
+    .pcvth .pochette > b { width: 46%; height: 46%; border-radius: 50%; background: var(--pcv-carte); color: var(--dq); display: grid; place-items: center; box-shadow: var(--pcv-ombre); }
+    .pcvth .pochette > b:not(.logo) > svg { width: 62%; height: 62%; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+    
+    .pcvth .pochette > b.logo, .pcvth .platine em > b.logo { width: 84%; height: auto; padding: 9% 8%; border-radius: ${U(8)}; color: var(--pcv-texte); display: grid; place-items: center; }
+    .pcvth .pochette > b.logo > svg, .pcvth .platine em > b.logo > svg { width: 100%; height: auto; max-height: ${U(26)}; }
+    
+    
+    .pcvth :is(.pochette, .platine em) > b.logo.logo:has(.pcv-logo-steamu) { width: auto; padding: 0; background: none; box-shadow: none; font-size: calc(${U(14)} * var(--c, 1) / var(--c0, 1)); }
+    .pcvth .platine em > b.logo.logo:has(.pcv-logo-steamu) { font-size: ${U(11)}; }
+    .pcvth :is(.pochette, .platine em) > b.logo .pcv-logo-steamu svg { max-height: none; }
+    .pcvth :is(.pochette, .platine em) > b.logo.mot { font-size: ${U(13)}; font-weight: 900; white-space: nowrap; }
+    .pcvth .platine em { position: absolute; left: 30%; right: 30%; top: 27%; display: grid; place-items: center; font-style: normal; }
+    .pcvth .platine em > b.logo { width: 100%; padding: 6% 8%; box-shadow: var(--pcv-ombre); background: var(--pcv-carte); }
+    .pcvth .pochette > b.palette > svg { fill: currentColor; stroke: none; }
+    .pcvth .pochette > b.barre::after { content: ""; position: absolute; width: 40%; height: ${U(3)}; border-radius: ${U(2)}; background: var(--pcv-texte2); transform: rotate(-45deg); }
+    
+    .pcvth .ecran.joue .platine { animation: pcvthTourne 4s linear infinite; }
+    
+    .pcvth .act.joue { color: var(--pcv-cyan-plein); box-shadow: var(--pcv-reflet), var(--pcv-ombre), inset 0 0 0 ${U(3)} var(--pcv-cyan-plein); }
+    .pcvth .act .onde { display: none; gap: ${U(3)}; align-items: flex-end; height: ${U(18)}; }
+    .pcvth .act.joue .onde { display: flex; }
+    .pcvth .act .onde b { width: ${U(4)}; height: 100%; border-radius: ${U(2)}; background: currentColor; transform-origin: bottom; animation: pcvthEq .8s ease-in-out infinite alternate; }
+    .pcvth .act .onde b:nth-child(2) { animation-delay: -.3s; } .pcvth .act .onde b:nth-child(3) { animation-delay: -.55s; }
+    @keyframes pcvthTourne { to { transform: rotate(1turn); } }
+    .pcvth .carte.absent .vig { opacity: .5; }
+    .pcvth .vig .apercu { position: absolute; inset: 24%; display: grid; grid-template-columns: repeat(2, 1fr); gap: 14%; }
+    .pcvth .vig .apercu i { border-radius: 22%; background: var(--pcv-theme-accent); box-shadow: var(--pcv-reflet); }
+    .pcvth .vig .apercu i:nth-child(2), .pcvth .vig .apercu i:nth-child(3) { background: var(--pcv-lisere); }
+    .pcvth .carte .nm { display: flex; align-items: center; justify-content: center; gap: ${U(6)}; height: ${U(38)}; font-size: ${U(15)}; font-weight: 900; white-space: nowrap; }
     .pcvth .carte .nm span { overflow: hidden; text-overflow: ellipsis; }
-    .pcvth .carte .nm i { flex: none; width: ${U(14)}; height: ${U(14)}; border-radius: 50%; background: var(--a); box-shadow: 0 0 0 ${U(2)} #fff, 0 1px 3px rgba(0,0,0,.25); }
-    .pcvth .carte.porte::after { content: "\u2713"; position: absolute; right: ${U(12)}; top: ${U(12)}; width: ${U(28)}; height: ${U(28)}; border-radius: 50%; background: #2fbf71; color: #fff;
-      display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: ${U(16)}; box-shadow: 0 0 0 ${U(3)} #fff; }
+    .pcvth .carte .nm i { flex: none; width: ${U(12)}; height: ${U(12)}; border-radius: 50%; background: var(--pcv-theme-accent); box-shadow: 0 0 0 ${U(2)} var(--pcv-lisere); }
+    .pcvth .petites .carte .nm { display: none; }
+    .pcvth .carte.porte .vig::after { content: "\u2713"; position: absolute; z-index: 3; right: ${U(-5)}; top: ${U(-5)}; width: ${U(26)}; height: ${U(26)}; border-radius: 50%; background: var(--pcv-vert); color: var(--pcv-sur-accent);
+      display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: ${U(16)}; box-shadow: 0 0 0 ${U(3)} var(--pcv-lisere); }
     .pcvth .vide { grid-column: 1 / -1; padding: ${U(22)} ${U(24)}; border-radius: ${U(22)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(16)}; font-weight: 800; line-height: 1.5; }
     .pcvth .vide b { display: block; font-size: ${U(19)}; margin-bottom: ${U(6)}; }
     .pcvth .vide code { font: 800 ${U(14)} var(--pcv-police); padding: ${U(2)} ${U(8)}; border-radius: ${U(8)}; background: rgba(120,135,155,.14); }
@@ -1537,6 +1926,22 @@
     .pcvth .vitrine .note i b { width: ${U(3)}; height: 100%; background: var(--a); border-radius: ${U(2)}; transform-origin: bottom; animation: pcvthEq .8s ease-in-out infinite alternate; }
     .pcvth .vitrine .note i b:nth-child(2) { animation-delay: -.3s; } .pcvth .vitrine .note i b:nth-child(3) { animation-delay: -.55s; }
     @keyframes pcvthEq { from { transform: scaleY(.2) } to { transform: none } }
+    
+    .pcvth .platine { inset: auto; left: calc(50% - ${U(105)}); top: ${U(40)}; width: ${U(210)}; height: ${U(210)};
+      box-shadow: inset 0 0 0 ${U(6)} rgba(255,255,255,.3), 0 ${U(4)} ${U(10)} rgba(0,0,0,.25); }
+    
+    .pcvth .plateau { position: absolute; left: calc(50% - ${U(117)}); top: ${U(28)}; width: ${U(234)}; height: ${U(234)}; border-radius: 50%; background: var(--pcv-pastille);
+      box-shadow: inset 0 0 0 ${U(2)} var(--pcv-lisere), inset 0 ${U(4)} ${U(10)} rgba(0,0,0,.18), var(--pcv-ombre); }
+    .pcvth .bras { position: absolute; left: calc(50% + ${U(130)}); top: ${U(30)}; width: ${U(40)}; height: ${U(200)}; overflow: visible; transform-origin: ${U(20)} ${U(20)};
+      transform: rotate(-4deg); transition: transform .5s cubic-bezier(.3,1.3,.5,1); filter: drop-shadow(0 ${U(3)} ${U(3)} rgba(0,0,0,.25)); }
+    .pcvth .bras.pose { transform: rotate(31deg); }
+    .pcvth .platine > i { inset: 24%; } .pcvth .platine > i::after { inset: 32.7%; }
+    .pcvth .platine::after { content: ""; position: absolute; inset: 14%; border-radius: 50%; border: ${U(2)} solid rgba(255,255,255,.25); }
+    .pcvth:not(.musiques) :is(.platine, .plateau, .bras, .texte-disque), .pcvth.musiques :is(.mini, .espaces) { display: none; }
+    .pcvth.musiques .ecran { background: radial-gradient(circle at 30% 20%, var(--pcv-carte), var(--pcv-creux)); }
+    .pcvth.musiques .vitrine .note { left: ${U(21)}; right: auto; top: ${U(19)}; }
+    .pcvth.musiques .vitrine .nom { max-width: calc(100% - ${U(122)}); }   
+    .pcvth .texte-disque { position: absolute; left: ${U(676)}; top: ${U(438)}; width: ${U(540)}; font-size: ${U(14)}; font-weight: 800; line-height: 1.4; color: var(--pcv-texte2); }
     .pcvth .espaces { position: absolute; left: ${U(676)}; top: ${U(438)}; width: ${U(540)}; display: grid; grid-template-columns: repeat(6, 1fr); gap: ${U(10)}; }
     .pcvth .esp { text-align: center; font-size: ${U(12)}; font-weight: 900; color: var(--pcv-texte); }
     .pcvth .esp i { display: block; height: ${U(50)}; border-radius: ${U(14)}; box-shadow: inset 0 0 0 ${U(3)} var(--pcv-lisere), 0 ${U(4)} ${U(10)} rgba(0,0,0,.14); margin-bottom: ${U(5)}; }
@@ -1545,11 +1950,20 @@
     .pcvth .actions { position: absolute; left: ${U(676)}; top: ${U(524)}; width: ${U(540)}; display: flex; gap: ${U(12)}; }
     .pcvth .act { flex: 1; height: ${U(56)}; border-radius: ${U(28)}; display: flex; align-items: center; justify-content: center; gap: ${U(10)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(17)}; font-weight: 900; white-space: nowrap; }
     .pcvth .act u { text-decoration: none; width: ${U(28)}; height: ${U(28)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 35%, #5c6678, #2f3a4a); color: #fff; font-size: ${U(13)}; font-weight: 900; }
-    .pcvth .act.plein { background: var(--pcv-cyan); color: #fff; box-shadow: inset 0 6px 10px -4px rgba(255,255,255,.45), 0 ${U(8)} ${U(18)} color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent); }
-    .pcvth .act.plein u { background: #fff; color: var(--pcv-cyan-plein); }
+    .pcvth :is(.act, .reg).sel { background: var(--pcv-cyan); color: var(--pcv-sur-accent); }
+    .pcvth .reg.sel em { color: inherit; }
     .pcvth .act.eteint { opacity: .45; }
+    .pcvth .voile { position: absolute; inset: calc(-1 * var(--pcv-themes-entete, 0px)) 0 0; z-index: 30; background: var(--pcv-voile-fort); display: flex; align-items: center; justify-content: center; }
+    .pcvth .voile[hidden] { display: none; }
+    .pcvth .fenetre { width: ${U(640)}; max-height: 90%; overflow-y: auto; padding: ${U(36)} ${U(40)}; border-radius: ${U(32)}; background: var(--pcv-fenetre-fond); box-shadow: var(--pcv-reflet), var(--pcv-ombre); }
+    .pcvth .fenetre h2 { margin: 0 0 ${U(26)}; font-size: ${U(24)}; text-align: center; }
     
-    .pcvth .reglages { position: absolute; left: ${U(24)}; top: ${U(590)}; display: grid; grid-template-columns: repeat(3, auto); gap: var(--pcv-ecart-choix); }   
+    .pcvth .reglages { display: grid; gap: calc(var(--pcv-ecart-choix) * 1.6); }
+    .pcvth .reglages .reg { height: ${U(52)}; padding: 0 ${U(18)} 0 ${U(7)}; border-radius: ${U(26)}; gap: ${U(12)}; font-size: ${U(16)}; }
+    .pcvth .reglages .reg > i { width: ${U(38)}; height: ${U(38)}; }
+    .pcvth .reglages .reg { justify-content: flex-start; }
+    .pcvth .reglages .reg > .nm { flex: 1; }
+    .pcvth .fenetre .aide { margin-top: ${U(26)}; justify-content: flex-end; }
     .pcvth .reg { height: ${U(42)}; padding: 0 ${U(14)} 0 ${U(5)}; border-radius: ${U(21)}; display: flex; align-items: center; gap: ${U(6)}; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); font-size: ${U(14)}; font-weight: 800; white-space: nowrap; }
     .pcvth .reg > i { width: ${U(32)}; height: ${U(32)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; background: #eef2f6; font-size: ${U(17)}; }
     .pcvth .reg em { font-style: normal; color: var(--pcv-cyan-plein); font-weight: 900; }
@@ -1557,10 +1971,9 @@
     .pcvth .reg .nv b { width: ${U(6)}; border-radius: ${U(2)}; background: #d3dae2; }
     .pcvth .reg .nv b.on { background: var(--pcv-cyan-plein); }
     .pcvth .legende { position: absolute; right: ${U(24)}; bottom: ${U(16)}; z-index: 2; }
-    .pcvth .bandeau { position: absolute; left: 50%; bottom: ${U(28)}; transform: translate(-50%, ${U(20)}); opacity: 0; pointer-events: none; display: flex; align-items: center; gap: ${U(14)}; padding: ${U(8)} ${U(10)} ${U(8)} ${U(24)};
+    .pcvth .bandeau { position: absolute; left: 50%; bottom: ${U(28)}; transform: translate(-50%, ${U(20)}); opacity: 0; pointer-events: none; display: flex; align-items: center; gap: ${U(14)}; padding: ${U(18)} ${U(28)};
       border-radius: ${U(32)}; background: rgba(255,255,255,.97); box-shadow: 0 ${U(12)} ${U(30)} rgba(0,0,0,.25), 0 0 0 ${U(4)} var(--pcv-cyan-plein); font-size: ${U(18)}; font-weight: 900; color: #3a4252; transition: opacity .2s, transform .25s cubic-bezier(.3,1.5,.5,1); white-space: nowrap; }
     .pcvth .bandeau small { color: #7a8494; font-size: ${U(14)}; }
-    .pcvth .bandeau .act { flex: none; padding: 0 ${U(20)} 0 ${U(10)}; height: ${U(46)}; }
     .pcvth.essai > :not(.bandeau):not(.legende) { opacity: 0; pointer-events: none; }
     .pcvth.essai { background: none; pointer-events: none; }
     .pcvth.essai .bandeau { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
@@ -1575,9 +1988,8 @@
   ui.textContent = CSS;
   document.head.appendChild(ui);
   fins.push(() => ui.remove());
-  const MASQUE_PINCEAU = svgURI(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill-rule="evenodd" d="${SYMBOLES.palette}"/></svg>`);
   let ouvert = false, autonome = false, hote = null, racine = null, echelle = 0, cat = "wiiu", sel = 0, zone = "grille", asel = 0, rsel = 0, vu = null, tour = 0, tourId = 0, caches = [];
-  const nomsActions = () => ["appliquer", "essayer", "fiche", ...cat === "importes" ? ["supprimer"] : []];
+  const nomsActions = () => cat === "musiques" ? ["mettre", "ecouter"] : ["appliquer", "essayer", "fiche", ...cat === "importes" ? ["supprimer"] : []];
   const $ = (s) => racine?.querySelector(s);
   const IMG = (id, f) => `https://steamloopback.host/assets/${id}/${f}`;
   const jeux = () => {
@@ -1594,16 +2006,82 @@
       return [];
     }
   };
-  const dans = (c) => c === "fonds" ? mesFonds : c === "importes" ? importes : THEMES.filter((t) => t.cat === c);
+  const themesDe = (c) => c === "musiques" ? disques() : tous().filter((t) => t.cat === c);
+  const DISQUES = { steamu: ["var(--pcv-bleu-steamu)", "ocean"], wiiu: ["#9aa6b6", "verre"], "3ds": ["#e5393f", "3ds-rouge"] };
+  const disques = () => {
+    const S = window.__pcvSonsSysteme || {}, importees = window.__pcvSonsReglage?.choix() || [], th = (id) => THEMES.find((t) => t.id === id);
+    const d = (cle, nom, sous, couleur, t, texte, absent = false) => ({
+      id: "disque:" + cle,
+      cle,
+      disque: true,
+      nom,
+      sous,
+      couleur,
+      etiquette: vignette(t, 0.2),
+      texte,
+      absent,
+      theme: t,
+      // (12/11, l'auteur) les sons d'origine portent le logo de leur console : le U de SteamU (icones.js), les logos des
+      // plateformes déjà dans le greffon (logos-plateformes.js, comme l'écran de lancement de console.js) ; sinon le nom écrit
+      ...cle === "steamu" || S[cle] ? { logo: cle === "steamu" ? window.__pcvIcones?.logoSteamU?.() : window.__pcvLogosPlateformes?.[cle], court: cle === "steamu" ? "SteamU" : S[cle].nom } : {}
+    });
+    const consoles = Object.keys(S).filter((f) => Object.keys(S[f].musiques || {}).length).map((f) => {
+      const [c, t] = DISQUES[f] || DISQUES.steamu, absent = !importees.includes(f);
+      return d(f, absent ? Tr("musiques.nom_a_importer", { nom: S[f].nom }) : S[f].nom, Tr("musiques.sous_console", { nom: S[f].nom }), c, th(t), absent ? Tr("musiques.texte_importer", { nom: S[f].nom }) : Tr("musiques.texte_console"), absent);
+    });
+    return [
+      // (12/11, l'auteur) l'ancien « Musique du thème : non » : plus aucune musique de fond (l'ancien réglage pcv-musique, que
+      // lisent aussi le casino et sons.js, suit ce disque : mettreDisque)
+      d("aucune", Tr("musiques.aucune"), Tr("musiques.aucune_sous"), "#c9ced6", th("verre"), Tr("musiques.texte_aucune")),
+      d(
+        "theme",
+        Tr("musiques.du_theme"),
+        Tr("musiques.du_theme_sous"),
+        courant?.accent || DISQUES.steamu[0],
+        courant || th("verre"),
+        Tr("musiques.texte_theme", { nom: courant?.nom || "", console: importees.includes(consoleDe(courant)) ? S[consoleDe(courant)].nom : "SteamU" })
+      ),
+      d("steamu", "SteamU", Tr("musiques.sous_steamu"), DISQUES.steamu[0], th(DISQUES.steamu[1]), Tr("musiques.texte_console")),
+      ...consoles.filter((x) => !x.absent),
+      ...importes.filter((t) => t.musiques?.accueil).map((t) => d(t.id, t.nom, Tr("musiques.sous_importe"), t.accent, t, Tr("musiques.texte_importe"))),
+      ...consoles.filter((x) => x.absent)
+    ];
+  };
+  const disqueMis = () => {
+    const l = disques(), d = disque();
+    return l.find((x) => x.cle === d && !x.absent) || l.find((x) => x.cle === "theme");
+  };
+  const mettreDisque = (cle) => {
+    garderReglage(DISQUE, cle);
+    garderReglage("pcv-musique", cle !== "aucune");
+    musique();
+  };
+  const aleaVu = () => cat === "musiques" ? MUS_ALEA : ALEA;
+  const ecouteDe = (x) => x.absent || x.cle === "aucune" ? "" : (x.alea ? musiqueDe("accueil") : x.disque ? musiqueDe("accueil", courant, x.cle) : musiqueDe("accueil", x, "theme")) || "";
+  const allerAuxMusiques = () => {
+    panneauReglages = false;
+    $(".voile").hidden = true;
+    zone = "grille";
+    cat = "musiques";
+    const m = MUS_ALEA.actif() ? null : disqueMis();
+    sel = Math.max(0, dans(cat).findIndex((x) => m ? x.id === m.id : x.alea));
+    son("onglet");
+    regarder(true);
+  };
+  const dans = (c) => [TUILE_ALEA, ...themesDe(c)];
   const vignette = (t, k) => fondsDe(t, "accueil", { k, fixe: false, reduit: true }).complet;
   const VIDES_3DS = [4, 7, 12, 15, 20, 22, 25];
-  const carte = (t, jx2) => `<div class="carte pf${t.id === courant?.id ? " porte" : ""}" style="--a:${echap(t.accent)}"><div class="vig" style="background:${echap(vignette(t, 0.16))}">
-      <span class="mr" style="left:${U(10)}"></span><span class="mr" style="left:${U(26)}"></span><span class="mp"></span>
-      ${t.famille === "3ds" ? [...Array(10).keys()].filter((i) => ![3, 8].includes(i)).map((i) => `<span class="mt p" style="left:${U(12 + i % 5 * 31)};top:${U(34 + Math.floor(i / 5) * 31)}"><i style="background-image:${echap(jx2[i % 4]?.im || "none")}"></i></span>`).join("") : [0, 1, 2].map((i) => `<span class="mt" style="left:${U(12 + i * 52)}"><i style="background-image:${echap(jx2[i]?.im || "none")}"></i></span>`).join("")}
-      ${window.__pcvIcones?.contenu(contenuDe(t)) || ""}</div>
-      <div class="nm"><span>${echap(t.nom)}</span><i></i></div></div>`;
+  const fondTuile = (t) => vignette(t, 0.16);
+  const marque = (t) => aleaVu().marques().includes(t.id) ? `<span class="note marque">${window.__pcvIcones?.svg?.("de") || ""}</span>` : "";
+  const logoHTML = (x) => x.court ? `<b class="logo${x.logo ? "" : " mot"}">${x.logo || echap(x.court)}</b>` : "";
+  const pochetteHTML = (x) => `<span class="pochette${x.cle === "aucune" ? " scellee" : ""}" style="--dq:${echap(x.couleur)};--po:${echap(x.cle === "aucune" ? "var(--pcv-creux)" : x.etiquette)}">${x.court ? logoHTML(x) : x.cle === "theme" ? `<b class="palette"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="${SYMBOLES.palette}"/></svg></b>` : x.cle === "aucune" ? `<b class="barre">${window.__pcvIcones?.svg?.("musique") || "\u266A"}</b>` : ""}</span>`;
+  const disqueHTML = (x, c = "") => `<span class="dq${c}" style="--dq:${echap(x.couleur)};--dq-et:${echap(x.etiquette)}"><i></i></span>`;
+  const carte = (t, i) => t.alea ? `<div class="carte cel pf${aleaVu().actif() ? " porte" : ""}" data-g="${i}" data-k="${t.id}" aria-label="${echap(t.nom)}">
+      <div class="vig alea">${window.__pcvIcones?.relief?.("de", "cyan-plein") || ""}<span class="note">${aleaVu().marques().length}</span></div><div class="nm"><span>${echap(t.nom)}</span></div></div>` : t.disque ? `<div class="carte cel pf${!MUS_ALEA.actif() && t.id === disqueMis().id ? " porte" : ""}${t.absent ? " absent" : ""}" data-g="${i}" data-k="${echap(t.id)}" aria-label="${echap(t.nom)}">
+      <div class="vig disque">${t.cle === "aucune" ? "" : disqueHTML(t)}${pochetteHTML(t)}${marque(t)}</div><div class="nm"><span>${echap(t.nom)}</span></div></div>` : `<div class="carte cel pf${!aleaActif() && t.id === courant?.id ? " porte" : ""}" data-g="${i}" data-k="${echap(t.id)}" style="--pcv-theme-accent:${echap(t.accent)};--pcv-theme-fond:${echap(fondTuile(t))}" aria-label="${echap(t.nom)}">
+      <div class="vig"><span class="apercu"><i></i><i></i><i></i><i></i></span>${t.musiques?.accueil ? `<span class="note">${window.__pcvIcones?.svg?.("musique") || "\u266A"}</span>` : ""}${marque(t)}</div>
+      <div class="nm"><span>${echap(t.nom)}</span><i title="${echap(consoleNom(t))}"></i></div></div>`;
   const VIDES = {
-    fonds: `<b>${Tr("themes.fonds_titre")}</b>${Tr("themes.fonds_texte", { donnees: window.__pcvGreffon?.donnees })}`,
     importes: `<b>${Tr("categories.importes")}</b>${Tr("themes.importes_texte", { donnees: window.__pcvGreffon?.donnees })}`
   };
   const ESP_APERCU = ["boutique", "amis", "notifs", "parametres", "medias", "profil"];
@@ -1620,7 +2098,7 @@
       const t = trouver(id);
       return t ? fondsDe(t, ECRANS_FICHE[i], { k: 0.5, fixe: false }).complet : void 0;
     },
-    fiche: (t) => ({ site: "steamu", id: t.id, titre: t.nom, sous: t.sous, console: FAMILLES[t.famille].nom, musique: !!musiqueDe("accueil", t), contenu: contenuDe(t), ecrans: ECRANS_FICHE.length })
+    fiche: (t) => ({ site: "steamu", id: t.id, titre: t.nom, sous: t.sous, console: consoleNom(t), musique: !!musiqueDe("accueil", t, "theme"), contenu: contenuDe(t), ecrans: ECRANS_FICHE.length })
   };
   const reglageHTML = (r) => {
     const v = lire(r.cle, r.def);
@@ -1633,19 +2111,115 @@
     const h = reglages().map(reglageHTML).join("");
     if (h !== reglagesH) $(".reglages").innerHTML = reglagesH = h;
   };
+  let cranThemes = 0, zoomThemes = null, zoomHTML = "", pincementThemes = null, panneauReglages = false;
+  const CRANS_THEMES_AJOUTES = 2;
+  const cransThemes = () => {
+    const base = window.__pcvPresentation.cransGrille(), grand = window.__pcvJeux.zooms[1];
+    return [grand, { c: (grand.c + base[0].c) / 2, g: (grand.g + base[0].g) / 2 }, ...base];
+  };
+  const largeurGrille = () => {
+    const z = window.__pcvPresentation.cransGrille()[0];
+    return GRILLE_THEMES.colonnes * z.c + (GRILLE_THEMES.colonnes - 1) * z.g * 2;
+  };
+  const colonnesThemes = () => {
+    const z = cransThemes()[cranThemes];
+    return Math.floor((largeurGrille() + z.g * 2) / (z.c + z.g * 2));
+  };
+  const barreZoomThemes = (n) => {
+    if (!racine) return;
+    const h = window.__pcvIcones.zoom(cransThemes().length, n, [5, 6]);
+    if (h !== zoomHTML) $(".zoom").innerHTML = zoomHTML = h;
+  };
+  const dimensionnerGrille = () => {
+    const z = cransThemes()[cranThemes], k = GRILLE_THEMES.largeur / largeurGrille(), cotes = window.__pcvJeux.cotes(z.c * k, z.g * k);
+    const rail = $(".rail");
+    for (const el of [rail, ...rail.querySelectorAll(".carte")]) for (const [cle, v] of Object.entries(cotes)) el.style.setProperty("--" + cle, v);
+    rail.style.setProperty("--pcv-themes-colonnes", colonnesThemes());
+    rail.style.setProperty("--c0", window.__pcvPresentation.cransGrille()[0].c * k);
+    rail.classList.toggle("petites", cranThemes > CRANS_THEMES_AJOUTES);
+    rail.querySelector(".etiq-g")?.remove();
+    barreZoomThemes(cranThemes);
+  };
+  const ouvrirReglages = () => {
+    panneauReglages = true;
+    zone = "reglages";
+    rsel = 0;
+    $(".voile").hidden = false;
+    rendreReglages();
+    marquer();
+    son("choisir");
+  };
+  const fermerReglages = () => {
+    panneauReglages = false;
+    zone = "grille";
+    $(".voile").hidden = true;
+    marquer();
+    son("retour");
+  };
+  const toucheReglages = (b) => {
+    if (b === 2) {
+      fermerReglages();
+      return true;
+    }
+    if (b === 1) {
+      window.__pcvAppui($(".reglages .sel"));
+      basculer();
+      return true;
+    }
+    const suivant = rsel + (b === 9 ? -1 : b === 10 ? 1 : 0);
+    if (suivant !== rsel && suivant >= 0 && suivant < reglages().length) {
+      rsel = suivant;
+      marquer();
+      son("bouge");
+    } else son("bord");
+    return true;
+  };
+  const ongletSuivant = () => {
+    if (!ouvert || panneauReglages || essai || document.body.classList.contains("pcv-barre-main")) return false;
+    const i = CATS.findIndex(([c]) => c === cat);
+    if (zone === "eshop") {
+      zone = "grille";
+      changerCat(CATS[0][0]);
+      return true;
+    }
+    if (i === CATS.length - 1) {
+      zone = "eshop";
+      son("onglet");
+      marquer();
+      return true;
+    }
+    changerCat(CATS[i + 1][0]);
+    return true;
+  };
+  (window.__pcvVue ||= {}).themes = ongletSuivant;
+  const toucheStart = () => {
+    if (!ouvert || essai || document.body.classList.contains("pcv-barre-main")) return false;
+    if (panneauReglages) fermerReglages();
+    else ouvrirReglages();
+    return true;
+  };
+  (window.__pcvStart ||= {}).themes = toucheStart;
+  fins.push(() => {
+    delete window.__pcvVue.themes;
+    delete window.__pcvStart.themes;
+  });
   let jx = [];
   const construire = () => {
     racine = document.createElement("div");
     racine.className = "pcvth";
     echelle = 0;
     reglagesH = "";
-    racine.innerHTML = `<div class="tete"><i style="--m:${echap(MASQUE_PINCEAU)}"></i>${echap(Tr("themes.titre"))}</div><div class="onglets"></div>
+    panneauReglages = false;
+    zoomHTML = "";
+    racine.innerHTML = `<style>${window.__pcvPresentation.cssGrille(".pcvth")} .pcvth .vig { ${window.__pcvJeux.tuileCSS} }</style>${window.__pcvTitreAppli?.("pcv-themes", echap(Tr("themes.titre"))) || ""}<div class="onglets"></div>
       <div class="etagere"><div class="chapeau"></div><div class="rail"></div></div>
-      <div class="vitrine"><div class="ecran"><div class="mini"></div></div><div class="note"><i><b></b><b></b><b></b></i>${echap(Tr("themes.musique_du_theme"))}</div><div class="nom"></div><div class="fam"></div></div>
-      <div class="espaces"></div>
-      <div class="actions"><div class="act pf plein" data-a="appliquer">${echap(Tr("themes.appliquer"))}</div><div class="act pf" data-a="essayer">${echap(Tr("themes.essayer"))}</div><div class="act pf" data-a="fiche"><span>${echap(Tr("themes.fiche"))}</span></div><div class="act pf suppr" data-a="supprimer" hidden aria-label="${echap(Tr("themes.supprimer"))}" data-pcv-nom="${echap(Tr("themes.supprimer"))}"><u>${icoSuppr()}</u></div></div>
-      <div class="legende pcv-legende"></div><div class="reglages"></div>
-      <div class="bandeau"><span class="bn"></span><div class="act pf" data-b="garder">${Tr("themes.garder")}</div><div class="act pf" data-b="annuler">${Tr("themes.revenir")}</div></div>`;
+      <div class="vitrine"><div class="ecran"><div class="mini"></div><span class="plateau"></span><span class="dq platine"><i></i><em></em></span><svg class="bras" viewBox="0 0 40 200" aria-hidden="true"><rect x="13" y="0" width="14" height="10" rx="3" fill="var(--pcv-texte3)"/><circle cx="20" cy="20" r="14" fill="var(--pcv-carte)" stroke="var(--pcv-lisere)" stroke-width="2.5"/><line x1="20" y1="20" x2="20" y2="172" stroke="var(--pcv-texte2)" stroke-width="4.5" stroke-linecap="round"/><circle cx="20" cy="20" r="5" fill="var(--pcv-texte2)"/><rect x="12" y="166" width="16" height="28" rx="5" fill="var(--pcv-cyan-plein)" stroke="var(--pcv-carte)" stroke-width="2"/></svg></div><div class="note"><i><b></b><b></b><b></b></i>${echap(Tr("themes.musique_du_theme"))}</div><div class="nom"></div><div class="fam"></div></div>
+      <div class="espaces"></div><div class="texte-disque"></div>
+      <div class="actions"><div class="act pf" data-a="appliquer">${echap(Tr("themes.appliquer"))}</div><div class="act pf" data-a="essayer">${echap(Tr("themes.essayer"))}</div><div class="act pf" data-a="fiche"><span>${echap(Tr("themes.fiche"))}</span></div><div class="act pf suppr" data-a="supprimer" hidden aria-label="${echap(Tr("themes.supprimer"))}" data-pcv-nom="${echap(Tr("themes.supprimer"))}"><u>${icoSuppr()}</u></div><div class="act pf" data-a="mettre" hidden>${echap(Tr("themes.appliquer"))}</div><div class="act pf" data-a="ecouter" hidden><i class="onde"><b></b><b></b><b></b></i><span>${echap(Tr("themes.ecouter"))}</span></div></div>
+      <div class="zoom"></div><div class="legende pcv-legende"></div>
+      <!-- (11/11) pas de role="dialog" : barre-haut.js (modale) le prend pour une fen\xEAtre de Steam et lui laisse toutes les touches -->
+      <div class="voile" hidden><div class="fenetre pcv-fenetre" aria-label="${echap(Tr("themes.reglages"))}"><h2>${echap(Tr("themes.reglages"))}</h2><div class="reglages"></div><div class="aide pcv-legende"></div></div></div>
+      <div class="bandeau"><span class="bn"></span></div>`;
     racine.querySelector(".onglets").onclick = (e) => {
       if (e.target.closest("[data-eshop]")) return versEshop();
       const b = e.target.closest("b[data-cat]");
@@ -1657,9 +2231,9 @@
     };
     racine.querySelector(".rail").onclick = (e) => {
       const c = e.target.closest(".carte");
-      if (!c) return;
+      if (!c || pincementThemes?.deux()) return;
       const i = [...$(".rail").children].indexOf(c);
-      if (zone === "grille" && i === sel) return action("appliquer");
+      if (zone === "grille" && i === sel) return action(cat === "musiques" ? "mettre" : "appliquer");
       zone = "grille";
       sel = i;
       regarder();
@@ -1669,10 +2243,17 @@
       const a = e.target.closest("[data-a]");
       if (a) {
         zone = "actions";
-        asel = [...$(".actions").children].indexOf(a);
+        asel = nomsActions().indexOf(a.dataset.a);
         marquer();
         action(a.dataset.a);
       }
+    };
+    racine.querySelector(".voile").onclick = (e) => {
+      if (e.target === $(".voile")) fermerReglages();
+    };
+    racine.querySelector(".zoom").onclick = (e) => {
+      const b = e.target.closest("[data-z]");
+      if (b && !panneauReglages && !essai) zoomThemes(+b.dataset.z);
     };
     racine.querySelector(".reglages").onclick = (e) => {
       const r = e.target.closest(".reg");
@@ -1682,19 +2263,34 @@
         basculer();
       }
     };
-    racine.querySelector(".bandeau").onclick = (e) => {
-      const b = e.target.closest("[data-b]");
-      if (b) b.dataset.b === "garder" ? garder() : annulerEssai();
-    };
     caches = [...hote.children].filter((c) => c.tagName !== "STYLE" && !c.matches(".pcv-fond") && c.style.visibility !== "hidden");
     caches.forEach((c) => c.style.visibility = "hidden");
     hote.appendChild(racine);
+    const page = racine;
+    zoomThemes = window.__pcvPresentation.commandeZoom({
+      cran: () => cranThemes,
+      niveaux: cransThemes,
+      barre: barreZoomThemes,
+      actif: () => ouvert && racine === page && !panneauReglages && !essai,
+      piste: $(".rail"),
+      boite: $(".etagere"),
+      changer: (n) => {
+        cranThemes = n;
+        ecrire("pcv-themes-grille-zoom", n - CRANS_THEMES_AJOUTES);
+        dimensionnerGrille();
+        $(".rail .sel")?.scrollIntoView?.({ block: "nearest" });
+        marquer();
+      }
+    });
+    pincementThemes = window.__pcvJeux.pincer($(".etagere"), (d) => zoomThemes(d), () => ouvert && !panneauReglages && !essai);
     monter($(".ecran"), { espace: "accueil", theme: () => vu, apercu: true });
   };
   const RONDS = [["#5b6676", 24], ["#2fbf71", 90], ["#e5484d", 156], ["#1a9ae6", 222]];
   const vitrine = () => {
-    const t = vu;
+    if (cat === "musiques") return vitrineDisque();
+    const t = vu?.alea ? courant : vu;
     if (!t || !racine) return;
+    $(".actions").querySelectorAll('[data-a]:not([data-a="appliquer"])').forEach((a) => a.classList.toggle("eteint", !!vu.alea));
     const e = $(".ecran"), m = $(".mini"), s = (echelle ||= e.clientWidth / (innerHeight / 800 * 1280)) || 0.42;
     e.style.background = vignette(t, s);
     m.style.transform = `scale(${s})`;
@@ -1714,16 +2310,7 @@
       m.dataset.famille = t.famille;
       m.innerHTML = RONDS.map(([c, l]) => `<span class="rd" style="left:${U(l)};--c:${c}"><i></i></span>`).join("") + `<span class="ti">${echap(jx[tour % Math.max(1, Math.min(3, jx.length))]?.nom || Tr("themes.ma_console"))}</span>` + (t.famille === "3ds" ? [...Array(27).keys()].filter((i) => !VIDES_3DS.includes(i)).map((i, n) => `<span class="tu p${n === tour % 3 ? " s" : ""}" style="left:${U(64 + Math.floor(i / 3) * 124)};top:${U(150 + i % 3 * 124)}"><i style="background-image:${echap(jx[i * 7 % Math.max(1, jx.length)]?.im || "none")}"></i></span>`).join("") : [0, 1, 2, 3].map((i) => `<span class="tu${i === tour % 3 ? " s" : ""}" style="left:${U(64 + i * 284)}"><i style="background-image:${echap(jx[i]?.im || "none")}"></i></span>`).join("") + `<span class="bu" style="left:${U(64)}"><i style="--k:#e3f5ff"></i>${Tr("themes.heures_jeu_exemple")}</span><span class="bu" style="left:${U(290)}"><i style="--k:#fff3cf"></i>${Tr("themes.succes_obtenu")}</span><span class="zo" style="left:${U(34)};width:${U(200)}"></span><span class="bs" style="right:${U(34)};width:${U(360)}"></span>`);
     }
-    const nm = $(".nom"), fam = $(".fam");
-    if (!nm.lastChild) {
-      const p = document.createElement("small");
-      p.append("");
-      nm.append("", p);
-      fam.append("");
-    }
-    nm.firstChild.data = t.nom;
-    nm.lastChild.firstChild.data = t.sous || "";
-    fam.firstChild.data = FAMILLES[t.famille].nom;
+    nommer(consoleNom(t));
     const esp = $(".espaces");
     if (!esp.firstChild) esp.innerHTML = ESP_APERCU.map((x) => `<div class="esp"><i></i><span>${ESPACES[x].nom}</span></div>`).join("");
     [...esp.children].forEach((d, i) => {
@@ -1731,19 +2318,62 @@
     });
     majEcoute();
   };
+  const nommer = (f) => {
+    const nm = $(".nom"), fam = $(".fam");
+    if (!nm.lastChild) {
+      const p = document.createElement("small");
+      p.append("");
+      nm.append("", p);
+      fam.append("");
+    }
+    nm.firstChild.data = vu.nom;
+    nm.lastChild.firstChild.data = vu.sous || "";
+    fam.firstChild.data = f;
+    fam.hidden = !f;
+  };
+  const vitrineDisque = () => {
+    if (!racine || !vu) return;
+    const x = vu.alea ? disqueMis() : disques().find((d) => d.id === vu.id) || vu, p = $(".platine");
+    const mis = !vu.alea && !vu.absent && !MUS_ALEA.actif() && vu.id === disqueMis().id, bm = $('.actions [data-a="mettre"]'), tm = Tr(mis ? "themes.applique" : "themes.appliquer");
+    if (bm.textContent !== tm) bm.textContent = tm;
+    $(".actions").querySelectorAll("[data-a]").forEach((a) => a.classList.toggle("eteint", a.dataset.a === "ecouter" ? !!vu.alea || !!vu.absent || vu.cle === "aucune" : a.dataset.a === "mettre" && mis));
+    $(".ecran").style.background = "";
+    for (const el of [$(".ecran"), $(".vitrine")]) el.style.setProperty("--a", "var(--pcv-cyan-plein)");
+    p.style.setProperty("--dq", x.couleur);
+    p.style.setProperty("--dq-et", x.etiquette);
+    const lg = logoHTML(x);
+    if (p.lastChild.innerHTML !== lg) p.lastChild.innerHTML = lg;
+    nommer(Tr("musiques.musique"));
+    $(".texte-disque").textContent = vu.alea ? Tr("musiques.texte_alea") : vu.texte + (MUS_ALEA.marques().includes(vu.id) ? " " + Tr("musiques.texte_marque") : "");
+    majEcoute();
+  };
   const majEcoute = () => {
     if (!racine) return;
-    const n = $(".note");
+    const joue = cat === "musiques" && !!vu && !vu.absent && vu.cle !== "aucune" && (ecoute !== null || (vu.alea ? MUS_ALEA.actif() : !MUS_ALEA.actif() && vu.id === disqueMis().id));
+    $(".bras")?.classList.toggle("pose", joue);
+    $(".ecran").classList.toggle("joue", joue);
+    const be = $('.actions [data-a="ecouter"]'), te = Tr(ecoute !== null && cat === "musiques" ? "themes.arreter" : "themes.ecouter");
+    be.classList.toggle("joue", ecoute !== null && cat === "musiques");
+    if (be.lastChild.textContent !== te) be.lastChild.textContent = te;
+    const n = $(".vitrine .note");
     n.classList.toggle("on", ecoute !== null);
-    n.lastChild.textContent = ecoute ? Tr("themes.musique_du_theme") : Tr("themes.pas_musique");
+    n.lastChild.textContent = cat === "musiques" ? Tr("musiques.ecoute") : ecoute ? Tr("themes.musique_du_theme") : Tr("themes.pas_musique");
   };
   const ecrireLegende = () => {
     if (!racine) return;
+    barreZoomThemes(cranThemes);
+    if (panneauReglages) {
+      window.__pcvIcones.poser($(".aide"), window.__pcvLegendeDe([[2, Tr("touche.retour")], [1, Tr("touche.choisir")]]));
+      return;
+    }
     const a = zone === "actions" ? nomsActions()[asel] : "appliquer";
-    window.__pcvIcones.poser($(".legende"), window.__pcvLegendeDe(essai ? [[2, Tr("themes.revenir")], [1, Tr("themes.garder")]] : [
-      [[5, 6], Tr("touche.onglets")],
+    window.__pcvIcones.poser($(".legende"), window.__pcvLegendeDe(essai ? [[[7, 8], Tr("themes.essai_theme")], [2, Tr("themes.revenir")], [1, Tr("themes.appliquer")]] : [
+      [13, Tr("touche.onglets")],
+      [14, Tr("themes.reglages")],
+      ...cat === "musiques" && vu && !vu.alea && !vu.absent && vu.cle !== "aucune" && (zone === "grille" || zone === "actions") ? [[4, Tr(ecoute !== null ? "themes.arreter" : "themes.ecouter")]] : [],
       [2, Tr("touche.retour")],
-      [1, Tr(zone === "grille" ? "themes.appliquer" : zone === "actions" ? "themes." + a : "touche.choisir")]
+      ...vu && !vu.alea && !vu.absent && vu.cle !== "theme" && vu.cle !== "aucune" && (zone === "grille" || zone === "actions") ? [[3, Tr(aleaVu().marques().includes(vu.id) ? "themes.alea_retirer" : "themes.alea_ajouter")]] : [],
+      [1, Tr(zone === "grille" ? cat !== "musiques" ? "themes.appliquer" : vu?.absent ? "musiques.importer" : "themes.appliquer" : zone === "actions" ? "themes." + (a === "mettre" ? "appliquer" : a) : "touche.choisir")]
     ]));
   };
   (window.__pcvLegendes ||= {}).themes = () => {
@@ -1751,11 +2381,15 @@
   };
   const marquer = () => {
     if (!racine) return;
-    $(".onglets").querySelectorAll("b[data-cat]").forEach((b) => b.classList.toggle("sel", zone === "onglets" && b.dataset.cat === cat));
-    $(".onglets [data-eshop]")?.classList.toggle("sel", zone === "eshop");
-    $(".rail").querySelectorAll(".carte").forEach((c, i) => c.classList.toggle("sel", zone === "grille" && i === sel));
-    [...$(".reglages").children].forEach((r, i) => r.classList.toggle("sel", zone === "reglages" && i === rsel));
-    [...$(".actions").children].forEach((a, i) => a.classList.toggle("sel", zone === "actions" && i === asel));
+    const z = document.body.classList.contains("pcv-barre-main") ? "" : zone;
+    $(".onglets").querySelectorAll("b[data-cat]").forEach((b) => b.classList.toggle("sel", z === "onglets" && b.dataset.cat === cat));
+    $(".onglets [data-eshop]")?.classList.toggle("sel", z === "eshop");
+    $(".onglets").classList.toggle("vers-eshop", z === "eshop");
+    $(".rail").querySelectorAll(".carte").forEach((c, i) => c.classList.toggle("sel", z === "grille" && i === sel));
+    [...$(".reglages").children].forEach((r, i) => r.classList.toggle("sel", panneauReglages && i === rsel));
+    [...$(".actions").children].forEach((a) => a.classList.toggle("sel", z === "actions" && a.dataset.a === nomsActions()[asel]));
+    $(".zoom").hidden = panneauReglages || !!essai;
+    $(".legende").hidden = panneauReglages;
     ecrireLegende();
     apresPeinture();
   };
@@ -1769,7 +2403,7 @@
     quitterVers((r) => window.__pcvEshopThemes?.ouvrir(r));
   };
   const ouvrirFiche = (t) => {
-    const l = dans(cat).map(donnees.fiche);
+    const l = themesDe(cat).map(donnees.fiche);
     son("choisir");
     quitterVers((r) => window.__pcvEshopThemes?.ouvrirDepuis(r, "", l.find((x) => x.id === t.id), l));
   };
@@ -1786,7 +2420,7 @@
     }),
     // le compte des thèmes importés suit
     appliquer: (id) => {
-      appliquer(id);
+      choisirTheme(id);
     },
     importe: (num) => importes.some((t) => t.id === "importe:themeplaza-" + num),
     importeId: (id) => importes.some((t) => t.id === "importe:" + id)
@@ -1797,10 +2431,19 @@
     defilement = requestAnimationFrame(() => {
       defilement = requestAnimationFrame(() => {
         defilement = 0;
-        if (racine) {
-          $(".rail .sel")?.scrollIntoView?.({ block: "nearest" });
-          cadrerOnglets();
+        if (!racine) return;
+        const page = racine, choisi = $(".rail .sel"), mouvements = (choisi?.getAnimations?.() || []).filter((a) => a.playState !== "finished" && a.playState !== "idle");
+        cadrerOnglets();
+        if (mouvements.length) {
+          window.__pcvPresentation?.bulleNom($(".rail"), null, "");
+          Promise.allSettled(mouvements.map((a) => a.finished)).then(() => {
+            if (racine === page && $(".rail .sel") === choisi) apresPeinture();
+          });
+          return;
         }
+        if (cranThemes <= CRANS_THEMES_AJOUTES) $(".rail").querySelectorAll(".carte .nm span").forEach((n) => window.__pcvTenirMot?.(n, 5));
+        choisi?.scrollIntoView?.({ block: "nearest" });
+        window.__pcvPresentation?.bulleNom($(".rail"), cranThemes > CRANS_THEMES_AJOUTES && zone === "grille" && !panneauReglages ? $(".rail .sel .vig") : null, echap(vu?.nom || ""));
       });
     });
   };
@@ -1820,7 +2463,7 @@
   const dessinerOnglets = () => {
     const bande = $(".onglets");
     if (!bande.firstChild) {
-      bande.innerHTML = `<span class="defile">` + CATS.map(([c, n]) => `<b data-cat="${c}" class="pf">${n}${c === "fonds" || c === "importes" ? `<small></small>` : ""}</b>`).join("") + `</span><b data-eshop class="pf">${window.__pcvIcones?.svg?.("boutique") || ""}${echap(Tr("themes.trouver_eshop"))}</b>`;
+      bande.innerHTML = `<span class="defile">` + CATS.map(([c, n]) => `<b data-cat="${c}" class="pf">${n}${c === "importes" || c === "musiques" ? `<small></small>` : ""}</b>`).join("") + `</span><b data-eshop class="pf">${window.__pcvIcones?.svg?.("boutique") || ""}${echap(Tr("themes.trouver_eshop"))}</b>`;
       mesureOnglets?.disconnect();
       mesureOnglets = new ResizeObserver(() => apresPeinture());
       mesureOnglets.observe(bande);
@@ -1828,7 +2471,7 @@
     }
     bande.querySelectorAll("b[data-cat]").forEach((b) => {
       b.classList.toggle("actif", b.dataset.cat === cat);
-      const n = b.querySelector("small"), compte = n && String(dans(b.dataset.cat).length);
+      const n = b.querySelector("small"), compte = n && String(themesDe(b.dataset.cat).length);
       if (n && n.textContent !== compte) n.textContent = compte;
     });
     apresPeinture();
@@ -1838,13 +2481,16 @@
     const liste = dans(cat);
     dessinerOnglets();
     $(".chapeau").textContent = cat === "couleurs" ? Tr("themes.couleurs_texte") : "";
-    $(".rail").innerHTML = liste.length ? liste.map((t) => carte(t, jx)).join("") : `<div class="vide">${VIDES[cat] || ""}</div>`;
+    $(".rail").innerHTML = liste.map(carte).join("") + (liste.length < 2 ? `<div class="vide">${VIDES[cat] || ""}</div>` : "");
+    dimensionnerGrille();
     rendreReglages();
-    const sa = $('.actions [data-a="supprimer"]');
-    if (sa) sa.hidden = cat !== "importes";
+    for (const a of $(".actions").children) a.hidden = !nomsActions().includes(a.dataset.a);
+    racine.classList.toggle("musiques", cat === "musiques");
     asel = Math.min(asel, nomsActions().length - 1);
-    [...$(".actions").children].forEach((a) => a.classList.toggle("eteint", !liste.length));
-    for (const t of liste) if (aImage(t) && doux[t.id] === void 0) chargerImages(t).then(() => rafraichir(t.id));
+    for (const x of liste) {
+      const t = x.theme || x;
+      if (aImage(t) && doux[t.id] === void 0) chargerImages(t).then(() => rafraichir(t.id));
+    }
     marquer();
     vitrine();
   };
@@ -1858,11 +2504,12 @@
       aRafraichir.clear();
       if (!racine) return;
       const l = dans(cat);
+      if (l.some((x) => x.disque && ids.has(x.theme?.id))) return dessinerPanneau();
       $(".rail").querySelectorAll(".carte").forEach((c, i) => {
         const t = l[i];
         if (t && ids.has(t.id)) {
-          c.style.setProperty("--a", t.accent);
-          c.querySelector(".vig").style.background = vignette(t, 0.16);
+          c.style.setProperty("--pcv-theme-accent", t.accent);
+          c.style.setProperty("--pcv-theme-fond", fondTuile(t));
         }
       });
       if (vu && ids.has(vu.id)) vitrine();
@@ -1872,18 +2519,21 @@
     const l = dans(cat), avant = vu;
     vu = l[Math.max(0, Math.min(sel, l.length - 1))] || vu || courant;
     if (ecoute !== null) {
-      ecoute = musiqueDe("accueil", vu) || "";
+      ecoute = cat === "musiques" && vu?.id !== avant?.id ? null : ecouteDe(vu);
       musique();
     }
     if (tout) return dessinerPanneau();
     marquer();
-    if (vu !== avant) vitrine();
+    if (vu !== avant) {
+      vitrine();
+      relancer();
+    }
   };
   const changerCat = (c) => {
     if (c === cat) return;
     cat = c;
     sel = 0;
-    const l = dans(cat), i = l.findIndex((t) => t.id === courant?.id);
+    const p = cat === "musiques" ? disqueMis().id : courant?.id, l = dans(cat), i = l.findIndex((t) => t.id === p);
     if (i >= 0) sel = i;
     son("onglet");
     regarder(true);
@@ -1891,6 +2541,7 @@
   const basculer = () => {
     const r = reglages()[rsel];
     if (!r) return rendreReglages();
+    if (r.ouvrir) return r.ouvrir();
     const v = lire(r.cle, r.def);
     const l = r.niveaux || r.choix?.();
     if (l?.length > 2) {
@@ -1903,6 +2554,7 @@
     son("choisir");
   };
   const appliquerReglage = (r, n) => {
+    if (r.cle === "pcv-sons-famille") window.__pcvFilmSons?.();
     if (r.cle === "pcv-apparence") window.__pcvApparence?.choisir(n);
     if (r.cle === "pcv-volume-musique") L.forEach((a) => {
       if (!a.paused && cibles.get(a) !== 0) viser(a, n);
@@ -1918,10 +2570,40 @@
       marquer();
     }
   };
+  const basculerAlea = () => {
+    if (!vu || vu.alea || vu.absent || vu.cle === "theme" || vu.cle === "aucune" || essai) return son("bord");
+    const A = aleaVu(), l = A.marques(), dedans = l.includes(vu.id);
+    if (!dedans && l.length >= A.max) return son("bord");
+    garderReglage(A.cleMarques, dedans ? l.filter((id) => id !== vu.id) : [...l, vu.id]);
+    son(dedans ? "retour" : "choisir");
+    dessinerPanneau();
+  };
   const action = (a) => {
-    if (!vu || !dans(cat).length) return son("bord");
-    if (a === "appliquer") {
-      appliquer(vu.id);
+    if (!vu || vu.alea && a !== "appliquer" && a !== "mettre") return son("bord");
+    if (a === "mettre" && vu.absent) {
+      son("choisir");
+      window.__pcvSteamU?.ouvrir?.();
+      return;
+    }
+    if (a === "ecouter") {
+      if (vu.absent || vu.cle === "aucune") return son("bord");
+      ecoute = ecoute === null ? ecouteDe(vu) : null;
+      musique();
+      majEcoute();
+      ecrireLegende();
+      son("choisir");
+      return;
+    }
+    if (a === "appliquer" || a === "mettre") {
+      const A = aleaVu();
+      if (vu.alea) {
+        if (!A.marques().length) return son("bord");
+        garderReglage(A.cleActif, true);
+        A.tirer();
+      } else if (a === "mettre") {
+        if (!MUS_ALEA.actif() && vu.id === disqueMis().id) return son("bord");
+        MUS_ALEA.choisir(vu.id);
+      } else choisirTheme(vu.id);
       son("theme");
       dessinerPanneau();
     } else if (a === "essayer") {
@@ -1960,17 +2642,22 @@
       return false;
     }
     if (courant?.id === "importe:" + id) appliquer("verre");
+    if (marques().includes("importe:" + id)) garderReglage(ALEA.cleMarques, marques().filter((x) => x !== "importe:" + id));
+    const dq = "disque:importe:" + id;
+    if (MUS_ALEA.marques().includes(dq)) garderReglage(MUS_ALEA.cleMarques, MUS_ALEA.marques().filter((x) => x !== dq));
+    if (lire(DISQUE, "theme") === "importe:" + id) mettreDisque("theme");
     await charger(true);
     return true;
   };
   let basAccueil = null;
   const entrerEssai = () => {
+    $(".zoom").hidden = true;
     ecrireLegende();
     racine.classList.add("essai");
     hote.classList.add("pcvth-essai");
     basAccueil = document.querySelector("#pcv-console > .bas");
     if (basAccueil) basAccueil.style.visibility = "hidden";
-    $(".bn").innerHTML = `Essai : ${echap(vu.nom)} <small>(${FAMILLES[vu.famille].nom})</small>`;
+    $(".bn").innerHTML = `Essai : ${echap(vu.nom)} ${consoleNom(vu) ? `<small>(${consoleNom(vu)})</small>` : ""}`;
     ecoute = null;
     musique();
     majEcoute();
@@ -1981,9 +2668,21 @@
     if (basAccueil) basAccueil.style.visibility = "";
     basAccueil = null;
   };
+  const essaiVoisin = (d) => {
+    const l = dans(cat);
+    if (l.length < 3) return son("bord");
+    sel = (sel + d + l.length) % l.length;
+    if (l[sel].alea) sel = (sel + d + l.length) % l.length;
+    vu = l[sel];
+    appliquer(vu.id, true);
+    entrerEssai();
+    son("bouge");
+    document.querySelector("#pcv-console > .zone")?.animate([{ transform: "scale(.97)" }, { transform: "scale(1.012)" }, { transform: "none" }], { duration: 420, easing: "cubic-bezier(.3,1.4,.5,1)" });
+    window.__pcvAppui?.($(".bandeau"));
+  };
   const garder = () => {
     sortirEssai();
-    appliquer(vu.id);
+    choisirTheme(vu.id);
     son("theme");
     dessinerPanneau();
   };
@@ -2029,6 +2728,7 @@
     const l = dans(cat);
     sel = Math.max(0, l.findIndex((t) => t.id === v.id));
     vu = l[sel] || courant;
+    cranThemes = Math.max(0, Math.min(cransThemes().length - 1, (Math.trunc(+lire("pcv-themes-grille-zoom", 0)) || 0) + CRANS_THEMES_AJOUTES));
     construire();
     monFond(hote);
     dessinerPanneau();
@@ -2060,6 +2760,9 @@
       essai = null;
       appliquer(a);
     }
+    pincementThemes = null;
+    zoomThemes = null;
+    panneauReglages = false;
     sortirEssai();
     ouvert = false;
     ecoute = null;
@@ -2090,27 +2793,40 @@
   });
   const touche = (b) => {
     if (!ouvert) return false;
-    if (b === 1) window.__pcvAppui($(essai ? '[data-b="garder"]' : ".onglets .sel, .rail .sel, .reglages .sel, .actions .sel"));
+    if (panneauReglages) return toucheReglages(b);
+    if (b === 1) {
+      if (!essai) window.__pcvAppui($(".onglets .sel, .rail .sel, .actions .sel"));
+    }
     if (essai) {
       if (b === 1) garder();
       else if (b === 2) annulerEssai();
+      else if (b === 7 || b === 8) essaiVoisin(b === 8 ? 1 : -1);
+      else if (b === 5 || b === 6) window.__pcvZoomAccueil?.(b === 6 ? 1 : -1);
       return true;
     }
-    if (b === 2) return false;
+    if (b === 2) {
+      if (zone !== "grille") {
+        zone = "grille";
+        son("bouge");
+        marquer();
+        return true;
+      }
+      return false;
+    }
     if (b === 5 || b === 6) {
-      const i = CATS.findIndex(([c]) => c === cat), n2 = CATS[(i + (b === 6 ? 1 : CATS.length - 1)) % CATS.length][0];
-      changerCat(n2);
+      zoomThemes(b === 6 ? 1 : -1);
       return true;
     }
+    if (b === 13) return ongletSuivant();
     if (b === 3) {
-      action("fiche");
+      basculerAlea();
       return true;
     }
     if (b === 4) {
-      action("essayer");
+      action(cat === "musiques" ? "ecouter" : "essayer");
       return true;
     }
-    const l = dans(cat), n = l.length, col = sel % 3;
+    const l = dans(cat), n = l.length, colonnes = colonnesThemes(), col = sel % colonnes;
     const bouge = () => {
       son("bouge");
       marquer();
@@ -2118,12 +2834,14 @@
     };
     if (zone === "eshop") {
       if (b === 1) versEshop();
-      else if (b === 9) window.__pcvBarreEntrer?.(marquer);
-      else if (b === 11) {
+      else if (b === 9) {
+        window.__pcvBarreEntrer?.(marquer);
+        marquer();
+      } else if (b === 11) {
         zone = "onglets";
         return bouge();
       } else if (b === 10) {
-        zone = n ? "grille" : "reglages";
+        zone = "grille";
         return bouge();
       } else son("bord");
       return true;
@@ -2131,6 +2849,7 @@
     if (zone === "onglets") {
       if (b === 9) {
         window.__pcvBarreEntrer?.(marquer);
+        marquer();
         return true;
       }
       if (b === 11 || b === 12) {
@@ -2147,7 +2866,7 @@
         return true;
       }
       if (b === 10 || b === 1) {
-        zone = n ? "grille" : "reglages";
+        zone = "grille";
         return bouge();
       }
       son("bord");
@@ -2155,12 +2874,16 @@
     }
     if (zone === "grille") {
       if (b === 1) {
-        action("appliquer");
+        if (vu?.absent) return action("mettre"), true;
+        if (n) {
+          zone = "actions";
+          asel = 0;
+          return bouge();
+        }
         return true;
       }
       if (!n) {
         if (b === 9) zone = "onglets";
-        else if (b === 10) zone = "reglages";
         else {
           son("bord");
           return true;
@@ -2174,23 +2897,23 @@
         }
         sel--;
       } else if (b === 12) {
-        if (col === 2 || sel === n - 1) {
+        if (col === colonnes - 1 || sel === n - 1) {
           zone = "actions";
           return bouge();
         }
         sel++;
       } else if (b === 9) {
-        if (sel < 3) {
+        if (sel < colonnes) {
           zone = "onglets";
           return bouge();
         }
-        sel -= 3;
+        sel -= colonnes;
       } else if (b === 10) {
-        if (sel + 3 < n) sel += 3;
-        else if (Math.floor(sel / 3) < Math.floor((n - 1) / 3)) sel = n - 1;
+        if (sel + colonnes < n) sel += colonnes;
+        else if (Math.floor(sel / colonnes) < Math.floor((n - 1) / colonnes)) sel = n - 1;
         else {
-          zone = "reglages";
-          return bouge();
+          son("bord");
+          return true;
         }
       } else return true;
       son("bouge");
@@ -2219,54 +2942,7 @@
         zone = "grille";
         return bouge();
       }
-      if (b === 10) {
-        zone = "reglages";
-        rsel = 2;
-        return bouge();
-      }
-      return true;
-    }
-    if (zone === "reglages") {
-      if (b === 1) {
-        basculer();
-        return true;
-      }
-      if (b === 11) {
-        if (rsel % 3 === 0) {
-          son("bord");
-          return true;
-        }
-        rsel--;
-        return bouge();
-      }
-      if (b === 12) {
-        if (rsel % 3 === 2 || rsel === reglages().length - 1) {
-          son("bord");
-          return true;
-        }
-        rsel++;
-        return bouge();
-      }
-      if (b === 10) {
-        if (rsel + 3 >= reglages().length) {
-          son("bord");
-          return true;
-        }
-        rsel += 3;
-        return bouge();
-      }
-      if (b === 9 && rsel >= 3) {
-        rsel -= 3;
-        return bouge();
-      }
-      if (b === 9) {
-        zone = rsel === 2 ? "actions" : "grille";
-        if (zone !== "grille") return bouge();
-        sel = Math.max(0, Math.min(n - 1, Math.floor((n - 1) / 3) * 3 + Math.min(2, rsel)));
-        son("bouge");
-        regarder();
-        return true;
-      }
+      son("bord");
       return true;
     }
     return true;
@@ -2286,14 +2962,16 @@
     }
     if (window.__pcvLecteur && !window.__pcvLecteur.paused) window.__pcvLecteur.pause();
     if (window.__pcvFond !== monFond) window.__pcvFond = monFond;
+    if (avantConnexion) return;
     (window.__pcvManette ||= {}).themes = (b) => {
       if (!ouvert || !autonome) return false;
-      if (b === 2 && !essai) {
+      if (touche(b)) return true;
+      if (b === 2) {
         fermer();
         son("retour");
         return true;
       }
-      return touche(b);
+      return false;
     };
     if (Array.isArray(window.__pcvOrdre) && !window.__pcvOrdre.includes("themes")) window.__pcvOrdre.unshift("themes");
   };
@@ -2333,6 +3011,15 @@
     }
   };
   const obs = new MutationObserver(surEcran), obsClasses = new MutationObserver(surEcran), CLASSES = { attributes: true, attributeFilter: ["class"] };
+  const obsApparence = new MutationObserver(() => {
+    surApparence();
+    if (racine) {
+      regarder(true);
+      vitrine();
+    }
+  });
+  obsApparence.observe(document.documentElement, { attributes: true, attributeFilter: ["data-pcv-apparence"] });
+  fins.push(() => obsApparence.disconnect());
   const suivreClasses = () => {
     for (const id of ECRANS_IDS) {
       const el = document.getElementById(id);
@@ -2340,6 +3027,7 @@
     }
     document.querySelectorAll(".pcv-panneau").forEach((el) => obsClasses.observe(el, CLASSES));
   };
+  if (avantConnexion) obsClasses.observe(document.body, CLASSES);
   if (!avantConnexion) {
     obs.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-pcv-page", "hidden", "data-ecran", "data-cat"] });
     for (const el of [document.body, document.documentElement]) obsClasses.observe(el, CLASSES);
@@ -2391,12 +3079,24 @@
       ecrire(cle, valeur);
       appliquerReglage({ cle }, valeur);
     }
+    if (lire("pcv-musique", true) === false && lire(DISQUE, null) !== "aucune") garderReglage(DISQUE, "aucune");
+    const sf = lire("pcv-sons-famille", "theme");
+    if (lire(DISQUE, null) === null && sf !== "theme")
+      garderReglage(DISQUE, Object.keys(window.__pcvSonsSysteme?.[sf]?.musiques || {}).length ? sf : "steamu");
     musique();
   });
   brancher();
   appliquer(lire("pcv-theme", "verre"));
   remonter();
   charger().then(() => musique());
+  const auReveil = () => {
+    if (libreDeChanger() && espaceActuel() === "accueil") {
+      tirer();
+      MUS_ALEA.tirer();
+    }
+  };
+  window.addEventListener("pcv-reveil", auReveil);
+  fins.push(() => window.removeEventListener("pcv-reveil", auReveil));
   const surApparence = () => {
     if (!courant) return;
     style.textContent = variables(courant);
@@ -2405,13 +3105,25 @@
   };
   window.addEventListener("pcv-apparence", surApparence);
   fins.push(() => window.removeEventListener("pcv-apparence", surApparence));
+  window.addEventListener("pcv-jeu-pause", musique);
+  fins.push(() => window.removeEventListener("pcv-jeu-pause", musique));
+  window.addEventListener("pcv-modes", musique);
+  fins.push(() => window.removeEventListener("pcv-modes", musique));
   window.__pcvThemes = {
+    teinteDominante: (im) => {
+      try {
+        return teinteDominante(im);
+      } catch (e) {
+        return null;
+      }
+    },
     preparerBoutique: () => themesPreparees ||= charger(true),
     attenuer: (on) => {
-      attenuation = on ? 0.2 : 1;
+      attenuation = on ? ATTENUATION_VIDEO : 1;
       musique();
     },
     appliquer: (id) => appliquer(id),
+    choisir: choisirTheme,
     actuel: () => courant?.id,
     // (28/10) la sous-page Thèmes de l'eShop (eshop-themes.js) : les outils des sites (themezer.js, themeplaza.js), « Écouter »
     // un thème installé (id ; null : la musique de l'écran revient ; vrai si la musique du thème joue), « Supprimer », et
@@ -2421,7 +3133,7 @@
     supprimer: supprimerTheme,
     ecouter: (id) => {
       const t = id && trouver(id);
-      ecoute = t ? musiqueDe("accueil", t) || "" : null;
+      ecoute = t ? musiqueDe("accueil", t, "theme") || "" : null;
       musique();
       return !!t;
     },

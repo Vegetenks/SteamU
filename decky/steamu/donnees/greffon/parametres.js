@@ -22,11 +22,14 @@
   document.getElementById("pcv-rangee-cadre")?.remove();
   let cadre = null, rangee = null, avantRangee = "";
   const sources = () => [document.getElementById("pcv-onglet-steamu"), ...document.querySelectorAll(TUILES)].filter((t) => t && t.dataset.pcvChoix !== "retirer");
-  const reliefTuile = (c, t) => {
-    const ic = c.querySelector("{{PageListItem_Icon@PageListItem_Title}}"), source = t.querySelector("{{PageListItem_Icon@PageListItem_Title}}");
-    if (!ic || !source || ic.querySelector(".pcv-marque-relief")) return;
-    const st = getComputedStyle(source), nom = st.getPropertyValue("--pcv-param-icone").trim();
-    if (nom) ic.innerHTML = window.__pcvIcones.relief(nom, "var(--pcv-param-couleur)");
+  const nomsRelief = /* @__PURE__ */ new Map();
+  const reliefTuiles = (paires) => {
+    const I = "{{PageListItem_Icon@PageListItem_Title}}";
+    const a = paires.map(([c, t]) => [c.querySelector(I), t.querySelector(I), t.id]).filter(([ic, source]) => ic && source && !ic.querySelector(".pcv-marque-relief")).map(([ic, source, id]) => {
+      if (!nomsRelief.has(id)) nomsRelief.set(id, getComputedStyle(source).getPropertyValue("--pcv-param-icone").trim());
+      return [ic, nomsRelief.get(id)];
+    });
+    for (const [ic, nom] of a) if (nom) ic.innerHTML = window.__pcvIcones.relief(nom, "var(--pcv-param-couleur)");
   };
   const recopier = () => {
     const col = document.querySelector(".PageListColumn:not(#pcv-rangee)");
@@ -55,6 +58,7 @@
       o.col = col;
       o.observe(col, { subtree: true, childList: true, attributes: true, attributeFilter: ["class", "style"], characterData: true });
     }
+    if (!cadre.firstElementChild.matches(".pcv-titre-appli")) cadre.insertAdjacentHTML("afterbegin", window.__pcvTitreAppli?.("parametres") || "");
     const l = rangee.firstElementChild, src = sources(), sig = src.map((t) => t.id).join();
     if (sig !== avantRangee) {
       avantRangee = sig;
@@ -72,6 +76,7 @@
     const v = rangee.__vise, attente = v && performance.now() - v.t < 1500 && !enCours(v.de);
     if (!attente) rangee.__vise = null;
     let active = null;
+    const paires = [];
     for (const c of l.children) {
       const t = document.getElementById(c.dataset.pcvDe);
       if (!t) continue;
@@ -79,9 +84,10 @@
       if (c.className !== k && !attente) c.className = k;
       if (c.style.display !== t.style.display) c.style.display = t.style.display;
       if (c.textContent !== t.textContent) c.replaceChildren(...t.cloneNode(true).childNodes);
-      reliefTuile(c, t);
+      paires.push([c, t]);
       if (t.id === "pcv-onglet-steamu" ? window.__pcvSteamU?.ouvert?.() : t.getAttribute("aria-selected") === "true" && !window.__pcvSteamU?.ouvert?.()) active = c;
     }
+    reliefTuiles(paires);
     const affiche = [...l.children].map((c) => c.style.display).join();
     if (!attente && active && (active !== rangee.__active || affiche !== rangee.__affiche)) {
       rangee.__active = active;
@@ -100,6 +106,10 @@
     const a = rangee.__active;
     if (!a || a === c) return;
     const k = [...a.classList].filter((x) => !c.classList.contains(x) && !x.startsWith("gpfocus"));
+    if (a.hasAttribute("data-pcv-vise")) {
+      a.removeAttribute("data-pcv-vise");
+      c.setAttribute("data-pcv-vise", "");
+    }
     a.classList.remove(...k);
     c.classList.add(...k);
     rangee.__active = c;
@@ -109,7 +119,7 @@
   const allerA = (c, s = "choisir") => {
     const t = document.getElementById(c.dataset.pcvDe);
     if (!t) return;
-    son(s);
+    if (s) son(s);
     passer(c);
     clearTimeout(rangee.__pose);
     rangee.__pose = setTimeout(() => {
@@ -119,16 +129,25 @@
       t.click();
     }, window.__pcvPanneau().duration);
   };
-  const voisine = (sens) => {
-    const l = [...rangee?.firstElementChild.children || []].filter((c2) => c2.style.display !== "none"), i = l.indexOf(rangee?.__vise ? l.find((c2) => c2.dataset.pcvDe === rangee.__vise.de) : rangee?.__active);
-    const c = l[Math.max(0, Math.min(l.length - 1, i + sens))];
-    if (!c || c === l[i]) {
-      son("bord");
-      return false;
+  const visibles = () => [...rangee?.firstElementChild.children || []].filter((c) => c.style.display !== "none");
+  const nav = window.__pcvPresentation.onglets({
+    rang: () => {
+      const l = visibles();
+      return [l.indexOf(rangee?.__vise ? l.find((c) => c.dataset.pcvDe === rangee.__vise.de) : rangee?.__active), l.length];
+    },
+    aller: (j) => allerA(visibles()[j], ""),
+    revenir: () => versTuiles(),
+    descendre: () => {
+      const sp = sousPage();
+      if (sp ? cibles().length : colonne.querySelectorAll(".onglet").length) {
+        S.cur = 0;
+        S.zone = sp ? "lignes" : "colonne";
+        son("bouge");
+        curseur();
+      } else son("bord");
     }
-    allerA(c, "bouge");
-    return true;
-  };
+  });
+  const voisine = nav.voisine;
   const genre = (p) => typeof p?.onChange !== "function" ? null : typeof p.checked === "boolean" ? "inter" : Array.isArray(p.rgOptions) ? "liste" : typeof p.min === "number" && typeof p.max === "number" && typeof p.value === "number" ? "curseur" : null;
   const commandes = (l) => {
     for (let f = fibre(l)?.return, i = 0; f && i < 14 && typeof f.type !== "string"; f = f.return, i++) {
@@ -282,9 +301,104 @@
       const n = plat(g[0].l[0].nom), t = B()?.texteSteam;
       g[0].nom = n === t?.("Settings_Language_Select") && t("LanguageSettings_Label") || n;
     }
+    const ib = g.findIndex((x) => x.nom === B()?.texteSteam?.("Settings_Power_Battery_Title"));
+    if (window.__pcvModes?.leviers && (ib >= 0 || S.og === "/settings/power")) g.splice(ib + 1 || Math.min(1, g.length), 0, rubriqueEco());
     const a = lignes(true);
     if (a?.some((x) => x.g !== "titre")) g.push({ nom: T("reglages.avances"), l: a });
     return g;
+  };
+  const NIVEAUX_ECO = ["legere", "normale", "maximale"];
+  const DETAIL_ECO = [
+    ["anim", "etoile", "var(--pcv-orange)"],
+    ["place", "photo", "#2a8cff", 1],
+    ["fond", "video", "var(--pcv-rouge)"],
+    ["musique", "musique", "var(--pcv-rouge)"],
+    ["apercus", "maison", "#2ab4d9", 1],
+    ["tdp", "perf", "var(--pcv-orange)"],
+    ["lum", "soleil", "#f5b301"],
+    ["noir", "palette", "var(--pcv-touche-neutre)", 1],
+    ["telech", "telech", "var(--pcv-vert)"],
+    ["systeme", "wifi", "#4f8df7"]
+  ];
+  const PUCES_ECO = ["anim", "fond", "apercus", "lum", "place", "musique", "tdp", "telech", "systeme", "noir"];
+  const RESUME_ECO = ["anim", "place", "musique", "fond", "apercus"], FEMININS_ECO = ["anim", "place", "musique"];
+  const listeEco = (titre, choix, v, ok) => window.__pcvDossiers?.liste?.({ ailleurs: true, titre, choix: choix.map((c) => c[1]), v: Math.max(0, choix.findIndex((c) => c[0] === v)), ok: (i) => {
+    if (choix[i]) ok(choix[i][0]);
+    rafraichir();
+  } });
+  const detailEco = (oui) => {
+    S.ecoDetail = oui;
+    S.cur = 0;
+    S.entre = ".contenu > *";
+    contenu.scrollTop = 0;
+    dessiner();
+    curseur();
+  };
+  const rubriqueEco = () => {
+    const M = window.__pcvModes, m = M.lire(), r = M.reglages(m), l = M.leviers(m), p = B()?.battery?.(), charge = !!p?.charging, w = { w: M.WATTS };
+    const niveau = T("eco.niveau." + r.niveau), seuil = r.seuil ? T("eco.a_pct", { n: r.seuil }) : T("eco.jamais");
+    const watts = (n) => n ? T("eco.w_max", { w: n }) : T("eco.celle_du_jeu"), ips = (n) => n ? T("eco.ips", { n }) : T("eco.sans_limite");
+    const jeu = [l.jeuW && `${l.jeuW} W`, l.jeuIps && ips(l.jeuIps)].filter(Boolean).join(", ");
+    const coupes = RESUME_ECO.filter((k) => l[k]).slice(0, 3), liste = coupes.map((k) => T("eco.r." + k)).join(", ").replace(/^./, (c) => c.toUpperCase());
+    const ce = [coupes.length && T(coupes.every((k) => FEMININS_ECO.includes(k)) ? "eco.coupees" : "eco.coupes", { liste }), l.tdp && T("eco.w", w)].filter(Boolean).join(", ");
+    const reste = !charge && window.__pcvEtat?.autonomie?.(p), nom = T("acces.economie");
+    const x = { nom, eco: true, sous: charge ? T("eco.sous_charge") : m.economie ? T("eco.activee", { niveau }) : T("eco.desactivee_a", { seuil }) };
+    x.l = S.ecoDetail ? [
+      ...DETAIL_ECO.map(([k, ic, c, a]) => ({ g: "inter", p: [ic, c], nom: T("eco.l." + k, w), aide: a ? T("eco.l." + k + ".aide") : "", cle: "eco:" + k, val: !!l[k], faire: () => M.regler({ levier: { [k]: !l[k] } }) })),
+      { g: "titre", nom: T("eco.en_jeu") },
+      {
+        g: "liste",
+        p: ["manette", "var(--pcv-orange)"],
+        nom: T("eco.puissance"),
+        aide: l.tdp ? T("eco.puissance.aide", w) : "",
+        cle: "eco:jeuW",
+        val: watts(l.jeuW),
+        faire: () => listeEco(T("eco.puissance"), [0, 12, 10, 8].map((n) => [n, watts(n)]), l.jeuW, (n) => M.regler({ levier: { jeuW: n } }))
+      },
+      {
+        g: "liste",
+        p: ["images", "#8b5cf6"],
+        nom: T("eco.images"),
+        aide: "",
+        cle: "eco:jeuIps",
+        val: ips(l.jeuIps),
+        faire: () => listeEco(T("eco.images"), [0, 40, 30].map((n) => [n, ips(n)]), l.jeuIps, (n) => M.regler({ levier: { jeuIps: n } }))
+      }
+    ] : [
+      {
+        g: "resume",
+        etat: charge ? "charge" : m.economie ? "actif" : "",
+        nom: charge ? T("eco.charge") : m.economie ? T("eco.activee_titre") : nom,
+        aide: charge ? T("eco.charge.aide") : m.economie ? ce : T("eco.desactivee_a", { seuil }),
+        reste: reste && window.__pcvEtat.duree(reste),
+        cle: "eco:on",
+        val: !!m.economie,
+        indispo: charge,
+        faire: () => M.economie(!m.economie)
+      },
+      { g: "titre", nom: T("eco.niveau") },
+      {
+        g: "niveau",
+        nom: T("eco.niveau"),
+        aide: "",
+        cle: "eco:niveau",
+        choix: NIVEAUX_ECO.map((n) => T("eco.niveau." + n)),
+        v: NIVEAUX_ECO.indexOf(r.niveau),
+        faire: (i = (Math.max(0, NIVEAUX_ECO.indexOf(r.niveau)) + 1) % NIVEAUX_ECO.length) => M.regler({ niveau: NIVEAUX_ECO[i] })
+      },
+      { g: "puces", l: [...PUCES_ECO.map((k) => [T("eco.p." + k, w), !!l[k]]), [T("eco.jeux", { v: jeu || ips(0) }), !!jeu]] },
+      {
+        g: "liste",
+        nom: T("eco.auto"),
+        aide: "",
+        cle: "eco:seuil",
+        val: seuil,
+        faire: () => listeEco(T("eco.auto_titre"), [0, 10, 15, 20, 30, 50].map((n) => [n, n ? T("eco.pct", { n }) : T("eco.jamais")]), r.seuil, (n) => M.regler({ seuil: n }))
+      },
+      { g: "inter", nom: T("eco.demander"), aide: "", cle: "eco:demander", val: !!r.demander, faire: () => M.regler({ demander: !r.demander }) },
+      { g: "bouton", nom: T("eco.personnaliser"), aide: r.niveau === "perso" ? niveau : "", cle: "eco:perso", val: "", faire: () => detailEco(true) }
+    ];
+    return x;
   };
   const PICTOS = [
     ["Settings_Updates_Header", "mise-a-jour"],
@@ -330,6 +444,7 @@
   const TEINTES = ["--c-aide", "--c-applis", "--c-confid", "--c-contrib", "--c-import"];
   const tuileIc = {};
   const pastille = (x, i) => {
+    if (x.eco) return ["var(--pcv-vert)", "feuille"];
     const t = choisie(), m = i === 0 && x.nom === plat(t?.textContent) && t.querySelector("{{PageListItem_Icon@PageListItem_Title}}");
     const st = m && (tuileIc[S.og] ??= (({ maskImage, backgroundColor }) => ({ maskImage, backgroundColor }))(getComputedStyle(m, "::before")));
     if (st && st.maskImage !== "none") return [st.backgroundColor, `<b class="masque" style="--m:${esc(st.maskImage)}"></b>`];
@@ -345,6 +460,7 @@
   document.body.appendChild(page);
   const colonne = page.querySelector(".colonne"), fil = page.querySelector(".fil"), contenu = page.querySelector(".contenu");
   const P = "#pcv-parametres";
+  const R = ":is(#pcv-rangee, [data-pcv-rangee])";
   document.head.insertAdjacentHTML("beforeend", `<style id="pcv-parametres-style">
     
     
@@ -355,28 +471,37 @@
     #pcv-rangee-cadre { --u: calc(100vh / 800); position: fixed; left: 0; right: 0; top: 0; height: calc(var(--u) * 330); z-index: 500; pointer-events: none; font-family: var(--pcv-police); }
     #pcv-rangee { pointer-events: auto; touch-action: pan-y; }
     
-    #pcv-rangee > * { position: relative !important; overflow: hidden !important; }
-    #pcv-rangee > * > * { position: absolute !important; left: 0 !important; top: calc(var(--u) * 16) !important; margin: 0 !important; width: calc(var(--u) * 150) !important; height: calc(var(--u) * 150) !important; border-radius: calc(var(--u) * 39) !important; will-change: transform; }
-    #pcv-rangee {{PageListItem_Icon@PageListItem_Title}} { width: calc(var(--u) * 82) !important; height: calc(var(--u) * 82) !important; }
-    #pcv-rangee {{PageListItem_Icon@PageListItem_Title}}::before { width: calc(var(--u) * 45); height: calc(var(--u) * 45); }
-    #pcv-rangee {{PageListItem_Icon@PageListItem_Title}}:has(.pcv-marque-relief) { background: none !important; box-shadow: none !important; border-radius: 0 !important; }
-    #pcv-rangee {{PageListItem_Icon@PageListItem_Title}}:has(.pcv-marque-relief)::before,
-    #pcv-rangee .pcv-marque-relief::before, #pcv-rangee .pcv-marque-relief::after { content: none; }
-    #pcv-rangee .pcv-marque-relief { --pcv-relief-taille: calc(var(--u) * 82); --pcv-relief-teinte: var(--pcv-relief-franc); }
-    #pcv-rangee {{PageListItem_Icon@PageListItem_Title}} .pcv-marque-relief > svg { display: block !important; }
-    #pcv-rangee {{PageListItem_Title@PageListItem_Icon}} { display: block !important; position: absolute !important; top: calc(100% + var(--u) * 12) !important; left: 50% !important; transform: translateX(-50%) !important;
+    ${R} > * { position: relative !important; overflow: clip !important; }   
+    ${R} > * > * { position: absolute !important; left: 0 !important; top: calc(var(--u) * 16) !important; margin: 0 !important; width: calc(var(--u) * 150) !important; height: calc(var(--u) * 150) !important; border-radius: calc(var(--u) * 39) !important; will-change: transform; }
+    ${R} {{PageListItem_Icon@PageListItem_Title}} { width: calc(var(--u) * 82) !important; height: calc(var(--u) * 82) !important; }
+    ${R} {{PageListItem_Icon@PageListItem_Title}}::before { width: calc(var(--u) * 45); height: calc(var(--u) * 45); }
+    ${R} {{PageListItem_Icon@PageListItem_Title}}:has(.pcv-marque-relief) { background: none !important; box-shadow: none !important; border-radius: 0 !important; }
+    ${R} {{PageListItem_Icon@PageListItem_Title}}:has(.pcv-marque-relief)::before,
+    ${R} .pcv-marque-relief::before, ${R} .pcv-marque-relief::after { content: none; }
+    ${R} .pcv-marque-relief { --pcv-relief-taille: calc(var(--u) * 82); --pcv-relief-teinte: var(--pcv-relief-franc); }
+    ${R} {{PageListItem_Icon@PageListItem_Title}} .pcv-marque-relief > svg { display: block !important; }
+    ${R} {{PageListItem_Icon@PageListItem_Title}}:has(.pcv-marque-relief) > svg { display: none !important; }   
+    
+    ${R} [role=tab] > .pcv-icone-onglet { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    ${R} [role=tab]:has(> .pcv-icone-onglet)::before, ${R} [role=tab]:has(> .pcv-icone-onglet)::after { content: none !important; }
+    ${R} [role=tab] > div { display: contents !important; }   
+    
+    ${R} > {{PagedSettingsDialog_Title@PagedSettingsDialog_PageList}} { position: absolute !important; left: 0 !important; right: 0 !important; top: calc(var(--u) * -62) !important; height: calc(var(--u) * 40) !important;
+      margin: 0 !important; padding: 0 calc(var(--u) * 200) !important; display: flex !important; align-items: center !important; justify-content: center !important; overflow: hidden !important;
+      font-size: calc(var(--u) * 22) !important; font-weight: 900 !important; color: var(--pcv-texte) !important; white-space: nowrap !important; text-overflow: ellipsis !important; }
+    ${R} {{PageListItem_Title@PageListItem_Icon}} { display: block !important; position: absolute !important; top: calc(100% + var(--u) * 12) !important; left: 50% !important; transform: translateX(-50%) !important;
       width: max-content !important; font-size: calc(var(--u) * 22) !important; font-weight: 900 !important; color: var(--pcv-texte) !important; opacity: 0; }
-    #pcv-rangee {{Active@PagedSettingsDialog_PageListItem}} {{PageListItem_Title@PageListItem_Icon}} { opacity: 1; }
+    ${R} {{Active@PagedSettingsDialog_PageListItem}} {{PageListItem_Title@PageListItem_Icon}} { opacity: 1; }
     ${P} .droite { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: calc(var(--u) * 8); }
     ${P} :is(.colonne, .contenu) { scrollbar-width: none; } ${P} :is(.colonne, .contenu)::-webkit-scrollbar { display: none; }
     ${P} .pastille > .masque { display: block; width: 100%; height: 100%; background: currentColor; -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
     ${P} .fil { flex: none; display: flex; gap: calc(var(--u) * 8); padding: 0 calc(var(--u) * 8); font-size: calc(var(--u) * 15); font-weight: 900; color: var(--t2); }
     ${P} .fil b { color: var(--pcv-texte); } ${P} .fil[hidden] { display: none; }
     ${P} .contenu { gap: var(--pcv-ecart-choix); } ${P} .contenu > * { flex: none; }
-    ${P} .ligne { height: auto; min-height: calc(var(--u) * 64); border-radius: calc(var(--u) * 24); padding: calc(var(--u) * 10) calc(var(--u) * 18) calc(var(--u) * 10) calc(var(--u) * 22);
-      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); color: var(--pcv-texte); font-size: calc(var(--u) * 17); font-weight: 900; }
-    ${P} .ligne .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
-    ${P} .ligne .txt small { font-size: calc(var(--u) * 13); font-weight: 800; color: var(--t2); }
+    ${P} .ligne { height: auto; min-height: var(--pcv-ligne-h); border-radius: var(--pcv-ligne-rayon); padding: var(--pcv-ligne-marge);   
+      background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); color: var(--pcv-texte); font-size: var(--pcv-ligne-texte); font-weight: 900; }
+    ${P} .ligne .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--pcv-ligne-interligne); }
+    ${P} .ligne .txt small { font-size: var(--pcv-ligne-petit); font-weight: 800; color: var(--t2); }
     ${P} .ligne .val { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; color: var(--t2); }
     ${P} .ligne .val.btn { padding: calc(var(--u) * 8) calc(var(--u) * 18); border-radius: 999px; background: var(--pcv-creux, rgba(0,0,0,.06)); color: var(--pcv-texte); }
     ${P} .ligne .val.liste::after { content: ""; display: inline-block; margin-left: calc(var(--u) * 8); border: calc(var(--u) * 6) solid transparent; border-top-color: currentColor; transform: translateY(25%); }
@@ -391,8 +516,34 @@
     ${P} .ligne:has(.dessin) .txt small { font-size: calc(var(--u) * 15); }
     ${P} .tete-manette { display: flex; align-items: center; gap: calc(var(--u) * 20); padding: 0 calc(var(--u) * 8); font-size: calc(var(--u) * 26); font-weight: 900; color: var(--pcv-texte); }
     ${P} .tete-manette .dessin { width: calc(var(--u) * 180); height: calc(var(--u) * 180); margin: calc(var(--u) * -28) 0; }
-    ${P} .titre { margin: calc(var(--u) * 8) 0 0 calc(var(--u) * 8); font-size: calc(var(--u) * 15); font-weight: 900; color: var(--t2); }
+    ${P} .titre { margin: var(--pcv-intertitre-marge); font-size: var(--pcv-intertitre); font-weight: 900; color: var(--t2); }
     ${P} .titre:first-child { margin-top: 0; }
+    
+    ${P} .ligne .pastille.claire { width: var(--pcv-ligne-pastille); height: var(--pcv-ligne-pastille); padding: calc(var(--u) * 8); background: var(--pcv-pastille); color: var(--c); box-shadow: var(--pcv-pastille-ombre); }
+    
+    ${P} .ligne.resume { border-radius: calc(var(--u) * 26); gap: calc(var(--u) * 18); padding: calc(var(--u) * 14) calc(var(--u) * 22) calc(var(--u) * 14) calc(var(--u) * 16); }
+    ${P} .ligne.resume.actif { background: linear-gradient(180deg, color-mix(in srgb, var(--pcv-vert) 6%, var(--pcv-verre-haut)), color-mix(in srgb, var(--pcv-vert) 13%, var(--pcv-verre-bas)));
+      box-shadow: var(--pcv-reflet), 0 calc(var(--u) * 8) calc(var(--u) * 22) color-mix(in srgb, var(--pcv-vert) 18%, transparent), inset 0 0 0 calc(var(--u) * 2) color-mix(in srgb, var(--pcv-vert) 35%, transparent); }
+    ${P} .resume .grosse-feuille { flex: none; width: calc(var(--u) * 64); height: calc(var(--u) * 64); border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--pcv-pastille); box-shadow: var(--pcv-pastille-ombre); color: var(--pcv-vert); }
+    ${P} .resume .grosse-feuille svg { width: calc(var(--u) * 40); height: calc(var(--u) * 40); }
+    ${P} .resume .grosse-feuille svg path:first-child { fill: currentColor; } ${P} .resume .grosse-feuille svg path + path { stroke: var(--pcv-sur-accent); stroke-width: 2; }
+    ${P} .resume.charge .grosse-feuille { color: #d99600; } ${P} .resume.charge .grosse-feuille svg { width: calc(var(--u) * 34); height: calc(var(--u) * 34); }
+    ${P} .resume .txt { gap: calc(var(--u) * 2); } ${P} .resume .txt b { font-size: calc(var(--u) * 21); font-weight: 900; }
+    ${P} .resume .txt span { font-size: calc(var(--u) * 15); font-weight: 800; color: var(--t2); } ${P} .resume.actif .txt span { color: var(--pcv-vert-texte); }
+    ${P} .resume .reste { flex: none; text-align: right; font-size: calc(var(--u) * 13); font-weight: 800; line-height: 1.15; color: var(--t2); }
+    ${P} .resume .reste b { display: block; font-size: calc(var(--u) * 24); font-weight: 900; color: var(--pcv-texte); }
+    ${P} .resume.charge .inter { opacity: .6; } ${P} .resume + .titre { margin-top: calc(var(--u) * 2); }
+    
+    ${P} .ligne.niveaux { display: flex; min-height: 0; gap: calc(var(--u) * 8); padding: calc(var(--u) * 6); border-radius: 999px; background: var(--pcv-creux); box-shadow: inset 0 calc(var(--u) * 2) calc(var(--u) * 4) rgba(40,60,90,.12); }
+    ${P} .ligne.niveaux.f { box-shadow: inset 0 calc(var(--u) * 2) calc(var(--u) * 4) rgba(40,60,90,.12) !important; }
+    ${P} .niveaux > span { flex: 1; text-align: center; padding: calc(var(--u) * 10) 0; border-radius: 999px; font-size: calc(var(--u) * 16); font-weight: 900; color: var(--t2); }
+    ${P} .niveaux > .oui { background: var(--pcv-cyan); color: var(--pcv-sur-accent); box-shadow: 0 calc(var(--u) * 4) calc(var(--u) * 10) color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
+    ${P} .niveaux.f > .oui { box-shadow: 0 0 0 calc(var(--u) * 3) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * 7) var(--pcv-cyan-plein), 0 calc(var(--u) * 4) calc(var(--u) * 10) color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
+    
+    ${P} .puces { display: flex; flex-wrap: wrap; gap: calc(var(--u) * 8); padding: calc(var(--u) * 2) calc(var(--u) * 4); }
+    ${P} .puce { display: flex; align-items: center; gap: calc(var(--u) * 7); padding: calc(var(--u) * 6) calc(var(--u) * 12) calc(var(--u) * 6) calc(var(--u) * 7); border-radius: 999px; font-size: calc(var(--u) * 14); font-weight: 900; background: var(--pcv-carte); box-shadow: var(--pcv-reflet); }
+    ${P} .puce i { font-style: normal; width: calc(var(--u) * 22); height: calc(var(--u) * 22); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: calc(var(--u) * 14); color: var(--pcv-sur-accent); background: var(--pcv-vert); }
+    ${P} .puce.non { color: var(--pcv-texte3); } ${P} .puce.non i { background: color-mix(in srgb, var(--pcv-texte3) 45%, var(--pcv-carte)); }
   </style>`);
   let avantLignes = "", avantColonne = "", vues = [];
   const dessiner = () => {
@@ -407,18 +558,24 @@
     else {
       const g = groupes();
       if (!g) return;
+      const ie = S.ecoVoulu ? g.findIndex((x) => x.eco) : -1;
+      if (ie >= 0) Object.assign(S, { ecoVoulu: false, grp: ie, cur: 0, zone: "lignes", manette: true });
       S.grp = Math.min(S.grp, g.length - 1);
       v = g[S.grp]?.l || [];
-      const m = g.map((x, i) => window.__pcvOnglet("g:" + i, i === S.grp, ...pastille(x, i), esc(x.nom), esc(x.l.filter((y) => y.g !== "titre").slice(0, 2).map((y) => y.nom).join(", ")))).join("");
+      const m = g.map((x, i) => window.__pcvOnglet("g:" + i, false, ...pastille(x, i), esc(x.nom), esc(x.sous ?? x.l.filter((y) => y.g !== "titre").slice(0, 2).map((y) => y.nom).join(", ")))).join("");
       if (m !== avantColonne) {
         colonne.innerHTML = avantColonne = m;
-        curseur(false);
         neuf = true;
+      }
+      const ch = colonne.children[S.grp];
+      if (neuf || !ch?.classList.contains("choisi")) {
+        for (const e of colonne.children) e.classList.toggle("choisi", e === ch);
+        curseur(false);
       }
     }
     if (!v) return;
     vues = v;
-    const h = (sp && S.dessin ? `<div class="tete-manette"><span class="dessin">${S.dessin}</span><b>${esc(S.sous)}</b></div>` : "") + v.map((x, i) => x.g === "titre" ? `<div class="titre">${esc(x.nom)}</div>` : `<button class="bouton ligne${x.retour ? " retour" : ""}${x.g === "inter" && x.val ? " oui" : ""}" data-a="l:${i}">` + (x.dessin ? `<span class="dessin">${x.dessin}</span>` : "") + `<span class="txt">${esc(x.nom)}${x.aide ? `<small>${esc(x.aide)}</small>` : ""}</span>` + (x.g === "inter" ? `<span class="inter"></span>` : x.g === "curseur" ? `<input type="range" min="${x.min}" max="${x.max}" step="any" value="${x.val}" tabindex="-1">` : x.g === "liste" ? `<span class="val liste">${esc(x.val)}</span>` : x.g === "bouton" && x.val ? `<span class="val btn">${esc(x.val)}</span>` : x.g === "radio" ? `<span class="coche${x.val ? " oui" : ""}"></span>` : x.g === "ouvrir" || x.g === "bouton" ? `<i class="chevron"></i>` : x.val ? `<span class="val">${esc(x.val)}</span>` : "") + `</button>`).join("");
+    const h = (sp && S.dessin ? `<div class="tete-manette"><span class="dessin">${S.dessin}</span><b>${esc(S.sous)}</b></div>` : "") + v.map(ligneHtml).join("");
     if (h !== avantLignes) {
       contenu.innerHTML = avantLignes = h;
       curseur(false);
@@ -430,6 +587,8 @@
     } else if (neuf && S.entree) window.__pcvPresentation.entrer(page, S.entree, false, true);
     return true;
   };
+  const ico = (n) => window.__pcvIcones?.svg(n, { attrs: 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"' }) || "";
+  const ligneHtml = (x, i) => x.g === "titre" ? `<div class="titre">${esc(x.nom)}</div>` : x.g === "puces" ? `<div class="puces">${x.l.map(([t, on]) => `<span class="puce${on ? "" : " non"}"><i>${on ? "\u2713" : "\u2013"}</i>${esc(t)}</span>`).join("")}</div>` : x.g === "niveau" ? `<div class="ligne niveaux" data-a="l:${i}">${x.choix.map((c, k) => `<span data-i="${k}"${k === x.v ? ' class="oui"' : ""}>${esc(c)}</span>`).join("")}</div>` : x.g === "resume" ? `<button class="bouton ligne resume${x.etat ? " " + x.etat : ""}${x.val ? " oui" : ""}" data-a="l:${i}"><span class="grosse-feuille">${ico(x.etat === "charge" ? "eclair" : "feuille")}</span><span class="txt"><b>${esc(x.nom)}</b><span>${esc(x.aide)}</span></span>${x.reste ? `<span class="reste">${esc(T("eco.reste"))}<b>${esc(x.reste)}</b></span>` : ""}<span class="inter"></span></button>` : `<button class="bouton ligne${x.retour ? " retour" : ""}${x.g === "inter" && x.val ? " oui" : ""}" data-a="l:${i}">` + (x.p ? `<span class="pastille claire" style="--c:${x.p[1]}">${ico(x.p[0])}</span>` : "") + (x.dessin ? `<span class="dessin">${x.dessin}</span>` : "") + `<span class="txt">${esc(x.nom)}${x.aide ? `<small>${esc(x.aide)}</small>` : ""}</span>` + (x.g === "inter" ? `<span class="inter"></span>` : x.g === "curseur" ? `<input type="range" min="${x.min}" max="${x.max}" step="any" value="${x.val}" tabindex="-1">` : x.g === "liste" ? `<span class="val liste">${esc(x.val)}</span>` : x.g === "bouton" && x.val ? `<span class="val btn">${esc(x.val)}</span>` : x.g === "radio" ? `<span class="coche${x.val ? " oui" : ""}"></span>` : x.g === "ouvrir" || x.g === "bouton" ? `<i class="chevron"></i>` : x.val ? `<span class="val">${esc(x.val)}</span>` : "") + `</button>`;
   const cibles = () => [...contenu.querySelectorAll(".ligne")];
   const curseur = (suivre = true) => {
     [...page.querySelectorAll(".f, [data-pcv-vise]"), ...rangee?.querySelectorAll("[data-pcv-vise]") || []].forEach((e2) => {
@@ -438,10 +597,10 @@
     });
     const z = S.manette ? S.zone : "";
     if ((document.body.dataset.pcvParamZone || "") !== z) document.body.dataset.pcvParamZone = z;
-    if (S.zone === "tuiles") {
-      rangee?.__active?.setAttribute("data-pcv-vise", "");
-      return;
-    }
+    window.__pcvSteamLegende?.(S.manette && S.zone === "lignes" && cibles()[S.cur]?.classList.contains("niveaux") ? "eco-niveau" : "parametres");
+    const autre = [window.__pcvSteamU, window.__pcvStockage].find((x) => x?.ouvert?.());
+    if (autre ? autre.etat().zone === "onglet" : S.zone === "tuiles") rangee?.__active?.setAttribute("data-pcv-vise", "");
+    if (autre || S.zone === "tuiles") return;
     const e = S.zone === "colonne" ? colonne.querySelector(".choisi") : cibles()[S.cur];
     if (!e) return;
     e.setAttribute("data-pcv-vise", "");
@@ -453,6 +612,7 @@
     if (i === S.grp) return;
     S.grp = i;
     S.cur = 0;
+    S.ecoDetail = false;
     S.entre = ".contenu > *";
     son("bouge");
     contenu.scrollTop = 0;
@@ -466,6 +626,7 @@
   };
   const agir = (x, manette) => {
     if (!x) return;
+    if (x.indispo) return son("bord");
     if (x.g === "curseur") return;
     if (x.g === "texte") return son("bord");
     if (x.g !== "ouvrir") son("choisir");
@@ -481,6 +642,7 @@
     if (!b || e.target.matches("input")) return;
     S.manette = false;
     if (b.dataset.a.startsWith("g:")) {
+      if (+b.dataset.a.slice(2) === S.grp && S.ecoDetail) return detailEco(false);
       choisirGroupe(+b.dataset.a.slice(2));
       S.zone = "colonne";
       curseur();
@@ -488,7 +650,15 @@
     }
     S.zone = "lignes";
     S.cur = cibles().indexOf(b);
-    agir(ligneDe(b));
+    const x = ligneDe(b), k = e.target.closest("[data-i]");
+    if (x?.g === "niveau" && k) {
+      son("choisir");
+      x.faire(+k.dataset.i);
+      dessiner();
+      curseur();
+      return;
+    }
+    agir(x);
     curseur();
   });
   page.addEventListener("pointerdown", (e) => {
@@ -558,10 +728,7 @@
       maj();
       return true;
     }
-    if ((b === 5 || b === 6) && rangee?.isConnected) {
-      window.__pcvTenir(b, () => voisine(b === 6 ? 1 : -1));
-      return true;
-    }
+    if ((b === 5 || b === 6) && rangee?.isConnected) return nav.tenir(b);
     if (b === 3 || b === 7 || b === 8) {
       son("bord");
       return true;
@@ -575,24 +742,7 @@
         O.__pcvAller?.("accueil");
         return true;
       }
-      if (b === 9) {
-        window.__pcvBarreEntrer?.(versTuiles);
-        return true;
-      }
-      if (b === 11 || b === 12) {
-        voisine(b === 12 ? 1 : -1);
-        return true;
-      }
-      if (b === 10 || b === 1) {
-        if (sp ? c.length : n) {
-          S.cur = 0;
-          S.zone = sp ? "lignes" : "colonne";
-          son("bouge");
-          curseur();
-        } else son("bord");
-        return true;
-      }
-      son("bord");
+      if (!nav.dans(b)) son("bord");
       return true;
     }
     if (S.zone === "colonne") {
@@ -621,6 +771,22 @@
     if (b === 2 && sp) {
       son("retour");
       B()?.revenirA?.(cle(choisie()));
+      return true;
+    }
+    if (b === 2 && S.ecoDetail && x?.cle?.startsWith("eco:")) {
+      son("retour");
+      detailEco(false);
+      return true;
+    }
+    if ((b === 11 || b === 12) && x?.g === "niveau") {
+      const i = (x.v < 0 ? 1 : x.v) + (b === 12 ? 1 : -1);
+      if (i < 0 || i >= x.choix.length) {
+        son("bord");
+        return true;
+      }
+      son("bouge");
+      x.faire(i);
+      dessiner();
       return true;
     }
     if (b === 2 || b === 11 && x?.g !== "curseur" && !sp) {
@@ -715,6 +881,11 @@
     if (c) allerA(c);
     return !!c;
   };
-  window.__pcvParametres = { ouvert, couvre, etat: () => ({ ...S }), lignes: () => vues, rafraichir, rangee: () => rangee, voisine, aller };
+  const ouvrirEco = () => {
+    Object.assign(S, { ecoVoulu: true, ecoDetail: false });
+    B()?.navigate?.("Power");
+    rafraichir();
+  };
+  window.__pcvParametres = { ouvert, couvre, etat: () => ({ ...S }), lignes: () => vues, rafraichir, rangee: () => rangee, voisine, aller, anneau: () => curseur(false), ouvrirEco };
   return "appli Param\xE8tres : pr\xEAte";
 })();

@@ -4,9 +4,12 @@
   const RANG_HAUT = 78, FONDU_BAS = 60, FONDU_HAUT = 30, GRILLE_HAUT = 60, ETAGERES_X = 252, PORTE_X = 28, PORTE_LARGEUR = 196, PORTE_DROITE = PORTE_X + PORTE_LARGEUR, PORTE_HAUT = 12, PORTE_LEVE = 5;
   const LEGENDE = 70, masque = (haut = 0) => ((m) => `-webkit-mask-image: ${m}; mask-image: ${m};`)(`linear-gradient(180deg, transparent 0, #000 ${u(haut)}, #000 calc(100% - ${u(FONDU_BAS)}), transparent)`);
   const fondus = `${masque(FONDU_HAUT)} padding-top: ${u(FONDU_HAUT)}; padding-bottom: ${u(FONDU_BAS)}; scroll-padding: ${u(FONDU_HAUT)} 0 ${u(FONDU_BAS)};`;
+  const BULLE_NOM_CSS = `      .etiq-g { position: absolute; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; z-index: 5; transform: translateX(-50%); padding: ${u(5)} ${u(14)}; border-radius: ${u(13)}; background: var(--pcv-bulle); color: var(--pcv-sur-accent);
+        font-size: ${u(15)}; font-weight: 900; white-space: nowrap; pointer-events: none; box-shadow: 0 0 0 ${u(2)} var(--pcv-lisere), 0 ${u(4)} ${u(10)} rgb(0 0 0 / .25); }
+      .etiq-g small { font-weight: 800; opacity: .75; margin-left: ${u(6)}; }`;
   const cadre = (ETAGERES_X2) => {
     const DEBUT = ETAGERES_X2 ? PORTE_DROITE : 0, RETRAIT = ETAGERES_X2 - DEBUT;
-    return `<style class="emprunt"></style><style>
+    return `<style class="emprunt"></style><style>:host-context(.pcv-sans-mouvement) *, :host-context(.pcv-sans-mouvement) *::before, :host-context(.pcv-sans-mouvement) *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }${window.__pcvChargement.css}
       :host { position: fixed; inset: 0; z-index: 8600; font-family: var(--pcv-police); color: var(--pcv-texte); overflow: hidden; }
       
       :host::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--pcv-fond-page); will-change: transform; }
@@ -21,7 +24,6 @@
       
       .zoom b { cursor: pointer; }
       .page { position: absolute; left: ${u(28)}; bottom: ${u(16)}; }
-      .page small { margin-left: ${u(8)}; color: var(--pcv-texte2); }
       .page svg { font-size: ${u(22)}; color: var(--pcv-cyan-plein); }
       
       .cel { width: calc(var(--u) * var(--c)); height: calc(var(--u) * var(--c)); flex: none; }
@@ -52,17 +54,17 @@
       
       .cel.tout { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--u) * var(--c) * .058); font-size: calc(var(--u) * var(--c) * .135); font-weight: 900; text-align: center; color: var(--pcv-texte2); }
       .cel.tout .pastille { width: calc(var(--u) * var(--c) * .385); height: calc(var(--u) * var(--c) * .385); font-size: calc(var(--u) * var(--c) * .19); color: var(--pcv-cyan-plein); }
-      .grande-porte.sel { box-shadow: var(--pcv-reflet), var(--pcv-curseur); }
+      :host-context(body:not(.pcv-barre-main)) .grande-porte.sel { box-shadow: var(--pcv-reflet), var(--pcv-curseur); }   
       
       .grande-porte { overflow: hidden; transform-origin: 50% 0; transition: transform var(--pcv-panneau-duree) var(--pcv-panneau-courbe); }   
-      .grande-porte.sel { transform: translateY(${u(-PORTE_LEVE)}) scale(1.02); }
+      :host-context(body:not(.pcv-barre-main)) .grande-porte.sel { transform: translateY(${u(-PORTE_LEVE)}) scale(1.02); }
       .grande-porte .pile .cel { transition: translate var(--pcv-panneau-duree) var(--pcv-panneau-courbe); }
-      .grande-porte.sel .pile .cel:first-child { translate: ${u(-10)} ${u(3)}; }
-      .grande-porte.sel .pile .cel:last-child { translate: ${u(10)} ${u(-4)}; }
-      .grande-porte.sel .pile { animation: pcvPorteSouffle 1.6s ease-in-out .35s infinite alternate; }
+      :host-context(body:not(.pcv-barre-main)) .grande-porte.sel .pile .cel:first-child { translate: ${u(-10)} ${u(3)}; }
+      :host-context(body:not(.pcv-barre-main)) .grande-porte.sel .pile .cel:last-child { translate: ${u(10)} ${u(-4)}; }
+      :host-context(body:not(.pcv-barre-main)) .grande-porte.sel .pile { animation: pcvPorteSouffle 1.6s ease-in-out .35s infinite alternate; }
       .grande-porte::after { content: ""; position: absolute; top: -10%; bottom: -10%; left: 0; width: 45%; pointer-events: none; opacity: 0;
         background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent); transform: translateX(-110%) skewX(-14deg); }
-      .grande-porte.sel::after { animation: pcvPorteReflet .9s ease-out .15s; }
+      :host-context(body:not(.pcv-barre-main)) .grande-porte.sel::after { animation: pcvPorteReflet .9s ease-out .15s; }
       @keyframes pcvPorteSouffle { to { transform: translateY(${u(-4)}); } }
       @keyframes pcvPorteReflet { from { opacity: 1; } to { opacity: 1; transform: translateX(330%) skewX(-14deg); } }
       @media (prefers-reduced-motion: reduce) { .grande-porte, .grande-porte .pile, .grande-porte .pile .cel, .grande-porte::after { animation: none !important; transition: none !important; } }
@@ -116,9 +118,7 @@
       .rangee-g { position: absolute; display: flex; }
       .cases-g { position: absolute; z-index: -1; pointer-events: none; background-repeat: repeat-y; }   
       
-      .etiq-g { position: absolute; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; z-index: 5; transform: translateX(-50%); padding: ${u(5)} ${u(14)}; border-radius: ${u(13)}; background: var(--pcv-bulle); color: var(--pcv-sur-accent);
-        font-size: ${u(15)}; font-weight: 900; white-space: nowrap; pointer-events: none; box-shadow: 0 0 0 ${u(2)} var(--pcv-lisere), 0 ${u(4)} ${u(10)} rgb(0 0 0 / .25); }
-      .etiq-g small { font-weight: 800; opacity: .75; margin-left: ${u(6)}; }
+${BULLE_NOM_CSS}
       :host-context(body.pcv-barre-main) .etiq-g { visibility: hidden; }   
       
       .rail { position: absolute; right: ${u(22)}; top: ${u(150)}; bottom: ${u(84)}; width: ${u(34)}; border-radius: ${u(17)}; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
@@ -131,6 +131,7 @@
       .cel { position: relative; cursor: pointer; }
       .sur-action { box-shadow: var(--pcv-reflet), var(--pcv-curseur); }
       :host-context(body.pcv-barre-main) .sur-action { box-shadow: none; }
+      .message > .pcv-points { display: block; margin: 0 auto .6em; }
       .message { padding: ${u(16)}; font-size: ${u(16)}; font-weight: 800; color: var(--pcv-texte2); } .message:empty { display: none; }
       .etagere .rang > .message { align-self: center; padding: 0; }   
       .legende-bas { left: ${u(360)}; }
@@ -154,10 +155,10 @@
       
       :host .zoom { left: ${u(28)}; bottom: ${u(16)}; }
       
-      .carrousel { position: absolute; left: ${u(160)}; right: ${u(160)}; top: ${u(84)}; height: ${u(236)}; z-index: 2;
+      .carrousel { position: absolute; left: ${u(160)}; right: ${u(160)}; top: ${u(84)}; height: ${u(236)}; z-index: 2; pointer-events: none;   
         -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 ${u(70)}, #000 calc(100% - ${u(70)}), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 ${u(70)}, #000 calc(100% - ${u(70)}), transparent 100%); }
       
-      .carrousel .cel { position: absolute; left: 0; top: ${u(16)}; cursor: pointer; will-change: transform; }
+      .carrousel .cel { position: absolute; left: 0; top: ${u(16)}; cursor: pointer; pointer-events: auto; will-change: transform; }
       .fleche-c { position: absolute; top: ${u(126)}; width: ${u(56)}; height: ${u(56)}; border-radius: 50%; z-index: 3; display: flex; align-items: center; justify-content: center; }
       .fleche-c span { width: ${u(40)}; height: ${u(40)}; border-radius: 50%; background: var(--pcv-pastille); box-shadow: 0 0 0 1px rgba(0,0,0,.07); display: flex; align-items: center; justify-content: center; color: #6b7788; font-size: ${u(22)}; }
       .fleche-c.g { left: ${u(92)}; } .fleche-c.g svg { transform: scaleX(-1); } .fleche-c.d { right: ${u(92)}; }
@@ -175,9 +176,17 @@
       .onglet.choisi .pastille { background: rgba(255,255,255,.26); box-shadow: none; }
       
       
-      :host(:not(.sur-contenu)) .onglet.choisi { box-shadow: var(--pcv-reflet), var(--pcv-curseur); }
+      :host(:not(.sur-contenu, .sur-rangee)) .onglet.choisi { box-shadow: var(--pcv-reflet), var(--pcv-curseur); }
+      
+      :host(:not(.sur-rangee)) .carrousel .sel.cel { --pcv-tuile-selection: var(--pcv-tuile-ombre); --pcv-tuile-selection-interieure: 0 0 transparent; }
       :host-context(body.pcv-barre-main) .onglet.choisi { background: var(--pcv-creux); color: var(--pcv-texte); box-shadow: none; }
       :host-context(body.pcv-barre-main) .onglet.choisi .pastille { background: var(--k); }
+      
+      .onglet.tete { height: ${u(107)}; border-radius: ${u(27)}; margin-bottom: ${u(8)}; }
+      .onglet.tete .cel { position: relative; flex: none; }
+      .onglet.tete span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+      .onglet.tete small { display: block; font-size: ${u(13)}; font-weight: 800; color: var(--k); }
+      .onglet.tete.choisi small { color: inherit; }
       .fondu-b { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - ${u(46)}), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - ${u(46)}), transparent); }
       .fondu-hb { -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 ${u(34)}, #000 calc(100% - ${u(46)}), transparent); mask-image: linear-gradient(180deg, transparent 0, #000 ${u(34)}, #000 calc(100% - ${u(46)}), transparent); }
       .contenu { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; gap: var(--pcv-ecart-choix); overflow: hidden auto; scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y; }   
@@ -227,10 +236,11 @@
     <div class="bloc-etageres"><div class="grande-porte verre" data-g="porte"></div><div class="etageres"><div class="piste"></div></div></div>
     <div class="vue-grille" hidden><div class="grille-g"><div class="piste"></div></div><div class="onglets"></div><div class="rail"></div><div class="rail-bulle" hidden></div></div>
     <div class="vue-page" hidden><div class="carrousel"></div><button class="fleche-c g verre" data-v="-1"><span></span></button><button class="fleche-c d verre" data-v="1"><span></span></button><div class="nom-jeu"></div><div class="carte"><div class="colonne"><div class="pile"></div></div><div class="contenu"></div></div></div>
-    <div class="menus"></div>
+    <div class="titre-appli"></div><div class="menus"></div>
     <div class="page pcv-legende"><span></span></div><div class="zoom"></div>
     <div class="legende-bas pcv-legende"></div>`;
   };
+  const cssGrille = (selecteur) => [...document.querySelector("#pcv-console > style")?.sheet?.cssRules || []].filter((r) => /^#pcv-console \.zoom\b/.test(r.selectorText || "")).map((r) => r.cssText.replace(/#pcv-console/g, selecteur)).join("\n") + BULLE_NOM_CSS.replace(/\.etiq-g/g, selecteur + " .etiq-g");
   const geometrie = (z, largeur) => {
     const gap = z.g * 2, pas = z.c + gap, larg = largeur - 64 - 90, n = Math.max(1, Math.floor((larg + gap) / pas));
     return { z, gap, pas, n, x0: 64 + (larg - (n * pas - gap)) / 2 };
@@ -457,17 +467,36 @@
     const w = d ? voisin[0] : centre;
     return [`calc(var(--u) * ${placeCarrousel(d, voisin, centre, milieu) + w / 2 - centre / 2}) 0`, String(w / centre)];
   };
+  const ONGLETS = [[5, 6], "touche.onglets"];
+  const conduite = (o) => {
+    const voisine = (sens) => {
+      const [i, n] = o.rang(), j = Math.max(0, Math.min(n - 1, i + sens));
+      if (i < 0 || j === i) {
+        window.__pcvSon?.("bord");
+        return false;
+      }
+      window.__pcvSon?.("bouge");
+      o.aller(j);
+      return true;
+    };
+    const tenir = (b) => {
+      window.__pcvTenir(b, () => voisine(b === 6 ? 1 : -1));
+      return true;
+    };
+    const dans = (b) => b === 5 || b === 6 ? tenir(b) : b === 11 || b === 12 ? (voisine(b === 12 ? 1 : -1), true) : b === 9 ? (window.__pcvBarreEntrer?.(o.revenir), true) : (b === 10 || b === 1) && o.descendre ? (o.descendre(), true) : false;
+    return { voisine, tenir, dans };
+  };
   const emprunt = () => [...document.styleSheets].flatMap((f) => {
     try {
       return [...f.cssRules];
     } catch (x) {
       return [];
     }
-  }).filter((r) => /^\.pcv-(touche|legende|marque-relief|choix-relief|contenu|fenetre)\b/.test(r.selectorText || "")).map((r) => r.cssText).join("\n");
+  }).filter((r) => /^\.pcv-(touche|legende|marque-relief|choix-relief|contenu|fenetre|bouton-r|titre-appli)\b/.test(r.selectorText || "")).map((r) => r.cssText).join("\n");
   const accueil = () => [...document.querySelector("#pcv-console > style")?.sheet?.cssRules || []].filter((r) => /\.(cel|chem|zoom)\b/.test(r.selectorText || "") && !/#pcv-console[.:[]/.test(r.selectorText)).map((r) => r.cssText.replace(/body\.pcv-zone-jaquettes #pcv-console/g, ":host-context(body:not(.pcv-barre-main))").replace(/body:not\(\.pcv-zone-jaquettes\) #pcv-console/g, ":host-context(body.pcv-barre-main)").replace(/(html\[[^\]]*\]) #pcv-console/g, ":host-context($1)").replace(/#pcv-console/g, ":host")).join("\n");
   const colonne = (rubriques, choix, conteneur, pile, rendre) => {
     pile.innerHTML = rubriques.map(rendre).join("");
-    const decal = Math.max(0, choix - 2) * 74 + (choix > 2 ? 30 : 0);
+    const decal = Math.max(0, choix - 2) * 74 + (choix > 2 ? 30 + (rubriques[0]?.[4] ? 51 : 0) : 0);
     pile.style.transform = decal ? `translateY(${u(-decal)})` : "";
     conteneur.className = "colonne " + (decal ? "fondu-hb" : rubriques.length > 5 ? "fondu-b" : "");
   };
@@ -485,7 +514,7 @@
       let copie;
       try {
         if (!copies.has(cle)) copies.set(cle, (async () => {
-          const cache = await caches.open("pcv-eshop-images-v2");
+          const cache = await caches.open("pcv-eshop-images-v3");
           let blob2 = await (await cache.match(cle))?.blob();
           if (!blob2) {
             const d = await charger(adresse);
@@ -496,15 +525,17 @@
               const toile = document.createElement("canvas"), carre = !el.dataset.format;
               const limite = el.dataset.format === "galerie" ? 1600 : el.dataset.format === "miniature" ? 256 : 960;
               const k = Math.min(1, limite / bitmap.width);
-              toile.width = carre ? 256 : Math.max(1, Math.round(bitmap.width * k));
-              toile.height = carre ? 256 : Math.max(1, Math.round(bitmap.height * k));
+              const W = carre ? 256 : Math.round(el.clientWidth * window.devicePixelRatio), H = carre ? 256 : Math.round(el.clientHeight * window.devicePixelRatio);
+              const petite = !carre && W > 0 && H > 0 && Math.max(W / bitmap.width, H / bitmap.height) > 2;
+              toile.width = carre || petite ? W : Math.max(1, Math.round(bitmap.width * k));
+              toile.height = carre || petite ? H : Math.max(1, Math.round(bitmap.height * k));
               const ctx = toile.getContext("2d");
-              if (carre) {
-                const plein = Math.max(256 / bitmap.width, 256 / bitmap.height), entier = Math.min(256 / bitmap.width, 256 / bitmap.height);
-                ctx.filter = "blur(10px) brightness(.8)";
-                ctx.drawImage(bitmap, (256 - bitmap.width * plein) / 2 - 16, (256 - bitmap.height * plein) / 2 - 16, bitmap.width * plein + 32, bitmap.height * plein + 32);
+              if (carre || petite) {
+                const plein = Math.max(W / bitmap.width, H / bitmap.height), entier = Math.min(W / bitmap.width, H / bitmap.height), x = Math.min(entier, 2), f = Math.max(W, H) / 25;
+                ctx.filter = `blur(${f}px) brightness(.8)`;
+                ctx.drawImage(bitmap, (W - bitmap.width * plein) / 2 - f * 1.6, (H - bitmap.height * plein) / 2 - f * 1.6, bitmap.width * plein + f * 3.2, bitmap.height * plein + f * 3.2);
                 ctx.filter = "none";
-                ctx.drawImage(bitmap, (256 - bitmap.width * entier) / 2, 256 - bitmap.height * entier, bitmap.width * entier, bitmap.height * entier);
+                ctx.drawImage(bitmap, (W - bitmap.width * x) / 2, x < entier ? (H - bitmap.height * x) / 2 : H - bitmap.height * x, bitmap.width * x, bitmap.height * x);
               } else ctx.drawImage(bitmap, 0, 0, toile.width, toile.height);
               blob2 = await new Promise((r) => toile.toBlob(r, "image/webp", 0.85));
             } finally {
@@ -607,7 +638,7 @@
       liberer();
     } };
   };
-  const repliTuile = (nom, pictogramme, c = Infinity) => pictogramme + (c > 60 ? `<b>${echapper(nom)}</b>` : "");
+  const repliTuile = (nom, pictogramme, c = Infinity, mots = false) => pictogramme + (c > 60 ? `<b>${mots ? echapper(nom).replace(/(\p{Ll}(?=\p{Lu})|_)/gu, "$1<wbr>") : echapper(nom)}</b>` : "");
   const gestes = ({ ombre, deux = () => false, long = () => null, balayer = () => {
   } }) => {
     let appui = null;
@@ -800,6 +831,20 @@
     vuesMontrees.set(ombre, vue);
     if (elementsDe(avant) && elementsDe(avant) !== elementsDe(vue)) entrer(ombre, vue);
   };
+  const magasinsOuverts = /* @__PURE__ */ new Set(), MAGASIN_DESSUS = "pcv-magasin-dessus", PAGES_DESSOUS = "#pcv-console, #Main, #pcv-fond-steam";
+  let styleDessous = null;
+  const masquerPages = (racine, oui) => {
+    if (oui) magasinsOuverts.add(racine);
+    else magasinsOuverts.delete(racine);
+    if (oui && !styleDessous) {
+      styleDessous = document.querySelector("#pcv-magasin-dessous") || document.createElement("style");
+      styleDessous.id = "pcv-magasin-dessous";
+      styleDessous.textContent = `html:not(.pcv-steam-verrou, .pcv-steam-modale) body.${MAGASIN_DESSUS} :is(${PAGES_DESSOUS}) { content-visibility: hidden !important; }`;
+      document.body.appendChild(styleDessous);
+    }
+    document.body.classList.toggle(MAGASIN_DESSUS, magasinsOuverts.size > 0);
+  };
+  const dessous = (el) => magasinsOuverts.size > 0 && el.matches(PAGES_DESSOUS) && !document.documentElement.matches(".pcv-steam-verrou, .pcv-steam-modale");
   const magasin = (o) => {
     const I = window.__pcvIcones, O = window.opener || window, Tm = (k, v) => window.__pcvT?.("magasin." + k, v) || k;
     const racine = document.createElement("div");
@@ -915,7 +960,7 @@
       tuile: (x, c, attrs) => o.tuile(x, c, attrs),
       cle: (x) => o.cle(x),
       peindre: (l) => o.peindre?.(l),
-      vide: () => `<p class="message" role="status">${echapper(o.grille.message?.() || Tm("vide"))}</p>`
+      vide: () => `<p class="message" role="status">${o.chargement?.() ? window.__pcvChargement.html() : ""}${echapper(o.grille.message?.() || Tm("vide"))}</p>`
     });
     let cleG = "";
     const calculer = () => {
@@ -1098,7 +1143,7 @@
       const F = o.fiche, x = m.fiche, [voisin2 = [104, 26], centre = 150] = F.carrousel || [], car = $(".carrousel");
       const i = Math.max(0, rangFiche()), deb = Math.max(0, i - 5), vus = new Map([...car.children].map((el) => [el.dataset.k, el])), nees = [];
       const l = m.voisins.slice(deb, i + 6).map((g, k) => {
-        const cle = String(o.cle(g)), d = deb + k - i;
+        const cle = String(o.cle(g)) + (F.etat?.(g) ?? ""), d = deb + k - i;
         let el = vus.get(cle);
         vus.delete(cle);
         if (!el) {
@@ -1128,7 +1173,7 @@
       if (rubs) {
         m.rubrique = Math.max(0, Math.min(m.rubrique, rubs.length - 1));
         k = rubs[m.rubrique][0];
-        colonne(rubs, m.rubrique, $(".colonne"), $(".colonne .pile"), ([, ic, n, couleur], i) => `<button class="onglet verre${i === m.rubrique ? " choisi" : ""}" data-r="${i}" style="--k:${couleur || "var(--pcv-cyan-plein)"}"><span class="pastille">${I.svg(ic)}</span>${echapper(n)}</button>`);
+        colonne(rubs, m.rubrique, $(".colonne"), $(".colonne .pile"), ([, ic, n, couleur, tete], i) => `<button class="onglet verre${tete ? " tete" : ""}${i === m.rubrique ? " choisi" : ""}" data-r="${i}" style="--k:${couleur || "var(--pcv-cyan-plein)"}">${tete || `<span class="pastille">${I.svg(ic)}</span>${echapper(n)}`}</button>`);
       }
       m.actions = [];
       m.pages = [];
@@ -1148,6 +1193,7 @@
       m.vue = "fiche";
       m.rubrique = 0;
       m.dedans = !rubriques();
+      m.surRangee = false;
       m.sel = 0;
       contenu.scrollTop = 0;
       $(".carrousel").innerHTML = "";
@@ -1203,14 +1249,39 @@
       }, window.__pcvPanneau?.().duration || 0);
       return true;
     };
+    const versRangee = () => {
+      m.surRangee = true;
+      window.__pcvSon?.("bouge");
+      marquer();
+      legende();
+    };
+    const navFiche = conduite({
+      rang: () => [rangFiche(), m.voisins.length],
+      aller: (j) => voisin(j - rangFiche()),
+      revenir: () => marquer(),
+      descendre: () => {
+        m.surRangee = false;
+        window.__pcvSon?.("bouge");
+        marquer();
+        legende();
+      }
+    });
     const toucheFiche = (b) => {
       const F = o.fiche;
       if (b !== 5 && b !== 6 && m.poserFiche) {
         clearTimeout(m.poser);
         m.poserFiche();
       }
+      if (m.surRangee) {
+        if (b === 2) {
+          m.surRangee = false;
+          return quitterFiche();
+        }
+        if (!navFiche.dans(b)) bord();
+        return;
+      }
       if (F.touche?.(b)) return;
-      if (b === 5 || b === 6) return window.__pcvTenir(b, () => m.vue === "fiche" && voisin(b === 6 ? 1 : -1));
+      if (b === 5 || b === 6) return navFiche.tenir(b);
       if (b === 2 && m.dedans && rubriques()) {
         m.dedans = false;
         return marquer(), legende();
@@ -1219,7 +1290,7 @@
       if (!rubriques()) {
         if (b === 1) return m.actions[m.sel]?.();
         if ([9, 10, 11, 12].includes(b)) {
-          m.sel = naviguer(contenu, "[data-a]", m.sel, b, null, () => window.__pcvBarreEntrer?.(marquer));
+          m.sel = naviguer(contenu, "[data-a]", m.sel, b, null, versRangee);
           marquer();
         }
         return;
@@ -1237,7 +1308,7 @@
       }
       const rubs = rubriques();
       if (b === 9) {
-        if (m.rubrique === 0) return window.__pcvBarreEntrer?.(marquer);
+        if (m.rubrique === 0) return versRangee();
         m.rubrique--;
         return rendreFiche();
       }
@@ -1299,7 +1370,7 @@
       rendreEtageres();
       m.vue = v;
     };
-    const courant = () => m.vue === "grille" ? m.og >= 0 ? ogs()[m.og] : m.surRail ? rail : tuileG() : m.vue === "fiche" ? m.dedans || !rubriques() ? contenu.querySelector(`[data-a="${m.sel}"]`) : $(".colonne .choisi") : courantE();
+    const courant = () => m.vue === "grille" ? m.og >= 0 ? ogs()[m.og] : m.surRail ? rail : tuileG() : m.vue === "fiche" ? m.surRangee ? $(".carrousel .sel") : m.dedans || !rubriques() ? contenu.querySelector(`[data-a="${m.sel}"]`) : $(".colonne .choisi") : courantE();
     const marquer = () => {
       if (racine.hidden) return;
       if (m.vue === "grille") {
@@ -1308,10 +1379,11 @@
         railC.rendre();
         rail.classList.toggle("f", m.surRail);
       } else if (m.vue === "fiche") {
-        const dans = m.dedans || !rubriques();
-        racine.classList.toggle("sur-contenu", m.dedans);
+        const dans = !m.surRangee && (m.dedans || !rubriques());
+        racine.classList.toggle("sur-contenu", m.dedans && !m.surRangee);
+        racine.classList.toggle("sur-rangee", !!m.surRangee);
         marquerTuiles(contenu, "[data-a]", m.sel, { actif: dans, piste: pisteE, defiler: dans });
-        if (dans) o.choixFiche?.(contenu.querySelectorAll("[data-a]")[m.sel]);
+        if (dans) o.choixFiche?.(contenu.querySelector(`[data-a="${m.sel}"]`));
       } else m.sel = marquerTuiles(zoneE(), "[data-a]", m.sel, { piste: zoneE() === bloc ? pisteE : zoneE(), secours: true, defiler: true });
     };
     const plusieursOnglets = () => onglets.querySelectorAll(".og").length > 1;
@@ -1319,9 +1391,9 @@
       if (racine.hidden) return;
       const lib = o.libelles?.(m) || {}, g = m.vue === "grille";
       I.poser($(".legende-bas"), window.__pcvLegendeDe(m.calque?.legende ? m.calque.legende() : m.og >= 0 && g ? [[1, Tm(ogs()[m.og]?.dataset.effacer != null ? "effacer" : "choisir")], [2, Tm("retour")], ...((x) => x ? [[3, x[0]]] : [])(xOnglet())] : [
-        [1, lib.a || Tm("voir")],
+        [1, m.vue === "fiche" && m.surRangee ? Tm("choisir") : lib.a || Tm("voir")],
         [2, Tm(g && m.texte.trim() && m.premier !== "grille" ? "effacer" : "retour")],
-        ...lib.x ? [[3, lib.x]] : [],
+        ...lib.x && !(m.vue === "fiche" && m.surRangee) ? [[3, lib.x]] : [],
         ...g ? [...!rail.hidden ? [[[7, 8], Tm("lettre")]] : [], ...plusieursOnglets() ? [[13, o.grille.nomOnglets?.() || Tm("rayon")]] : []] : m.vue === "fiche" ? [[[5, 6], o.fiche.voisins?.() || Tm("voisins")]] : etageresVue() && !autre() && pisteE.querySelector(".etagere [data-a]") ? [[[7, 8], Tm("etagere")]] : [],
         ...o.loupe ? [[4, Tm("rechercher")]] : [],
         ...lib.plus || []
@@ -1474,9 +1546,11 @@
       window.__pcvAccentAppli?.(racine);
       window.__pcvFond?.(racine);
       $(".emprunt").textContent = emprunt() + "\n" + accueil();
+      if (!$(".titre-appli").innerHTML) $(".titre-appli").innerHTML = window.__pcvTitreAppli?.(racine.id) || "";
       if (!pinces.length) pinces = [window.__pcvJeux?.pincer?.(boiteE, (d) => zoomE(d), () => etageresVue() && !racine.hidden), window.__pcvJeux?.pincer?.(boiteG, (d) => zoomG(d), () => m.vue === "grille" && !racine.hidden)];
       if (apparition) window.__pcvBarreQuitter?.();
       rendre();
+      masquerPages(racine, true);
       if (apparition) window.__pcvApparition?.(racine);
     };
     const cacher = () => {
@@ -1485,6 +1559,7 @@
       railC.annuler();
       gest.annuler();
       racine.hidden = true;
+      masquerPages(racine, false);
       montrerVue(ombre, "");
       o.ferme?.();
     };
@@ -1521,6 +1596,7 @@
         legende();
       },
       rendreFiche,
+      versRangee,
       marquer,
       legende,
       montrer,
@@ -1546,5 +1622,5 @@
       debut
     });
   };
-  window.__pcvPresentation = { magasin, ouvrirPorte, entrer, montrerVue, cadre, geometrie, echapper, porte, cransGrille, cransEtageres, commandeZoom, marquerTuiles, cotes, dimensionsEtagere, toutVoir, etagere, deplacerEtagere, naviguer, bulleNom, grille, zoomer, carrousel, rangee, colonne, emprunt, accueil, images, repliTuile, gestes, lettreDe, railLettres, premierEcran, mentionAnglais, ETAGERES_X, LEGENDE, fondus };
+  window.__pcvPresentation = { magasin, dessous, ouvrirPorte, entrer, montrerVue, cadre, cssGrille, geometrie, echapper, porte, cransGrille, cransEtageres, commandeZoom, marquerTuiles, cotes, dimensionsEtagere, toutVoir, etagere, deplacerEtagere, naviguer, bulleNom, grille, zoomer, carrousel, rangee, onglets: conduite, ONGLETS, colonne, emprunt, accueil, images, repliTuile, gestes, lettreDe, railLettres, premierEcran, mentionAnglais, ETAGERES_X, LEGENDE, FONDU_HAUT, fondus };
 })();

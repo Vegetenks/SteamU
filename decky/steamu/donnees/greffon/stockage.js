@@ -19,8 +19,10 @@
   };
   const go = (o) => `${nombre(o)} ${T("stockage.go")}`;
   const pl = (cle, n) => T(n === 1 ? cle + "_1" : cle, { n });
-  const IDEES = 4, OUBLIE = 60 * 86400, COLONNES = 4, GROS_BARRE = 9, GROS_JAQ = 6, VISIBLES = 3;
+  const IDEES = 4, OUBLIE = 60 * 86400, COLONNES = 6, GROS_BARRE = 9, GROS_JAQ = 6, VISIBLES = 3;
   const TEINTE = { reste: "#a9b4c2", jeux: "#e78f25", outils: "#cfd6df", gris: "#8a96a8", sd: "#8b6cf0", page: "#ff8a1f", vert: "var(--pcv-vert, #2fbf71)" };
+  const TEINTES_JEUX = ["#ff8a1f", "#2e7cf5", "#2ebd5f", "#e5474f", "#8b6cf0", "#e3a514", "#e2557a", "#14a39a", "#9a5b34"];
+  const JOUR_TUILE = 20 / 169;
   const onglets = () => [
     ["place", "balai", TEINTE.vert],
     ["jeux", "bibliotheque", TEINTE.page],
@@ -131,57 +133,12 @@
     return [...propres, h && CDN + id + "/" + h, `/assets/${id}/header.jpg`, CDN + id + "/header.jpg"].filter(Boolean).map((u) => String(u).replace(/['"\\()\s<>]/g, (c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")));
   };
   const fond = (id) => `background-image:${sources(id).map((u) => `url('${u}')`).join(",")}`;
-  const vive = (d) => {
-    const b = /* @__PURE__ */ new Map();
-    let m = null, note = -1;
-    for (let k = 0; k < d.length; k += 4) {
-      const q = d[k] >> 5 << 6 | d[k + 1] >> 5 << 3 | d[k + 2] >> 5, e = b.get(q) || b.set(q, [0, 0, 0, 0]).get(q);
-      e[0] += d[k];
-      e[1] += d[k + 1];
-      e[2] += d[k + 2];
-      e[3]++;
-    }
-    for (const [r, g, v, n] of b.values()) {
-      const c = [r / n, g / n, v / n], hi = Math.max(...c) / 255, lo = Math.min(...c) / 255, l = (hi + lo) / 2, s = hi === lo ? 0 : (hi - lo) / (1 - Math.abs(2 * l - 1)), x = s * Math.sqrt(n);
-      if (l > 0.28 && l < 0.72 && x > note) {
-        note = x;
-        m = `rgb(${c.map(Math.round).join(",")})`;
-      }
-    }
-    return m;
-  };
-  const couleurs = /* @__PURE__ */ new Map();
-  let repeint = 0;
-  const couleur = (id) => {
-    if (couleurs.has(id)) return couleurs.get(id) || TEINTE.reste;
-    couleurs.set(id, null);
-    const l = sources(id), i = new Image();
-    i.crossOrigin = "anonymous";
-    i.onerror = () => {
-      if (l.length) i.src = l.shift();
-    };
-    i.onload = () => {
-      try {
-        const c = document.createElement("canvas");
-        c.width = 46;
-        c.height = 22;
-        const x = c.getContext("2d");
-        x.drawImage(i, 0, 0, 46, 22);
-        couleurs.set(id, vive(x.getImageData(0, 0, 46, 22).data));
-        repeint ||= requestAnimationFrame(() => {
-          repeint = 0;
-          if (S.actif) dessiner();
-        });
-      } catch (e) {
-      }
-    };
-    i.src = l.shift();
-    return TEINTE.reste;
-  };
+  const teinte = (j, d) => TEINTES_JEUX[trier(surDisque(jeux(), d), "gros").findIndex((x) => x.id === j.id)] || TEINTE.reste;
   document.getElementById("pcv-stockage")?.remove();
   document.getElementById("pcv-stockage-legende")?.remove();
   document.getElementById("pcv-stockage-style")?.remove();
   document.getElementById("pcv-stockage-bulle")?.remove();
+  document.getElementById("pcv-stockage-nom")?.remove();
   const page = document.createElement("div");
   page.id = "pcv-stockage";
   page.hidden = true;
@@ -229,23 +186,33 @@
     ${C} .choixl > i { width: calc(var(--u) * 32); height: calc(var(--u) * 32); padding: calc(var(--u) * 6); border-radius: 50%; background: var(--c, var(--pcv-cyan-plein)); color: #fff; flex: none; }
     ${C} .choixl > .fl { width: calc(var(--u) * 18); height: calc(var(--u) * 18); color: var(--t2); }
     
-    ${C} .grille { flex: 1 1 0 !important; min-height: 0; display: grid; grid-template-columns: repeat(${COLONNES}, 1fr); gap: calc(var(--u) * 14); align-content: start; overflow-y: auto;
+    ${C} .grille { --s: calc(var(--u) * var(--c, 100)); flex: 1 1 0 !important; min-height: 0; display: grid; grid-template-columns: repeat(${COLONNES}, 1fr); gap: calc(var(--s) * ${JOUR_TUILE}); align-content: start; overflow-y: auto;
       padding: calc(var(--u) * 10) calc(var(--u) * 10) calc(var(--u) * 40); margin: 0 calc(var(--u) * -4); -webkit-mask-image: linear-gradient(180deg, transparent, #000 calc(var(--u) * 10), #000 82%, transparent); mask-image: linear-gradient(180deg, transparent, #000 calc(var(--u) * 10), #000 82%, transparent); }
-    ${C}.choix-on .grille { padding-bottom: calc(var(--u) * 110); scroll-padding-bottom: calc(var(--u) * 100); }   
-    ${C} .jq { position: relative; aspect-ratio: 460 / 215; border-radius: calc(var(--u) * 16); background: #c9d1db center / cover; box-shadow: 0 0 0 calc(var(--u) * 3) #fff, 0 calc(var(--u) * 5) calc(var(--u) * 12) rgba(60,85,120,.22); margin-bottom: calc(var(--u) * 8); }
-    ${C} .jq::after { content: ""; position: absolute; left: calc(var(--u) * 10); right: calc(var(--u) * 10); bottom: calc(var(--u) * -8); height: calc(var(--u) * 5); border-radius: 3px; background: var(--c); }
-    ${C} .jq .go { position: absolute; right: calc(var(--u) * 6); bottom: calc(var(--u) * 6); padding: calc(var(--u) * 3) calc(var(--u) * 10); border-radius: 999px; background: var(--pcv-bulle); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 15); font-weight: 900; box-shadow: 0 2px 6px rgba(0,0,0,.18); }   
+    
+    ${C}.choix-on .grille { margin-bottom: calc(var(--u) * 74); -webkit-mask-image: linear-gradient(180deg, transparent, #000 calc(var(--u) * 10), #000 calc(100% - var(--u) * 6), transparent);
+      mask-image: linear-gradient(180deg, transparent, #000 calc(var(--u) * 10), #000 calc(100% - var(--u) * 6), transparent); }
+    ${C} .jq { position: relative; aspect-ratio: 1; padding: calc(var(--u) * var(--pad, 0)); border-radius: var(--pcv-tuile-rayon); background: var(--pcv-verre); box-shadow: var(--pcv-tuile-ombre);
+      margin-bottom: calc(var(--s) * 12 / 169); transition: transform .25s cubic-bezier(.2,1.3,.4,1), box-shadow .2s; }
+    ${C} .jq.f { transform: scale(1.06); z-index: 2; }
+    ${C} .jq > .im { display: block; width: 100%; height: 100%; border-radius: calc(var(--u) * var(--arr, 0)); background: var(--pcv-creux) center / cover no-repeat; }
+    ${C} .jq::after { content: ""; position: absolute; left: 7%; right: 7%; bottom: calc(var(--s) * -12 / 169); height: calc(var(--s) * 6 / 169); border-radius: 99px;
+      background: linear-gradient(90deg, var(--pcv-orange) var(--part), #e3e8ee 0); }
+    ${C} .jq .go { position: absolute; right: calc(var(--s) * 10 / 169); bottom: calc(var(--s) * 10 / 169); padding: calc(var(--s) * 3 / 169) calc(var(--s) * 12 / 169); border-radius: 99px;
+      background: rgba(255,255,255,.93); color: #2f3a4a; font-size: calc(var(--s) * 17 / 169); font-weight: 900; box-shadow: 0 calc(var(--s) * 2 / 169) calc(var(--s) * 6 / 169) rgba(0,0,0,.2); }
+    #pcv-stockage-nom { position: fixed; z-index: 8600; translate: -50% -100%; padding: calc(var(--s) * 8 / 169) calc(var(--s) * 18 / 169); border-radius: calc(var(--s) * 14 / 169);
+      background: var(--pcv-bulle); color: var(--pcv-sur-accent); font: 900 calc(var(--s) * 17 / 169) var(--pcv-police, sans-serif); white-space: nowrap; pointer-events: none; }
+    #pcv-stockage-nom[hidden] { display: none; }
     
     #pcv-stockage-bulle { --u: calc(100vh / 800); position: fixed; left: 50%; bottom: calc(var(--u) * 84); translate: -50% 0; z-index: 8600; padding: calc(var(--u) * 10) calc(var(--u) * 22); border-radius: 999px; background: var(--pcv-bulle); color: var(--pcv-sur-accent); font: 900 calc(var(--u) * 18) var(--pcv-police, sans-serif); box-shadow: var(--pcv-ombre); white-space: nowrap; }
     #pcv-stockage-bulle[hidden] { display: none; }
     ${C} .jq.part { filter: grayscale(1); }
-    ${C} .jq .etat { position: absolute; inset: 0; border-radius: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--u) * 4); background: color-mix(in srgb, var(--pcv-bulle) 72%, transparent); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 14); font-weight: 900; }
+    ${C} .jq .etat { position: absolute; inset: calc(var(--u) * var(--pad, 0)); border-radius: calc(var(--u) * var(--arr, 0)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--u) * 4); background: color-mix(in srgb, var(--pcv-bulle) 72%, transparent); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 14); font-weight: 900; }
     ${C} .jq .etat i { width: calc(var(--u) * 24); height: calc(var(--u) * 24); display: block; }
     ${C} .jq .prog { position: absolute; left: calc(var(--u) * 10); right: calc(var(--u) * 10); top: calc(var(--u) * 10); height: calc(var(--u) * 12); border-radius: 999px; background: var(--pcv-bulle); box-shadow: 0 0 0 calc(var(--u) * 2) var(--pcv-sur-accent); overflow: hidden; }
     ${C} .jq .prog b { display: block; height: 100%; background: var(--pcv-cyan-plein); transform-origin: 0 0; transform: scaleX(var(--p, 0)); transition: transform .3s; }
-    ${C} .jq .coche { position: absolute; left: calc(var(--u) * -6); top: calc(var(--u) * -6); width: calc(var(--u) * 32); height: calc(var(--u) * 32); padding: calc(var(--u) * 6); border-radius: 50%; background: #fff; color: transparent; box-shadow: inset 0 0 0 calc(var(--u) * 3) #c5ceda, 0 2px 5px rgba(0,0,0,.2); }
-    ${C} .jq.sel .coche { background: var(--pcv-cyan-plein); color: #fff; box-shadow: 0 0 0 calc(var(--u) * 3) #fff, 0 2px 5px rgba(0,0,0,.2); }
-    ${C} .jq.sel:not(.f) { box-shadow: 0 0 0 calc(var(--u) * 4) var(--pcv-cyan-plein), 0 calc(var(--u) * 5) calc(var(--u) * 12) rgba(60,85,120,.22); }
+    ${C} .jq .coche { position: absolute; left: calc(var(--s) * 12 / 169); top: calc(var(--s) * 12 / 169); z-index: 3; width: calc(var(--s) * 36 / 169); height: calc(var(--s) * 36 / 169); padding: calc(var(--s) * 7 / 169);
+      border-radius: 50%; background: #fff; color: transparent; box-shadow: 0 0 0 calc(var(--s) * 3 / 169) #c8d3df; }
+    ${C} .jq.sel .coche { background: var(--pcv-cyan-plein); color: #fff; box-shadow: 0 0 0 calc(var(--s) * 3 / 169) #fff; }
     
     ${C} .actions-sel { position: absolute; left: calc(var(--u) * 352); right: calc(var(--u) * 18); bottom: calc(var(--u) * 16); height: calc(var(--u) * 74); border-radius: 999px; z-index: 3; display: flex; align-items: center; gap: calc(var(--u) * 12);
       padding: 0 calc(var(--u) * 26) 0 calc(var(--u) * 12); background: var(--pcv-carte); box-shadow: 0 calc(var(--u) * 8) calc(var(--u) * 24) rgba(40,60,90,.25), 0 0 0 1px var(--pcv-bord); white-space: nowrap; }
@@ -308,7 +275,7 @@
   const morceaux = (d, n) => {
     const p = place(d), l = trier(surDisque(jeux(), d), "gros");
     return [
-      ...l.slice(0, n).map((j) => ({ o: j.octets, c: couleur(j.id), j })),
+      ...l.slice(0, n).map((j, i) => ({ o: j.octets, c: TEINTES_JEUX[i] || TEINTE.reste, j })),
       { o: somme(l.slice(n)), c: TEINTE.reste, t: T("stockage.autres_jeux", { n: l.length - n }) },
       { o: p.outils, c: TEINTE.outils, t: T("stockage.onglet.outils") },
       { o: p.autres, cl: "autres", t: T("stockage.autres") },
@@ -334,11 +301,11 @@
       ${l.length ? `<div class="sugg">${l.map((j) => `<button class="sg" data-a="jeu:${j.id}"><span class="mini" style="${fond(j.id)}"></span><span><b>${esc(j.nom)}</b><small>${esc(quand(j.joue))}</small></span><em>${go(j.octets)}</em></button>`).join("")}</div>` : `<p class="vide">${T("stockage.rien_a_faire")}</p>`}`;
   };
   const vueJeux = (d) => {
-    const p = place(d);
+    const p = place(d), l = trier(jeux(), S.tri), plein = Math.max(1, ...l.map((j) => j.octets));
     return `<div class="haut">${reste(p)}<div>${barre(d, GROS_BARRE)}${pills(p)}</div></div>
       <div class="outils"><button class="choixl" data-a="tri"><i>${ic("trier")}</i>${T("stockage.tri." + S.tri)}<span class="fl">${ic("deroulant")}</span></button>
         <button class="choixl droite" data-a="choix" style="--c:${S.choix ? "var(--pcv-cyan-plein)" : TEINTE.gris}"><i>${ic("cocher")}</i>${T(S.choix ? "stockage.choisir_plusieurs_oui" : "stockage.choisir_plusieurs")}</button></div>
-      ${jeux().length ? "" : `<p class="vide">${T("stockage.aucun_jeu")}</p>`}<div class="grille">${trier(jeux(), S.tri).map((j) => `<button class="jq${S.choix?.has(j.id) ? " sel" : ""}${partant(j.id) ? " part" : ""}${S.dep?.id === j.id ? " dep" : ""}" data-a="jeu:${j.id}" style="${fond(j.id)};--c:${couleur(j.id)}">${S.choix ? `<i class="coche">${ic("coche")}</i>` : ""}` + (partant(j.id) ? `<span class="etat"><i>${ic("horloge")}</i>${T("stockage.desinstallation")}</span>` : S.dep?.id === j.id ? `<i class="prog"><b style="--p:${S.dep.p}"></b></i><span class="go">${go(j.octets)}</span>` : `<span class="go">${go(j.octets)}</span>`) + `</button>`).join("")}</div>`;
+      ${jeux().length ? "" : `<p class="vide">${T("stockage.aucun_jeu")}</p>`}<div class="grille">${l.map((j) => `<button class="jq${S.choix?.has(j.id) ? " sel" : ""}${partant(j.id) ? " part" : ""}${S.dep?.id === j.id ? " dep" : ""}" data-a="jeu:${j.id}" style="--part:${j.octets / plein * 100}%"><i class="im" data-p="${j.id}" style="${fond(j.id)}"></i>${S.choix ? `<i class="coche">${ic("coche")}</i>` : ""}` + (partant(j.id) ? `<span class="etat"><i>${ic("horloge")}</i>${T("stockage.desinstallation")}</span>` : S.dep?.id === j.id ? `<i class="prog"><b style="--p:${S.dep.p}"></b></i><span class="go">${go(j.octets)}</span>` : `<span class="go">${go(j.octets)}</span>`) + `</button>`).join("")}</div>`;
   };
   const ACTIONS_DISQUE = (d) => [
     !d.bIsDefaultFolder && ["d:defaut", "coche", "var(--pcv-cyan-plein)", T("stockage.d.defaut"), T("stockage.d.defaut_aide")],
@@ -359,7 +326,7 @@
   const vueFiche = (j) => {
     const d = montes().find((x) => x.nFolderIndex === j.d) || laConsole(), cap = +d.nCapacity || 1, part = Math.round(j.octets / cap * 100), p = place(d), v = j.v;
     const morceauxJeu = [["jeu", j.octets - (+v.nDLCSize || 0) - (+v.nWorkshopSize || 0) - (+v.nShaderSize || 0)], ["dlc", +v.nDLCSize], ["shaders", +v.nShaderSize], ["workshop", +v.nWorkshopSize]].filter(([, o]) => o > 0);
-    const plusGros = trier(jeux(), "gros")[0]?.id === j.id, c = couleur(j.id);
+    const plusGros = trier(jeux(), "gros")[0]?.id === j.id, c = teinte(j, d);
     const pourcent = `<b>${T("stockage.pourcent", { n: part })}</b>`;
     return `<div class="colonne jeu"><div class="grande" style="${fond(j.id)}"></div>
         <div class="part">${esc(T(d.strUserLabel ? "stockage.part" : d.bIsFixed ? "stockage.part.console" : "stockage.part.sd", { n: "", disque: nomDisque(d) })).replace("", pourcent)}</div>
@@ -406,11 +373,41 @@
     page.classList.toggle("choix-on", !!S.choix);
     page.innerHTML = `<div class="panneau">${j ? vueFiche(j) : `${dessinerColonne()}<div class="contenu">${laConsole() ? VUES[S.og] ? VUES[S.og]() : vueDisque(disqueVu(), "stockage.aucun_disque") : `<p class="note">${T("stockage.aucun_disque")}</p>`}</div>`}</div>${S.choix && !j ? barreChoix() : ""}`;
     const g = page.querySelector(".grille");
-    if (g) g.scrollTop = haut;
+    if (g) {
+      g.scrollTop = haut;
+      tuiles(g);
+    }
     const col = page.querySelector(".colonne");
     if (col) col.scrollTop = defile;
     curseur();
   };
+  const tuiles = (g) => {
+    const J = window.__pcvJeux, u = innerHeight / 800, c = (g.clientWidth / u - 20) / (COLONNES + (COLONNES - 1) * JOUR_TUILE);
+    if (!(c > 0)) return;
+    g.style.cssText = (J?.tuileCSS || "") + Object.entries(J?.cotes?.(c, c * JOUR_TUILE) || { c }).map(([k, v]) => `--${k}:${+(+v).toFixed(3)};`).join("");
+    if (J?.peindre) for (const im of g.querySelectorAll(".im[data-p]")) {
+      const a = J.apps?.().get(+im.dataset.p) || appDe(+im.dataset.p);
+      if (a) try {
+        J.peindre(im, a, c);
+      } catch (e) {
+      }
+    }
+  };
+  const nomEl = document.createElement("div");
+  nomEl.id = "pcv-stockage-nom";
+  nomEl.hidden = true;
+  document.body.appendChild(nomEl);
+  const placerNom = () => {
+    const f = S.actif && page.querySelector(".jq.f");
+    nomEl.hidden = !f;
+    if (!f) return;
+    const r = f.getBoundingClientRect(), s = f.offsetWidth;
+    nomEl.textContent = jeu(f.dataset.a.slice(4))?.nom || "";
+    nomEl.style.cssText = `--s:${s}px;left:${r.left + r.width / 2}px;top:${r.top + r.height / 2 - s * 0.53 - innerHeight / 800 * 13}px`;
+    const o = page.querySelector(".outils")?.getBoundingClientRect();
+    if (o) nomEl.style.top = Math.max(parseFloat(nomEl.style.top), o.bottom + 2 + nomEl.offsetHeight) + "px";
+  };
+  page.addEventListener("scroll", placerNom, true);
   const cibles = () => [...page.querySelectorAll(S.zone === "colonne" ? ".colonne [data-a]" : S.fiche ? ".contenu [data-a]" : ".contenu [data-a], .actions-sel [data-a]")].filter((e) => !e.disabled);
   const rangs = () => {
     const R = [];
@@ -432,6 +429,8 @@
       window.__pcvSuivre?.(f) || f.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
     }
     document.body.classList.toggle("pcv-stockage-main", S.actif && S.zone !== "onglet");
+    window.__pcvParametres?.anneau?.();
+    placerNom();
     legende();
   };
   const legende = () => {
@@ -796,6 +795,7 @@
   const fermer = () => {
     S.actif = false;
     page.hidden = true;
+    nomEl.hidden = true;
     document.body.classList.remove("pcv-stockage-ouvert", "pcv-stockage-main");
     window.__pcvDossiers?.fermer?.(false);
   };

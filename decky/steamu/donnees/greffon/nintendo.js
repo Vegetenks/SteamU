@@ -11,7 +11,14 @@
     }
   };
   const libre = (m, appli) => Array.isArray(m?.[appli]) && !m[appli].length;
-  const drapeaux = (m) => ({ mii: libre(m, "mii"), casino: libre(m, "casino"), badges: libre(m, "badges"), sons: libre(m, "sons") });
+  const drapeaux = (m) => ({
+    mii: libre(m, "mii"),
+    casino: libre(m, "casino"),
+    badges: libre(m, "badges"),
+    sons: libre(m, "sons"),
+    logoMiiFichier: m?._logo_mii_fichier || "icones/mii.png",
+    logoMii: typeof m?._logo_mii === "string" ? m._logo_mii : ""
+  });
   const sonder = () => manques().then((m) => ({ ...drapeaux(m), repondu: !!m }));
   const appliquer = (m) => {
     if (!m) return;
@@ -42,10 +49,13 @@
     const o = window.__pcvOrdre;
     if (Array.isArray(o) && o.includes("verrou")) o.splice(o.indexOf("verrou"), 1);
   };
+  let appliVerrou = null;
   const versGreffon = () => {
-    fermer();
     window.__pcvSon?.("choisir");
-    window.__pcvSteamU?.ouvrir?.("import");
+    if (appliVerrou === "mii" && window.__pcvSpotPassFenetre?.mii) {
+      fermer();
+      window.__pcvSpotPassFenetre.mii();
+    } else window.__pcvSteamU?.importer?.();
   };
   const revenir = () => {
     fermer();
@@ -117,15 +127,51 @@
     const m = await manques(), manque = Array.isArray(m?.[appli]) ? m[appli] : ["inconnu"];
     appliquer(m);
     if (!manque.length) return true;
+    appliVerrou = appli;
     montrer(manque, !!m?._import);
     return false;
   };
+  const CLE_LOGO = "pcv-icone-logo-mii";
+  const poserLogo = async () => {
+    const e = window.__pcvNintendo.logoMii, fichier = window.__pcvNintendo.logoMiiFichier;
+    let u = null;
+    if (e) {
+      let c = null;
+      try {
+        c = JSON.parse(localStorage.getItem(CLE_LOGO));
+      } catch (x) {
+      }
+      if (c?.e === e) u = c.u;
+      else {
+        let b = null;
+        try {
+          b = await window.__pcvRessource(fichier, fichier.endsWith(".svg") ? "image/svg+xml" : "image/png");
+        } catch (x) {
+        }
+        if (!b) return;
+        try {
+          u = await window.__pcvIcones.pochoirLogo(await (await fetch(b)).blob());
+        } catch (x) {
+          u = null;
+        }
+        URL.revokeObjectURL(b);
+        delete window.__pcvBlobs?.[fichier];
+        try {
+          localStorage.setItem(CLE_LOGO, JSON.stringify({ e, u }));
+        } catch (x) {
+        }
+      }
+    }
+    if (e === window.__pcvNintendo.logoMii) window.__pcvIcones?.joueur("miimaker-appli", u);
+  };
+  window.removeEventListener("pcv-nintendo", window.__pcvLogoMii);
+  window.addEventListener("pcv-nintendo", window.__pcvLogoMii = poserLogo);
   const PRET = essayer(0).then(({ repondu, ...F }) => {
     if (window.__pcvNintendoJeton !== jeton) return window.__pcvNintendo;
     Object.assign(window.__pcvNintendo, F);
     window.dispatchEvent(new Event("pcv-nintendo"));
     return window.__pcvNintendo;
   });
-  window.__pcvNintendo = Object.assign(window.__pcvNintendo || {}, { mii: false, casino: false, badges: false, sons: false, pret: PRET, exiger, appliquer, fermer, ouvert: () => !!ecran && !ecran.hidden });
+  window.__pcvNintendo = Object.assign(window.__pcvNintendo || {}, { mii: false, casino: false, badges: false, sons: false, logoMii: "", pret: PRET, exiger, appliquer, fermer, ouvert: () => !!ecran && !ecran.hidden });
   return "verrou Nintendo : v\xE9rification en cours";
 })();

@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.3.0-rc.1 (2026-11-16)
+
+Pre-release, available on the Release candidate channel.
+
+- **A soundtrack**: the music of *The Soundtrack Of Frutiger Aero* by temcandoanything becomes SteamU's soundtrack,
+  picked from record sleeves (CC BY 4.0, our edits are listed in the credits). Thank you!
+- **3D plaza**: a grassy island and portal welcome your SpotPass encounters. At night, the plaza grows dark and the
+  grass glows softly.
+- **Your Mii**: a step-by-step assistant helps you import your Mii and get them ready for the plaza.
+- **Controllers**: a Switch-style page with four places for your controllers and a screen to change their order.
+- **Unifideck (pull requests #17, #27 and #29 by @lieserlV, thank you!)**: sign in to your stores, follow downloads
+  alongside Steam's and see each step when launching a game. Copies across stores can be grouped under "Other stores".
+- **HOME Menu**: shortcuts for your plugins, icons you can reorder, and a live game preview. Pause Games is now part
+  of SteamU: your game pauses when you open HOME and resumes when you return.
+- **Launch screen**: a new screen accompanies each game launch and adapts to its platform.
+- **Notifications**: stacks by app and a history by day, with the time each notification arrived.
+- **New plugin manager**: the Decky Store and DeckyHub together, with popular, new and recommended picks; each plugin
+  says whether its archive was scanned by the antivirus.
+- **Quick settings**: a Power menu with sleep, shutdown and restarting Steam; join a protected Wi-Fi network by entering
+  its password; power saving and a power selector.
+- **Themes and music**: random themes, Wii U TV + GamePad music and 3DS jingles from your imported files. The
+  appearance can change automatically at sunset.
+- **Keyboard**: open it over a game or app, and keep the SteamU keyboard while Big Picture is open on the desktop.
+
 ## v0.2.11 (2026-11-16)
 
 Fixes only (issues #30, #31).

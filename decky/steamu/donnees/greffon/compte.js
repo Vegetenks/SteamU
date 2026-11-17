@@ -4,7 +4,7 @@
   const T = (c) => (window.__pcvT || ((x) => x))(c);
   window.__pcvAvantConnexion = () => {
     try {
-      return O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BViewingPreLoginRoute() === true;
+      return O.App?.BHasCurrentUser?.() === false || O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.BViewingPreLoginRoute() === true;
     } catch (e) {
       return false;
     }
@@ -30,6 +30,7 @@
     "portable-claw": "MSI Claw",
     "portable-ayaneo": "AYANEO"
   };
+  window.__pcvNomConsole = (picto) => NOMS_CONSOLE[picto];
   let machine = null;
   window.__pcvNomMachine = async () => {
     try {
@@ -44,14 +45,168 @@
   };
   window.__pcvPiluleMachine = () => `<div class="pcv-pilule-machine"><svg viewBox="0 0 32 32" style="width:calc(var(--u) * 30);height:calc(var(--u) * 30);flex:none;filter:drop-shadow(0 3px 6px color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent))"><defs><linearGradient id="steamCyanP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fd0ff"/><stop offset="1" stop-color="#1a9ae6"/></linearGradient></defs><circle cx="15.9" cy="15.9" r="15.6" fill="#fff"/><path d="M30.3213 15.9106C30.3213 23.8694 23.8694 30.3213 15.9106 30.3213C7.95186 30.3213 1.5 23.8694 1.5 15.9106C1.5 7.95186 7.95186 1.5 15.9106 1.5C23.8694 1.5 30.3213 7.95186 30.3213 15.9106Z" fill="url(#steamCyanP)"/><path d="M15.8869 1.5C8.30251 1.5 2.09194 7.37249 1.5 14.8379L9.23632 18.0524C9.89156 17.6009 10.6829 17.3401 11.5376 17.3401C11.6136 17.3401 11.6895 17.3433 11.7655 17.3465L15.2063 12.3325C15.2063 12.3102 15.2063 12.2848 15.2063 12.2625C15.2063 9.24838 17.65 6.79383 20.6509 6.79383C23.6517 6.79383 26.0954 9.24838 26.0954 12.2625C26.0954 15.2767 23.6517 17.7312 20.6509 17.7312C20.6097 17.7312 20.5686 17.7312 20.5274 17.728L15.6178 21.2477C15.621 21.3113 15.621 21.3781 15.621 21.4417C15.621 23.7055 13.7882 25.5464 11.5344 25.5464C9.55602 25.5464 7.90367 24.1283 7.52698 22.2493L1.99697 19.9505C3.70947 26.036 9.27747 30.5 15.8869 30.5C23.8606 30.5 30.3213 24.0075 30.3213 16.0016C30.3213 7.99249 23.8574 1.5 15.8869 1.5Z" fill="white"/><path d="M10.5469 23.5022L8.77423 22.7677C9.08761 23.4259 9.63206 23.9759 10.3538 24.278C11.9143 24.9298 13.7123 24.1858 14.3644 22.6183C14.6778 21.8584 14.6809 21.0222 14.3676 20.2623C14.0573 19.5024 13.4686 18.9079 12.712 18.5931C11.9618 18.2783 11.1578 18.291 10.4519 18.5581L12.2847 19.318C13.4369 19.8013 13.9814 21.1271 13.5002 22.2845C13.0191 23.4354 11.6991 23.9823 10.5469 23.5022Z" fill="white"/><path d="M24.2783 12.2628C24.2783 10.2533 22.6513 8.61908 20.6507 8.61908C18.6502 8.61908 17.0231 10.2533 17.0231 12.2628C17.0231 14.2722 18.6502 15.9064 20.6507 15.9064C22.6513 15.9064 24.2783 14.2722 24.2783 12.2628ZM17.9316 12.2564C17.9316 10.7461 19.1535 9.51887 20.657 9.51887C22.1638 9.51887 23.3825 10.743 23.3825 12.2564C23.3825 13.7698 22.1638 14.9939 20.657 14.9939C19.1503 14.9939 17.9316 13.7698 17.9316 12.2564Z" fill="white"/></svg><span class="nom-systeme">${T("connexion.systeme")}</span></div>`;
   if (!window.__pcvAvantConnexion()) return "compte : connect\xE9, rien \xE0 habiller";
-  const ECRAN = "{{CachedUsers@UserList}}, {{PinPromptCtn@PinPromptMain}}";
-  let hote = null;
+  const ECRAN = "{{CachedUsers@UserList}}, {{PinPromptCtn@PinPromptMain}}, {{LoginContainer@QRCodeContainer}}";
+  const QUI = "{{CachedUsers@UserList}}", OPTION = "{{CachedUsers@UserList}} > {{Toggle@CachedUsers}}";
+  const aller = (route) => () => {
+    try {
+      O.SteamUIStore.Navigate(route);
+    } catch (e) {
+    }
+  };
+  const systeme = (f) => () => {
+    try {
+      O.SteamClient.System[f]();
+    } catch (e) {
+    }
+  };
+  const REGLAGES = [
+    ["wifi", "compte.internet", aller("/settings/internet")],
+    ["bluetooth", "compte.bluetooth", aller("/settings/bluetooth")],
+    ["accessib", "compte.accessibilite", aller("/accessibility")],
+    ["lune", "alim.veille", systeme("SuspendPC")],
+    ["alimentation", "alim.eteindre", systeme("ShutdownPC"), true]
+  ];
+  const noeud = (el) => {
+    let f = el?.[Object.keys(el).find((k) => k.startsWith("__reactFiber"))];
+    while (f && !f.memoizedProps?.node) f = f.return;
+    return f?.memoizedProps.node || null;
+  };
+  const sansCurseur = () => !document.body.classList.contains("pcv-compte-ouvert");
+  const horsNavigation = () => {
+    const n = noeud(document.getElementById("header"));
+    if (n?.m_Properties && n.m_Properties.fnCanTakeFocus !== sansCurseur) n.SetProperties({ ...n.m_Properties, fnCanTakeFocus: sansCurseur });
+  };
+  let hote = null, rangee = null, ouvert = false, sel = 0, finEtat = null, confirme = -1;
+  const annulerConfirme = () => {
+    if (confirme < 0) return;
+    const i = confirme, b = rangee?.querySelectorAll("button")[i];
+    confirme = -1;
+    if (b) {
+      b.classList.remove("confirme");
+      b.querySelector("span").textContent = T(REGLAGES[i][1]);
+    }
+  };
+  const agir = (i) => {
+    if (!REGLAGES[i][3] || confirme === i) {
+      annulerConfirme();
+      return REGLAGES[i][2]();
+    }
+    annulerConfirme();
+    confirme = i;
+    const b = rangee.querySelectorAll("button")[i];
+    b.classList.add("confirme");
+    b.querySelector("span").textContent = T("alim.eteindre_confirmer");
+  };
+  const option = () => document.querySelector(OPTION);
+  const marquer = () => {
+    rangee?.querySelectorAll("button").forEach((b, i) => b.classList.toggle("sel", i === sel));
+    document.body.classList.toggle("pcv-compte-sur-option", ouvert && sel < 0);
+  };
+  const touche = (e) => {
+    const b = e.detail?.button;
+    if (!ouvert || !(b >= 1 && b <= 12) || b === 1 && sel < 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    if (b === 2) {
+      if (confirme >= 0) return annulerConfirme();
+      return fermer();
+    }
+    if (b === 1) return agir(sel);
+    annulerConfirme();
+    const avant = sel;
+    if (sel >= 0 && (b === 11 || b === 12)) sel = Math.max(0, Math.min(REGLAGES.length - 1, sel + (b === 12 ? 1 : -1)));
+    else if (sel >= 0 && b === 10) {
+      sel = -1;
+      noeud(option())?.BTakeFocus?.();
+    } else if (sel < 0 && b === 9) sel = rangee.__pcvDernier || 0;
+    if (sel === avant) return window.__pcvSon?.("bord");
+    if (avant >= 0) rangee.__pcvDernier = avant;
+    marquer();
+    window.__pcvSon?.("bouge");
+  };
+  const ouvrir = () => {
+    if (!rangee || ouvert) return;
+    ouvert = true;
+    sel = 0;
+    marquer();
+    document.body.classList.add("pcv-compte-reglages");
+    window.addEventListener("vgp_onbuttondown", touche, true);
+    const r = rangee, fondu = document.querySelector(QUI)?.firstElementChild?.getAnimations().find((a) => a.transitionProperty === "opacity");
+    (fondu?.finished || Promise.resolve()).catch(() => {
+    }).then(() => {
+      if (!ouvert || r !== rangee) return;
+      r.hidden = false;
+      window.__pcvApparition?.(r);
+    });
+  };
+  const fermer = () => {
+    if (!ouvert) return;
+    annulerConfirme();
+    ouvert = false;
+    marquer();
+    window.removeEventListener("vgp_onbuttondown", touche, true);
+    document.body.classList.remove("pcv-compte-reglages");
+    const r = rangee;
+    if (window.__pcvApparition) window.__pcvApparition(r, true, null, () => {
+      if (!ouvert) r.hidden = true;
+    });
+    else r.hidden = true;
+  };
+  let garde = null;
+  const garder = (oui) => {
+    let m;
+    try {
+      m = O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance.MenuStore;
+    } catch (e) {
+    }
+    if (!m) return;
+    if (oui && !garde) {
+      const proto = Object.getPrototypeOf(m), avant = { ToggleSideMenu: Object.getOwnPropertyDescriptor(m, "ToggleSideMenu"), OpenSideMenu: Object.getOwnPropertyDescriptor(m, "OpenSideMenu") };
+      const ici = (n) => n === 1 && !!hote && !!document.querySelector(QUI);
+      const suite = (k) => avant[k]?.value || proto[k];
+      garde = {
+        m,
+        avant,
+        ToggleSideMenu: m.ToggleSideMenu = function(n, force, ...a) {
+          if (ici(n)) {
+            if (force === void 0) ouvert ? fermer() : ouvrir();
+            return;
+          }
+          return suite("ToggleSideMenu").call(this, n, force, ...a);
+        },
+        OpenSideMenu: m.OpenSideMenu = function(n, ...a) {
+          if (ici(n)) return;
+          return suite("OpenSideMenu").call(this, n, ...a);
+        }
+      };
+    } else if (!oui && garde) {
+      for (const k of ["ToggleSideMenu", "OpenSideMenu"]) if (garde.m[k] === garde[k]) {
+        if (garde.avant[k]) Object.defineProperty(garde.m, k, garde.avant[k]);
+        else delete garde.m[k];
+      }
+      garde = null;
+    }
+  };
+  const pileSteam = () => [...document.querySelectorAll("{{HeaderItem@Header}}{{BatteryIcon@HeaderItem}}")].find((x) => !x.closest(".pile"));
+  const fermerTout = () => {
+    if (ouvert) {
+      ouvert = false;
+      window.removeEventListener("vgp_onbuttondown", touche, true);
+    }
+    document.body.classList.remove("pcv-compte-reglages", "pcv-compte-sur-option");
+    finEtat?.();
+    finEtat = null;
+    garder(false);
+    hote?.remove();
+    rangee?.remove();
+    hote = rangee = null;
+  };
   const suivre = () => {
     const la = !!document.querySelector(ECRAN);
     if (la && !hote) {
       hote = document.createElement("div");
       hote.id = "pcv-compte";
-      hote.innerHTML = window.__pcvPiluleMachine();
+      hote.innerHTML = `<div class="colline"></div>` + window.__pcvPiluleMachine();
       document.body.appendChild(hote);
       const h = hote;
       window.__pcvNomMachine().then((n) => {
@@ -59,18 +214,44 @@
         if (n && e) e.textContent = n;
       }).catch(() => {
       });
-    } else if (!la && hote) {
-      hote.remove();
-      hote = null;
-    }
+      rangee = document.createElement("div");
+      rangee.id = "pcv-compte-reglages";
+      rangee.hidden = true;
+      rangee.innerHTML = `<div class="rangee">${REGLAGES.map(([ico, cle]) => `<button type="button"><b>${window.__pcvIcones.svg(ico, { classe: "ico" })}</b><span>${T(cle)}</span></button>`).join("")}</div><div class="pcv-legende">${window.__pcvIcones.legende([[2, T("touche.retour")], [1, T("touche.choisir")]])}</div>`;
+      rangee.querySelectorAll("button").forEach((b, i) => b.addEventListener("click", () => agir(i)));
+      rangee.querySelector(".pcv-legende [data-b='2']")?.addEventListener("click", fermer);
+      document.body.appendChild(rangee);
+      garder(true);
+    } else if (!la && hote) fermerTout();
     document.body.classList.toggle("pcv-compte-ouvert", !!hote);
-    if (hote) window.__pcvFond?.(hote);
+    if (!hote) return;
+    window.__pcvFond?.(hote);
+    horsNavigation();
+    if (ouvert && !document.querySelector(QUI)) fermer();
+    if (!finEtat && window.__pcvEtat) {
+      hote.insertAdjacentHTML("beforeend", window.__pcvEtat.html());
+      const peindre = () => window.__pcvEtat.peindre(hote, pileSteam()), h = hote;
+      peindre();
+      const fin = window.__pcvEtat.suivre(h, peindre);
+      let abo = null;
+      try {
+        abo = window.__pcvBridge.onBattery(peindre);
+      } catch (e) {
+      }
+      finEtat = () => {
+        fin();
+        try {
+          abo?.unregister();
+        } catch (e) {
+        }
+      };
+    }
   };
   const minuteur = setInterval(suivre, 500);
   suivre();
   window.__pcvCompteFin = () => {
     clearInterval(minuteur);
-    hote?.remove();
+    fermerTout();
     document.body.classList.remove("pcv-compte-ouvert");
   };
   return "compte : habillage du choix du compte pr\xEAt";

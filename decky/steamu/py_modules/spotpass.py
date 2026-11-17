@@ -227,20 +227,37 @@ def recu_bon(m):
     return {"cle": cle, "mii": nommer(m["mii"], m["pseudo"]), "pseudo": m["pseudo"], "phrase": m["phrase"], "region": m["region"],
             "tenue": tenue_sure(tenue.split(",")) if isinstance(tenue, str) else [], "pose": pose, "visiteur": visiteur}
 
+VISITEUR_SIGNE = ("id", "mii", "pseudo", "region", "phrases")
+
+def message_visiteur(v):
+    return b"SteamU visiteur v1\n" + json.dumps(v, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+
+def visiteur_signe(m, langue):
+    from eshop import CLE_SOURCES   
+    try:
+        v = {k: m[k] for k in VISITEUR_SIGNE}
+        if isinstance(v["phrases"], dict) and verifier(CLE_SOURCES, message_visiteur(v), base64.b64decode(m["signature"], validate=True)):
+            return {**v, "phrase": v["phrases"].get(langue)}
+    except (TypeError, KeyError, ValueError):
+        pass
+    return None
+
 def lot(dossier, langue="fr"):
     g = _graine(dossier, creer=False)
     if g is None:
         return {"erreur": "inconnue"}
-    r = _requete("GET", f"/lot?cle={_b64u(publique(g))}&langue={langue if langue in LANGUES else 'en'}")
+    langue = langue if langue in LANGUES else "en"
+    r = _requete("GET", f"/lot?cle={_b64u(publique(g))}&langue={langue}")
     if "erreur" in r:
         return r
     moi, vus, l = _b64u(publique(g)), set(), []
     liste = lambda x: x[:LOT_MAX] if isinstance(x, list) else []
-    for m in liste(r.get("cartes")) + liste(r.get("visiteurs")):
+    cartes = [m for m in liste(r.get("cartes")) if not (isinstance(m, dict) and "id" in m)]
+    for m in cartes + [visiteur_signe(m, langue) for m in liste(r.get("visiteurs"))]:
         m = recu_bon(m)
         if m and m["cle"] != moi and m["cle"] not in vus:
             vus.add(m["cle"]); l.append(m)
-    return {"jour": r.get("jour") if isinstance(r.get("jour"), str) else "", "mii": l[:LOT_MAX]}
+    return {"jour": r.get("jour")[:10] if isinstance(r.get("jour"), str) else "", "mii": l[:LOT_MAX]}
 
 def signaler(dossier, cible, raison):
     g = _graine(dossier, creer=False)
@@ -258,3 +275,88 @@ def effacer(dossier):
     if r.get("ok"):
         (pathlib.Path(dossier) / FICHIER).unlink(missing_ok=True)   
     return r
+
+RARES = "visiteurs-rares.json"
+LIVRES = pathlib.Path(__file__).resolve().parents[1] / "donnees/visiteurs" / RARES
+LOCAUX = {"s%d" % n for n in range(1, 14)}
+RARES_RELIRE_S = 6 * 3600
+RARES_MAX = 20
+GESTES = set((
+    "saluer applaudir content danser parler hausser sauter pencher pousser accroupi somnoler frotter yeux photo lancer balayer "
+    "frapper atterrir projeter charger garde coupPied brandir brasTendus deposer viser pointer trancher impatient doigt boule "
+    "peur victoire ange tapi etirer chanter assisSol").split())
+ENTREES = {"marche", "course", "ciel"}   
+_rares_lu = 0
+
+def message_signe(prefixe):
+    return lambda date, donnees: prefixe + json.dumps({"date": date, "donnees": donnees}, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+
+message_rares = message_signe(b"SteamU visiteurs-rares v1\n")
+
+def rare_bon(v):
+    if not isinstance(v, dict):
+        return None
+    i, nom, gestes, phrase = v.get("id"), v.get("nom"), v.get("gestes"), v.get("phrase", {})
+    periode = isinstance(v.get("debut"), int) and isinstance(v.get("fin"), int) and v["debut"] < v["fin"]
+    if i in LOCAUX:   
+        return {"id": i, "local": True, "debut": v["debut"], "fin": v["fin"]} if periode and set(v) == {"id", "debut", "fin"} else None
+    if not (isinstance(i, str) and 0 < len(i) <= 32 and all(c in "abcdefghijklmnopqrstuvwxyz0123456789-" for c in i)
+            and pseudo_bon(nom) and mii_bon(v.get("mii")) and periode
+            and isinstance(gestes, list) and 0 < len(gestes) <= 6 and all(g in GESTES for g in gestes)
+            and v.get("entree") in ENTREES and v.get("arrivee", "victoire") in GESTES and isinstance(v.get("aura"), str) and len(v["aura"]) == 7 and v["aura"][0] == "#"
+            and all(c in "0123456789abcdef" for c in v["aura"][1:])
+            and isinstance(phrase, dict) and all(k in LANGUES and texte_bon(t, PHRASE_MAX) for k, t in phrase.items())):
+        return None
+    return {"id": i, "nom": nom, "mii": nommer(v["mii"], nom), "tenue": tenue_sure(v.get("tenue")), "debut": v["debut"], "fin": v["fin"],
+            "gestes": gestes,
+            "entree": v["entree"], "arrivee": v.get("arrivee", "victoire"), "aura": v["aura"], "phrase": phrase}
+
+def _verifier_signe(f, message, date_gardee):
+    from eshop import CLE_SOURCES   
+    if not (isinstance(f, dict) and isinstance(f.get("date"), int) and f["date"] >= date_gardee and isinstance(f.get("donnees"), dict)
+            and verifier(CLE_SOURCES, message(f["date"], f["donnees"]), base64.b64decode(f["signature"], validate=True))):
+        raise ValueError("fichier refusé")
+
+def _lire_json(f):
+    try:
+        j = json.loads(pathlib.Path(f).read_text())
+    except (OSError, ValueError):
+        return {}
+    return j if isinstance(j, dict) else {}
+
+def _relire_signe(dossier, nom, chemin, message, garde):
+    fichier = pathlib.Path(dossier) / nom
+    r = _requete("GET", chemin)
+    try:
+        _verifier_signe(r, message, garde.get("date") if isinstance(garde.get("date"), int) else 0)
+    except Exception:
+        return garde
+    fichier.parent.mkdir(parents=True, exist_ok=True)
+    tmp = fichier.with_suffix(".tmp")
+    tmp.write_text(json.dumps(r, ensure_ascii=False))
+    os.replace(tmp, fichier)
+    return r
+
+def visiteurs_rares(dossier):
+    global _rares_lu
+    fichier = pathlib.Path(dossier) / RARES
+    garde, livre = _lire_json(fichier), _lire_json(LIVRES)
+    try:   
+        _verifier_signe(livre, message_rares, (garde.get("date") if isinstance(garde.get("date"), int) else -1) + 1)
+        garde = livre
+    except Exception:
+        pass
+    if time.time() - _rares_lu >= RARES_RELIRE_S:
+        _rares_lu = time.time()
+        garde = _relire_signe(dossier, RARES, "/visiteurs-rares", message_rares, garde)
+    l = (garde.get("donnees") or {}).get("visiteurs") if isinstance(garde.get("donnees"), dict) else None
+    return {"date": garde.get("date", 0), "visiteurs": [x for x in map(rare_bon, l[:RARES_MAX] if isinstance(l, list) else []) if x]}
+
+ANNONCES = "annonces.json"
+ANNONCES_MAX = 20   
+message_annonces = message_signe(b"SteamU annonces v1\n")
+
+def annonces(dossier):
+    garde = _relire_signe(dossier, ANNONCES, "/annonces-signees", message_annonces, _lire_json(pathlib.Path(dossier) / ANNONCES))
+    l = garde.get("donnees", {}).get("annonces") if isinstance(garde.get("donnees"), dict) else None
+    return {"annonces": l[:ANNONCES_MAX] if isinstance(l, list) else []}

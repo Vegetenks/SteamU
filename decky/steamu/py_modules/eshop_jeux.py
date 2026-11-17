@@ -258,7 +258,7 @@ def _lire(cache, action, pays, langue, appid=0, terme="", start=0):
         if not parametres["term"]:
             return {"donnees": [], "ancien": False}
         parametres.update({"json": 1, "category1": 998, "count": TAILLE_PAGE})
-        base, chemin, normaliser = "https://" + HOTE, "/search/results/", lambda b: marquer(cache, pays, langue, {"r": normaliser_categorie(b)["jeux"]})["r"]
+        base, chemin, normaliser = "https://" + HOTE, "/search/results/", lambda b: marquer(cache, pays, langue, {"r": titres_cherches(normaliser_categorie(b)["jeux"], parametres["term"])})["r"]
     elif action == "a_venir":
         parametres.update({"filter": "popularcomingsoon", "json": 1, "category1": 998, "count": TAILLE_PAGE})
         base, chemin, normaliser = "https://" + HOTE, "/search/results/", lambda b: marquer(cache, pays, langue, {"r": normaliser_categorie(b)["jeux"]})["r"]
@@ -351,6 +351,11 @@ def _jeu(item, tags=()):
 
 def cle_tri(nom):
     return "".join(c for c in unicodedata.normalize("NFD", nom) if not unicodedata.combining(c)).casefold()
+
+def titres_cherches(jeux, terme):
+    mots = [m for m in re.findall(r"\w+", cle_tri(terme)) if len(m) >= 2]
+    gardes = [j for j in jeux if mots and (t := re.findall(r"\w+", cle_tri(j["nom"]))) and all(any(x.startswith(m) for x in t) for m in mots)]
+    return gardes or jeux
 
 def lettre(nom):
     c = unicodedata.normalize("NFD", nom)[:1].upper()

@@ -118,6 +118,8 @@
     "manette-pro": kenney("M24.3 15.75 L39.7 15.75 Q40.7 15.3 41.7 15 47.05 14.9 49.85 17.35 L50.8 18.9 51.25 19.1 52.05 20.15 Q54.05 27.3 55.4 36.6 56.3 41.6 55.85 44.45 55.1 46.95 52.55 47.85 50.35 48.4 48.75 46.8 L45.65 41.25 Q44.5 38.05 42 38.25 L32 38.25 32 38.2 22 38.25 Q19.5 38.05 18.3 41.25 L15.2 46.8 Q13.65 48.35 11.45 47.85 8.9 46.95 8.15 44.45 7.7 41.6 8.6 36.6 9.95 27.3 11.95 20.15 L12.75 19.1 13.2 18.9 14.15 17.3 Q16.95 14.85 22.3 15 L24.3 15.75M24 29 L24 31 22 31 22 33 24 33 24 35 26 35 26 33 28 33 28 31 26 31 26 29 24 29M41 32 Q41 30.75 40.1 29.85 39.25 29 38 29 36.75 29 35.85 29.85 35 30.75 35 32 35 33.2 35.85 34.05 36.75 35 38 35 39.25 35 40.1 34.05 41 33.2 41 32M22 24 Q22 22.75 21.1 21.85 20.25 21 19 21 17.75 21 16.85 21.85 16 22.75 16 24 16 25.2 16.85 26.05 17.75 27 19 27 20.25 27 21.1 26.05 22 25.2 22 24M43 25 Q43 24.15 42.4 23.55 41.85 23 41 23 40.15 23 39.55 23.55 39 24.15 39 25 39 25.85 39.55 26.4 40.15 27 41 27 41.85 27 42.4 26.4 43 25.85 43 25M47 29 Q47 28.15 46.4 27.55 45.85 27 45 27 44.15 27 43.55 27.55 43 28.15 43 29 43 29.85 43.55 30.4 44.15 31 45 31 45.85 31 46.4 30.4 47 29.85 47 29M51 25 Q51 24.15 50.4 23.55 49.85 23 49 23 48.15 23 47.55 23.55 47 24.15 47 25 47 25.85 47.55 26.4 48.15 27 49 27 49.85 27 50.4 26.4 51 25.85 51 25M47 21 Q47 20.15 46.4 19.55 45.85 19 45 19 44.15 19 43.55 19.55 43 20.15 43 21 43 21.85 43.55 22.4 44.15 23 45 23 45.85 23 46.4 22.4 47 21.85 47 21"),
     "manette-pro-2": kenney("M21.55 38.9 Q20.05 38.9 19.4 40.5 L16.2 46.75 Q14.4 49.7 11.65 48.8 8.05 47.55 8 43 8.85 33.25 10.8 23.75 11.8 19.2 13.2 18.3 14.3 15.45 18.05 14.5 22.25 13.45 24.7 14.6 L39.3 14.6 Q41.75 13.45 45.95 14.5 49.7 15.45 50.85 18.3 52.2 19.2 53.2 23.75 55.15 33.25 56 43 55.95 47.55 52.35 48.8 49.6 49.7 47.8 46.75 L44.6 40.5 Q43.95 38.9 42.45 38.9 L21.55 38.9M24 29 L24 31 22 31 22 33 24 33 24 35 26 35 26 33 28 33 28 31 26 31 26 29 24 29M41 32 Q41 30.75 40.1 29.85 39.25 29 38 29 36.75 29 35.85 29.85 35 30.75 35 32 35 33.2 35.85 34.05 36.75 35 38 35 39.25 35 40.1 34.05 41 33.2 41 32M22 24 Q22 22.75 21.1 21.85 20.25 21 19 21 17.75 21 16.85 21.85 16 22.75 16 24 16 25.2 16.85 26.05 17.75 27 19 27 20.25 27 21.1 26.05 22 25.2 22 24M43 25 Q43 24.15 42.4 23.55 41.85 23 41 23 40.15 23 39.55 23.55 39 24.15 39 25 39 25.85 39.55 26.4 40.15 27 41 27 41.85 27 42.4 26.4 43 25.85 43 25M47 29 Q47 28.15 46.4 27.55 45.85 27 45 27 44.15 27 43.55 27.55 43 28.15 43 29 43 29.85 43.55 30.4 44.15 31 45 31 45.85 31 46.4 30.4 47 29.85 47 29M51 25 Q51 24.15 50.4 23.55 49.85 23 49 23 48.15 23 47.55 23.55 47 24.15 47 25 47 25.85 47.55 26.4 48.15 27 49 27 49.85 27 50.4 26.4 51 25.85 51 25M47 21 Q47 20.15 46.4 19.55 45.85 19 45 19 44.15 19 43.55 19.55 43 20.15 43 21 43 21.85 43.55 22.4 44.15 23 45 23 45.85 23 46.4 22.4 47 21.85 47 21M30.8 26A1.2 1.2 0 1 0 33.2 26A1.2 1.2 0 1 0 30.8 26Z"),
     "manette-8bitdo": kenney("M15.32 19.21 Q16.65 18.52 18.23 18.18 19.81 17.8 21.44 17.84 L42.97 17.84 Q46.23 17.88 49.03 19.36 51.79 20.88 52.81 23.16 L53.52 25.63 56.33 38.82 Q56.58 39.61 56.38 40.37 56.12 41.21 55.41 41.78 54.54 42.58 53.11 42.84 L50.46 42.65 Q49.85 42.5 49.19 42.05 L48.06 41.21 44.6 38.63 41.18 36.08 22.82 36.08 15.02 41.89 Q14.35 42.46 13.38 42.73 L11.45 42.88 Q9.71 42.81 8.54 41.74 7.37 40.68 7.52 39.42 L10.73 24.45 Q11.09 22.86 12.31 21.49 13.49 20.12 15.32 19.21M17.9 20.4 L17.9 23.6 14.7 23.6 14.7 26.8 17.9 26.8 17.9 30 21.1 30 21.1 26.8 24.3 26.8 24.3 23.6 21.1 23.6 21.1 20.4 17.9 20.4M42.8 25.2 Q42.8 24.48 42.29 23.97 41.82 23.5 41.1 23.5 40.38 23.5 39.87 23.97 39.4 24.48 39.4 25.2 39.4 25.92 39.87 26.39 40.38 26.9 41.1 26.9 41.82 26.9 42.29 26.39 42.8 25.92 42.8 25.2M46.2 28.6 Q46.2 27.88 45.69 27.37 45.22 26.9 44.5 26.9 43.78 26.9 43.27 27.37 42.8 27.88 42.8 28.6 42.8 29.32 43.27 29.79 43.78 30.3 44.5 30.3 45.22 30.3 45.69 29.79 46.2 29.32 46.2 28.6M49.6 25.2 Q49.6 24.48 49.09 23.97 48.62 23.5 47.9 23.5 47.18 23.5 46.67 23.97 46.2 24.48 46.2 25.2 46.2 25.92 46.67 26.39 47.18 26.9 47.9 26.9 48.62 26.9 49.09 26.39 49.6 25.92 49.6 25.2M46.2 21.8 Q46.2 21.08 45.69 20.57 45.22 20.1 44.5 20.1 43.78 20.1 43.27 20.57 42.8 21.08 42.8 21.8 42.8 22.52 43.27 22.99 43.78 23.5 44.5 23.5 45.22 23.5 45.69 22.99 46.2 22.52 46.2 21.8M23.8 32A2.7 2.7 0 1 0 29.2 32A2.7 2.7 0 1 0 23.8 32ZM34.8 32A2.7 2.7 0 1 0 40.2 32A2.7 2.7 0 1 0 34.8 32ZM28.8 24.0L30.400000000000002 24.0A0.6 0.6 0 0 1 30.400000000000002 25.200000000000003L28.8 25.200000000000003A0.6 0.6 0 0 1 28.8 24.0ZM33.6 24.0L35.199999999999996 24.0A0.6 0.6 0 0 1 35.199999999999996 25.200000000000003L33.6 25.200000000000003A0.6 0.6 0 0 1 33.6 24.0Z"),
+    // (11/11) la manette Google Stadia (18d1:9400), dessinée par nous d'après sa photo de face, détails grossis comme ceux de Kenney (lisible en petit)
+    "manette-stadia": kenney("M 16.48 18.63 Q 32.0 18.21 47.52 18.63 C 51.22 18.63 52.61 20.25 52.84 23.03 C 53.31 28.59 54.47 35.08 54.23 41.56 C 54.0 44.8 52.15 45.96 49.83 45.96 C 47.52 45.96 46.36 44.8 45.43 42.95 L 42.88 37.85 C 41.03 36.23 38.25 35.77 32.0 35.77 C 25.75 35.77 22.97 36.23 21.12 37.85 L 18.57 42.95 C 17.64 44.8 16.48 45.96 14.17 45.96 C 11.85 45.96 10.0 44.8 9.77 41.56 C 9.53 35.08 10.69 28.59 11.16 23.03 C 11.39 20.25 12.78 18.63 16.48 18.63 ZM17.900000000000002 20.799999999999997h3.4v2.8999999999999995h2.8999999999999995v3.4h-2.8999999999999995v2.8999999999999995h-3.4v-2.8999999999999995h-2.8999999999999995v-3.4h2.8999999999999995ZM42.65 22.0a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0 -3.5 0ZM42.65 28.799999999999997a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0 -3.5 0ZM39.25 25.4a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0 -3.5 0ZM46.05 25.4a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0 -3.5 0ZM22.5 32.6a3.5 3.5 0 1 0 7.0 0a3.5 3.5 0 1 0 -7.0 0ZM34.5 32.6a3.5 3.5 0 1 0 7.0 0a3.5 3.5 0 1 0 -7.0 0ZM30.5 25.6a1.5 1.5 0 1 0 3.0 0a1.5 1.5 0 1 0 -3.0 0Z"),
     "manette-steam": kenney("M29 32.5 Q29 31.45 28.25 30.75 27.55 30 26.5 30 25.45 30 24.75 30.75 24 31.45 24 32.5 24 33.55 24.75 34.3 25.45 35 26.5 35 27.55 35 28.25 34.3 29 33.55 29 32.5 M39 35.5 Q39 34.9 38.55 34.45 38.15 34 37.5 34 36.85 34 36.45 34.45 36 34.9 36 35.5 36 36.15 36.45 36.6 36.85 37 37.5 37 38.15 37 38.55 36.6 L39 35.5 M36 32.5 Q36 31.9 35.55 31.45 35.15 31 34.5 31 33.85 31 33.45 31.45 33 31.9 33 32.5 33 33.15 33.45 33.6 33.85 34 34.5 34 35.15 34 35.55 33.6 36 33.15 36 32.5 M39 29.5 Q39 28.9 38.55 28.45 38.15 28 37.5 28 36.85 28 36.45 28.45 36 28.9 36 29.5 36 30.15 36.45 30.6 36.85 31 37.5 31 38.15 31 38.55 30.6 L39 29.5 M24 25 Q24 22.9 22.55 21.45 21.1 20 19 20 16.95 20 15.5 21.45 14 22.9 14 25 14 27.1 15.5 28.55 16.95 30 19 30 21.1 30 22.55 28.55 24 27.1 24 25 M42 32.5 Q42 31.9 41.55 31.45 41.15 31 40.5 31 39.85 31 39.45 31.45 39 31.9 39 32.5 39 33.15 39.45 33.6 39.85 34 40.5 34 41.15 34 41.55 33.6 42 33.15 42 32.5 M50 25 Q50 22.9 48.55 21.45 47.1 20 45 20 42.95 20 41.5 21.45 40 22.9 40 25 40 27.1 41.5 28.55 42.95 30 45 30 47.1 30 48.55 28.55 50 27.1 50 25 M26.5 38.55 Q23.3 38.6 22.2 40.3 L18.35 47.4 Q17 49.6 14.1 48.8 10.5 47.5 8.95 44.7 7.75 41.95 8.1 37.9 8.6 33.85 9.4 30 10.35 25.6 11.85 21.7 L12.65 19.65 Q12.95 17.9 14.45 16.9 15.7 16.05 19.3 16 L22.5 16 Q23.1 16 23.3 16.35 L40.7 16.35 Q40.9 16 41.55 16 L44.7 16 Q48.3 16.05 49.55 16.9 51.05 17.9 51.35 19.65 L52.15 21.7 Q53.7 25.6 54.6 30 L55.95 37.9 Q56.25 41.95 55.05 44.7 53.55 47.5 49.9 48.8 47.05 49.6 45.65 47.4 L41.85 40.3 Q40.75 38.6 37.55 38.55 L26.5 38.55"),
     "joycon-g": joycons(jc1G(8.13)),
     "joycon-d": joycons(jc1D(8.13)),
@@ -234,6 +236,31 @@
     "volume-coupe": '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9.5l5 5M20.5 9.5l-5 5"/>',
     micro: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/>',
     casque: '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6" rx="1.5"/><rect x="16.5" y="14" width="4.5" height="6" rx="1.5"/>',
+    // (12/11, l'auteur : MagicPods, « de VRAIS pictogrammes d'écouteurs ») les écouteurs par famille (acces-rapide.js, MP_FAMILLES) ;
+    // repris tels quels de jeux libres, crédités dans greffon/credits.js : à tige, Tabler Icons « device-airpods » (ses deux
+    // écouteurs, chacun recentré) et « device-airpods-case » ; le générique, Tabler « headset » (MIT, Paweł Kuna) ; intra ronds,
+    // Fluent UI System Icons « surface_earbuds_20_regular » (MIT, Microsoft) : son contour plein redessiné en trait (sa ligne médiane :
+    // le rond et l'embout ; un rond au centre, la surface tactile, sans quoi on y voyait une loupe), à notre épaisseur de 2,4 ; la paire, comme chez lui, le second tourné d'un demi-tour
+    "ecouteurs-tige": '<path d="M6 4a4 4 0 0 1 4 3.8l0 .2v10.5a1.5 1.5 0 0 1 -3 0v-6.5h-1a4 4 0 0 1 -4 -3.8l0 -.2a4 4 0 0 1 4 -4"/><path d="M18 4a4 4 0 0 0 -4 3.8l0 .2v10.5a1.5 1.5 0 0 0 3 0v-6.5h1a4 4 0 0 0 4 -3.8l0 -.2a4 4 0 0 0 -4 -4"/>',
+    "ecouteur-tige-g": '<path transform="translate(6 0)" d="M6 4a4 4 0 0 1 4 3.8l0 .2v10.5a1.5 1.5 0 0 1 -3 0v-6.5h-1a4 4 0 0 1 -4 -3.8l0 -.2a4 4 0 0 1 4 -4"/>',
+    "ecouteur-tige-d": '<path transform="translate(-6 0)" d="M18 4a4 4 0 0 0 -4 3.8l0 .2v10.5a1.5 1.5 0 0 0 3 0v-6.5h1a4 4 0 0 0 4 -3.8l0 -.2a4 4 0 0 0 -4 -4"/>',
+    "ecouteurs-boitier": '<path d="M21 10h-18"/><path d="M3 8a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4l0 -8"/><path d="M7 10v1.5a1.5 1.5 0 0 0 1.5 1.5h7a1.5 1.5 0 0 0 1.5 -1.5v-1.5"/>',
+    "ecouteurs-ronds": '<circle cx="16.96" cy="15.74" r="5.28"/><circle cx="16.96" cy="15.74" r="1.56"/><path d="M11.76 15.96 10.08 18a2.16 2.16 0 0 0-.12 2.52l.36.48a2.16 2.16 0 0 0 2.52.72l2.28-.96"/><g transform="rotate(180 12 11.4)"><circle cx="16.96" cy="15.74" r="5.28"/><circle cx="16.96" cy="15.74" r="1.56"/><path d="M11.76 15.96 10.08 18a2.16 2.16 0 0 0-.12 2.52l.36.48a2.16 2.16 0 0 0 2.52.72l2.28-.96"/></g>',
+    "ecouteur-rond-d": '<g transform="translate(-.4 .7)"><circle cx="13.48" cy="11.17" r="6.16"/><circle cx="13.48" cy="11.17" r="1.82"/><path d="M7.42 11.42 5.46 13.8a2.52 2.52 0 0 0-.14 2.94l.42.56a2.52 2.52 0 0 0 2.94.84l2.66-1.12"/></g>',
+    "ecouteur-rond-g": '<g transform="translate(24 0) scale(-1 1) translate(-.4 .7)"><circle cx="13.48" cy="11.17" r="6.16"/><circle cx="13.48" cy="11.17" r="1.82"/><path d="M7.42 11.42 5.46 13.8a2.52 2.52 0 0 0-.14 2.94l.42.56a2.52 2.52 0 0 0 2.94.84l2.66-1.12"/></g>',
+    "ecouteurs-autres": '<path d="M4 14v-3a8 8 0 1 1 16 0v3"/><path d="M18 19c0 1.657 -2.686 3 -6 3"/><path d="M4 14a2 2 0 0 1 2 -2h1a2 2 0 0 1 2 2v3a2 2 0 0 1 -2 2h-1a2 2 0 0 1 -2 -2v-3"/><path d="M15 14a2 2 0 0 1 2 -2h1a2 2 0 0 1 2 2v3a2 2 0 0 1 -2 2h-1a2 2 0 0 1 -2 -2v-3"/>',
+    // les modes de bruit et les réglages de MagicPods (maquette validée le 12/11, à nous ; « anti-vent » : Tabler « wind », MIT)
+    "bruit-off": '<circle cx="12" cy="12" r="8"/><path d="M6.5 17.5l11-11"/>',
+    "bruit-transparence": '<circle cx="5" cy="12" r="2"/><path d="M10 7.5a6.5 6.5 0 0 1 0 9M14 5a10 10 0 0 1 0 14M18 2.8a13 13 0 0 1 0 18.4"/>',
+    "bruit-adaptatif": '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" opacity=".35"/><path d="M18.5 2.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z" fill="currentColor"/>',
+    "bruit-vent": '<path d="M5 8h8.5a2.5 2.5 0 1 0 -2.34 -3.24"/><path d="M3 12h15.5a2.5 2.5 0 1 1 -2.34 3.24"/><path d="M4 16h5.5a2.5 2.5 0 1 1 -2.34 3.24"/>',
+    "bruit-reduction": '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.2"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/>',
+    eclair: P('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>'),
+    // (en charge : bulles de batterie de MagicPods)
+    oreille: '<path d="M7 9a5 5 0 0 1 10 0c0 3-2 4-3 5.5S13 18 11 19.5 7 19 7 17"/><path d="M10 9.5a2 2 0 0 1 4 0c0 1-1 1.6-1.5 2.2"/>',
+    conversation: '<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M17 6.5a4 4 0 0 1 0 5M19.5 4a7.5 7.5 0 0 1 0 10"/>',
+    // (12/11) raccrocher un appel (page Steamcord de l'accès rapide) : le combiné couché
+    raccrocher: '<path d="M2.5 14.5c5.3-5 13.7-5 19 0l-2.6 2.6-3.4-1.6v-2.6a10.5 10.5 0 0 0-7 0v2.6l-3.4 1.6z"/>',
     ecran: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
     // Wi-Fi (règle de l'auteur) : un éventail de trois arcs et un point, rempli selon la force du signal (niveau 0 à 3 :
     // les arcs au-delà restent pâles) ; jamais des barres de réseau mobile
@@ -253,9 +280,22 @@
     // quatre barres ; les autres restent pâles)
     "pile-manette": (niveau = 3) => '<rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10.5v3"/>' + [0, 1, 2, 3].map((i) => `<rect x="${4.2 + i * 3.6}" y="9.2" width="2.6" height="5.6" rx=".6" fill="currentColor" stroke="none"${i > niveau ? ' opacity=".25"' : ""}/>`).join(""),
     avion: '<path d="M10.5 3.5a1.5 1.5 0 0 1 3 0V9l7.5 4.5v2L13.5 13v4.5l2.5 2v1.5l-4-1-4 1V19.5l2.5-2V13L3 15.5v-2L10.5 9z"/>',
+    feuille: '<path d="M5 18C2 9 9 4 20 3c1 11-4 17-12 15"/><path d="M4 21L16 8"/>',
+    // (13/11) ceux de la maquette des réglages de l'économie d'énergie (Paramètres › Batterie, parametres.js)
+    photo: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8.5 6l1.5-2.5h4L15.5 6"/>',
+    maison: '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>',
+    telech: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+    etoile: '<path d="M12 3l2 5 5 .4-3.8 3.3 1.2 5L12 14l-4.4 2.7 1.2-5L5 8.4 10 8z"/>',
+    palette: '<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.5-2.2-.6-1.4.4-2.8 1.9-2.8H18a3 3 0 0 0 3-3c0-5.5-4-10-9-10z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/>',
+    images: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 12l2.5-4 2.5 3 2-2 3 3"/>',
+    eclair: '<path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="currentColor"/>',
+    interdit: '<circle cx="12" cy="12" r="10" fill="var(--pcv-rouge)" stroke="none"/><path d="M7 12h10" stroke="var(--pcv-sur-accent)" stroke-width="3"/>',
     silence: '<path d="M6 16V11a6 6 0 0 1 9.5-4.9M18 10.5V16l1.5 2H8"/><path d="M10 20.5a2 2 0 0 0 4 0"/><path d="M3.5 3.5l17 17"/>',
     lune: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/>',
+    moins: '<path d="M5 12h14"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    envoi: '<path d="M3.6 12 20.4 4.8l-6 15.6-3-6.6z"/>',
+    // (12/11, page Amis : « Demande envoyée »)
     perf: '<path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4-6"/>',
     musique: '<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
     // (onglet Paroles de la page Musique et page SteamU, Confidentialité : dessins de banc/maquette-paroles/index.html)
@@ -270,6 +310,8 @@
     switch: '<rect x="1" y="6" width="22" height="12" rx="2.5" fill="var(--pcv-lisere)" stroke="none"/><path d="M4.2 7.2h15.6v9.6H4.2z" fill="var(--pcv-relief-ecran, var(--pcv-creux))" stroke="none"/><g fill="currentColor" stroke="none"><rect x="10" y="10" width="4" height="4" rx="1.3"/><circle cx="2.8" cy="10" r=".5"/><circle cx="21.2" cy="14.5" r=".5"/></g>',
     nuancier: '<g stroke="var(--pcv-lisere)" stroke-width=".5"><rect x="2" y="7" width="5.5" height="12" rx="2.3" transform="rotate(-8 4.75 13)" fill="var(--pcv-orange)"/><rect x="9" y="4" width="5.5" height="16" rx="2.3" fill="var(--pcv-c-telech)"/><rect x="16" y="6" width="5.5" height="12.5" rx="2.3" transform="rotate(12 18.75 12.25)" fill="var(--pcv-vert)"/></g>',
     epingle: '<path d="M9 3h6l-1 6 3.5 3.5V14h-11v-1.5L10 9z"/><path d="M12 14v7"/>',
+    // (15/11) « Ranger » : les quatre flèches (menu d'une tuile de l'accueil, options d'un greffon)
+    ranger: '<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>',
     // (21/10, page du jeu, banc/maquette-detail-et-page-jeu) le trophée des succès, le nuage de la diffusion (celui de
     // l'accueil, console.js NUAGE, en trait), l'œil barré de « Masquer »
     trophee: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>',
@@ -295,9 +337,10 @@
     ticket: '<path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/><path d="M14 7v10" stroke-dasharray="2 2"/>',
     piece: '<g transform="scale(.375)" stroke="none"><circle cx="32" cy="32" r="29" fill="#f2b632"/><circle cx="32" cy="32" r="29" fill="none" stroke="#a8700f" stroke-width="3"/><circle cx="32" cy="32" r="21" fill="#ffd45a"/><path d="M32 17l4.3 9.2 10 1.2-7.4 6.8 2 9.9L32 39l-8.9 5.1 2-9.9-7.4-6.8 10-1.2z" fill="#f2b632" stroke="#a8700f" stroke-width="2" stroke-linejoin="round"/><path d="M14 22a20 20 0 0 1 14-10" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity=".7"/></g>'
   };
+  D["miimaker-appli"] = D.miimaker;
   const trace = (n, niveau) => typeof D[n] === "function" ? D[n](Number.isInteger(+niveau) && niveau !== "" && niveau != null ? Math.max(0, Math.min(3, +niveau)) : void 0) : D[n] || "";
   const image = (n) => {
-    const t = O.__pcvIconesTheme?.[n];
+    const t = O.__pcvIconesJoueur?.[n] || O.__pcvIconesTheme?.[n];
     return t && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(t.url) ? t : null;
   };
   const habit = (t) => t.teinte ? `-webkit-mask:url("${t.url}") center/contain no-repeat;mask:url("${t.url}") center/contain no-repeat;background:currentColor` : `background:url("${t.url}") center/contain no-repeat`;
@@ -305,7 +348,82 @@
     const t = image(n);
     return `<svg${o.classe ? ` class="${o.classe}"` : ""} viewBox="0 0 24 24" data-ico="${n}"${o.niveau != null ? ` data-niveau="${+o.niveau | 0}"` : ""}${o.attrs ? " " + o.attrs : ""}${t ? ` style='${habit(t)}'` : ""}>${t ? "" : trace(n, o.niveau)}</svg>`;
   };
-  const relief = (n, couleur) => `<span class="pcv-marque-relief" style="--pcv-relief-couleur:${/[#(]/.test(couleur) ? couleur : `var(--pcv-${couleur})`}" aria-hidden="true"><i></i>${svg(n)}</span>`;
+  const relief = (n, couleur, dessin) => `<span class="pcv-marque-relief" style="--pcv-relief-couleur:${/[#(]/.test(couleur) ? couleur : `var(--pcv-${couleur})`}${dessin ? `;--pcv-relief-dessin:${dessin};--pcv-relief-teinte:100%` : ""}" aria-hidden="true"><i></i>${String(n).startsWith("<svg") ? n : svg(n)}</span>`;
+  const RUBRIQUES = [
+    ["reinitialiser", "#ff8a1f", "reset|restore defaults|factory reset|r\xE9initialiser|r\xE9initialisation|remise \xE0 z\xE9ro|par d\xE9faut", '<path d="M6.1 9.4A6.6 6.6 0 1 1 5.5 13.4M5.4 5.6v3.9h3.9"/>'],
+    ["corbeille", "#e5484d", "uninstall|delete|remove|cleaner|cleanup|clean up|trash|d\xE9sinstaller|supprimer|suppression|nettoyage|nettoyer|corbeille", '<path d="M5 7.6h14M9.7 7.6V6a1.2 1.2 0 0 1 1.2-1.2h2.2A1.2 1.2 0 0 1 14.3 6v1.6M6.9 7.6l.8 10.6a1.6 1.6 0 0 0 1.6 1.4h5.4a1.6 1.6 0 0 0 1.6-1.4l.8-10.6M10.4 11.2v4.8M13.6 11.2v4.8"/>'],
+    ["favoris", "#ff8a1f", "starred|favorites|favourites|favorite|favourite|starred themes|favoris|favori|\xE9toil\xE9s", '<path d="M12 4.6L14.29 9.54L19.7 10.2L15.71 13.91L16.76 19.25L12 16.6L7.24 19.25L8.29 13.91L4.3 10.2L9.71 9.54Z"/>'],
+    ["succes", "#ff8a1f", "achievements|achievement|retroachievements|trophies|milestones|succ\xE8s|troph\xE9es|exploits", '<path d="M8 4.8h8v4.4a4 4 0 0 1-8 0zM8 6.4H6a1.2 1.2 0 0 0-1.2 1.2c0 1.6 1.3 2.8 3.4 2.8M16 6.4h2a1.2 1.2 0 0 1 1.2 1.2c0 1.6-1.3 2.8-3.4 2.8M12 13.2v3.6M8.8 19.2h6.4"/>'],
+    ["journal", "#8b9098", "logs|log|logger|logging|history|changelog|release notes|sync logs|journal|journaux|historique|notes de version|nouveaut\xE9s", '<path d="M14 4.6H7.6A1.6 1.6 0 0 0 6 6.2v11.6a1.6 1.6 0 0 0 1.6 1.6h8.8a1.6 1.6 0 0 0 1.6-1.6V8.6zM14 4.6v4h4M9.3 12.4h5.4M9.3 15.8h3.6"/>'],
+    ["erreurs", "#e5484d", "errors|error|warnings|problems|issues|erreurs|erreur|avertissements|probl\xE8mes", '<path d="M10.5 5.4a1.7 1.7 0 0 1 3 0l6 10.7a1.7 1.7 0 0 1-1.5 2.5H6a1.7 1.7 0 0 1-1.5-2.5z"/><path d="M12 9.7v3.4"/><circle cx="12" cy="15.9" r="1.2" fill="currentColor" stroke="none"/>'],
+    ["depannage", "#ff8a1f", "troubleshooting|troubleshoot|maintenance|repair|fix|fix system|diagnostics|d\xE9pannage|maintenance|r\xE9parer|r\xE9paration|diagnostic", '<path d="M15.4 4.7a4.3 4.3 0 0 0-4.9 5.8l-5.4 5.4a1.75 1.75 0 0 0 2.5 2.5l5.4-5.4a4.3 4.3 0 0 0 5.8-4.9l-2.5 2.5-2.4-.5-.5-2.4z"/>'],
+    ["developpeur", "#8b9098", "developer|development|dev|debug|debugging|backend|custom backend|code|d\xE9veloppeur|d\xE9veloppement|d\xE9bogage", '<path d="M8.4 7.8 4.6 12l3.8 4.2M15.6 7.8l3.8 4.2-3.8 4.2M13.2 6 10.8 18"/>'],
+    ["edition", "#ff8a1f", "edit|editor|custom|manual|manipulation|overrides|time manipulation|modifier|\xE9dition|\xE9diteur|personnalis\xE9|manuel", '<path d="M14.9 5.7l3.4 3.4-9.1 9.1-4.3.9.9-4.3zM12.9 7.7l3.4 3.4"/>'],
+    ["ajouter", "#2fbf71", "new|add|create|new launch option|add new|ajouter|nouveau|nouvelle|cr\xE9er", '<circle cx="12" cy="12" r="7.3"/><path d="M12 8.7v6.6M8.7 12h6.6"/>'],
+    ["experimental", "#8a63ff", "testing|test|experimental|experiments|beta|labs|exp\xE9rimentations|exp\xE9rimental|test|tests|b\xEAta", '<path d="M9.4 4.6h5.2M10.4 4.6v4.8l-4.6 7.7a1.6 1.6 0 0 0 1.4 2.4h9.6a1.6 1.6 0 0 0 1.4-2.4l-4.6-7.7V4.6M8 14.6h8"/>'],
+    ["plugins", "#2fbf71", "plugins|plugin|extensions|add-ons|addons|greffons|greffon|extensions|modules", '<path d="M9.2 4.6v3.4M14.8 4.6v3.4M6.8 8h10.4v2.8a5.2 5.2 0 0 1-10.4 0zM12 16v3.4"/>'],
+    ["mises-a-jour", "#ff8a1f", "updates|update|updater|version|versions|sync|synchronization|mises \xE0 jour|mise \xE0 jour|version|synchronisation", '<path d="M5.6 12a6.4 6.4 0 0 1 11.6-3.7M14.5 8.6l2.9.1.4-2.9M18.4 12a6.4 6.4 0 0 1-11.6 3.7M9.5 15.4l-2.9-.1-.4 2.9"/>'],
+    ["telechargements", "#19b8d6", "downloads|download|install|installer|t\xE9l\xE9chargements|t\xE9l\xE9charger|installer", '<path d="M12 4.6v9.6M8.2 10.6l3.8 3.8 3.8-3.8M5 16.2v1.6A1.6 1.6 0 0 0 6.6 19.4h10.8a1.6 1.6 0 0 0 1.6-1.6v-1.6"/>'],
+    ["sauvegarde", "#2a8cff", "backup|backups|cloud|cloud save|save|saves|restore|sauvegarde|sauvegardes|nuage|restaurer", '<path d="M7.5 17.6h9.2a3.9 3.9 0 0 0 .8-7.7 5.6 5.6 0 0 0-10.7 1.3 3.2 3.2 0 0 0 .7 6.4z"/>'],
+    ["compte", "#2a8cff", "account|accounts|login|sign in|profile|user|compte|connexion|utilisateur", '<circle cx="12" cy="8.6" r="3.4"/><path d="M5.6 19.2a6.4 6.4 0 0 1 12.8 0"/>'],
+    ["cle", "#ff8a1f", "credentials|api key|key|keys|token|auth|basic auth|authentication|password|identifiants|cl\xE9|cl\xE9 api|jeton|mot de passe|authentification", '<circle cx="8.6" cy="15.4" r="3.5"/><path d="M11.1 12.9 18.2 5.8M15.4 8.6l2.2 2.2M17.6 6.4l1.4 1.4"/>'],
+    ["securite", "#2fbf71", "security|privacy|permissions|parental|s\xE9curit\xE9|confidentialit\xE9|autorisations|contr\xF4le parental", '<path d="M12 4.5 18.3 7v4.9c0 3.9-2.6 6.4-6.3 7.6-3.7-1.2-6.3-3.7-6.3-7.6V7z"/><path d="M9.3 12.1l1.9 1.9 3.5-3.6"/>'],
+    ["demarrage", "#2fbf71", "setup|setup guide|getting started|welcome|initialization|initialisation|first steps|onboarding|autostart|starting|premiers pas|bienvenue|installation|configuration initiale|d\xE9marrage|initialisation", '<path d="M6.8 19.6V4.8M6.8 5.4h10.4l-2.4 3.7 2.4 3.7H6.8"/>'],
+    ["profils", "#8a63ff", "profiles|presets|preset|configurations|configs|configuration|profils|profil|pr\xE9r\xE9glages|pr\xE9r\xE9glage|configurations", '<rect x="4.4" y="6" width="15.2" height="12" rx="2.4"/><circle cx="9.2" cy="10.6" r="1.6"/><path d="M6.9 15.2a2.6 2.6 0 0 1 4.6 0M14.2 10.4h2.4M14.2 13.8h2.4"/>'],
+    ["aide", "#8a63ff", "help|how to use|how to|usage|faq|tutorial|instructions|guide|tips|aide|mode d'emploi|utilisation|tutoriel|astuces|foire aux questions", '<circle cx="12" cy="12" r="7.3"/><path d="M9.7 9.9a2.4 2.4 0 1 1 3.3 2.2c-.6.3-1 .8-1 1.4v.3"/><circle cx="12" cy="16.3" r="1.3" fill="currentColor" stroke="none"/>'],
+    ["documentation", "#ff8a1f", "docs|documentation|manual pages|wiki|readme|documentation|notice|wiki", '<path d="M12 7.3C10.2 5.9 7.5 5.5 4.6 5.9v11.4c2.9-.4 5.6 0 7.4 1.4 1.8-1.4 4.5-1.8 7.4-1.4V5.9c-2.9-.4-5.6 0-7.4 1.4zM12 7.3v11.4"/>'],
+    ["credits", "#ff8a1f", "credits|acknowledgement|acknowledgements|thanks|contributors|supporters|patreon supporters|translators|cr\xE9dits|remerciements|contributeurs|traducteurs", '<circle cx="12" cy="9.4" r="4.6"/><path d="M9.3 13.1 8 19.4l4-1.9 4 1.9-1.3-6.3"/>'],
+    ["don", "#e5484d", "donate|donation|donations|support|sponsor|ko-fi|tip|faire un don|don|dons|soutenir|soutien", '<path d="M12 18.6c-3.4-2.1-7.4-5-7.4-8.7a3.7 3.7 0 0 1 7.4-1 3.7 3.7 0 0 1 7.4 1c0 3.7-4 6.6-7.4 8.7z"/>'],
+    ["a-propos", "#2a8cff", "about|info|information|informations|details|host info|\xE0 propos|informations|info|d\xE9tails", '<circle cx="12" cy="12" r="7.3"/><path d="M12 11.2v4.8"/><circle cx="12" cy="8.3" r="1.3" fill="currentColor" stroke="none"/>'],
+    ["statistiques", "#2fbf71", "stats|statistics|analysis|analytics|insights|trends|reports|report|statistiques|stats|analyse|tendances|rapports|bilan", '<g fill="currentColor" stroke="none"><rect x="4.4" y="11.4" width="4.2" height="8" rx="1.4"/><rect x="9.9" y="4.6" width="4.2" height="14.8" rx="1.4"/><rect x="15.4" y="8.2" width="4.2" height="11.2" rx="1.4"/></g>'],
+    ["calendrier", "#e5484d", "by month|by week|by day|by year|monthly|weekly|daily|annual|yearly|calendar|schedule|events|annual replay|par mois|par semaine|par jour|par ann\xE9e|mensuel|hebdomadaire|annuel|calendrier|agenda|\xE9v\xE9nements|r\xE9trospective", '<rect x="4.6" y="6.2" width="14.8" height="13.2" rx="2.6"/><path d="M8.6 4.6v3.2M15.4 4.6v3.2M4.6 10.8h14.8"/><circle cx="8.8" cy="14.8" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="14.8" r="1.1" fill="currentColor" stroke="none"/>'],
+    ["temps", "#2a8cff", "all time|time|playtime|play time|duration|clock|temps|temps de jeu|dur\xE9e|horloge|depuis toujours", '<circle cx="12" cy="12" r="7.3"/><path d="M12 8.2v4l2.7 1.7"/>'],
+    ["alarmes", "#ff8a1f", "alarms|alarm|alarm list|wake|alarmes|alarme|r\xE9veil", '<circle cx="12" cy="13" r="6.2"/><path d="M12 10v3.1l2 1.4M5 7.4l2.5-2.4M19 7.4l-2.5-2.4"/>'],
+    ["chrono", "#19b8d6", "timers|timer|stopwatch|pomodoro|countdown|focus|minuteurs|minuteur|chronom\xE8tre|compte \xE0 rebours|concentration", '<circle cx="12" cy="13.2" r="6.2"/><path d="M10.2 4.6h3.6M12 4.6V7M12 13.2l2.4-2.4M17.4 7.8l1.2-1.2"/>'],
+    ["notifications", "#e5484d", "notifications|notification|reminders|reminder|alerts|notifications|rappels|rappel|alertes", '<path d="M7.1 10.6a4.9 4.9 0 0 1 9.8 0v3.2l1.7 2.4H5.4l1.7-2.4zM10.2 18.8a1.9 1.9 0 0 0 3.6 0M12 4.4v1.3"/>'],
+    ["veille", "#2a6fe0", "suspend|sleep|auto suspend|hibernate|idle|veille|mise en veille|sommeil", '<path d="M19 14.4A7.5 7.5 0 0 1 9.6 5a7.5 7.5 0 1 0 9.4 9.4z"/>'],
+    ["batterie", "#2fbf71", "battery|charging|charge limit|batterie|charge", '<rect x="3.9" y="7.4" width="14" height="9.2" rx="2.2"/><path d="M20.3 10.6v2.8"/><g fill="currentColor" stroke="none"><rect x="6.5" y="10" width="2.8" height="4" rx=".7"/><rect x="10.6" y="10" width="2.8" height="4" rx=".7"/></g>'],
+    ["energie", "#2fbf71", "power|performance|tdp|cpu|gpu|undervolt|overclock|energy|frame generation|framegen|\xE9nergie|alimentation|performances|performance|processeur", '<path d="M13.4 4.4 6.8 13.2h5.1l-1.3 6.4 6.6-8.8h-5.1z"/>'],
+    ["musique", "#8a63ff", "music|theme music|change theme music|songs|playlist|soundtrack|musique|musiques|morceaux|liste de lecture", '<path d="M9.4 17V6.6l9.2-1.8v10.2"/><circle cx="7.2" cy="17" r="2.2"/><circle cx="16.4" cy="15" r="2.2"/>'],
+    ["son", "#2fbf71", "audio|sound|sounds|volume|mixer|equalizer|surround|son|sons|audio|volume|m\xE9langeur|\xE9galiseur", '<path d="M4.6 9.7h3.1l4-3.5v11.6l-4-3.5H4.6z"/><path d="M14.8 9.4a3.8 3.8 0 0 1 0 5.2M17.3 7a7.2 7.2 0 0 1 0 10"/>'],
+    ["controleur", "#8a63ff", "controller|controllers|contr\xF4leur|contr\xF4leurs", '<path d="M8.4 8h7.2a4.2 4.2 0 0 1 4 5.3l-.7 2.8a2.1 2.1 0 0 1-3.6.9L13.9 15h-3.8l-1.4 2a2.1 2.1 0 0 1-3.6-.9l-.7-2.8A4.2 4.2 0 0 1 8.4 8z"/><circle cx="9.3" cy="11.6" r="1.3" fill="currentColor" stroke="none"/><circle cx="14.7" cy="11.6" r="1.3" fill="currentColor" stroke="none"/>'],
+    ["workshop", "#ff8a1f", "workshop|steam workshop|atelier", '<path d="M4.85 8.6h3.5a2.3 2.3 0 1 1 3.6 0h3.5v3.5a2.3 2.3 0 1 1 0 3.6v3.5H4.85z"/>'],
+    ["enregistrement", "#e5484d", "game recording|recording|record|enregistrement|enreg de parties|enregistrer les parties", '<rect x="4.4" y="7.2" width="10.6" height="9.6" rx="2.2"/><path d="M15 10.8l4.6-2.4v7.2L15 13.2"/><circle cx="9.7" cy="12" r="1.7" fill="currentColor" stroke="none"/>'],
+    ["jeux", "#ff8a1f", "games|game|game settings|game management|game session|game tracking|per game|per-game|launch options|launch option|jeux|jeu|par jeu|options de lancement|session de jeu", '<path d="M8.4 8h7.2a4.2 4.2 0 0 1 4 5.3l-.7 2.8a2.1 2.1 0 0 1-3.6.9L13.9 15h-3.8l-1.4 2a2.1 2.1 0 0 1-3.6-.9l-.7-2.8A4.2 4.2 0 0 1 8.4 8zM8.4 10.6v2.8M7 12h2.8"/><circle cx="16.1" cy="11" r="1.05" fill="currentColor" stroke="none"/><circle cx="14.5" cy="12.6" r="1.05" fill="currentColor" stroke="none"/>'],
+    ["commandes", "#8a63ff", "controls|input|buttons|button style|mapping|gamepad|gestures|commandes|manette|manettes|boutons|touches|entr\xE9es", '<path d="M9.8 4.6h4.4v5.2h5.2v4.4h-5.2v5.2H9.8v-5.2H4.6V9.8h5.2z"/>'],
+    ["raccourcis", "#8a63ff", "shortcuts|shortcut|hotkeys|hotkey|keybinds|keyboard|quick launch|raccourcis|raccourci|clavier|touches rapides", '<rect x="4" y="6.6" width="16" height="10.8" rx="2.4"/><path d="M7.6 10.2h.01M10.6 10.2h.01M13.4 10.2h.01M16.4 10.2h.01M8.6 13.8h6.8"/>'],
+    ["affichage", "#19b8d6", "display|screen|video|graphics|overlay|resolution|brightness|picture in picture|affichage|\xE9cran|vid\xE9o|graphismes|superposition|luminosit\xE9|r\xE9solution", '<rect x="4.4" y="5.2" width="15.2" height="10.6" rx="2.2"/><path d="M9 19h6M12 15.8V19"/>'],
+    ["lumiere", "#ff8a1f", "lighting|lights|light|led|leds|rgb|hue|\xE9clairage|lumi\xE8re|lumi\xE8res|led|voyant", '<path d="M9.6 16.6h4.8M10.2 19.4h3.6M12 4.6a4.9 4.9 0 0 0-2.9 8.9c.4.3.5.7.5 1.1v.6h4.8v-.6c0-.4.1-.8.5-1.1A4.9 4.9 0 0 0 12 4.6z"/>'],
+    ["images", "#e5484d", "images|image|artwork|art|grids|grid|capsule|wide capsule|hero|logo|icon|icons|screenshots|wallpaper|wallpapers|images|illustrations|jaquettes|banni\xE8re|logo|ic\xF4ne|ic\xF4nes|captures|fond d'\xE9cran", '<rect x="4.4" y="5.4" width="15.2" height="13.2" rx="2.2"/><path d="M7.2 15.6l3.2-3.4 2.4 2.4 1.6-1.6 2.4 2.6"/><circle cx="14.9" cy="9.3" r="1.3" fill="currentColor" stroke="none"/>'],
+    ["bibliotheque", "#2a8cff", "installed|library|applications|apps|my themes|installed themes|installed animations|non-steam apps|collection|collections|install\xE9s|install\xE9|biblioth\xE8que|applications|applis|mes th\xE8mes|collection", '<g fill="currentColor" stroke="none"><rect x="4.6" y="4.6" width="6.4" height="6.4" rx="1.9"/><rect x="13" y="4.6" width="6.4" height="6.4" rx="1.9"/><rect x="4.6" y="13" width="6.4" height="6.4" rx="1.9"/><rect x="13" y="13" width="6.4" height="6.4" rx="1.9"/></g>'],
+    ["rangement", "#ff8a1f", "categories|category|tags|tag|labels|tabs|tab|shelves|shelf|tab profiles|sorting|organize|cat\xE9gories|cat\xE9gorie|\xE9tiquettes|onglets|onglet|\xE9tag\xE8res|\xE9tag\xE8re|rangement|tri", '<path d="M4.8 11.2V6a1.2 1.2 0 0 1 1.2-1.2h5.2l7.8 7.8a1.4 1.4 0 0 1 0 2l-5.2 5.2a1.4 1.4 0 0 1-2 0z"/><circle cx="8.6" cy="8.6" r="1.25" fill="currentColor" stroke="none"/>'],
+    ["filtres", "#8a63ff", "filters|filter|shared filter|target filter|exclusions|blacklist|whitelist|filtres|filtre|exclusions", '<path d="M4.8 5.6h14.4l-5.5 6.6v5.5l-3.4 1.7v-7.2z"/>'],
+    ["fichiers", "#2a8cff", "files|file|folders|folder|paths|path|directories|files checksum|file server|mtp|fichiers|fichier|dossiers|dossier|chemins|emplacements", '<path d="M4.6 7.4A1.6 1.6 0 0 1 6.2 5.8h3.4l1.8 2h6.4a1.6 1.6 0 0 1 1.6 1.6v8a1.6 1.6 0 0 1-1.6 1.6H6.2a1.6 1.6 0 0 1-1.6-1.6z"/>'],
+    ["stockage", "#8b9098", "storage|microsd|sd card|disk|disks|space|stockage|carte sd|carte microsd|disque|espace", '<rect x="5.4" y="4.6" width="13.2" height="14.8" rx="2.6"/><circle cx="12" cy="10.6" r="3.2"/><path d="M14.4 13.8 15.6 15.8"/><circle cx="8.7" cy="16.4" r="1.1" fill="currentColor" stroke="none"/>'],
+    ["appareils", "#2a6fe0", "devices|device|bluetooth|pairing|peripherals|hardware|headphones|earbuds|appareils|appareil|p\xE9riph\xE9riques|appairage|\xE9couteurs|casque", '<rect x="4.4" y="4.8" width="9.8" height="14.4" rx="2"/><rect x="15.8" y="9.6" width="3.8" height="9.6" rx="1.3"/><circle cx="9.3" cy="16.2" r="1" fill="currentColor" stroke="none"/>'],
+    ["reseau", "#2a8cff", "network|networking|internet|wifi|wi-fi|connection|connections|host|host selection|server|servers|port|wol|wol settings|vpn|proxy|remote|streaming|gamestream|r\xE9seau|internet|wi-fi|connexion|connexions|h\xF4te|serveur|serveurs|port|\xE0 distance", '<circle cx="12" cy="12" r="7.3"/><path d="M4.7 12h14.6M12 4.7c2.1 2 3.1 4.4 3.1 7.3s-1 5.3-3.1 7.3M12 4.7c-2.1 2-3.1 4.4-3.1 7.3s1 5.3 3.1 7.3"/>'],
+    ["communaute", "#2fbf71", "community|social|friends|members|players|discord|communaut\xE9|amis|membres|joueurs|social", '<circle cx="9" cy="9" r="2.8"/><circle cx="16.2" cy="10" r="2.2"/><path d="M4.4 18.8a4.6 4.6 0 0 1 9.2 0M15.2 14.6a4.1 4.1 0 0 1 4.4 4.2"/>'],
+    ["liens", "#2a8cff", "links|link|website|websites|social links|resources|liens|lien|site|site web|ressources", '<path d="M10.6 13.4a3.3 3.3 0 0 0 4.7 0l2.5-2.5a3.3 3.3 0 0 0-4.7-4.7l-.9.9M13.4 10.6a3.3 3.3 0 0 0-4.7 0l-2.5 2.5a3.3 3.3 0 0 0 4.7 4.7l.9-.9"/>'],
+    ["compatibilite", "#8a63ff", "compatibility|dependencies|dependency|runtime|runtimes|proton|wine|prefixes|requirements|compatibilit\xE9|d\xE9pendances|d\xE9pendance|environnement|pr\xE9requis", '<g transform="translate(2.4 2.4) scale(0.8)" stroke-width="3"><path d="M12 3 3 8l9 5 9-5z"/><path d="m3 12.5 9 5 9-5"/><path d="m3 17 9 5 9-5"/></g>'],
+    ["etat", "#2fbf71", "status|state|status indicators|health|monitor|monitoring|\xE9tat|statut|indicateurs|surveillance", '<path d="M4.2 12.2h3.3l2.1-5 3.9 9.8 2.1-4.8h4.2"/>'],
+    ["accueil", "#2a8cff", "home|dashboard|overview|main|start page|accueil|tableau de bord|vue d'ensemble|aper\xE7u|principal", '<path d="M5.2 10.4 12 5l6.8 5.4v7.8a1.4 1.4 0 0 1-1.4 1.4h-3.2v-4.8H9.8v4.8H6.6a1.4 1.4 0 0 1-1.4-1.4z"/>'],
+    ["explorer", "#19b8d6", "browse|discover|explore|catalog|catalogue|featured|all themes|find|explorer|d\xE9couvrir|parcourir|catalogue|tous les th\xE8mes", '<circle cx="12" cy="12" r="7.3"/><path d="M14.9 9.1 13.4 13.4 9.1 14.9 10.6 10.6z" fill="currentColor" stroke-width="1.4"/>'],
+    ["boutique", "#ff8a1f", "store|shop|market|marketplace|submissions|boutique|magasin|propositions|soumissions", '<path d="M6.2 8.6h11.6l-.8 9.8a1.6 1.6 0 0 1-1.6 1.4H8.6A1.6 1.6 0 0 1 7 18.4zM9.4 8.6V7.7a2.6 2.6 0 0 1 5.2 0v.9"/>'],
+    ["themes", "#e5484d", "themes|theme|visual|appearance|style|styles|skins|customization|customisation|animations|browse animations|th\xE8mes|th\xE8me|apparence|style|personnalisation|animations|visuel", '<path d="M12 4.6a7.4 7.4 0 0 0 0 14.8c.9 0 1.4-.6 1.4-1.3 0-.8-.6-1.1-.6-1.8 0-.8.6-1.3 1.4-1.3h1.7a3.5 3.5 0 0 0 3.5-3.5c0-3.8-3.4-6.9-7.4-6.9z"/><circle cx="8.6" cy="11.2" r="1.25" fill="currentColor" stroke="none"/><circle cx="10.6" cy="8" r="1.25" fill="currentColor" stroke="none"/><circle cx="14.4" cy="8.4" r="1.25" fill="currentColor" stroke="none"/>'],
+    ["recherche", "#2a8cff", "search|lookup|look up|recherche|rechercher|chercher", '<circle cx="10.6" cy="10.6" r="5.4"/><path d="M14.6 14.6 18.8 18.8"/>'],
+    ["avance", "#2a6fe0", "advanced|expert|tweaks|tuning|mode tuning|fine tuning|manage|management|avanc\xE9|avanc\xE9s|r\xE9glages avanc\xE9s|r\xE9glages fins|gestion|g\xE9rer", '<path d="M4.6 6.6H13M17 6.6h2.4M4.6 12H6.8M10.8 12h8.6M4.6 17.4H12M16 17.4h3.4"/><circle cx="15" cy="6.6" r="2"/><circle cx="8.8" cy="12" r="2"/><circle cx="14" cy="17.4" r="2"/>'],
+    ["general", "#1a9ae6", "general|settings|options|preferences|global|global settings|config|setting|configure|buddy settings|moonlight settings|runner settings|normal|basic|g\xE9n\xE9ral|g\xE9n\xE9raux|r\xE9glages|param\xE8tres|options|pr\xE9f\xE9rences|global|configurer", '<path d="M10.8 6.22L11.13 4.15L12.87 4.15L13.2 6.22L15.24 7.07L16.94 5.83L18.17 7.06L16.93 8.76L17.78 10.8L19.85 11.13L19.85 12.87L17.78 13.2L16.93 15.24L18.17 16.94L16.94 18.17L15.24 16.93L13.2 17.78L12.87 19.85L11.13 19.85L10.8 17.78L8.76 16.93L7.06 18.17L5.83 16.94L7.07 15.24L6.22 13.2L4.15 12.87L4.15 11.13L6.22 10.8L7.07 8.76L5.83 7.06L7.06 5.83L8.76 7.07Z"/><circle cx="12" cy="12" r="2.4"/>'],
+    ["generique", "#8b9098", "", '<rect x="5" y="5" width="14" height="14" rx="3.4"/><circle cx="8.9" cy="12" r="1.25" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.25" fill="currentColor" stroke="none"/><circle cx="15.1" cy="12" r="1.25" fill="currentColor" stroke="none"/>']
+  ];
+  const motNorm = (t) => " " + String(t ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim() + " ";
+  const sensDe = (nom) => {
+    const n = motNorm(nom);
+    return RUBRIQUES.find(([, , m]) => m && m.split("|").some((x) => n.includes(motNorm(x)))) || RUBRIQUES.at(-1);
+  };
+  const rubrique = (nom) => {
+    const [id, couleur, , d] = sensDe(nom);
+    return relief(`<svg viewBox="0 0 24 24" data-rubrique="${id}">${d}</svg>`, couleur);
+  };
   const masque = (n, ep = 2.4) => {
     const t = image(n);
     if (t) return `url("${t.url}")`;
@@ -313,6 +431,7 @@
     return `url("data:image/svg+xml,${encodeURIComponent(s)}")`;
   };
   const rafraichir = (r = document) => {
+    if (r === document) document.documentElement.style.setProperty("--pcv-cloche-barree", masque("silence"));
     for (const el of r.querySelectorAll("svg[data-ico]")) {
       const t = image(el.dataset.ico);
       if (t) {
@@ -369,6 +488,144 @@
     O.__pcvIconesTheme = res;
     O.dispatchEvent(new Event("pcv-icones"));
   };
+  const joueur = (n, url) => {
+    const J = O.__pcvIconesJoueur ||= {};
+    if ((J[n]?.url ?? null) === (url ?? null)) return;
+    if (url) J[n] = { url, teinte: true };
+    else delete J[n];
+    O.dispatchEvent(new Event("pcv-icones"));
+  };
+  const encreLogo = (p, W, H) => {
+    const N = W * H, A = (i) => p[4 * i + 3], L = (i) => (299 * p[4 * i] + 587 * p[4 * i + 1] + 114 * p[4 * i + 2]) / 1e3;
+    const vois = (i, f) => {
+      const x = i % W;
+      if (x) f(i - 1);
+      if (x < W - 1) f(i + 1);
+      if (i >= W) f(i - W);
+      if (i < N - W) f(i + W);
+    };
+    const id = new Int32Array(N).fill(-1), pile = new Int32Array(N), bornes = [];
+    for (let s = 0; s < N; s++) {
+      if (A(s) < 128 || id[s] >= 0) continue;
+      const n2 = bornes.length;
+      let h2 = 0, y02 = H, y12 = 0;
+      id[s] = n2;
+      pile[h2++] = s;
+      while (h2) {
+        const i = pile[--h2], y = i / W | 0;
+        if (y < y02) y02 = y;
+        if (y > y12) y12 = y;
+        vois(i, (j) => {
+          if (A(j) >= 128 && id[j] < 0) {
+            id[j] = n2;
+            pile[h2++] = j;
+          }
+        });
+      }
+      bornes.push([y02, y12]);
+    }
+    if (!bornes.length) return null;
+    const hLogo = Math.max(...bornes.map((b) => b[1])) - Math.min(...bornes.map((b) => b[0])) + 1;
+    const gardee = bornes.map(([y02, y12]) => y12 - y02 + 1 >= 0.15 * hLogo), garde = (i) => id[i] >= 0 && gardee[id[i]];
+    const fonce = (i) => garde(i) && L(i) < 180, lis = new Uint8Array(N);
+    let h = 0;
+    for (let i = 0; i < N; i++) if (fonce(i)) {
+      let bord = i % W === 0 || i % W === W - 1 || i < W || i >= N - W;
+      vois(i, (j) => {
+        if (!garde(j)) bord = true;
+      });
+      if (bord) {
+        lis[i] = 1;
+        pile[h++] = i;
+      }
+    }
+    while (h) {
+      const i = pile[--h];
+      vois(i, (j) => {
+        if (!lis[j] && fonce(j)) {
+          lis[j] = 1;
+          pile[h++] = j;
+        }
+      });
+    }
+    const creux = new Uint8Array(N);
+    let nCreux = 0, nEncre = 0;
+    for (let i = 0; i < N; i++) {
+      if (garde(i)) nEncre++;
+      if (fonce(i) && !lis[i]) {
+        creux[i] = 1;
+        nCreux++;
+      }
+    }
+    const n = gardee.filter(Boolean).length;
+    if (n < 3 || n > 12 || nCreux < 2e-3 * nEncre || nEncre > 0.8 * N) return null;
+    let pres = creux.slice();
+    for (let k = 0; k < 2; k++) {
+      const q = pres.slice();
+      for (let i = 0; i < N; i++) if (!pres[i]) vois(i, (j) => {
+        if (pres[j]) q[i] = 1;
+      });
+      pres = q;
+    }
+    const tri = (f) => {
+      const l = [];
+      for (let i = 0; i < N; i++) if (f(i)) l.push(L(i));
+      return l.sort((a2, b) => a2 - b);
+    };
+    const tf = tri((i) => creux[i]), tc = tri((i) => pres[i] && !creux[i] && !lis[i]);
+    const FONCE = tf[tf.length >> 1], CLAIR = tc.length ? tc[tc.length - Math.max(1, tc.length >> 2)] : 255;
+    const a = new Uint8ClampedArray(N);
+    let x0 = W, y0 = H, x1 = 0, y1 = 0;
+    for (let i = 0; i < N; i++) {
+      let v = 0;
+      if (garde(i)) {
+        v = pres[i] && !lis[i] && CLAIR > FONCE ? (L(i) - FONCE) * 255 / (CLAIR - FONCE) : A(i);
+        const x = i % W, y = i / W | 0;
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      } else if (A(i) > 0 && A(i) < 128) vois(i, (j) => {
+        if (garde(j)) v = A(i);
+      });
+      a[i] = v;
+    }
+    return { a, boite: [x0, y0, x1 + 1, y1 + 1] };
+  };
+  const pochoirLogo = async (blob) => {
+    let im;
+    if (blob.type === "image/svg+xml") {
+      const url = URL.createObjectURL(blob);
+      try {
+        im = new Image();
+        im.src = url;
+        await im.decode();
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } else im = await createImageBitmap(blob);
+    const rapport = 512 / Math.max(im.width, im.height), k = blob.type === "image/svg+xml" ? rapport : Math.min(1, rapport);
+    const W = Math.max(1, Math.round(im.width * k)), H = Math.max(1, Math.round(im.height * k)), toile = (w, h) => Object.assign(document.createElement("canvas"), { width: w, height: h });
+    const c = toile(W, H), x = c.getContext("2d", { willReadFrequently: true });
+    x.drawImage(im, 0, 0, W, H);
+    im.close?.();
+    const e = encreLogo(x.getImageData(0, 0, W, H).data, W, H);
+    if (!e) return null;
+    const d = x.createImageData(W, H);
+    e.a.forEach((v, i) => {
+      d.data[4 * i + 3] = v;
+    });
+    x.putImageData(d, 0, 0);
+    const [x0, y0, x1, y1] = e.boite, cote = Math.max(x1 - x0, y1 - y0) * 1.02, s = 512 / cote, sortie = toile(512, 512), y = sortie.getContext("2d", { willReadFrequently: true });
+    y.imageSmoothingQuality = "high";
+    y.filter = `blur(${(0.4 * s).toFixed(2)}px)`;
+    y.drawImage(c, 256 - (x0 + x1) / 2 * s, 256 - (y0 + y1) / 2 * s, W * s, H * s);
+    y.filter = "none";
+    const f = y.getImageData(0, 0, 512, 512);
+    for (let i = 3; i < f.data.length; i += 4) f.data[i] = (f.data[i] - 128) * 3 + 128;
+    y.putImageData(f, 0, 0);
+    return sortie.toDataURL("image/png");
+  };
   const maj = () => rafraichir(document);
   O.addEventListener("pcv-icones", maj);
   const fin = () => O.removeEventListener("pcv-icones", maj);
@@ -377,7 +634,7 @@
     fin();
     window.removeEventListener("pagehide", fin);
   };
-  const DEF_TOUCHES = { 1: "A", 2: "B", 3: "X", 4: "Y" };
+  const DEF_TOUCHES = { 1: "A", 2: "B", 3: "X", 4: "Y", gd: "\u25C0\u25B6" };
   const echapL = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const toucheDe = (code) => {
     let f = window.__pcvTouche;
@@ -399,12 +656,37 @@
   const RANG = { 5: 1, 6: 1, 7: 2, 8: 2, 13: 3, 4: 4, 3: 5, 2: 6, 1: 7 }, rang = ([c]) => RANG[[].concat(c)[0]] || 0;
   const ordre = (liste) => liste.filter(Boolean).sort((a, b) => rang(a) - rang(b));
   const legende = (liste) => ordre(liste).map(([code, mot]) => `<span${typeof [].concat(code)[0] === "number" ? ` data-b="${[].concat(code).at(-1)}"` : ""}>${[].concat(code).map(touche).join("")}${echapL(mot)}</span>`).join("");
+  const recaler = (el, l) => {
+    if (el.children.length !== l.length) return false;
+    const r = [...el.children].map((s, i) => {
+      const codes = [].concat(l[i][0]), us = [...s.children];
+      const v = codes.map((c) => typeof c === "number" ? toucheDe(c) || [DEF_TOUCHES[c] || "?", "var(--pcv-touche-neutre)"] : null);
+      return us.length >= codes.length && us.every((u) => u.tagName === "U" && u.childNodes?.length === 1 && u.firstChild?.nodeType === 3) && v.every((x) => x && !/[<&]/.test(x[2] || "")) && [s, codes, us, v];
+    });
+    if (!r.every(Boolean)) return false;
+    for (const [s, codes, us, v] of r) {
+      const b = typeof codes[0] === "number" ? String(codes.at(-1)) : null;
+      if (s.getAttribute("data-b") !== b) {
+        if (b == null) s.removeAttribute("data-b");
+        else s.setAttribute("data-b", b);
+      }
+      us.forEach((u, k) => {
+        const [lettre, c, h] = v[k] || ["", ""], t = h || lettre, st = v[k] ? `background:${c}` : "display:none";
+        if (u.getAttribute("style") !== st) u.setAttribute("style", st);
+        if (u.firstChild.data !== t) u.firstChild.data = t;
+      });
+    }
+    return true;
+  };
   const poser = (el, liste) => {
     const l = ordre(liste), cle = l.map(([c]) => [].concat(c).map(touche).join("")).join("|");
     if (el.__pcvCle !== cle) {
-      el.innerHTML = legende(l);
+      const repris = recaler(el, l);
       el.__pcvCle = cle;
-      return;
+      if (!repris) {
+        el.innerHTML = legende(l);
+        return;
+      }
     }
     l.forEach(([, mot], i) => {
       const s = el.children[i], t = s?.lastChild, m = String(mot);
@@ -427,6 +709,27 @@
     }).join("")}</span>`;
   };
   const email = (n, haut, bas) => `<span class="pcv-icone-email"${haut ? ` style="--pcv-email-haut:${haut};--pcv-email-bas:${bas}"` : ""}>${svg(n, { attrs: 'color="var(--pcv-sur-accent)" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"' })}</span>`;
-  window.__pcvIcones = { svg, email, relief, trace, masque, rafraichir, theme, existe: (n) => !!D[n], legende, poser, touche, zoom, ordre, contenu };
+  const logoSteamU = () => `<span class="pcv-logo-steamu">${relief("logo-u", "bleu-steamu")}<b>Steam<i>U</i></b></span>`;
+  const TEINTES = { ranger: "#ffd36b, #e6a21a", epingle: "#c9a4ff, #8a5ce6" };
+  const trait = (d) => `<svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const rondOption = (n, dessin, teinte) => {
+    const d = dessin || trace(n);
+    return `<u style="background:radial-gradient(circle at 50% 35%, ${teinte || TEINTES[n]})">${d.startsWith("<svg") ? d : trait(d)}</u>`;
+  };
+  const placerBulle = (b, c, sous) => {
+    const u = innerHeight / 800;
+    b.classList.add("on");
+    b.style.left = b.style.top = "0px";
+    b.style.animation = "none";
+    const o = b.getBoundingClientRect(), k = o.width / (b.offsetWidth || 1) || 1, l = o.width, h = o.height, droite = !c || c.right + 14 * u + l < innerWidth - 16 * u;
+    sous = sous && c;
+    const x = sous ? Math.min(c.left + c.width / 2 - l / 2, innerWidth - l - 16 * u) : c ? droite ? c.right + 14 * u : c.left - 14 * u - l : (innerWidth - l) / 2, y = sous ? c.bottom + 10 * u : c ? Math.min(Math.max(110 * u, c.top + c.height / 2 - h / 2), innerHeight - h - 20 * u) : 300 * u;
+    b.style.left = (Math.max(16 * u, x) - o.left) / k + "px";
+    b.style.top = (y - o.top) / k + "px";
+    b.style.setProperty("--ox", sous ? "50%" : droite ? "0" : "100%");
+    b.style.setProperty("--oy", sous ? "0" : "50%");
+    b.style.animation = "";
+  };
+  window.__pcvIcones = { svg, email, relief, rond: rondOption, placerBulle, logoSteamU, rubrique, sensDe, trace, masque, rafraichir, theme, joueur, encreLogo, pochoirLogo, existe: (n) => !!D[n], legende, poser, touche, zoom, ordre, contenu };
   rafraichir(document);
 })();

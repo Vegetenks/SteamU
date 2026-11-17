@@ -3,6 +3,7 @@
   if (window.__pcvMii3D && !window.__pcvMii3D.vrais && !window.__pcvMii3D.generique) delete window.__pcvMii3D;
   if (!T) return "vrais-mii : three.js absent";
   const prec = window.__pcvVraisMii?.etat;
+  if (!prec && window.__pcvVraisMii?.chargement) return "vrais Mii : chargement repris";
   const SCRIPTS = [
     ["moteur/ffl-emscripten.js", () => window.ModuleFFL],
     ["moteur/ffl.browser.js", () => window.FFLjs],
@@ -2189,7 +2190,8 @@
       ombreP_: { value: new T.Vector3() },
       brume_: { value: new T.Vector3() },
       brumeC_: { value: new T.Color() },
-      proche_: { value: new T.Vector2() }
+      proche_: { value: new T.Vector2() },
+      projo_: { value: new T.Vector4() }
     };
     const lumieres = (l) => LUM.lum_.value.forEach((v, i) => {
       const p = l[i];
@@ -2198,6 +2200,7 @@
         LUM.lumC_.value[i].copy(p.c).multiplyScalar(p.f ?? 1);
       } else LUM.lumC_.value[i].setScalar(0);
     });
+    const projecteur = (o) => LUM.projo_.value.set(o?.x ?? 0, o?.z ?? 0, o?.r ?? 1, o?.f ?? 0);
     const ombrer = (o) => {
       LUM.ombre_.value = o?.carte ?? null;
       LUM.ombreP_.value.set(o ? o.echelle : 0, o?.plancher ?? 0, o?.demi ?? 1);
@@ -2207,6 +2210,14 @@
     };
     const familles = /* @__PURE__ */ new Map(), membres = /* @__PURE__ */ new Map(), libres = [], ids = /* @__PURE__ */ new Map();
     let nCases = 1;
+    const maillages = [];
+    let vue = true;
+    const montrer = (oui) => {
+      if (vue !== !!oui) {
+        vue = !!oui;
+        for (const m of maillages) m.visible = vue;
+      }
+    };
     const id = (s) => {
       let i = ids.get(s);
       if (i === void 0) ids.set(s, i = ids.size);
@@ -2278,6 +2289,7 @@ vec4 ${k}_lire(vec2 uv) { return texture(${k}_t, vec3(uv, v_couche_${k})); }
 `).replace(new RegExp(`texture(?:2D)?\\s*\\(\\s*${k}\\s*,`, "g"), `${k}_lire(`);
       }
       haut += `uniform vec3 lum_[${LUM_N}], lumC_[${LUM_N}], ombreP_;
+uniform vec4 projo_;
 uniform vec3 brume_;
 uniform vec2 proche_;
 uniform sampler2D ombre_;
@@ -2287,7 +2299,8 @@ varying float proche_v;
 `;
       debut += `{ vec3 q_ = texelFetch(poses_, ivec2(67, int(a_case)), 0).xyz; vec2 p_ = q_.xz; teinte_ = vec3(0.0); for (int i = 0; i < ${LUM_N}; i++) teinte_ += lumC_[i] * max(0.0, 1.0 - distance(p_, lum_[i].xy) * lum_[i].z);
         ombreV_ = vec4(1.0, 1.0, 1.0, 0.0); if (ombreP_.x > 0.0) ombreV_.rgb = clamp(texture(ombre_, vec2(p_.x + ombreP_.z, ombreP_.z - p_.y) / (2.0 * ombreP_.z)).rgb * ombreP_.x, ombreP_.y, 1.0);
-        if (brume_.z > 0.0) ombreV_.a = smoothstep(brume_.y, brume_.z, brume_.x - p_.y); proche_v = proche_.y > 0.0 ? smoothstep(proche_.x, proche_.y, distance(cameraPosition, q_)) : 1.0; }
+        if (brume_.z > 0.0) ombreV_.a = smoothstep(brume_.y, brume_.z, brume_.x - p_.y); proche_v = proche_.y > 0.0 ? smoothstep(proche_.x, proche_.y, distance(cameraPosition, q_)) : 1.0;
+        if (projo_.w > 0.0) { float k_ = projo_.w * smoothstep(projo_.z, projo_.z * .4, distance(p_, projo_.xy)); ombreV_.rgb = mix(ombreV_.rgb, vec3(1.0), k_); ombreV_.a *= 1.0 - k_; } }
 `;
       const m = MAIN.exec(fr);
       if (m) fr = fr.slice(0, m.index) + "varying vec3 teinte_;\nvarying vec4 ombreV_;\nvarying float proche_v;\nuniform vec3 brumeC_;\n" + fr.slice(m.index).replace(
@@ -2320,7 +2333,9 @@ varying float proche_v;
       m.matrixAutoUpdate = false;
       m.raycast = () => {
       };
+      m.visible = vue;
       scene.add(m);
+      maillages.push(m);
       return m;
     };
     const valeurs = (u) => typeof u.value === "number" ? [u.value] : u.value.toArray();
@@ -2763,7 +2778,7 @@ varying float proche_v;
       copieTab.dispose();
       PLAN.dispose();
     };
-    return { ajouter, retirer, maj, info, liberer, verifier, lumieres, ombrer };
+    return { ajouter, retirer, maj, info, liberer, verifier, lumieres, ombrer, projecteur, montrer, lum: LUM };
   };
   const IDENTITE = new T.Matrix4(), vR = new T.Vector3();
   const Q4 = new Float64Array(4);
@@ -2904,7 +2919,9 @@ varying float proche_v;
       return F;
     }
   };
-  window.__pcvVraisMii = { preparer, charger, lire, API, get etat() {
+  window.__pcvVraisMii = { preparer, charger, lire, API, get chargement() {
+    return promesse;
+  }, get etat() {
     return ffl && gabarits ? { F, ffl, rendu0, gabarits, invites, defauts } : null;
   } };
   if (prec) {

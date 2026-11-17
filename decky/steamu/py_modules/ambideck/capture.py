@@ -1,4 +1,5 @@
-# Repris tel quel d'Ambideck v1.1.0 (Michael Palma, licence MIT : voir __init__.py).
+# Modifications SteamU : tampons rendus avant analyse, nettoyage des démarrages incomplets.
+# Repris d'Ambideck v1.1.0 (Michael Palma, licence MIT : voir __init__.py).
 """Read small frames from gamescope's PipeWire stream through libpipewire (ctypes, nothing to compile).
 
 gamescope shrinks the image on the GPU when asked through its "requested size" format field, so each frame is a
@@ -154,8 +155,11 @@ class GamescopeCapture:
 
     def _param_changed(self, _data, param_id, param):
         if param_id == SPA_PARAM_Format and param:
-            size = C.cast(param, C.POINTER(C.c_uint32))[0]
-            self._fmt = parse_format(C.string_at(param, 8 + size))
+            try:
+                size = C.cast(param, C.POINTER(C.c_uint32))[0]
+                self._fmt = parse_format(C.string_at(param, 8 + size))
+            except Exception:
+                self._on_state("error")
 
     def _process(self, _data):
         pw = _PW
@@ -163,20 +167,32 @@ class GamescopeCapture:
         if not buf:
             return
         try:
-            now = self._clock()
-            if now - self._last < self._interval or "size" not in self._fmt:
-                return
-            got = frame_bytes(buf)
-            if got is None:
-                return
-            self._last = now
-            width, height = self._fmt["size"]
+            try:
+                now = self._clock()
+                if now - self._last < self._interval or "size" not in self._fmt:
+                    return
+                got = frame_bytes(buf)  # owned bytes, independent of the PipeWire buffer
+                if got is None:
+                    raise ValueError("image indisponible")
+                self._last = now
+                width, height = self._fmt["size"]
+            finally:
+                pw.pw_stream_queue_buffer(self._stream, buf)
             frame, stride = got
             self._on_frame(frame, width, height, stride or width * 4)
-        finally:
-            pw.pw_stream_queue_buffer(self._stream, buf)
+        except Exception:
+            self._on_state("error")  # teardown belongs to the worker, never the PipeWire callback
 
     def start(self) -> bool:
+        try:
+            started = self._start()
+            if not started: self.stop()
+            return started
+        except Exception:
+            self.stop()
+            raise
+
+    def _start(self) -> bool:
         try:
             serial = self._find_serial()
         except (OSError, ValueError, subprocess.SubprocessError):
@@ -185,12 +201,14 @@ class GamescopeCapture:
             return False
         pw = _pipewire()
         self._loop = pw.pw_thread_loop_new(b"ambideck", None)
+        if not self._loop: raise RuntimeError("boucle PipeWire indisponible")
         self._events = _Events(version=2, destroy=_DESTROY(0), state_changed=_STATE_CHANGED(self._state_changed),
                                param_changed=_PARAM_CHANGED(self._param_changed), process=_PROCESS(self._process))
         props = pw.pw_properties_new_string(
             f"media.type=Video media.category=Capture media.role=Screen target.object={serial}".encode())
         self._stream.value = pw.pw_stream_new_simple(pw.pw_thread_loop_get_loop(self._loop), b"ambideck", props,
                                                      C.byref(self._events), None)
+        if not self._stream.value: raise RuntimeError("flux PipeWire indisponible")
         offer = enum_format(*self._size)
         self._offer = C.create_string_buffer(offer, len(offer))
         self._params = (C.c_void_p * 1)(C.cast(self._offer, C.c_void_p))
@@ -201,8 +219,7 @@ class GamescopeCapture:
         if rc < 0:
             self.stop()
             return False
-        pw.pw_thread_loop_start(self._loop)
-        return True
+        return pw.pw_thread_loop_start(self._loop) >= 0
 
     def stop(self) -> None:
         with self._stop_lock:  # stop() can race itself (worker tick vs. the frontend); only one may tear down
@@ -219,3 +236,4 @@ class GamescopeCapture:
             pw.pw_thread_loop_stop(loop)
             pw.pw_thread_loop_destroy(loop)
             self._fmt = {}
+            self._events = self._offer = self._params = None

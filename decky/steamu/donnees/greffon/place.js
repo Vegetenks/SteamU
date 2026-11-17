@@ -47,11 +47,22 @@
         }
       }
     };
+    const zones = [];
     const borner = () => {
       const d = Math.hypot(vue2.x, vue2.y);
       if (d > 1) {
-        vue2.x /= d;
-        vue2.y /= d;
+        let bx = vue2.x / d, by = vue2.y / d, bd = Math.hypot(vue2.x - bx, vue2.y - by);
+        for (const [zx, zy, r] of zones) {
+          const l2 = zx * zx + zy * zy, s = Math.max(0, Math.min(1, (vue2.x * zx + vue2.y * zy) / l2)), cx = zx * s, cy = zy * s, e = Math.hypot(vue2.x - cx, vue2.y - cy);
+          const px = e > r ? cx + (vue2.x - cx) * r / e : vue2.x, py = e > r ? cy + (vue2.y - cy) * r / e : vue2.y, pd = Math.hypot(vue2.x - px, vue2.y - py);
+          if (pd < bd) {
+            bx = px;
+            by = py;
+            bd = pd;
+          }
+        }
+        vue2.x = bx;
+        vue2.y = by;
       }
       vue2.zoom = Math.max(minimum, Math.min(maximum, vue2.zoom));
     };
@@ -201,6 +212,9 @@
       zoomer: (d) => {
         vue2.zoom *= Math.exp(d * 0.3);
         borner();
+      },
+      zone: (x, y, r) => {
+        zones.push([x, y, r]);
       },
       reinitialiser: () => {
         vue2.x = vue2.y = 0;

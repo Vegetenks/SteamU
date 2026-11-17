@@ -88,9 +88,9 @@ def _rechercher(nom):
     try:
         d = json.loads(_obtenir(url, MAX_RECHERCHE, ("application/json",)))
     except (ValueError, urllib.error.URLError, Refus):
-        return []
+        return None
     if not isinstance(d, dict) or not isinstance(d.get("items"), list):
-        return []
+        return None
     return [{"id": it["id"], "nom": it["name"]} for it in d["items"]
             if isinstance(it, dict) and isinstance(it.get("id"), int) and isinstance(it.get("name"), str)][:10]
 
@@ -120,12 +120,15 @@ def preparer(nom):
     nom = (nom or "").strip()[:200]
     if not nom:
         return {"trouve": False}
-    c = _correspondance(nom, _rechercher(nom))
+    candidats = _rechercher(nom)
+    if candidats is None:
+        return {"trouve": False, "temporaire": True}
+    c = _correspondance(nom, candidats)
     if not c:
         return {"trouve": False}
     images = _images(c["id"])
     if not images:
-        return {"trouve": False}
+        return {"trouve": False, "temporaire": True}
     return {"trouve": True, "appid": c["id"], "nom": c["nom"], "images": images}
 
 MAX_FICHE = 2 * 1024 * 1024

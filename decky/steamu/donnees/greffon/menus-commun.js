@@ -136,32 +136,65 @@ window.__pcvPE = (() => {
     }
   };
   const FLOU_MAQUETTE = 12, LARGEUR_FOND = 480;
-  const photo = () => Promise.race([
+  const decky = () => Promise.race([
     O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "instantane", window.__pcvBridge?.runningApp()?.appid || O.__pcvBridge?.runningApp()?.appid || 0) ?? Promise.reject(),
     new Promise((_, non) => setTimeout(non, 6e3))
   ]).then((u) => {
     if (!u) throw 0;
+    if (u.startsWith("http")) {
+      O.__pcvApercu = u.replace(/\/photo$/, "");
+      const c = d.createElement("canvas");
+      return brute(u, c).then(() => c);
+    }
     const im = new Image();
     im.src = u;
     return im.decode().then(() => im);
-  }).then((im) => {
-    const W = im.naturalWidth, H = im.naturalHeight, R = 4, sw = Math.ceil(W / R), sh = Math.ceil(H / R), c = d.createElement("canvas");
-    c.width = sw;
-    c.height = sh;
-    const x = c.getContext("2d", { willReadFrequently: true });
-    x.drawImage(im, 0, 0, sw, sh);
-    const px = x.getImageData(0, 0, sw, sh).data;
-    const noir = (X, Y) => {
-      const i = (Y * sw + X) * 4;
-      return px[i] < 8 && px[i + 1] < 8 && px[i + 2] < 8;
-    };
+  });
+  const photo = () => (O.__pcvApercu ? ((c) => brute(O.__pcvApercu + "/fixe", c).then(() => c))(d.createElement("canvas")) : Promise.reject()).catch(decky).then((im) => {
+    const p = { toile: im.getContext ? im : null };
+    p.pret = (p.toile ? apresEntree() : Promise.resolve()).then(() => {
+      const W = im.naturalWidth || im.width, H = im.naturalHeight || im.height;
+      let [t, b, g, dr] = [0, 0, 0, 0];
+      if (im.bande === void 0) {
+        const R = 4, sw = Math.ceil(W / R), sh = Math.ceil(H / R), c = d.createElement("canvas");
+        c.width = sw;
+        c.height = sh;
+        const x = c.getContext("2d", { willReadFrequently: true });
+        x.drawImage(im, 0, 0, sw, sh);
+        const px = x.getImageData(0, 0, sw, sh).data;
+        [t, b, g, dr] = bandes(sw, sh, R, (X, Y) => {
+          const i = (Y * sw + X) * 4;
+          return px[i] < 8 && px[i + 1] < 8 && px[i + 2] < 8;
+        });
+      }
+      const w = W - g - dr, hh = H - t - b, net = d.createElement("canvas");
+      net.width = w;
+      net.height = hh;
+      net.getContext("2d").drawImage(im, g, t, w, hh, 0, 0, w, hh);
+      const blob = (cv, q) => new Promise((ok) => cv.toBlob((b2) => ok(URL.createObjectURL(b2)), "image/jpeg", q));
+      return Promise.all([blob(net, 0.9), blob(floue(net), 0.85)]).then(([n, fl]) => {
+        adresses.forEach((u) => URL.revokeObjectURL(u));
+        adresses = [n, fl];
+        Object.assign(p, { net: n, flou: fl, bande: im.bande ?? t / H });
+      });
+    });
+    return p;
+  });
+  const APRES_ENTREE_MS = 450;
+  const apresEntree = () => new Promise((ok) => {
+    const r = d.getElementById("pcv-home"), t0 = performance.now();
+    const f = () => !r || performance.now() - t0 > 1e3 ? ok() : r.classList.contains("anim") ? setTimeout(ok, r.entreeA + APRES_ENTREE_MS - performance.now()) : requestAnimationFrame(f);
+    f();
+  });
+  let adresses = [];
+  const bandes = (sw, sh, R, noir) => {
     const bande = (max, pt) => {
-      let k2 = 0;
-      while (k2 < max && [...Array(16)].every((_, j) => pt(k2, j))) k2++;
-      return k2;
+      let k = 0;
+      while (k < max && [...Array(16)].every((_, j) => pt(k, j))) k++;
+      return k;
     };
-    const rang = (k2, j) => noir(Math.floor(j * (sw - 1) / 15), k2), rangBas = (k2, j) => noir(Math.floor(j * (sw - 1) / 15), sh - 1 - k2);
-    const col = (k2, j) => noir(k2, Math.floor(j * (sh - 1) / 15)), colD = (k2, j) => noir(sw - 1 - k2, Math.floor(j * (sh - 1) / 15));
+    const rang = (k, j) => noir(Math.floor(j * (sw - 1) / 15), k), rangBas = (k, j) => noir(Math.floor(j * (sw - 1) / 15), sh - 1 - k);
+    const col = (k, j) => noir(k, Math.floor(j * (sh - 1) / 15)), colD = (k, j) => noir(sw - 1 - k, Math.floor(j * (sh - 1) / 15));
     let [t, b, g, dr] = [bande(sh / 3, rang), bande(sh / 3, rangBas), bande(sw / 3, col), bande(sw / 3, colD)];
     if (Math.abs(t - b) > 1) t = b = 0;
     if (Math.abs(g - dr) > 1) g = dr = 0;
@@ -173,21 +206,40 @@ window.__pcvPE = (() => {
       g = (g + 1) * R;
       dr = (dr + 1) * R;
     }
-    const w = W - g - dr, hh = H - t - b, net = d.createElement("canvas");
-    net.width = w;
-    net.height = hh;
-    net.getContext("2d").drawImage(im, g, t, w, hh, 0, 0, w, hh);
-    const f = d.createElement("canvas"), fw = f.width = LARGEUR_FOND, fh = f.height = LARGEUR_FOND * 1200 / 1920, k = Math.max(fw / w, fh / hh) * 1.04, fx = f.getContext("2d");
+    return [t, b, g, dr];
+  };
+  const floue = (src) => {
+    const w = src.naturalWidth || src.width, h2 = src.naturalHeight || src.height;
+    const f = d.createElement("canvas"), fw = f.width = LARGEUR_FOND, fh = f.height = LARGEUR_FOND * 1200 / 1920, k = Math.max(fw / w, fh / h2) * 1.04, fx = f.getContext("2d");
     fx.filter = `blur(${FLOU_MAQUETTE * LARGEUR_FOND / 1920}px) saturate(1.05)`;
-    fx.drawImage(net, (fw - w * k) / 2, (fh - hh * k) / 2, w * k, hh * k);
-    const blob = (cv, q) => new Promise((ok) => cv.toBlob((b2) => ok(URL.createObjectURL(b2)), "image/jpeg", q));
-    return Promise.all([blob(net, 0.9), blob(f, 0.85)]).then(([n, fl]) => {
-      adresses.forEach((u) => URL.revokeObjectURL(u));
-      adresses = [n, fl];
-      return { net: n, flou: fl, bande: t / H };
+    fx.drawImage(src, (fw - w * k) / 2, (fh - h2 * k) / 2, w * k, h2 * k);
+    return f;
+  };
+  const NOIR_Y = 23;
+  const brute = (u, c = d.createElement("canvas"), peindre = () => true, max = null) => fetch(u, { cache: "no-store" }).then(async (r) => {
+    if (!r.ok) throw r.status;
+    const [w, h2, pas] = ["X-Largeur", "X-Hauteur", "X-Pas"].map((k2) => +r.headers.get(k2)), o = await r.arrayBuffer(), Y = new Uint8Array(o, 0, pas * h2), R = 4;
+    const bgrx = r.headers.get("X-Format") === "BGRX", noir = bgrx ? (X, Z) => Y[Z * R * pas + X * R * 4 + 1] < 8 : (X, Z) => Y[Z * R * pas + X * R] < NOIR_Y;
+    const [t, b, g, dr] = bandes(Math.ceil(w / R), Math.ceil(h2 / R), R, noir).map((v) => v + (v & 1));
+    const vw = w - g - dr, vh = h2 - t - b, f = new VideoFrame(o, bgrx ? { format: "BGRX", codedWidth: w, codedHeight: h2, timestamp: 0, layout: [{ offset: 0, stride: pas }] } : {
+      format: "NV12",
+      codedWidth: w,
+      codedHeight: h2,
+      timestamp: 0,
+      layout: [{ offset: 0, stride: pas }, { offset: pas * h2, stride: pas }],
+      colorSpace: { matrix: "smpte170m", primaries: "smpte170m", transfer: "smpte170m", fullRange: false }
     });
+    const k = max ? Math.min(1, max.w / vw, max.h / vh) : 1, cw = Math.round(vw * k), ch = Math.round(vh * k);
+    try {
+      if (!peindre()) return false;
+      if (c.width !== cw || c.height !== ch) Object.assign(c, { width: cw, height: ch });
+      c.getContext("2d").drawImage(f, g, t, vw, vh, 0, 0, cw, ch);
+      c.bande = t / h2;
+    } finally {
+      f.close();
+    }
+    return true;
   });
-  let adresses = [];
   const I = window.__pcvIcones;
   const ico = (n) => I.svg(n, { classe: "ico" });
   const pastille = (n, c) => `<span class="pastille"${c ? ` style="color:${c}"` : ""}>${ico(n)}</span>`;
@@ -195,17 +247,26 @@ window.__pcvPE = (() => {
   const etat = () => window.__pcvEtat.html("entre", "--d:.15s");
   const bouton = (a, cl, dl, c, p, texte) => `<div class="bouton verre ${cl} entre" style="--d:${dl}s" data-a="${a}">${pastille(p, c)}${texte}</div>`;
   const liste = (e, cfg) => {
-    const racine = e.racine, id = "liste-" + cfg.cle, depuis = e.focus();
+    const racine = e.racine, id = "liste-" + cfg.cle, depuis = e.focus(), I2 = window.__pcvIcones;
     let v = racine.querySelector(`[data-liste="${id}"]`);
     if (!v) {
       v = d.createElement("div");
-      v.className = "voile liste";
+      v.className = "voile liste" + (cfg.pres ? " voile-options" : "");
       v.dataset.liste = id;
-      v.innerHTML = `<div class="fenetre-liste verre pcv-fenetre"><div class="entete-liste">${pastille(cfg.p, cfg.c)}<span>${esc(cfg.titre)}</span></div><div class="liste-panneau defile"></div></div>`;
+      v.innerHTML = cfg.pres ? `<div class="pcv-bulle-options on"></div>` : `<div class="fenetre-liste verre pcv-fenetre"><div class="entete-liste">${pastille(cfg.p, cfg.c)}<span>${esc(cfg.titre)}</span></div><div class="liste-panneau defile"></div></div>`;
       racine.appendChild(v);
     }
-    const actuelle = cfg.lire();
-    v.querySelector(".liste-panneau").innerHTML = cfg.choix.map((x) => `<div class="elt-liste${x.valeur === actuelle ? " oui premier" : ""}" data-a="liste-choix:${id}:${esc(String(x.valeur))}">${esc(x.texte)}<span class="coche">\u2713</span></div>`).join("");
+    const actuelle = cfg.lire(), premier = cfg.choix.findIndex((x) => x.valeur === actuelle);
+    if (cfg.pres) {
+      const b = v.querySelector(".pcv-bulle-options");
+      b.innerHTML = cfg.choix.map((x, i) => `<button class="${i ? "" : "premier"}" data-a="liste-choix:${id}:${esc(String(x.valeur))}">${I2.rond(x.ic)}${esc(x.texte)}</button>`).join("");
+      v.__pcvCfg = cfg;
+      v.__pcvDepuis = depuis;
+      e.ouvrirVoile(v);
+      I2.placerBulle(b, cfg.pres.getBoundingClientRect());
+      return;
+    }
+    v.querySelector(".liste-panneau").innerHTML = cfg.choix.map((x, i) => `<div class="elt-liste${x.valeur === actuelle ? " oui" : ""}${i === Math.max(0, premier) ? " premier" : ""}" data-a="liste-choix:${id}:${esc(String(x.valeur))}">${esc(x.texte)}<span class="coche">\u2713</span></div>`).join("");
     v.__pcvCfg = cfg;
     v.__pcvDepuis = depuis;
     e.ouvrirVoile(v);
@@ -224,6 +285,22 @@ window.__pcvPE = (() => {
     if (depuis?.isConnected && depuis.getBoundingClientRect().width) e.poser(depuis);
     else e.premier();
   };
+  const voisin = (de, candidats, dx, dy) => {
+    const a = de.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+    let mieux = null, score = Infinity;
+    for (const e of candidats) {
+      if (e === de) continue;
+      const b = e.getBoundingClientRect();
+      if (!b.width) continue;
+      if (dx > 0 && b.left < a.right - 8 || dx < 0 && b.right > a.left + 8 || dy > 0 && b.top < a.bottom - 8 || dy < 0 && b.bottom > a.top + 8) continue;
+      const bx = b.left + b.width / 2, by = b.top + b.height / 2, s = (bx - ax) * dx + (by - ay) * dy + 2.2 * Math.abs((bx - ax) * dy + (by - ay) * dx);
+      if (s < score) {
+        score = s;
+        mieux = e;
+      }
+    }
+    return mieux;
+  };
   const ecran = (o) => {
     const VERROU_MAX_MS = 2500;
     const SORTIE_MAX_MS = 400;
@@ -233,7 +310,7 @@ window.__pcvPE = (() => {
     racine.className = "pcv-pe";
     racine.hidden = true;
     const t = (k) => `<span class="tch" data-t="${k}"></span>`;
-    racine.innerHTML = `<div class="fond"></div><div class="nacre"></div>${o.html}<div class="legende entre" style="--d:.46s"><div class="pilule verre epaules-leg">${t(5)}${t(6)}${T("menus.morceau") || "Morceau"}</div><div class="pilule verre epaules-leg">${t(7)}${t(8)}${T("menus.lecteur") || "Lecteur"}</div><div class="pilule verre y-leg" data-a="y">${t(3)}<span class="y-txt">${T("touche.options")}</span></div><div class="pilule verre x-leg" data-a="x">${t(3)}<span class="x-txt">${T("acces.pause_legende") || "Pause"}</span></div><div class="pilule verre" data-a="retour">${t(2)}<span class="retour"></span></div><div class="pilule verre">${t(1)}<span class="a-txt"></span></div></div>`;
+    racine.innerHTML = `<div class="fond"></div><div class="nacre"></div>${o.html}<div class="legende entre" style="--d:.46s"><div class="pilule verre epaules-leg">${t(5)}${t(6)}<span class="lb-txt">${T("menus.morceau") || "Morceau"}</span></div><div class="pilule verre epaules-leg">${t(7)}${t(8)}${T("menus.lecteur") || "Lecteur"}</div><div class="pilule verre y-leg" data-a="y">${t(4)}<span class="y-txt">${T("touche.options")}</span></div><div class="pilule verre x-leg" data-a="x">${t(3)}<span class="x-txt">${T("acces.pause_legende") || "Pause"}</span></div><div class="pilule verre" data-a="retour">${t(2)}<span class="retour"></span></div><div class="pilule verre">${t(1)}<span class="a-txt"></span></div></div>`;
     d.body.appendChild(racine);
     const mien = o.id === "pcv-home" ? 1 : 2;
     let fermetureEnAttente = null, delaiVerrou = 0;
@@ -316,7 +393,7 @@ window.__pcvPE = (() => {
       }
     } catch (e) {
     }
-    const $ = (s) => racine.querySelector(s), voile = () => [...racine.querySelectorAll(".voile:not([hidden])")].pop() || null;
+    const $ = (s) => racine.querySelector(s), voile = () => [...racine.querySelectorAll(".voile:not([hidden], [inert])")].pop() || null;
     const fermerVoiles = () => racine.querySelectorAll(".voile").forEach((v) => {
       v.hidden = true;
     });
@@ -370,7 +447,14 @@ window.__pcvPE = (() => {
       const y = focus?.dataset.y;
       $(".y-leg").classList.toggle("montre", !!y);
       if (y) $(".y-txt").textContent = focus.dataset.yNom || T("menus.reglages") || "R\xE9glages";
-      $(".a-txt").textContent = focus?.closest(".confirme") ? focus.textContent.trim() : T("touche.choisir");
+      $(".a-txt").textContent = focus?.closest(".confirme") ? focus.textContent.trim() : focus?.dataset.aNom || T("touche.choisir");
+      const rg = !rang && focus && o.ranger?.(focus);
+      racine.classList.toggle("leg-deplacer", !!rg);
+      if (rg) $(".x-txt").textContent = o.options ? T("touche.options") : rg.verbe;
+      if (rang) {
+        $(".a-txt").textContent = T("touche.poser");
+        $(".retour").textContent = T("home.annuler");
+      }
       const f = JSON.stringify(window.__pcvIcones?.touche?.(1) || "");
       if (f === famille) return;
       famille = f;
@@ -405,28 +489,17 @@ window.__pcvPE = (() => {
         son(impose ? "bouge" : "bord");
         return impose && poser(impose);
       }
-      const a = focus.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2;
-      let mieux = null, score = Infinity;
-      for (const e of zone().querySelectorAll("[data-a]")) {
-        if (e === focus || e.closest(".legende") || e.contains(focus) || focus.contains(e)) continue;
-        const b = e.getBoundingClientRect();
-        if (!b.width) continue;
-        if (dx > 0 && b.left < a.right - 8 || dx < 0 && b.right > a.left + 8 || dy > 0 && b.top < a.bottom - 8 || dy < 0 && b.bottom > a.top + 8) continue;
-        const bx = b.left + b.width / 2, by = b.top + b.height / 2, s = (bx - ax) * dx + (by - ay) * dy + 2.2 * Math.abs((bx - ax) * dy + (by - ay) * dx);
-        if (s < score) {
-          score = s;
-          mieux = e;
-        }
-      }
+      const mieux = voisin(focus, [...zone().querySelectorAll("[data-a]")].filter((e) => !(e.closest(".legende, [inert]") || e.contains(focus) || focus.contains(e))), dx, dy);
       son(mieux ? "bouge" : "bord");
       if (mieux) poser(mieux);
     };
     const agir = (el) => {
+      if (finRang(true)) return;
       const a = el?.dataset.a;
       if (!a) return;
       if (a === "retour") return retour();
       if (a === "y") return focus?.dataset.y && o.y?.(focus);
-      if (a === "x") return o.touche?.(3, focus);
+      if (a === "x") return toucheX(focus);
       const i = a.indexOf(":");
       o.agir(i < 0 ? a : a.slice(0, i), i < 0 ? "" : a.slice(i + 1), el);
     };
@@ -442,14 +515,124 @@ window.__pcvPE = (() => {
       v.hidden = true;
     };
     const retour = () => {
-      if (o.avantRetour?.()) return;
+      if (finRang(false) || o.avantRetour?.()) return;
       if (voile()) {
-        fermerVoile(voile());
+        const v = voile(), dep = v.__pcvDepuis;
+        fermerVoile(v);
+        if (dep?.isConnected && visible(dep)) return poser(dep);
         if (!voile() && avant && visible(avant)) return poser(avant);
         return premier();
       }
       o.retour();
     };
+    let rang = null, main = null;
+    const rond = (k) => {
+      let x;
+      try {
+        x = principale().m_BrowserWindow.__pcvTouche?.(k);
+      } catch (y) {
+      }
+      const [t2, c, l] = x || ["", "var(--pcv-touche-neutre)", k === 1 ? "A" : "B"];
+      return `<u style="background:${c}">${l || esc(t2)}</u>`;
+    };
+    const aideRang = (p, oui) => {
+      racine.classList.toggle("en-rangement", oui);
+      if (!p) return;
+      p.hidden = !oui;
+      p.innerHTML = oui ? `<span>${T("console.rangement")}</span><span>\u2725 ${T("console.deplacer")}</span><span>${rond(1)}${T("console.poser")}</span><span>${rond(2)}${T("console.annuler")}</span>` : "";
+    };
+    const fantome = (t2) => {
+      const r = t2.getBoundingClientRect(), k = racine.offsetWidth / racine.getBoundingClientRect().width || 1, f = t2.cloneNode(true);
+      f.removeAttribute("data-a");
+      f.classList.remove("f", "porte", "entre");
+      f.classList.add("fantome");
+      Object.assign(f.style, { left: "0px", top: "0px", width: t2.offsetWidth + "px", height: t2.offsetHeight + "px" });
+      (t2.closest(".voile") || t2.parentElement).appendChild(f);
+      const o2 = f.getBoundingClientRect();
+      Object.assign(f.style, { left: (r.left - o2.left) * k + "px", top: (r.top - o2.top) * k + "px" });
+      f.classList.add("porte");
+      return { f, k, r };
+    };
+    const placer = () => {
+      const { f, k, r } = rang.fant, b = main ? { left: r.left + main.p.x - main.x, top: r.top + main.p.y - main.y } : rang.l[rang.i].getBoundingClientRect();
+      f.style.translate = `${(b.left - r.left) * k}px ${(b.top - r.top) * k}px`;
+    };
+    const prendreTuile = (el, c) => {
+      const l = [...el.parentElement.children].filter((x) => x.matches("[data-a]") && visible(x));
+      rang = { ...c, l, i: l.indexOf(el), tous: [...el.parentElement.children], parent: el.parentElement, aide: (el.closest(".voile") || racine).querySelector(".pcv-aide-rangement"), fant: fantome(el) };
+      el.classList.add("porte");
+      son("prendre");
+      aideRang(rang.aide, true);
+      poser(el);
+    };
+    const toucheX = (f) => {
+      if (o.options?.(f)) return;
+      const c = !rang && f && o.ranger?.(f);
+      return c ? prendreTuile(f, c) : o.touche?.(3, f);
+    };
+    const echangerTuile = (k) => {
+      const l = rang.l, n = rang.i + k;
+      if (n < 0 || n >= l.length) return false;
+      const a = l[rang.i], b = l[n], repere = d.createComment("");
+      a.replaceWith(repere);
+      b.replaceWith(a);
+      repere.replaceWith(b);
+      [l[rang.i], l[n]] = [b, a];
+      rang.i = n;
+      a.classList.add("deplacee");
+      b.classList.add("deplacee");
+      poser(a);
+      placer();
+      return true;
+    };
+    const ligne = () => rang.l.filter((x) => x.offsetTop === rang.l[0].offsetTop).length;
+    const finRang = (garder) => {
+      if (!rang) return false;
+      const r = rang;
+      rang = null;
+      main = null;
+      r.fant.f.remove();
+      r.l[r.i].classList.remove("porte");
+      if (garder) r.poser(r.l.map((x) => x.dataset.a));
+      else r.tous.forEach((x) => {
+        if (x.parentNode !== r.parent || r.parent.lastElementChild !== x) {
+          x.classList.add("deplacee");
+          r.parent.appendChild(x);
+        }
+      });
+      son(garder ? "poser" : "retour");
+      aideRang(r.aide, false);
+      legende();
+      return true;
+    };
+    const suivreDoigt = (p) => {
+      if (!rang || !main) return;
+      main.p = p;
+      const el = rang.l[rang.i];
+      const n = rang.l.findIndex((x) => {
+        if (x === el) return false;
+        const r = x.getBoundingClientRect();
+        return p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
+      });
+      if (n >= 0) while (rang.i !== n) echangerTuile(n > rang.i ? 1 : -1);
+      placer();
+    };
+    const bordDoigt = () => {
+      if (!main || !rang) return;
+      const l = rang.parent.closest(".defile"), p = main.p;
+      if (l) {
+        const r = l.getBoundingClientRect(), v = p.y < r.top + 90 ? -14 : p.y > r.bottom - 90 ? 14 : 0;
+        if (v) {
+          const s = l.scrollTop;
+          l.scrollTop += v;
+          if (l.scrollTop !== s) suivreDoigt(p);
+        }
+      }
+      requestAnimationFrame(bordDoigt);
+    };
+    racine.addEventListener("touchmove", (ev) => {
+      if (main) ev.preventDefault();
+    }, { passive: false });
     let long = 0, annule = false, x0 = 0, y0 = 0;
     racine.addEventListener("pointerdown", (ev) => {
       if (!doigt) {
@@ -461,20 +644,41 @@ window.__pcvPE = (() => {
       annule = false;
       x0 = ev.clientX;
       y0 = ev.clientY;
+      const t2 = !el && !rang && ev.target.closest("[data-a]"), c = t2 && o.ranger?.(t2), id = ev.pointerId;
       if (el) long = setTimeout(() => {
         annule = true;
         poser(el);
         o.y?.(el);
       }, 600);
+      else if (c) long = setTimeout(() => {
+        if (!t2.isConnected) return;
+        annule = true;
+        defile = null;
+        if (o.options) {
+          poser(t2);
+          if (o.options(t2)) return;
+        }
+        const p = versScene({ clientX: x0, clientY: y0 });
+        prendreTuile(t2, c);
+        main = { id, x: p.x, y: p.y, p };
+        requestAnimationFrame(bordDoigt);
+      }, 450);
     });
     racine.addEventListener("pointermove", (ev) => {
+      if (main && ev.pointerId === main.id) return suivreDoigt(versScene(ev));
       if (!annule && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 12 && ev.buttons) {
         annule = true;
         clearTimeout(long);
       }
     });
-    racine.addEventListener("pointerup", () => clearTimeout(long));
-    racine.addEventListener("pointercancel", () => clearTimeout(long));
+    racine.addEventListener("pointerup", (ev) => {
+      clearTimeout(long);
+      if (main && ev.pointerId === main.id) finRang(true);
+    });
+    racine.addEventListener("pointercancel", (ev) => {
+      clearTimeout(long);
+      if (main && ev.pointerId === main.id) finRang(false);
+    });
     const versScene = (ev) => {
       const R = racine.getBoundingClientRect(), k = R.width / innerWidth || 1;
       return { x: R.left + ev.clientX * k, y: R.top + ev.clientY * k };
@@ -496,6 +700,7 @@ window.__pcvPE = (() => {
     });
     racine.addEventListener("click", (ev) => {
       if (annule) return;
+      if (ev.target?.matches?.(".voile.liste") && ev.target === voile()) return retour();
       const el = ev.target.closest("[data-a]");
       if (!el) return;
       if (!el.closest(".legende")) poser(el);
@@ -512,6 +717,11 @@ window.__pcvPE = (() => {
         focus?.classList.add("f");
         if (DIRS[b]) return;
       }
+      if (rang) {
+        if (b === 3) return finRang(true);
+        if (DIRS[b] && !echangerTuile(DIRS[b][0] + DIRS[b][1] * ligne())) son("bord");
+        if (DIRS[b] || b > 2) return;
+      }
       if ((b === 11 || b === 12) && focus && o.pas?.(focus, b === 12 ? 1 : -1)) return;
       if (b !== 1) window.__pcvAuRelacher?.(null);
       if (DIRS[b]) bouger(DIRS[b]);
@@ -519,11 +729,12 @@ window.__pcvPE = (() => {
         const f = focus;
         window.__pcvAuRelacher(() => agir(f), f);
       } else if (b === 2) retour();
-      else if (b === 3 && focus?.dataset.y) o.y?.(focus);
+      else if (b === 4 && focus?.dataset.y) o.y?.(focus);
+      else if (b === 3 || b === 13 && o.options) toucheX(focus);
       else o.touche?.(b, focus);
     };
     window.addEventListener("vgp_onbuttondown", touche, true);
-    let minute = 0, veille = 0, pret = false, depart = 0, apresEntree = null;
+    let minute = 0, veille = 0, pret = false, depart = 0, apresEntree2 = null;
     const ouvertPourMoi = () => {
       try {
         return principale().MenuStore.m_eOpenSideMenu === mien;
@@ -547,7 +758,7 @@ window.__pcvPE = (() => {
     });
     const tour = () => {
       if (termine) return;
-      const vu = d.visibilityState === "visible" && ouvertPourMoi();
+      const vu = ouvertPourMoi() && (d.visibilityState === "visible" || montre === true);
       if (vu === montre) return;
       const avant2 = montre;
       montre = vu;
@@ -567,6 +778,7 @@ window.__pcvPE = (() => {
         racine.classList.remove("anim", "masque-ouverture");
         fermerVoiles();
         clearInterval(minute);
+        finRang(false);
         o.fermer?.();
         pret = false;
         cancelAnimationFrame(depart);
@@ -588,6 +800,7 @@ window.__pcvPE = (() => {
       const vite = pret && !!o.differer?.();
       pret = false;
       const repeindre = () => {
+        racine.querySelectorAll(".deplacee").forEach((x) => x.classList.remove("deplacee"));
         try {
           o.ouvrir?.();
         } catch (e) {
@@ -625,9 +838,9 @@ window.__pcvPE = (() => {
       }, 3e4);
       racine.classList.toggle("attente", !!o.attendre?.());
       if (!racine.classList.contains("attente")) entrer(dv);
-      apresEntree = vite ? repeindre : null;
+      apresEntree2 = vite ? repeindre : null;
       if (vite && !racine.classList.contains("attente") && doigt) {
-        apresEntree = null;
+        apresEntree2 = null;
         setTimeout(() => {
           if (!termine && montre) repeindre();
         });
@@ -654,10 +867,11 @@ window.__pcvPE = (() => {
         depart = requestAnimationFrame(() => {
           depart = 0;
           if (termine || !montre) return;
+          racine.entreeA = performance.now();
           racine.classList.add("anim");
           racine.classList.remove("masque-ouverture");
-          const f = apresEntree;
-          apresEntree = null;
+          const f = apresEntree2;
+          apresEntree2 = null;
           Promise.allSettled(racine.getAnimations({ subtree: true }).filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished)).then(() => {
             if (termine || !montre) return;
             let attendu = !!fermetureEnAttente;
@@ -702,20 +916,19 @@ window.__pcvPE = (() => {
         racine.classList.add("photo");
         racine.classList.remove("bandes");
       }
-      if (garder || !devant()) return Promise.resolve(vieille);
+      if (garder || !devant() || window.__pcvModes?.coupe("apercus")) return Promise.resolve(vieille);
       if (enCours) return enCours;
       const n = ++photos;
-      return enCours = (sansFlou ? flouCoupe().then(photo).finally(flouCoupeFin) : photo()).then(async (p) => {
-        if (termine || n !== photos || appid() !== a) return null;
-        if (!(p.bande === 0 && vieille?.bande > 0)) try {
+      const ici = () => !termine && n === photos && appid() === a;
+      return enCours = (sansFlou && !O.__pcvApercu ? flouCoupe().then(photo).finally(flouCoupeFin) : photo()).then((p) => {
+        if (!ici()) return null;
+        p.pret = p.pret.then(async () => {
+          if (!ici()) return;
+          poserPhoto(p);
+          if (p.bande === 0 && vieille?.bande > 0) return;
           const flou2 = await enData(p.flou), net = sansFlou ? await enData(p.net) : vieille?.net;
-          if (termine || n !== photos || appid() !== a) return null;
-          O.__pcvPhotoJeu = { appid: a, bande: p.bande, flou: flou2, net };
-        } catch (e) {
-          console.error("pcv", "Enregistrement de la photo du jeu", e);
-        }
-        if (termine || n !== photos || appid() !== a) return null;
-        poserPhoto(p);
+          if (ici()) O.__pcvPhotoJeu = { appid: a, bande: p.bande, flou: flou2, net };
+        }).catch((e) => console.error("pcv", "Enregistrement de la photo du jeu", e));
         return p;
       }, (e) => {
         console.error("pcv", "Capture de la photo du jeu", e);
@@ -761,7 +974,7 @@ window.__pcvPE = (() => {
     d.addEventListener("visibilitychange", tour);
     addEventListener("resize", echelle);
     veille = setInterval(() => {
-      if (d.visibilityState === "visible" && ouvertPourMoi() !== montre) tour();
+      if (ouvertPourMoi() !== montre) tour();
     }, 50);
     const surTheme = () => peindreEtat();
     try {
@@ -790,7 +1003,38 @@ window.__pcvPE = (() => {
       clearTimeout(tb);
       tb = setTimeout(() => b.classList.remove("vue"), 2600);
     };
-    return { racine, $, voile, ouvrirVoile, fermerVoile, fermerVoiles, premier, poser, legende, bulle, focus: () => focus, auDoigt: () => doigt, sous, fin, demarrer: tour, entrer, fondJeu, versScene };
+    return {
+      racine,
+      $,
+      voile,
+      ouvrirVoile,
+      fermerVoile,
+      fermerVoiles,
+      premier,
+      poser,
+      legende,
+      bulle,
+      focus: () => focus,
+      auDoigt: () => doigt,
+      // (12/11) une touche prise avant nous (le cadre d'un greffon, acces-rapide.js) : après le doigt, elle montre d'abord la sélection, comme touche()
+      montrer: () => {
+        if (!doigt) return false;
+        doigt = false;
+        focus?.classList.add("f");
+        return true;
+      },
+      enRangement: () => !!rang,
+      ranger: (el) => {
+        const c = o.ranger?.(el);
+        if (c) prendreTuile(el, c);
+      },
+      sous,
+      fin,
+      demarrer: tour,
+      entrer,
+      fondJeu,
+      versScene
+    };
   };
-  return { O, principale, devant, esc, req, module, magasin, flou, flouSuspendre, flouCoupe, flouCoupeFin, photo, ico, pastille, pile, etat, bouton, liste, listeChoisir, ecran };
+  return { O, principale, devant, esc, req, module, magasin, flou, flouSuspendre, flouCoupe, flouCoupeFin, photo, brute, apresEntree, floue, ico, pastille, pile, etat, bouton, liste, listeChoisir, ecran, voisin };
 })();

@@ -15,7 +15,10 @@
   const IMG = (id, f) => `${ORIGINE_STEAM}/assets/${BANC_SOURCE.get(id) ?? id}/${f}`;
   const absolu = (u) => u.startsWith("/") ? ORIGINE_STEAM + u : u;
   const CDN = (id, f) => `https://shared.steamstatic.com/store_item_assets/steam/apps/${BANC_SOURCE.get(id) ?? id}/${f}`;
-  const h = (min) => min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}`;
+  const h = (m) => {
+    const min = Math.round(m || 0);
+    return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}`;
+  };
   const ilya = (rt) => {
     const j = Math.floor((Date.now() / 1e3 - rt) / 86400);
     return j <= 0 ? T("accueil.aujourdhui").toLowerCase() : j === 1 ? T("accueil.hier").toLowerCase() : T("accueil.jours", { n: j }).toLowerCase();
@@ -58,6 +61,10 @@
   const ZONE_H = 2 * GRILLE_HAUT + Math.max(...ZOOMS.map((z) => z.r * z.c + (z.r - 1) * z.g));
   const IM_DEFAUT = { position: "center 18%", taille: "cover" };
   const icoEntete = (n) => window.__pcvIcones.svg(n, { attrs: 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"' });
+  const TUILE_CSS = `  --pcv-tuile-rayon: calc(var(--u) * var(--c) * .18);
+  --pcv-tuile-ombre: inset 0 3px 1px var(--pcv-reflet-haut), inset 0 -6px 10px var(--pcv-tuile-reflet-bas), 0 0 0 2px color-mix(in srgb, var(--pcv-carte) 80%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 20) var(--pcv-tuile-ombre-c);
+  --pcv-tuile-selection: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent);
+  --pcv-tuile-selection-interieure: inset 0 0 0 calc(var(--u) * var(--si, 0)) var(--pcv-cyan-plein);`;
   const racine = document.createElement("div");
   racine.id = "pcv-console";
   racine.hidden = true;
@@ -70,7 +77,7 @@
     #pcv-console .titre.dors { opacity: 0; }
     
     #pcv-console .titre { z-index: 5; }
-    #pcv-console .titre:empty { display: none; }   
+    #pcv-console .titre.vide { display: none; }   
     
     html[data-pcv-fond="image"] #pcv-console .titre { padding: calc(var(--u) * 4) calc(var(--u) * 16); margin-left: calc(var(--u) * -16); border-radius: calc(var(--u) * 20);
       background: var(--pcv-verre); box-shadow: var(--pcv-reflet), var(--pcv-ombre); text-shadow: none; }
@@ -87,9 +94,9 @@
     
     html[data-pcv-plaque] #pcv-console:not(.dans-dossier) .zone { top: calc(var(--pcv-zone-haut) - var(--u) * ${DEBORD_SEL}); height: calc(var(--pcv-zone-h) + var(--u) * ${DEBORD_SEL}); }
     html[data-pcv-plaque] #pcv-console:not(.dans-dossier) .grille { top: calc(var(--u) * (${GRILLE_HAUT} + ${DEBORD_SEL})); }
-    #pcv-console .cel { position: relative; border-radius: calc(var(--u) * var(--c) * .18); }
+    #pcv-console .cel { ${TUILE_CSS} position: relative; border-radius: var(--pcv-tuile-rayon); }
     #pcv-console .cel.jeu, #pcv-console .cel.app, #pcv-console .cel.dos { margin: calc(var(--u) * var(--d) * -1); padding: calc(var(--u) * var(--pad)); background: var(--pcv-verre);
-      box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), inset 0 -6px 10px rgba(140,160,185,.25), 0 0 0 2px color-mix(in srgb, var(--pcv-carte) 80%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 20) rgba(0,0,0,.16); }
+      box-shadow: var(--pcv-tuile-ombre); }
     #pcv-console .cel.pose { animation: pcvPoseC .45s ease-out both; }
     #pcv-console .cel.prise { cursor: grabbing; }
     
@@ -132,10 +139,10 @@
       filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 2) rgba(0,0,0,.45)); }
     
     #pcv-console .cel.vide { background: none; box-shadow: none; }
-    
     #pcv-console .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { content: ""; position: absolute; left: 50%; top: 50%; width: calc(var(--u) * (var(--c) + var(--g)) * .35); aspect-ratio: 1;
       transform: translate(-50%, -50%); border-radius: 42%; background: color-mix(in srgb, var(--pcv-carte) 40%, transparent);
       box-shadow: inset 0 0 0 calc(var(--u) * 1.5) rgb(from var(--pcv-ombre-c) r g b / .16); pointer-events: none; }
+    
     
     #pcv-console .grille.en-rangement .cel.vide:not(.couverte):not(.ancre):not(:has(.bdg))::after { background: color-mix(in srgb, var(--pcv-carte) 65%, transparent); }
     
@@ -147,7 +154,7 @@
     
     body.pcv-zone-jaquettes #pcv-console .sel.cel.vide:has(> .bdg) { box-shadow: none; }
     body.pcv-zone-jaquettes #pcv-console .sel.cel.vide:has(> .bdg)::before { content: none; }
-    body.pcv-zone-jaquettes #pcv-console .sel.cel > .bdg::after { content: ""; position: absolute; inset: 0; border-radius: calc(var(--u) * var(--c) * .18); pointer-events: none;
+    body.pcv-zone-jaquettes #pcv-console .sel.cel > .bdg::after { content: ""; position: absolute; inset: 0; border-radius: var(--pcv-tuile-rayon); pointer-events: none;
       box-shadow: inset 0 0 0 calc(var(--u) * var(--si, 0)) var(--pcv-cyan-plein), 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 color-mix(in srgb, var(--pcv-cyan-plein) 30%, transparent); }
     
     #pcv-console .cel .bdg { position: absolute; inset: calc(var(--u) * var(--g) / -2 - .5px); background: center / contain no-repeat; image-rendering: pixelated; }
@@ -239,17 +246,19 @@
       background: rgba(47,58,74,.88); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 16); font-weight: 800; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .3s; }
     #pcv-console .note.on { opacity: 1; }
     #pcv-console .sonde { position: absolute; width: calc(var(--u) * 100); height: 0; visibility: hidden; }
-    #pcv-console .cel.sel { z-index: 3; transform: scale(var(--sk, 1.05));
-      box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) var(--pcv-cyan-plein), 0 0 calc(var(--u) * var(--sg, 26)) 0 color-mix(in srgb, var(--pcv-cyan-plein) 40%, transparent); }
+    #pcv-console .cel.sel { z-index: 3; transform: scale(var(--sk, var(--pcv-tuile-grandit)));
+      box-shadow: var(--pcv-tuile-selection); }
     
     body.pcv-zone-jaquettes #pcv-console .sel.cel::before { content: ""; position: absolute; inset: 0; z-index: 4; border-radius: inherit; pointer-events: none;
-      box-shadow: inset 0 0 0 calc(var(--u) * var(--si, 0)) var(--pcv-cyan-plein); }
+      box-shadow: var(--pcv-tuile-selection-interieure); }
     body:not(.pcv-zone-jaquettes) #pcv-console .sel.cel { transform: none; box-shadow: inset 0 3px 1px var(--pcv-reflet-haut), 0 0 0 2px color-mix(in srgb, var(--pcv-carte) 80%, transparent), 0 calc(var(--u) * 10) calc(var(--u) * 20) rgba(0,0,0,.16); }
-    #pcv-console .cel.porte { transform: scale(1.15) rotate(5deg) translateY(calc(var(--u) * -8)) !important; z-index: 9;
-      box-shadow: 0 0 0 calc(var(--u) * 5) var(--pcv-lisere), 0 0 0 calc(var(--u) * 10) var(--pcv-rangement), 0 calc(var(--u) * 22) calc(var(--u) * 34) rgba(0,0,0,.3) !important; }
-    #pcv-console .cel.pulse { animation: pcvPulseC .5s ease-in-out 2; }
+    
+    #pcv-console .cel.porte { transform: var(--pcv-porte-transform) !important; z-index: 9; box-shadow: var(--pcv-porte-ombre) !important; }
+    
+    #pcv-console .cel.pulse::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; animation: pcvPulseC .5s ease-in-out 2;
+      box-shadow: 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) #7fdcff, 0 0 calc(var(--u) * var(--sg, 26) * 1.5) calc(var(--u) * var(--sw, 5)) rgba(31,179,242,.7); }
     @keyframes pcvPoseC { from { opacity: 0 } to { opacity: 1 } }
-    @keyframes pcvPulseC { 50% { box-shadow: inset 0 2px 1px var(--pcv-reflet-haut), 0 0 0 calc(var(--u) * var(--sw, 5)) var(--pcv-anneau-c), 0 0 0 calc(var(--u) * var(--sc, 10)) #7fdcff, 0 0 calc(var(--u) * var(--sg, 26) * 1.5) calc(var(--u) * var(--sw, 5)) rgba(31,179,242,.7) } }
+    @keyframes pcvPulseC { 50% { opacity: 1; } }
     #pcv-console .infos { position: absolute; left: calc(var(--u) * 64); right: calc(var(--u) * 64); top: calc(var(--u) * 378); display: flex; flex-wrap: wrap; gap: calc(var(--u) * 14) calc(var(--u) * 16); transition: opacity .2s; }
     #pcv-console .infos.cache { opacity: 0; pointer-events: none; }
     #pcv-console .bu { display: flex; align-items: center; gap: calc(var(--u) * 10); height: calc(var(--u) * 54); padding: 0 calc(var(--u) * 20) 0 calc(var(--u) * 8); border-radius: calc(var(--u) * 27);
@@ -279,16 +288,13 @@
     
     :is(body, .BasicUI):has(> #pcv-notifs:not([hidden]), > #pcv-amis:not([hidden]), > #pcv-profil:not([hidden])) #pcv-console .bas { visibility: hidden; }
     
-    #pcv-console .etat { position: absolute; left: 50%; top: calc(var(--u) * 6); transform: translateX(-50%); padding: calc(var(--u) * 6) calc(var(--u) * 18); border-radius: calc(var(--u) * 20);
-      background: var(--pcv-rangement); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 16); font-weight: 800; z-index: 7; white-space: nowrap; display: flex; align-items: center; gap: calc(var(--u) * 6); }
-    #pcv-console .etat span { display: flex; align-items: center; }
-    #pcv-console .etat u { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; min-width: calc(var(--u) * 22); height: calc(var(--u) * 22); padding: 0 calc(var(--u) * 4);
-      margin-right: calc(var(--u) * 5); border-radius: calc(var(--u) * 11); color: var(--pcv-sur-accent); font-size: calc(var(--u) * 12); font-weight: 900; box-shadow: 0 0 0 calc(var(--u) * 2) color-mix(in srgb, var(--pcv-carte) 85%, transparent); }
+    
+    #pcv-console .etat { position: absolute; left: 50%; top: calc(var(--u) * 6); transform: translateX(-50%); z-index: 7; }
     #pcv-console .etat:empty { display: none; }
     #pcv-console .blanc { position: absolute; inset: 0; z-index: 20; background: var(--pcv-carte); opacity: 0; pointer-events: none; transition: opacity .45s; }
     #pcv-console .blanc.on { opacity: 1; }
-  </style>
-  <div class="titre"></div><div class="etat"></div><div class="note"></div><i class="sonde"></i>
+  </style><style class="decal">#pcv-console .grille {}</style>
+  <div class="titre vide"></div><div class="etat pcv-aide-rangement"></div><div class="note"></div><i class="sonde"></i>
   <div class="entete"><i class="ic"></i><b></b><small></small><button class="ren"><i>${icoEntete("crayon")}</i>${T("console.renommer")}</button><button class="sup"><i>${icoEntete("supprimer")}</i>${T("console.supprimer")}</button><button class="dec" hidden><i>${icoEntete("epingle")}</i>${T("console.decoller_badge")}</button>
     <button class="ret"><i>${icoEntete("sortie")}</i>${T("console.retour")}</button></div>
   <div class="zone"><div class="grille"></div></div>
@@ -299,6 +305,7 @@
   document.body.appendChild(racine);
   window.__pcvFond?.(racine);
   const $ = (s) => racine.querySelector(s), grille = $(".grille");
+  const decalCss = $("style.decal");
   let principal = [], cases = [], vue = null, sel = 0, zi = lire("pcv-zoom", 0), porte = -1, badgeMain = null, appui = null;
   let tete = -1;
   const boutonsTete = () => [...racine.querySelectorAll(".entete button")].filter((x) => !x.hidden);
@@ -365,24 +372,38 @@
   const icNom = (x) => x.ic === "casino" ? "de" : x.ic;
   const icone = (x, relief) => {
     const [haut, bas] = x.fond.split(","), n = icNom(x);
-    return relief ? window.__pcvIcones.relief(n, bas.trim()) : window.__pcvIcones.email(n, haut, bas);
+    return x.greffon ? window.__pcvDecky.relief(x.greffon) : relief ? window.__pcvIcones.relief(n, bas.trim(), x.dessin) : window.__pcvIcones.email(n, haut, bas);
   };
+  window.__pcvIconeAppli = icone;
   const CADENAS = `<svg class="cadenas" viewBox="0 0 24 24" fill="none" stroke="var(--pcv-sur-accent)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2.6"/><path d="M8 11V7.6a4 4 0 0 1 8 0V11"/></svg>`;
   const SUR_PAGE = () => !/^\/routes\/library\/home/.test(O.location.pathname);
   const APPLIS = {
     eshop: {
-      nom: T("boutique.titre"),
+      get nom() {
+        return T("boutique.titre");
+      },
       fond: "var(--pcv-orange), var(--pcv-orange)",
       ic: "boutique",
       ouvrir: () => window.__pcvBoutique.ouvrir(),
       pret: () => !!window.__pcvBoutique?.ouvert()
     },
-    bibliotheque: { nom: T("spaces.bibliotheque.nom"), fond: "#b9a4ff, #6d4fd6", ic: "bibliotheque", ouvrir: () => O.__pcvAller?.(2), pret: SUR_PAGE },
-    parametres: { nom: T("spaces.parametres.nom"), fond: "#9aa6b8, #5b6676", ic: "parametres", ouvrir: () => O.__pcvAller?.(7), pret: SUR_PAGE },
-    album: { nom: T("spaces.medias.nom"), fond: "#5fb2ff, #2a6fe0", ic: "album", ouvrir: () => window.__pcvMediatheque.ouvrir(), pret: () => !!window.__pcvMediatheque?.ouvert() },
+    bibliotheque: { get nom() {
+      return T("spaces.bibliotheque.nom");
+    }, fond: "#b9a4ff, #6d4fd6", ic: "bibliotheque", ouvrir: () => O.__pcvAller?.(2), pret: SUR_PAGE },
+    parametres: { get nom() {
+      return T("spaces.parametres.nom");
+    }, fond: "#9aa6b8, #5b6676", dessin: "var(--pcv-parametres-dessin)", ic: "parametres", ouvrir: () => O.__pcvAller?.(7), pret: SUR_PAGE },
+    telechargements: { get nom() {
+      return T("home.telechargements");
+    }, fond: "var(--pcv-c-telech-clair), var(--pcv-c-telech)", ic: "telechargements", ouvrir: () => O.__pcvAller?.("telechargements"), pret: SUR_PAGE },
+    album: { get nom() {
+      return T("spaces.medias.nom");
+    }, fond: "#5fb2ff, #2a6fe0", ic: "album", ouvrir: () => window.__pcvMediatheque.ouvrir(), pret: () => !!window.__pcvMediatheque?.ouvert() },
     // (28/10) notre Album, plus la page de Steam
     perso: {
-      nom: T("console.personnaliser"),
+      get nom() {
+        return T("console.personnaliser");
+      },
       fond: "#ff8db5, #e8457c",
       ic: "perso",
       ouvrir: (i) => window.__pcvPerso?.personnaliser?.(i)
@@ -390,7 +411,9 @@
     // le casino définitif n'est pas encore choisi : perso.js garde le seul point d'accroche (__pcvPerso.casino).
     // Le garde de l'appli affiche le même écran de fichiers manquants que les Badges.
     casino: {
-      nom: T("console.casino_luigi"),
+      get nom() {
+        return T("console.casino_luigi");
+      },
       fond: "#e5484d, #9e1b25",
       ic: "casino",
       verrouille: () => !window.__pcvNintendo?.casino,
@@ -400,14 +423,80 @@
     // le Mii Maker (mii-maker.js, chargé avant ce fichier) : seulement s'il est là — pas de tuile qui n'ouvre rien.
     // Mii Maker vérifie lui-même ses fichiers avec ce garde commun.
     ...window.__pcvMiiMaker ? { miimaker: {
-      nom: T("steamu.appli.mii"),
+      get nom() {
+        return T("steamu.appli.mii");
+      },
       fond: "#8ee05a, #2ea84a",
-      ic: "miimaker",
+      ic: "miimaker-appli",
+      /* (13/11 : le logo Mii importé, icones.js) */
       verrouille: () => !window.__pcvNintendo?.mii,
       ouvrir: () => window.__pcvMiiMaker?.ouvrir(),
       pret: () => !!document.querySelector("#pcv-miimaker .etagere, #pcv-miimaker .absent")
     } } : {}
   };
+  const CLE_GREFFON = "decky:";
+  let poseGreffon = null;
+  const actualiserGreffons = () => {
+    if (!window.__pcvDecky?.pret()) return;
+    for (const k of Object.keys(APPLIS)) if (k.startsWith(CLE_GREFFON)) delete APPLIS[k];
+    for (const p of window.__pcvDecky.liste(true)) APPLIS[CLE_GREFFON + p.name] = {
+      nom: p.name,
+      greffon: p,
+      ic: "prise",
+      get fond() {
+        const c = window.__pcvDecky.marque(p).couleur;
+        return c + ", " + c;
+      },
+      ouvrir: () => {
+        O.__pcvPluginAouvrir = p.name;
+        window.__pcvBridge.openQuickAccessTab(999);
+      },
+      pret: () => O.DeckyPluginLoader?.deckyState?._activePlugin?.name === p.name
+    };
+  };
+  actualiserGreffons();
+  const contientGreffon = (nom) => {
+    const l = principal.length ? principal : lire("pcv-grille", []) || [];
+    return l.some((c) => c?.appli === CLE_GREFFON + nom || c?.dossier && c.l?.some((x) => x?.appli === CLE_GREFFON + nom));
+  };
+  const epinglerGreffon = (nom, oui) => {
+    actualiserGreffons();
+    const cle = CLE_GREFFON + nom;
+    if (oui && !APPLIS[cle] || oui === contientGreffon(nom)) return false;
+    if (porte >= 0) annuler();
+    if (!principal.length) construireCases();
+    if (vue) fermerDossier(false);
+    if (oui) {
+      const sous = /* @__PURE__ */ new Set();
+      ZOOMS.forEach((z) => reserver(principal, z.r).ancreDe.forEach((_, i2) => sous.add(i2)));
+      let i = principal.findIndex((c, k) => libre(c) && !c.cache && !sous.has(k));
+      if (i < 0) i = principal.length;
+      principal[i] = { appli: cle };
+      sel = i;
+    } else for (const l of [principal, ...principal.filter((c) => c.dossier).map((c) => c.l)])
+      l.forEach((c, i) => {
+        if (c.appli === cle) l[i] = { vide: 1 };
+      });
+    montrerVue();
+    sauver(true);
+    infosDe = -1;
+    decal = -1;
+    dessiner();
+    if (oui) poseGreffon = cle;
+    window.__pcvSon?.(oui ? "poser" : "retour");
+    return true;
+  };
+  window.__pcvGreffonsAccueil = { contient: contientGreffon, epingler: epinglerGreffon };
+  const repeindreGreffons = () => {
+    actualiserGreffons();
+    cases.forEach((c, i) => {
+      if (appliDe(c)?.greffon) {
+        const im = grille.children[i]?.querySelector(".im");
+        if (im) peindreAppli(im, c);
+      }
+    });
+  };
+  window.addEventListener("pcv-decky-icones", repeindreGreffons);
   const BADGES_APPLIS = {
     mset: "parametres",
     edit: "miimaker",
@@ -420,7 +509,7 @@
     setting: "parametres",
     miimaker: "miimaker"
   };
-  const AILLEURS = { place: () => window.__pcvPlaceMontrer?.(true), profil: () => window.__pcvProfilMontrer?.(true), telechargements: () => O.__pcvAller?.("telechargements") };
+  const AILLEURS = { place: () => window.__pcvPlaceMontrer?.(true), profil: () => window.__pcvProfilMontrer?.(true) };
   const appliDuBadge = (bd) => {
     const m = /(?:\d\d)?sc_([a-z]+)/i.exec(String(bd ?? ""));
     return m && BADGES_APPLIS[m[1].toLowerCase()] || null;
@@ -438,20 +527,25 @@
   window.__pcvBadgesApplis = { appliDuBadge };
   window.__pcvApplis = APPLIS;
   window.__pcvAccentAppli = (racine2, cle) => {
-    const applis = {
-      "pcv-eshop": "eshop",
-      "pcv-eshop-unifie": "eshop",
-      "pcv-eshop-themes": "eshop",
-      "pcv-biblio-d": "bibliotheque",
-      "pcv-medias": "album",
-      "pcv-themes": "perso",
-      "pcv-miimaker": "miimaker"
-    };
-    const a = APPLIS[cle === void 0 ? applis[racine2.id] : cle];
+    const a = APPLIS[cle === void 0 ? APPLI_DE_PAGE[racine2.id] : cle];
     racine2.classList.toggle("pcv-appli", !!a);
     if (a) racine2.style.setProperty("--pcv-appli-couleur", a.fond.split(",")[0].trim());
     else racine2.style.removeProperty("--pcv-appli-couleur");
     window.__pcvFenetreAppli?.(racine2);
+  };
+  const APPLI_DE_PAGE = {
+    "pcv-eshop": "eshop",
+    "pcv-eshop-unifie": "eshop",
+    "pcv-eshop-themes": "eshop",
+    "pcv-biblio-d": "bibliotheque",
+    "pcv-medias": "album",
+    "pcv-themes": "perso",
+    "pcv-miimaker": "miimaker"
+  };
+  window.__pcvTitreAppli = (cle, nom) => {
+    const a = APPLIS[APPLI_DE_PAGE[cle] || cle];
+    if (!a) return "";
+    return `<div class="pcv-titre-appli" style="--pcv-appli-couleur:${a.fond.split(",")[0].trim()}">${window.__pcvIcones.svg(icNom(a), { classe: "ico" })}${nom ?? a.nom}</div>`;
   };
   const appliDe = (c) => c?.appli && APPLIS[c.appli] || null;
   const peindreAppli = (el, c) => {
@@ -544,6 +638,7 @@
       familleTheme(),
       zi,
       versionUnifideck(),
+      window.__pcvDecky?.liste(true).map((p) => p.name).sort().join(","),
       l.map((a) => [a.appid, +distant(a), a.rt_last_time_played || a.rt_last_time_played_or_installed || 0].join(":")).sort().join(",")
     ].join("|");
   };
@@ -559,8 +654,18 @@
     return grilleARefaire = signatureGrille() !== sigGrille;
   };
   window.__pcvConsoleBibliotheque?.unregister?.();
+  let nommeesA = 0, nommeesT = 0;
   const repeindreNommees = () => {
-    if (tuilesFinies) return;
+    if (tuilesFinies || nommeesT) return;
+    const reste = nommeesA + 2e3 - Date.now();
+    if (reste > 0) {
+      nommeesT = setTimeout(() => {
+        nommeesT = 0;
+        repeindreNommees();
+      }, reste);
+      return;
+    }
+    nommeesA = Date.now();
     grille.querySelectorAll(".cel.jeu .im.nomme").forEach((el) => {
       const a = O.appStore?.GetAppOverviewByAppID?.(+el.dataset.appid);
       if (a) {
@@ -573,6 +678,11 @@
     jeuxChanges = true;
     repeindreNommees();
   });
+  const deckyChange = () => {
+    jeuxChanges = true;
+  };
+  const deckyBus = O.DeckyPluginLoader?.deckyState?.eventBus;
+  deckyBus?.addEventListener("update", deckyChange);
   const applisDevant = (l) => {
     const places = [], applis = [], jeux = [];
     l.forEach((c, i) => {
@@ -587,20 +697,53 @@
     });
     return l;
   };
+  const migrerTelechargements = (range) => {
+    const cle = "pcv-migration-tuile-telechargements";
+    if (lire(cle, false)) return range;
+    if (range) {
+      const grilles = [range, ...range.filter((c) => c?.dossier && Array.isArray(c.l)).map((c) => c.l)];
+      if (!grilles.some((l) => l.some((c) => c?.appli === "telechargements"))) {
+        const l = grilles.find((l2) => l2.some((c) => c?.appli === "parametres")) || range;
+        let i = l.findIndex((c) => c?.appli === "parametres");
+        if (i < 0) {
+          i = l.length;
+          l.push({ appli: "parametres" });
+        }
+        l.splice(i + 1, 0, { appli: "telechargements" });
+      }
+      ecrire("pcv-grille", range);
+    }
+    ecrire(cle, true);
+    return range;
+  };
   const construireCases = () => {
     const connus = apps(), tous = montres(), mode2 = reglageJeux();
     vueJeux = mode2 + "|" + versionUnifideck();
     const recent = (a) => a.rt_last_time_played || a.rt_last_time_played_or_installed || 0;
     const recents2 = [...tous.values()].filter((a) => mode2 === "installes" || a.rt_last_time_played).sort((a, b) => recent(b) - recent(a)).slice(0, mode2 === "installes" ? Infinity : 36);
-    const range = lire("pcv-grille", null);
+    const range = migrerTelechargements(lire("pcv-grille", null));
     const signe = (c, a) => {
       const n = a ? raccourci(a) ? a.display_name : null : c.n, x = a && lanceurDe(a) || c.x;
       return n == null ? {} : x ? { n, x } : { n };
     };
+    actualiserGreffons();
+    if (range && window.__pcvDecky?.pret()) {
+      let change = false;
+      const nettoyer = (l2) => l2.forEach((c, i) => {
+        if (c?.dossier) {
+          if (Array.isArray(c.l)) nettoyer(c.l);
+        } else if (c?.appli?.startsWith(CLE_GREFFON) && !APPLIS[c.appli]) {
+          l2[i] = { vide: 1 };
+          change = true;
+        }
+      });
+      nettoyer(range);
+      if (change) ecrire("pcv-grille", range);
+    }
     const vus = /* @__PURE__ */ new Set(), garder = (c) => {
       if (c.appli === "boutique") c = { ...c, appli: "eshop" };
       const id = c.app || c.cache, k = id ? "j" + id : "a" + c.appli;
-      if (id ? tous.has(id) : APPLIS[c.appli]) return vus.has(k) ? { vide: 1 } : (vus.add(k), id ? { app: id, ...signe(c, tous.get(id)) } : { appli: c.appli });
+      if (id ? tous.has(id) : APPLIS[c.appli] || c.appli?.startsWith(CLE_GREFFON) && !window.__pcvDecky?.pret()) return vus.has(k) ? { vide: 1 } : (vus.add(k), id ? { app: id, ...signe(c, tous.get(id)) } : { appli: c.appli });
       return id ? { vide: 1, cache: id, ...signe(c, connus.get(id)) } : { vide: 1 };
     };
     let l = (range || []).filter((c) => c && (c.vide || c.biblio || c.app || c.appli || c.dossier)).map((c) => c.biblio ? { appli: "bibliotheque" } : c.cache && c.bd != null ? (({ cache, ...x }) => x)(c) : c).map((c) => c.dossier ? dossierSur(c, garder) : c.app || c.appli || c.cache && c.bd == null ? garder(c) : c);
@@ -643,7 +786,7 @@
     }
     const placees = new Set(l.flatMap((c) => c.dossier ? c.l : [c]).filter((c) => c.appli).map((c) => c.appli));
     let apres = l.findLastIndex((c) => c.app || c.cache) + 1;
-    for (const k of Object.keys(APPLIS)) if (!placees.has(k)) {
+    for (const k of Object.keys(APPLIS)) if (!k.startsWith(CLE_GREFFON) && !placees.has(k) && !(range && k === "telechargements")) {
       const { ancreDe: sous } = reserver(l);
       while (apres < l.length && !(libre(l[apres]) && !sous.has(apres) && !l[apres].cache)) apres++;
       while (l.length <= apres) l.push({ vide: 1 });
@@ -738,8 +881,8 @@
     for (const r of suite.values()) for (const { i, c } of r) l.splice(Math.min(i, l.length), 0, c);
     return l;
   };
-  const sauver = () => {
-    if (!bibliothequePrete() || !apps().size) return;
+  const sauver = (epingle = false) => {
+    if (!bibliothequePrete() || !apps().size && !epingle) return;
     fusionner();
     const { ancreDe } = reserver(cases), min = minVue();
     let n = libres(cases, ancreDe);
@@ -784,10 +927,17 @@
   };
   const appDe = (c) => c.app && apps().get(c.app);
   const badgeURL = (id) => window.__pcvBadgeURL?.(id) || "";
+  const revisionsArt = lire("pcv-art-revisions", {});
   const perso = (f, a) => {
     if (a.__pcvImages) return [];
     try {
-      return O.appStore[f](a) || [];
+      return (O.appStore[f](a) || []).map((u) => {
+        const v = revisionsArt[a.appid];
+        if (!v) return u;
+        const url = new URL(u, ORIGINE_STEAM);
+        url.searchParams.set("pcv-art", v);
+        return url.href;
+      });
     } catch (e) {
       return [];
     }
@@ -796,25 +946,36 @@
   window.__pcvFondRepli = (d) => `linear-gradient(160deg, oklch(from var(--pcv-cyan-plein) .76 c calc(h + ${d})), oklch(from var(--pcv-cyan-plein) .55 c calc(h + ${d})))`;
   const urlCss = (x) => `url('${String(x).replace(/['\\\n\r]/g, (c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))}')`;
   const sansArt = (a) => !perso("GetCustomVerticalCapsuleURLs", a).length && !perso("GetCustomLandcapeImageURLs", a).length && !perso("GetCustomLogoImageURLs", a).length && !perso("GetCustomHeroImageURLs", a).length;
-  const ARTAUTO = lire("pcv-art-auto-essaye", {});
-  const essayerArtAuto = (a) => {
+  const ARTAUTO = lire("pcv-art-auto-essaye", {}), artEnCours = /* @__PURE__ */ new Set(), artReprise = {}, iconesLocales = {}, iconesEnCours = /* @__PURE__ */ new Set(), iconesReprise = {};
+  const essayerIcone = (a) => {
     const id = a.appid;
-    if (!lire("pcv-art-auto", true) || ARTAUTO[id] || !sansArt(a)) return;
-    ARTAUTO[id] = 1;
-    ecrire("pcv-art-auto-essaye", ARTAUTO);
-    O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "art_auto_chercher", a.display_name || "").then(async (r) => {
-      if (tuilesFinies || !r?.trouve || !sansArt(a)) return;
-      const SC2 = O.SteamClient?.Apps ? O.SteamClient : window.SteamClient;
-      if (!SC2?.Apps?.SetCustomArtworkForApp) return;
-      for (const { base64, ext, assetType } of Object.values(r.images || {})) {
-        try {
-          await SC2.Apps.SetCustomArtworkForApp(id, base64, ext, assetType);
-        } catch (e) {
-        }
-      }
+    if (iconesLocales[id] || iconesEnCours.has(id) || Date.now() < (iconesReprise[id] || 0) || !sansArt(a)) return;
+    iconesEnCours.add(id);
+    iconesReprise[id] = Date.now() + 6e4;
+    Promise.resolve().then(() => window.__pcvBridge.callPlugin(window.__pcvGreffon.nom, "icone_raccourci", id, a.display_name || "")).then((r) => {
+      if (!r || tuilesFinies) return;
+      iconesLocales[id] = r;
       tuilesDe(id).forEach((el) => peindreJeu(el, a));
     }).catch(() => {
-    });
+    }).finally(() => iconesEnCours.delete(id));
+  };
+  const essayerArtAuto = (a) => {
+    const id = a.appid;
+    if (!lire("pcv-art-auto", true) || ARTAUTO[id] === 2 || artEnCours.has(id) || Date.now() < (artReprise[id] || 0) || !sansArt(a)) return;
+    artEnCours.add(id);
+    artReprise[id] = Date.now() + 6e4;
+    Promise.resolve().then(() => window.__pcvBridge.callPlugin(window.__pcvGreffon.nom, "art_auto_chercher", a.display_name || "")).then(async (r) => {
+      if (tuilesFinies || !r || r.temporaire) return;
+      if (r.trouve && sansArt(a)) {
+        const SC2 = O.SteamClient?.Apps ? O.SteamClient : window.SteamClient;
+        if (!SC2?.Apps?.SetCustomArtworkForApp || !Object.keys(r.images || {}).length) return;
+        for (const { base64, ext, assetType } of Object.values(r.images)) await SC2.Apps.SetCustomArtworkForApp(id, base64, ext, assetType);
+        tuilesDe(id).forEach((el) => peindreJeu(el, a));
+      }
+      ARTAUTO[id] = 2;
+      ecrire("pcv-art-auto-essaye", ARTAUTO);
+    }).catch(() => {
+    }).finally(() => artEnCours.delete(id));
   };
   const imagesJeu = (a) => {
     if (a.__pcvImages) return [...sourcesTuile(a, "capsule_616x353.jpg"), ...sourcesTuile(a, "header.jpg"), a.__pcvImages.repli].filter(Boolean);
@@ -865,8 +1026,9 @@
   const cadrer = (id, el, urls = [IMG(id, "library_600x900.jpg"), CDN(id, "library_600x900.jpg")]) => {
     if (!origine && !el.__pcvProche || enCadrage.has(id)) return;
     enCadrage.add(id);
+    const revision = revisionsArt[id];
     charge(urls, tailleTuile(el), el.__pcvJeu?.__pcvImages?.charger).then((im) => {
-      if (tuilesFinies || !im) return;
+      if (tuilesFinies || revision !== revisionsArt[id] || !im) return;
       try {
         const W = 30, H = 45, cv = document.createElement("canvas");
         cv.width = W;
@@ -974,20 +1136,24 @@
   };
   const verifier = (a, el) => {
     if (el && !origine && !el.__pcvProche) return;
-    const id = a.appid;
-    if (AUTO[id] && "b" in AUTO[id] || AUTO[id] && !AUTO[id].r && "l" in AUTO[id] && AUTO[id].d || enVerif.has(id)) return;
+    const id = a.appid, revision = revisionsArt[id];
+    if (enVerif.has(id) || ("v" in (AUTO[id] || {}) || !perso("GetCustomVerticalCapsuleURLs", a).length) && (AUTO[id] && "b" in AUTO[id] || AUTO[id] && !AUTO[id].r && "l" in AUTO[id] && AUTO[id].d)) return;
     const S = el ? tailleTuile(el) : TUILE.pas;
     enVerif.set(id, (a.__pcvImages ? Promise.resolve([[], []]) : enFile(() => imagesDetails(id))).then((d) => d || [[], []]).then(([dl, dh]) => Promise.all([
       charge([...perso("GetCustomLogoImageURLs", a), ...sourcesTuile(a, "logo.png"), ...dl], S, a.__pcvImages?.charger),
-      charge([...perso("GetCustomHeroImageURLs", a), ...sourcesTuile(a, "library_hero.jpg"), ...dh], S, a.__pcvImages?.charger)
-    ])).then(([logo, fond]) => {
-      if (tuilesFinies) return;
+      charge([...perso("GetCustomHeroImageURLs", a), ...sourcesTuile(a, "library_hero.jpg"), ...dh], S, a.__pcvImages?.charger),
+      charge(perso("GetCustomVerticalCapsuleURLs", a), S)
+    ])).then(([logo, fond, vert]) => {
+      if (tuilesFinies || revision !== revisionsArt[id]) return;
       const lu = logo ? lireLogo(logo) : { l: null };
-      AUTO[id] = { a: !!(logo && fond) && !logoVide(lu), r: logo ? +(logo.naturalWidth / logo.naturalHeight).toFixed(2) : 0, ...lu, lu: logo?.__pcvOrigine, fu: fond?.__pcvOrigine, d: 1 };
+      AUTO[id] = { v: !!vert, a: !!(logo && fond) && !logoVide(lu), r: logo ? +(logo.naturalWidth / logo.naturalHeight).toFixed(2) : 0, ...lu, lu: logo?.__pcvOrigine, fu: fond?.__pcvOrigine, d: 1 };
       ecrire("pcv-tuile-auto", AUTO);
       tuilesDe(id).forEach((el2) => peindreJeu(el2, el2.__pcvJeu || a));
     }).catch(() => {
-    }).finally(() => enVerif.delete(id)));
+    }).finally(() => {
+      enVerif.delete(id);
+      if (!tuilesFinies && revision !== revisionsArt[id]) verifier(a, el);
+    }));
   };
   const placeLogo = (id) => {
     const v = AUTO[id], r = v?.r;
@@ -1022,8 +1188,12 @@
     reposMax: 1e3,
     tailleDelai: 300,
     // millisecondes
-    memoire: 32 * 1024 * 1024,
-    // budget des blobs compressés ; ne pas révoquer une image encore utilisée
+    // budget des blobs compressés ; ne pas révoquer une image encore utilisée. (16/11, console de l'auteur, 441 jeux avec
+    // Unifideck) les copies peintes seules pesaient déjà 21 Mo pour 396 images : à 32 Mo, la bibliothèque évinçait ce qu'on
+    // venait de voir, et chaque retour en arrière relisait et redécodait les tuiles (titre, puis image)
+    memoire: 128 * 1024 * 1024,
+    semaine: 7 * 24 * 3600 * 1e3,
+    // âge maximal d'une copie de l'eShop avant de la revérifier
     adresseCache: "https://pcv.tuiles/",
     // clé synthétique de Cache Storage, jamais une requête réseau
     cache: "pcv-tuiles-v9",
@@ -1051,6 +1221,7 @@
   const MEMOIRE = window["__pcvTuiles-" + TUILE.cache] ||= {};
   for (const [n, f] of Object.entries({ copies: Map, dernieres: Map, decodees: Map, animees: Set, origines: Map, videos: Map, blobs: Map, lectures: Map })) MEMOIRE[n] ||= new f();
   const COPIES = MEMOIRE.copies;
+  MEMOIRE.plafond = TUILE.memoire;
   const MESURES_IMAGES = [], noterImage = (etape, debut2, autres = {}) => {
     MESURES_IMAGES.push({ etape, ms: +(performance.now() - debut2).toFixed(2), ...autres });
     if (MESURES_IMAGES.length > 200) MESURES_IMAGES.shift();
@@ -1109,8 +1280,8 @@
       const u = el.getAttribute("src");
       if (u) utilisees.add(u);
     });
-    const retirees = /* @__PURE__ */ new Set();
-    for (const [u, b] of [...BLOBS].sort((a, b2) => a[1].date - b2[1].date)) {
+    const retirees = /* @__PURE__ */ new Set(), peintes = new Set(MEMOIRE.dernieres.values());
+    for (const [u, b] of [...BLOBS].sort((a, b2) => peintes.has(a[0]) - peintes.has(b2[0]) || a[1].date - b2[1].date)) {
       if (octets <= TUILE.memoire) break;
       if (utilisees.has(u) || typeof MEMOIRE.decodees.get(u)?.then === "function") continue;
       oublierBlob(u);
@@ -1182,6 +1353,11 @@
       const petite = (await indexPetites).get(u);
       if (petite) deja = await m.match(petite.req).catch(() => null);
     }
+    let perime = null;
+    if (deja && charger && !(Date.now() - (+deja.headers.get("X-Pcv-Date") || 0) < TUILE.semaine)) {
+      perime = deja;
+      deja = null;
+    }
     if (charger) noterImage("cache", debutCache, { trouve: !!deja });
     if (deja) {
       if (deja.headers.get("X-Pcv-Anime") === "1") ANIMEES.add(u);
@@ -1194,7 +1370,7 @@
     return enFile(async () => {
       if (charger) noterImage("file", debutFile, { actives: enCopie, enAttente: aCopier.length });
       const b = await lireImage(u, charger);
-      if (!b) return null;
+      if (!b) return perime ? garderBlob(await perime.blob()) : null;
       const anime = await animee(b);
       if (anime) ANIMEES.add(u);
       const debutBitmap = performance.now(), im = await createImageBitmap(b).catch(() => null);
@@ -1221,7 +1397,7 @@
       }
       if (tuilesFinies) return null;
       if (charger && !sortie.size) sortie = b;
-      m?.put(req, new Response(sortie, { headers: { "X-Pcv-Anime": anime ? "1" : "0" } })).catch(() => {
+      m?.put(req, new Response(sortie, { headers: { "X-Pcv-Anime": anime ? "1" : "0", "X-Pcv-Date": String(Date.now()) } })).catch(() => {
       });
       return sortie.size ? garderBlob(sortie) : u;
     }, !!charger || S === TUILE.pas, !!charger);
@@ -1296,6 +1472,11 @@
       if (el.isConnected && el.dataset.appid === String(a.appid)) peindreJeu(el, a);
     };
     for (const u of l) {
+      const p = el.__pcvPetite && MEMOIRE.dernieres.get(absolu(u));
+      if (p && MEMOIRE.decodees.get(p) === true) {
+        toucherBlob(p);
+        return [urlCss(p)];
+      }
       const c = copieTuile(absolu(u), S, repeindre, a.__pcvImages?.charger, el.__pcvAttentes);
       if (c === void 0) return [];
       if (c) return [urlCss(c)];
@@ -1480,7 +1661,7 @@
     });
   };
   const VIDEOS = MEMOIRE.videos;
-  const videoVisible = (el) => !racine.hidden && !document.hidden && !window.__pcvJeuDevant && window.__pcvCharge?.reglage().videos !== false && el.__pcvProche === true;
+  const videoVisible = (el) => !window.__pcvModes?.coupe("anim") && !racine.hidden && !document.hidden && !window.__pcvJeuDevant && window.__pcvCharge?.reglage().videos !== false && el.__pcvProche === true;
   const videoDe = (u, T2, position, el) => {
     const k = `${u}|${T2}|${position}`;
     let c = VIDEOS.get(k);
@@ -1579,8 +1760,8 @@
     prochesId = 0;
     if (tuilesFinies || !racine.isConnected) return;
     const cache = racine.hidden || document.hidden, z = ZOOMS[zi], pas = (z.c + z.g) * (innerHeight / 800);
-    const rr = racine.getBoundingClientRect(), rg = grille.getBoundingClientRect(), larg = rr.width || innerWidth;
-    const c0 = Math.floor((rr.left - rg.left - larg * PROCHE_MARGE) / pas), c1 = Math.ceil((rr.left - rg.left + larg * (1 + PROCHE_MARGE)) / pas);
+    const rr = cache ? null : racine.getBoundingClientRect(), rg = cache ? null : grille.getBoundingClientRect(), larg = rr?.width || innerWidth;
+    const c0 = cache ? 0 : Math.floor((rr.left - rg.left - larg * PROCHE_MARGE) / pas), c1 = cache ? -1 : Math.ceil((rr.left - rg.left + larg * (1 + PROCHE_MARGE)) / pas);
     const aPeindre = [];
     for (const el of grille.querySelectorAll(".cel.jeu > .im")) {
       const a = el.__pcvJeu;
@@ -1645,6 +1826,9 @@
   };
   document.addEventListener("visibilitychange", window.__pcvTuilesVisibilite);
   window.__pcvTuilesFin = () => {
+    deckyBus?.removeEventListener("update", deckyChange);
+    window.removeEventListener("pcv-decky-icones", repeindreGreffons);
+    delete window.__pcvGreffonsAccueil;
     tuilesFinies = true;
     clearTimeout(rechauffe);
     window.cancelIdleCallback?.(rechauffe);
@@ -1727,8 +1911,19 @@
     el.dataset.logo = "";
     el.style.backgroundSize = el.style.backgroundPosition = el.style.backgroundRepeat = "";
     let m = a.__pcvImages ? "auto" : faconVoulue(a);
-    const verts = perso("GetCustomVerticalCapsuleURLs", a);
-    if (!el.__pcvPetite && raccourci(a) && (origine || el.__pcvProche)) essayerArtAuto(a);
+    const verts = AUTO[id]?.v === false ? [] : perso("GetCustomVerticalCapsuleURLs", a);
+    if (!el.__pcvPetite && raccourci(a) && (origine || el.__pcvProche)) {
+      essayerIcone(a);
+      essayerArtAuto(a);
+    }
+    if (raccourci(a) && sansArt(a) && iconesLocales[id]) {
+      el.dataset.facon = "icone";
+      el.style.backgroundImage = `${urlCss(iconesLocales[id])},${window.__pcvFondRepli(0)}`;
+      el.style.backgroundSize = "auto 64%,cover";
+      el.style.backgroundPosition = "center";
+      el.style.backgroundRepeat = "no-repeat";
+      return;
+    }
     if (raccourci(a) || verts.length) {
       if (!el.__pcvPetite) verifier(a, el);
       if (m === "jaquette" && verts.length) {
@@ -1736,7 +1931,7 @@
         el.style.backgroundImage = imageJeu(a, el);
         return;
       }
-      if (AUTO[id]?.a && m !== "cadrage") m = "logo";
+      if (AUTO[id]?.a && m !== "cadrage" && (!verts.length || [AUTO[id].lu, AUTO[id].fu].every((u) => u?.includes("/customimages/")))) m = "logo";
       else if (verts.length) {
         el.dataset.facon = "cadrage";
         el.style.backgroundImage = imageJeu(a, el);
@@ -1803,7 +1998,7 @@
     }
     return { image: el.style.backgroundImage, taille: el.style.backgroundSize || IM_DEFAUT.taille, position: el.style.backgroundPosition || IM_DEFAUT.position, repete: el.style.backgroundRepeat || "no-repeat" };
   };
-  const TRACES = { ranger: '<path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>', page: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>', image: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>' };
+  const TRACES = { page: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>', image: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>' };
   const changerImage = (a, i) => {
     const actuel = choixTuiles()[a.appid] || "auto";
     return window.__pcvDossiers?.choix(i, FACONS.map((f) => ({
@@ -1825,14 +2020,15 @@
     { svg: window.__pcvIcones?.trace("reglages") || "", teinte: "#c3ccd8, #8f9bab", nom: T("jeu.plus_options"), faire: () => {
       if (!window.__pcvBridge.menuJeuSteam(a.appid, grille.children[i])) window.__pcvSon?.("bord");
     } },
-    { svg: TRACES.ranger, teinte: "#ffd36b, #e6a21a", nom: T("console.ranger"), faire: () => {
+    { ic: "ranger", nom: T("console.ranger"), faire: () => {
       prendre(i);
       dessiner();
     } },
+    // (11/11, l'auteur) décorer depuis n'importe quelle tuile, à sa place (avec 1 000 jeux, plus besoin de chercher une case libre)
+    window.__pcvDeco && { ic: "decorer", nom: T("perso.decorer"), faire: () => window.__pcvDeco.ouvrir({ case: i }) },
     { svg: TRACES.image, teinte: "#5fd0ff, #1a9ae6", nom: T("console.image_tuile"), faire: () => changerImage(a, i) },
     {
-      svg: window.__pcvIcones?.trace("epingle") || "",
-      teinte: "#c9a4ff, #8a5ce6",
+      ic: "epingle",
       nom: T("accueil.retirer"),
       faire: () => {
         accueilRetirer(a.appid, true);
@@ -1840,7 +2036,7 @@
         annoncer(T("console.retire", { nom: a.display_name }));
       }
     }
-  ]) || voir(a);
+  ].filter(Boolean)) || voir(a);
   let uLu = 0;
   const sonde = $(".sonde"), uPx = () => uLu || (uLu = sonde.getBoundingClientRect().width / 100) || innerHeight / 800;
   const boite = (w = 1, h2 = 1, u = uPx()) => {
@@ -1939,6 +2135,17 @@
     return col + 1;
   };
   const barreZoom = (n) => racine.querySelectorAll(".zoom i").forEach((e, k) => e.classList.toggle("on", k === n));
+  const poseTuile = (d, delai) => {
+    if (!d) return;
+    d.classList.add("pose");
+    d.style.animationDelay = delai + "s";
+    d.addEventListener("animationend", (e) => {
+      if (e.animationName === "pcvPoseC") {
+        d.classList.remove("pose");
+        d.style.animationDelay = "";
+      }
+    }, { once: true });
+  };
   const dessiner = (poser2 = false, zoomSeul = false) => {
     const z = ZOOMS[zi], f = forme(z);
     vueFamille = familleTheme();
@@ -2008,16 +2215,7 @@
           d.appendChild(s);
         }
       }
-      if (poser2) {
-        d.classList.add("pose");
-        d.style.animationDelay = 0.15 + ordre.indexOf(i) % 48 * 0.045 + "s";
-        d.addEventListener("animationend", (e) => {
-          if (e.animationName === "pcvPoseC") {
-            d.classList.remove("pose");
-            d.style.animationDelay = "";
-          }
-        }, { once: false });
-      }
+      if (poser2) poseTuile(d, 0.15 + ordre.indexOf(i) % 48 * 0.045);
       d.dataset.i = i;
       grille.appendChild(d);
     });
@@ -2052,7 +2250,9 @@
       cancelAnimationFrame(elan.id);
       elan = null;
     }
-    grille.style.transform = `translateX(calc(var(--u) * ${-decal * (z.c + z.g)}))`;
+    if (grille.style.transform) grille.style.transform = "";
+    const t = `#pcv-console .grille { transform: translateX(calc(var(--u) * ${-decal * (z.c + z.g)})); }`;
+    if (decalCss.firstChild.data !== t) decalCss.firstChild.data = t;
     prochesPlus();
   };
   const texte = (el, t) => {
@@ -2069,13 +2269,15 @@
       e.classList.toggle("porte", k === porte);
       e.classList.toggle("cible", k === cible);
     });
-    grille.classList.toggle("en-rangement", porte >= 0);
+    grille.classList.toggle("en-rangement", porte >= 0 || badgeMain != null);
     $(".entete .ret").classList.toggle("cible", cible === SORTIE);
     const z = ZOOMS[zi], col = Math.floor(sel / z.r);
     if (!appui?.long && !deco || decal < 0) decal = Math.max(0, col - visibles(z) + 2, decal < 0 ? 0 : Math.min(decal, col - 1));
     placer();
     const dedans = document.body.classList.contains("pcv-zone-jaquettes");
-    texte($(".titre"), dedans ? sortant ? nomCase(-1, sortant.x) : nomCase(sel) : "");
+    const nom = dedans ? sortant ? nomCase(-1, sortant.x) : nomCase(sel) : "";
+    texte($(".titre"), nom);
+    $(".titre").classList.toggle("vide", !nom);
     legende();
     $(".titre").classList.remove("dors");
     clearTimeout(dodo);
@@ -2212,6 +2414,7 @@
       if (diagnosticGrille.appliques.length > 12) diagnosticGrille.appliques.shift();
     }
   });
+  window.__pcvZoomAccueil = (d) => zoomer(d);
   const PINCE = { seuil: 1.25, apres: 400 };
   const pincer = (el, pas, permis = () => true) => {
     const doigts = /* @__PURE__ */ new Map();
@@ -2268,13 +2471,13 @@
       if (!vu(b)) return;
       if (!vu(a)) {
         e.animate(
-          [{ opacity: 0, transform: `scale(${ANIM.entree})` }, { opacity: 1, transform: "none" }],
+          [{ opacity: 0, scale: ANIM.entree }, { opacity: 1, scale: 1 }],
           { duration: ANIM.duree, easing: ANIM.courbe, delay: Math.min(ANIM.pasMax, n++ * ANIM.pasMs), fill: "backwards" }
         );
         return;
       }
       e.animate(
-        [{ transform: `translate(${a.left + a.width / 2 - b.left - b.width / 2}px, ${a.top + a.height / 2 - b.top - b.height / 2}px) scale(${a.width / b.width})` }, { transform: "none" }],
+        [{ translate: `${a.left + a.width / 2 - b.left - b.width / 2}px ${a.top + a.height / 2 - b.top - b.height / 2}px`, scale: a.width / b.width }, { translate: "none", scale: 1 }],
         { duration: ANIM.duree, easing: ANIM.courbe }
       );
     });
@@ -2668,11 +2871,20 @@
       return monter();
     }
     if (b === 3) {
-      if (porte >= 0 || badgeMain != null) return window.__pcvSon?.("bord");
+      if (porte >= 0) return poser();
+      if (badgeMain != null) return window.__pcvSon?.("bord");
       if (reserve.ancreDe.has(sel)) sel = reserve.ancreDe.get(sel);
       if (libre(cases[sel])) return caseLibre(sel);
       const a = appDe(cases[sel]);
       if (a) return menuJeu(a, sel);
+      const g = appliDe(cases[sel])?.greffon;
+      if (g) return window.__pcvDossiers?.choix(sel, [
+        { ic: "ranger", nom: T("console.ranger"), faire: () => {
+          prendre(sel);
+          dessiner();
+        } },
+        { ic: "epingle", nom: T("greffons.desepingler"), faire: () => epinglerGreffon(g.name, false) }
+      ]);
       prendre(sel);
       dessiner();
       return;
@@ -2910,6 +3122,8 @@
   const DOIGT = {
     seuil: 14,
     // px : déplacement avant de décider (horizontal = balayage, vertical = rien, immobile = appui long)
+    pas: 8,
+    // px : au-delà, plus un appui (le « touch slop » d'Android, comme PAS de steam-bridge.js) : la tuile ne s'ouvre pas
     traceMs: 80,
     // ms : fenêtre de mesure de la vitesse au lâcher
     arretMs: 60,
@@ -3030,6 +3244,7 @@
     if (!appui) return;
     appui.x = e.clientX;
     appui.y = e.clientY;
+    appui.loin ||= Math.hypot(appui.x - appui.x0, appui.y - appui.y0) > DOIGT.pas;
     if (appui.balaye) return balayer(e);
     if (!appui.long) {
       const dx = appui.x - appui.x0, dy = appui.y - appui.y0;
@@ -3083,6 +3298,7 @@
       if (d.quoi === "retour") window.__pcvSon?.("retour");
       return vers ? poserFantome(f, vers, fin, d.quoi === "dossier" || d.quoi === "sortie") : (f?.remove(), fin());
     }
+    if (a.loin) return;
     entrer();
     sel = a.i;
     marquer();
@@ -3485,7 +3701,7 @@
     else {
       const a = c && appDe(c), la = !!a && ici(a), vide = !c || libre(c);
       const verbe = a ? window.__pcvTelech?.dans(a.appid) ? T("telech.voir") : la ? T("accueil.jouer") : T("biblio.installer") : c && (appliDe(c) || c.dossier || appliDuBadge(c.bd)) ? T("console.ouvrir") : "";
-      l.push(verbe && [1, verbe], vue && [2, R], [3, a || vide ? T("touche.options") : T("console.ranger")], [4, T("spaces.place.nom")], [13, T("console.dispositions")], [[7, 8], T("biblio.lettre")]);
+      l.push(verbe && [1, verbe], vue && [2, R], [3, a || vide ? T("touche.options") : T("touche.deplacer")], [4, T("spaces.place.nom")], [13, T("console.dispositions")], [[7, 8], T("biblio.lettre")]);
     }
     window.__pcvIcones.poser($(".bas"), l);
   };
@@ -3494,14 +3710,25 @@
   let etaitVisible = false;
   let dernierTour = Date.now(), ecranAvant = false;
   const tourConsole = () => {
-    if (!racine.hidden) touches();
+    const connecte = window.__pcvDemarrage?.connexionPassee() !== false;
+    if (!racine.hidden && connecte) touches();
     const maintenant = Date.now();
     if (maintenant - dernierTour > 2e4) window.__pcvAccueilPose = false;
     dernierTour = maintenant;
-    const visible = window.__pcvDemarrage?.connexionPassee() !== false && /^\/routes\/library\/home/.test(O.location.pathname) && mode() === "nouvelle" && (!!O.appStore?.allApps?.length || bibliothequePrete()) && !window.__pcvJeuDevant;
-    if (racine.hidden !== !visible) {
-      racine.hidden = !visible;
+    const pret = /^\/routes\/library\/home/.test(O.location.pathname) && mode() === "nouvelle" && (!!O.appStore?.allApps?.length || bibliothequePrete()) && !window.__pcvJeuDevant, visible = connecte && pret;
+    const sous = !connecte && pret;
+    if (racine.hidden !== !(visible || sous)) {
+      racine.hidden = !(visible || sous);
       prochesPlus();
+    }
+    if (racine.style.visibility === "hidden" !== sous) racine.style.visibility = sous ? "hidden" : "";
+    if (sous && (signatureGrille() !== sigGrille || grille.children.length !== cases.length)) {
+      jeuxChanges = false;
+      construireCases();
+      infosDe = -1;
+      decal = -1;
+      debut();
+      dessiner(false);
     }
     if (!visible && etaitVisible) {
       window.__pcvZone = void 0;
@@ -3541,7 +3768,6 @@
       } else marquer(false);
       window.__pcvAccueilPose = true;
       signaler();
-      window.__pcvMusique?.("home-menu");
     } else if (visible && vueFamille !== familleTheme() && !appui) dessiner();
     else if (visible && (changementJeux || vueJeux && vueJeux !== reglageJeux() + "|" + versionUnifideck()) && porte < 0 && !appui && !deco) {
       jeuxChanges = false;
@@ -3552,12 +3778,76 @@
       dessiner();
     }
     if (visible) window.__pcvBridge?.unifideck?.charger();
+    if (visible && !window.__pcvAccueilAffiche) requestAnimationFrame(() => {
+      if (!window.__pcvAccueilAffiche) window.__pcvAccueilAffiche = Date.now();
+    });
     if (visible) window.__pcvDemarrage?.accueilPret();
+    if (visible && poseGreffon && !window.__pcvMenuOuvert?.()) {
+      const i = cases.findIndex((c) => c.appli === poseGreffon);
+      poseGreffon = null;
+      if (i >= 0) {
+        sel = i;
+        marquer(false);
+        poseTuile(grille.children[i], 0);
+      }
+    }
     etaitVisible = visible;
   };
-  window.__pcvConsole = setInterval(tourConsole, 150);
+  window.__pcvConsole = setInterval(() => {
+    fermSuivre();
+    tourConsole();
+  }, 150);
   O.navigation?.removeEventListener("currententrychange", O.__pcvConsoleNav);
   O.navigation?.addEventListener("currententrychange", O.__pcvConsoleNav = () => setTimeout(tourConsole, 0));
+  const PLATEFORMES = [
+    { id: "steam", nom: "Steam", couleur: "#1a6fb0", reconnait: (a) => a.app_type === 1 && !raccourci(a) },
+    { id: "switch", nom: "Nintendo Switch", couleur: "#c4000f", extension: /\.(?:nsp|xci)(?=$|[\s"'?&#])/i, motif: /\b(?:eden|ryujinx|yuzu)\b/i },
+    { id: "wiiu", nom: "Wii U", couleur: "#0083b0", extension: /\.(?:wua|rpx|wud|wux)(?=$|[\s"'?&#])/i, motif: /\bcemu\b/i },
+    { id: "3ds", nom: "Nintendo 3DS", couleur: "#b51d22", extension: /\.(?:3ds|cia)(?=$|[\s"'?&#])/i, motif: /\b(?:azahar|citra|lime3ds)\b/i },
+    { id: "ds", nom: "Nintendo DS", couleur: "#5f6b7a", extension: /\.nds(?=$|[\s"'?&#])/i, motif: /\bmelonds\b/i },
+    { id: "dolphin", nom: "Wii et GameCube", couleur: "#2a8fc4", logos: ["wii", "gamecube"], motif: /\bdolphin(?:-emu)?\b/i },
+    { id: "gog", nom: "GOG", couleur: "#6c2a70", reconnait: (a, t) => /\bheroic\b/i.test(t) && /\brunner\s*=\s*["']?gog\b/i.test(t) || unifideck("gog", t) },
+    { id: "epic", nom: "Epic Games", couleur: "#2f55a8", reconnait: (a, t) => /\bheroic\b/i.test(t) && /\brunner\s*=\s*["']?legendary\b/i.test(t) || unifideck("epic", t) },
+    { id: "amazon", nom: "Amazon Games", couleur: "#c97a00", reconnait: (a, t) => /\bheroic\b/i.test(t) && /\brunner\s*=\s*["']?nile\b/i.test(t) || unifideck("amazon", t) },
+    { id: "ubisoft", nom: "Ubisoft Connect", couleur: "#0058d0", reconnait: (a, t) => /\bbottles(?:-cli)?\b/i.test(t) && /\bubisoft\b/i.test(t) || unifideck("ubisoft", t) },
+    { id: "geforcenow", nom: "GeForce NOW", couleur: "#5e9400", motif: /\bgeforce[\s-]*now\b|\bgeforcenow\b/i },
+    { id: "xbox", nom: "Xbox Cloud", couleur: "#0e6b0e", motif: /\bxbox-cloud\b|\bxbox\.com\/[a-z-]*\/?play\b|\bxbox\.com\/play\b/i },
+    { id: "android", nom: "Android", couleur: "#2a8a47", motif: /\bmcpelauncher\b|\bwaydroid\b/i }
+  ];
+  const PC = { id: "steamu", nom: "SteamU", couleur: "#1a8fe0" };
+  const unifideck = (b, t) => /\bunifideck-launcher\b/i.test(t) && new RegExp(`(?:^|\\s)${b}:`, "i").test(t);
+  const EDITEURS = [
+    [/ubisoft/i, "ubisoft", "#0058d0"],
+    [/electronic arts|\bea\b/i, "editeur-ea", "#c73a3a"],
+    [/activision/i, "editeur-activision", "#3d3d3d"],
+    [/square enix/i, "editeur-squareenix", "#b5121b"],
+    [/cd projekt/i, "editeur-cdprojekt", "#9e1b25"],
+    [/\b2k\b/i, "editeur-2k", "#3d3d3d"],
+    [/warner/i, "editeur-warnerbros", "#0047a6"],
+    [/valve/i, "editeur-valve", "#a3361d"],
+    [/konami/i, "editeur-konami", "#b5121b"],
+    [/paradox/i, "editeur-paradoxinteractive", "#a3271e"],
+    [/sony|playstation/i, "editeur-sony", "#2457c5"],
+    [/riot/i, "editeur-riotgames", "#c4161c"],
+    [/sega/i, "editeur-sega", "#0072bc"],
+    [/nintendo/i, "editeur-nintendo", "#c4000f"],
+    [/rockstar/i, "editeur-rockstargames", "#c97a00"],
+    [/epic games/i, "epic", "#2f55a8"],
+    [/microsoft|xbox/i, "xbox", "#0e6b0e"],
+    [/amazon/i, "amazon", "#c97a00"]
+  ];
+  const EDITEUR = {};
+  const HEROIC = {};
+  const plateformeJeu = (a, d) => {
+    if (!a) return null;
+    let texte2 = [d?.strShortcutExe, d?.strShortcutLaunchOptions, d?.strLaunchOptions].filter(Boolean).join(" ");
+    try {
+      texte2 = decodeURIComponent(texte2);
+    } catch (e) {
+    }
+    if (!raccourci(a)) return PLATEFORMES.find((p) => p.reconnait?.(a, "")) || null;
+    return PLATEFORMES.find((p) => p.extension?.test(texte2)) || PLATEFORMES.find((p) => p.reconnait ? p.reconnait(a, texte2) : p.motif.test(texte2)) || (d ? PC : null);
+  };
   const LANCEMENT = {
     min: 1e3,
     max: 1500,
@@ -3567,6 +3857,8 @@
     // préparation bornée, animation habituelle sinon
     jeuMax: 6e4,
     essai: 3e3,
+    // (16/11) un jeu d'Unifideck qui prépare son préfixe ou ses bibliothèques : jusqu'à 3 min sans nouvelle étape
+    etapeMax: 18e4,
     // (29/10, l'auteur : « la boutique s'ouvre beaucoup trop vite », la musique d'attente à peine entendue)
     eshop: { min: 6e3, pret: 2e3 }
   };
@@ -3587,7 +3879,6 @@
     #pcv-lancement.sort { opacity: 0; transition: opacity ${LANCEMENT.sortie}ms ease-in; }
     #pcv-lancement .ic { position: relative; width: calc(var(--u) * 168); height: calc(var(--u) * 168); border-radius: calc(var(--u) * 30);
       animation: pcvLancVol .3s cubic-bezier(.2,.8,.25,1) both; will-change: transform; }
-    #pcv-lancement.jeu .ic { border-radius: calc(var(--u) * var(--arr)); }
     #pcv-lancement .ic .fond { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; background: var(--fond); background-size: cover; background-position: center;
       box-shadow: inset 0 3px 1px color-mix(in srgb, var(--pcv-carte) 70%, transparent), 0 0 0 calc(var(--u) * 5) var(--pcv-lisere);
       -webkit-box-reflect: below calc(var(--u) * 7) linear-gradient(transparent 62%, rgba(0,0,0,.24)); display: flex; align-items: center; justify-content: center; }
@@ -3597,7 +3888,47 @@
     #pcv-lancement .ic .halo { position: absolute; inset: calc(var(--u) * -10); border-radius: calc(var(--u) * 38);
       box-shadow: 0 0 0 calc(var(--u) * 6) var(--lanc-a), 0 0 calc(var(--u) * 34) calc(var(--u) * 12) color-mix(in srgb, var(--lanc-a) 55%, transparent);
       animation: pcvLancSouffle 1s ease-in-out infinite; will-change: opacity, transform; }
-    #pcv-lancement.jeu .ic .halo { border-radius: calc(var(--u) * (var(--arr) + 10)); }
+    #pcv-lancement .decor-jeu, #pcv-lancement .plateforme { display: none; }
+    #pcv-lancement.jeu { background: var(--pcv-fond-page); }
+    #pcv-lancement.jeu > :not(style):not(.decor-jeu):not(.plateforme) { display: none; }
+    #pcv-lancement.jeu .decor-jeu { display: block; position: absolute; inset: 0; background-size: cover; background-position: center; }
+    #pcv-lancement.jeu .plateforme:not(:empty) { --h: calc(var(--u) * 132); --lt: 2.2s cubic-bezier(.25,.8,.3,1) both; display: block; position: absolute;
+      left: calc(var(--u) * 32); top: calc(var(--u) * 28); color: var(--pcv-texte); animation: pcvLancTuile var(--lt); }
+    
+    #pcv-lancement .plateforme .f { display: block; overflow: hidden; border-radius: calc(var(--h) * .2); }
+    #pcv-lancement .plateforme .f1 { animation: pcvLancF1 var(--lt); }
+    #pcv-lancement .plateforme .f2 { animation: pcvLancF2 var(--lt); }
+    #pcv-lancement .plateforme .f3 { animation: pcvLancF3 var(--lt); }
+    #pcv-lancement .plateforme .f4 { animation: pcvLancF4 var(--lt); }
+    #pcv-lancement .plateforme .verre { display: flex; position: relative; align-items: center; height: calc(var(--h) * 1.18); overflow: hidden; box-sizing: border-box;
+      border-radius: calc(var(--h) * .2); border: calc(var(--h) * .045) solid var(--pcv-lisere);
+      background: radial-gradient(ellipse at 20% 5%, color-mix(in srgb, var(--pcv-relief-couleur) var(--pcv-relief-franc), var(--pcv-carte)), var(--pcv-creux));
+      box-shadow: var(--pcv-reflet), var(--pcv-ombre); animation: pcvLancF1 var(--lt); }
+    
+    #pcv-lancement .plateforme .pcv-marque-relief { --pcv-relief-taille: calc(var(--h) * .91); flex: none; border: 0; background: none; box-shadow: none; }
+    
+    #pcv-lancement .plateforme .pcv-marque-relief::before, #pcv-lancement .plateforme .pcv-marque-relief::after { content: none; }
+    #pcv-lancement.jeu .plateforme .verre::before, #pcv-lancement.jeu .plateforme .verre::after { content: ""; position: absolute; width: calc(var(--h) * .13); height: calc(var(--h) * .13);
+      border-radius: 30%; background: color-mix(in srgb, var(--pcv-relief-couleur) 25%, var(--pcv-verre-haut)); box-shadow: var(--pcv-reflet); }
+    #pcv-lancement.jeu .plateforme .verre::before { top: calc(var(--h) * .06); left: calc(var(--h) * .06); transform: rotate(-12deg); }
+    #pcv-lancement.jeu .plateforme .verre::after { right: calc(var(--h) * .07); bottom: calc(var(--h) * .07); transform: rotate(12deg); }
+    #pcv-lancement .plateforme .pcv-marque-relief > svg { width: 56%; height: 56%; fill: currentColor; stroke: none; filter: none; }
+    
+    html:is([data-pcv-apparence="gris"], [data-pcv-apparence="noir"]) #pcv-lancement .plateforme .pcv-marque-relief > svg { color: var(--pcv-relief-lumiere); }
+    #pcv-lancement .plateforme .texte { flex: none; padding: 0 calc(var(--u) * 34) 0 calc(var(--u) * 6); white-space: nowrap; animation: pcvLancNom .5s 1.15s ease-out both; }
+    #pcv-lancement .plateforme b { display: block; font-size: calc(var(--u) * 36); font-weight: 900; line-height: 1.1; max-width: calc(var(--u) * 820); overflow: hidden; text-overflow: ellipsis; }
+    #pcv-lancement .plateforme small { display: block; margin-top: calc(var(--u) * 4); font-size: calc(var(--u) * 21); font-weight: 800; color: var(--pcv-texte2); }
+    #pcv-lancement .plateforme small.etape:empty { display: none; }
+    
+    @keyframes pcvLancTuile { 0% { opacity: 0; transform: scale(.6); } 11% { opacity: 1; transform: scale(1.04); } 18%, 100% { transform: none; } }
+    @keyframes pcvLancF1 { 0%, 50% { transform: translateY(calc(var(--h) * .09)); } 82%, 100% { transform: none; } }
+    @keyframes pcvLancF2 { 0%, 50% { transform: translateX(calc(var(--h) - var(--w))); } 82%, 100% { transform: none; } }
+    @keyframes pcvLancF3 { 0%, 50% { transform: translateY(calc(var(--h) * -.18)); } 82%, 100% { transform: none; } }
+    @keyframes pcvLancF4 { 0%, 50% { transform: translateX(calc(var(--w) - var(--h))); } 82%, 100% { transform: none; } }
+    @keyframes pcvLancCoin { 0%, 50% { transform: translate(calc(var(--h) - var(--w)), calc(var(--h) * -.09)) rotate(12deg); } 82%, 100% { transform: rotate(12deg); } }
+    #pcv-lancement.jeu .plateforme .verre::after { animation: pcvLancCoin var(--lt); }
+    @keyframes pcvLancNom { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { #pcv-lancement.jeu .plateforme, #pcv-lancement .plateforme :is(.f, .verre, .texte), #pcv-lancement .plateforme .verre::after { animation: none; } }
     
     #pcv-lancement .nom { margin-top: calc(var(--u) * 78); max-width: 70%; text-align: center; color: color-mix(in srgb, var(--lanc-a) 55%, var(--pcv-texte)); font-size: calc(var(--u) * 24); font-weight: 800;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: pcvLancFond .2s .12s ease-out backwards; }
@@ -3626,7 +3957,7 @@
     @keyframes pcvLancFond { from { opacity: 0 } }
     @keyframes pcvLancVol { from { transform: translate(var(--dx, 0), var(--dy, 0)) scale(var(--s, .6)); } }
     @keyframes pcvLancSouffle { 0%, 100% { opacity: .35; transform: scale(.985); } 50% { opacity: 1; transform: scale(1.025); } }
-  </style><div class="eshop" aria-hidden="true"></div><div class="ic"><div class="halo"></div><div class="fond"></div></div><div class="nom"></div><div class="etat" role="status"></div>`;
+  </style><div class="decor-jeu" aria-hidden="true"></div><div class="plateforme" aria-hidden="true"></div><div class="eshop" aria-hidden="true"></div><div class="ic"><div class="halo"></div><div class="fond"></div></div><div class="nom"></div><div class="etat" role="status"></div>`;
   document.body.appendChild(lanc);
   window.__pcvFond?.(lanc);
   const ESHOP_DECO = [
@@ -3641,7 +3972,84 @@
   const lancEshop = lanc.querySelector(".eshop");
   const lancIc = lanc.querySelector(".ic"), lancNom = lanc.querySelector(".nom"), lancStatut = lanc.querySelector(".etat");
   let lancFond = lanc.querySelector(".fond");
+  let lancDecor = lanc.querySelector(".decor-jeu");
+  const lancMarque = lanc.querySelector(".plateforme");
+  const lancIllustrer = async (a, decor) => {
+    const courant = () => lancDecor === decor && !lanc.hidden;
+    const marque = () => {
+      let d;
+      try {
+        d = O.appDetailsStore?.GetAppDetails?.(a.appid);
+      } catch (e) {
+      }
+      let p = plateformeJeu(a, d);
+      if (p === PC && HEROIC[a.appid]) p = PLATEFORMES.find((x) => x.id === HEROIC[a.appid]) || p;
+      if (p === PC && EDITEUR[a.appid]) p = EDITEUR[a.appid];
+      else if (p === PC && !(a.appid in EDITEUR) && !(/\/heroic\//i.test(d?.strShortcutExe || "") && !(a.appid in HEROIC))) {
+        EDITEUR[a.appid] = null;
+        O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "editeur_jeu", a.display_name || "").then((nom) => {
+          const e = nom && EDITEURS.find(([r]) => r.test(nom));
+          if (!nom) return;
+          EDITEUR[a.appid] = e ? { id: e[1], nom, couleur: e[2] } : { ...PC, nom };
+          if (courant()) marque();
+        }).catch(() => {
+        });
+      } else if (p === PC && !(a.appid in HEROIC) && /\/heroic\//i.test(d?.strShortcutExe || "")) {
+        HEROIC[a.appid] = null;
+        O.DeckyBackend?.call("loader/call_plugin_method", window.__pcvGreffon.nom, "heroic_boutique", d.strShortcutExe).then((b) => {
+          if (!b) return;
+          HEROIC[a.appid] = b;
+          if (courant()) marque();
+        }).catch(() => {
+        });
+      }
+      if (p && p === lancMarque.__pcvP && lancMarque.firstChild) return;
+      lancMarque.__pcvP = p;
+      lancMarque.innerHTML = "";
+      if (!p) return;
+      lancMarque.style.setProperty("--pcv-relief-couleur", p.couleur);
+      lancMarque.innerHTML = `<span class="f f1"><span class="f f2"><span class="f f3"><span class="f f4"><span class="verre"><span class="pcv-marque-relief"><i></i>${p.id === "steamu" ? window.__pcvIcones?.svg?.("logo-u") || "" : (p.logos || [p.id]).map((id) => window.__pcvLogosPlateformes?.[id] || "").join("")}</span><span class="texte"><b></b><small></small><small class="etape"></small></span></span></span></span></span></span>`;
+      lancMarque.querySelector("b").textContent = a.display_name || "";
+      lancMarque.querySelector("small").textContent = p.nom;
+      lancMarque.querySelector(".etape").textContent = lancEtape;
+      if (!lanc.hidden) lancMarque.style.setProperty("--w", lancMarque.offsetWidth + "px");
+    };
+    marque();
+    const details = imagesDetails(a.appid).then(([, h2]) => {
+      if (courant()) marque();
+      return h2;
+    });
+    const charger = (urls) => Promise.all([...new Set(urls.filter(Boolean).map(absolu))].map((url) => new Promise((ok) => {
+      const im = new Image();
+      im.onload = () => ok({ url, aire: im.naturalWidth * im.naturalHeight });
+      im.onerror = () => ok(null);
+      im.src = url;
+    })));
+    const nonSteam = raccourci(a);
+    const heros = [...perso("GetCustomHeroImageURLs", a), ...nonSteam ? [] : [IMG(a.appid, "library_hero.jpg"), CDN(a.appid, "library_hero.jpg")]];
+    let image = (await charger(heros)).find(Boolean);
+    if (!image) image = (await charger(await details)).find(Boolean);
+    if (!image) image = (await charger([
+      ...perso("GetCustomLandcapeImageURLs", a),
+      ...imagesJeu(a),
+      ...nonSteam ? [] : [IMG(a.appid, "header.jpg"), CDN(a.appid, "capsule_616x353.jpg")]
+    ])).filter(Boolean).sort((a2, b) => b.aire - a2.aire)[0];
+    if (courant() && image) decor.style.backgroundImage = urlCss(image.url);
+  };
   let lancTic = 0, lancFin = 0, lancEtat = null;
+  let lancEtape = "";
+  const lancEtapeMontrer = (texte2) => {
+    const e = lancEtat;
+    if (!e?.jeu || !texte2) return false;
+    lancEtape = e.etape = String(texte2);
+    e.depuis = Date.now();
+    if (lancRetour?.appid === e.appid) lancRetour.etape = lancEtape;
+    noter({ etape: lancEtape });
+    lancStatut.textContent = lancEtape;
+    const s = lancMarque.querySelector(".etape");
+    if (s) s.textContent = lancEtape;
+    return true;
+  };
   const lancRetirer = (vite, pourquoi) => {
     if (!lancEtat) return;
     if (lancEtat.jeu) noter({ retire: pourquoi || "?" });
@@ -3681,10 +4089,14 @@
     lancNom.textContent = nom || "";
     lancStatut.textContent = jeu ? T("console.lancement") : appli === "eshop" ? T("console.eshop_attente") : "";
     lanc.classList.toggle("jeu", !!jeu);
-    if (jeu) {
-      lancIc.style.setProperty("--arr", window.__pcvJeux.cotes(168, 0).arr);
-      window.__pcvJeux.peindre(lancFond, jeu, 168);
-    }
+    const decorNeuf = document.createElement("div");
+    decorNeuf.className = "decor-jeu";
+    lancDecor.replaceWith(decorNeuf);
+    lancDecor = decorNeuf;
+    lancMarque.innerHTML = "";
+    lancEtape = "";
+    if (jeu) lancIllustrer(jeu, decorNeuf).catch(() => {
+    });
     const r = depuis?.getBoundingClientRect?.(), u = innerHeight / 800, L = 168 * u;
     const cx = innerWidth / 2, cy = innerHeight / 2 - 56 * u;
     if (r && r.width) {
@@ -3702,6 +4114,7 @@
     lanc.classList.remove("sort");
     lanc.hidden = false;
     void lanc.offsetWidth;
+    if (jeu && lancMarque.firstChild) lancMarque.style.setProperty("--w", lancMarque.offsetWidth + "px");
   };
   const lancSurveiller = () => {
     clearInterval(lancTic);
@@ -3711,7 +4124,7 @@
       if (lancModale()) return lancRetirer(false, "fenetre");
       const age = Date.now() - e.depuis;
       if (e.jeu) {
-        if (pageAct() !== e.page && !pageSteam(e.appid) && !EN_COURS.test(pageAct()) || age > LANCEMENT.jeuMax) lancRetirer(false, "page " + pageAct());
+        if (pageAct() !== e.page && !pageSteam(e.appid) && !EN_COURS.test(pageAct()) || age > (e.etape ? LANCEMENT.etapeMax : LANCEMENT.jeuMax)) lancRetirer(false, "page " + pageAct());
         return;
       }
       let pret = e.preparee === true;
@@ -3823,10 +4236,11 @@
     noter({ retour: r.page });
     window.__pcvBridge?.revenirA?.(r.page);
   };
-  const tourne = (id) => O.SteamUIStore.RunningApps.some((x) => +x.appid === id);
+  const tourne = (id) => O.SteamUIStore.RunningApps.some((x) => +x.appid === id) && !window.__pcvBridge?.outilFini?.(id);
   const suivreLancement = (id) => {
     const r = lancRetour;
     if (outil(id)) return void noter({ outil: id });
+    if (fermJeu && +fermJeu.appid === id) fermJeu = null;
     if (r?.appid === id && Date.now() - r.t0 < 5e3) return;
     if (r?.appid === id && tourne(id)) return lancGarder(LANCEMENT.jeuMax);
     journal.length = 0;
@@ -3834,15 +4248,46 @@
     noter({ lance: id, depuis: lancRetour.page });
     lancGarder(LANCEMENT.jeuMax);
   };
+  const OUTIL_MAX = 3e4, OUTIL_RETRAIT = 400;
+  let outilCouvert = false;
+  const couvrirOutil = (p) => {
+    const id = +p.match(PAGE_STEAM)?.[1];
+    if (id && outil(id)) {
+      if (fermEtat) return;
+      outilCouvert = true;
+      fermImage.style.backgroundImage = "";
+      fermeture.querySelector(".texte").textContent = "";
+      fermBulle.hidden = true;
+      fermeture.hidden = false;
+      return;
+    }
+    if (outilCouvert) setTimeout(() => {
+      if (!outilCouvert || PAGE_STEAM.test(pageAct()) && outil(+pageAct().match(PAGE_STEAM)[1])) return;
+      outilCouvert = false;
+      if (!fermEtat) fermeture.hidden = true;
+    }, OUTIL_RETRAIT);
+  };
+  const quitterOutil = (id) => {
+    outilsVus.delete(id);
+    const h2 = O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance?.m_history;
+    window.__pcvBridge?.revenirA?.(h2?.entries?.[h2.index - 1]?.pathname || "/library/home");
+  };
+  const outilDevant = (id, fin) => {
+    if (Date.now() > fin || pageSteam(id) || EN_COURS.test(pageAct()) || window.__pcvBridge?.outilFini?.(id)) return;
+    if (!tourne(id)) return void setTimeout(() => outilDevant(id, fin), 500);
+    noter({ outilDevant: id });
+    window.__pcvBridge?.allerAuJeuEnCours?.();
+  };
   const outilsVus = /* @__PURE__ */ new Set();
   const versFiche = () => {
     const id = +pageAct().match(PAGE_STEAM)?.[1];
     if (id && outil(id)) {
-      if (!outilsVus.has(id)) return void outilsVus.add(id);
-      if (tourne(id)) return;
-      outilsVus.delete(id);
-      const h2 = O.SteamUIStore.WindowStore.GamepadUIMainWindowInstance?.m_history;
-      return void window.__pcvBridge?.revenirA?.(h2?.entries?.[h2.index - 1]?.pathname || "/library/home");
+      if (!outilsVus.has(id)) {
+        outilsVus.add(id);
+        return void setTimeout(() => pageSteam(id) && !tourne(id) && quitterOutil(id), OUTIL_MAX);
+      }
+      if (!tourne(id)) quitterOutil(id);
+      return;
     }
     if (id !== pageVoulue) pageVoulue = 0;
     if (!id || id === pageVoulue || lancRetour?.appid === id && Date.now() <= lancRetour.fin || lancModale() || !apps().has(id)) return;
@@ -3856,13 +4301,13 @@
     noter({ echec: raison || "arr\xEAt\xE9" });
     recents.delete(id);
     if (raison === "AppError_16") return void setTimeout(() => window.__pcvJeuDevant || dejaLance(id), 1500);
-    const a = apps().get(id);
+    const a = apps().get(id), etape = lancRetour?.appid === id && lancRetour.etape;
     window.__pcvDossiers?.demander?.({
       ailleurs: true,
       ic: "reglages",
       svg: window.__pcvIcones.trace("info"),
       titre: T("console.echec_titre"),
-      texte: T("console.echec_texte", { nom: nomJeu(id) }),
+      texte: T("console.echec_texte", { nom: nomJeu(id) }) + (etape ? " " + T("console.echec_etape", { etape }) : ""),
       non: T("dispo.fermer"),
       oui: T("console.reessayer"),
       ok: () => a && jouerJeu(a)
@@ -3902,7 +4347,7 @@
         const appid = appDeGid(gid);
         suivreLancement(appid);
         lancJeu(appid, id);
-      }
+      } else if (/stop|exit/i.test(String(action))) fermCommencer(appDeGid(gid));
     })),
     // (22/10) la fin de l'action de Steam ne retire l'écran que si le jeu n'a pas démarré (lancement annulé) : elle arrive
     // dès que le jeu est parti, bien avant sa première image (retiré 0,8 s après : le rond de Steam se voyait ensuite)
@@ -3918,6 +4363,8 @@
     })),
     abo(() => SC.GameSessions.RegisterForAppLifetimeNotifications((n) => {
       const r = lancRetour;
+      if (!n?.bRunning && outil(+n?.unAppID)) setTimeout(versFiche, 0);
+      if (n?.bRunning && outil(+n?.unAppID)) outilDevant(+n.unAppID, Date.now() + OUTIL_MAX);
       if (r?.appid === +n?.unAppID) {
         noter({ tourne: !!n.bRunning });
         r.fini = !n.bRunning;
@@ -3936,16 +4383,120 @@
     }
     couvrir();
   });
+  document.getElementById("pcv-fermeture")?.remove();
+  const fermeture = document.createElement("div");
+  fermeture.id = "pcv-fermeture";
+  fermeture.hidden = true;
+  fermeture.innerHTML = `<style>
+    #pcv-fermeture { position: fixed; inset: 0; z-index: 9701; pointer-events: none; }
+    #pcv-fermeture[hidden] { display: none; }
+    
+    #pcv-fermeture .image { position: absolute; inset: 0; background: var(--pcv-fond-page); background-size: cover; background-position: center; background-repeat: no-repeat; transform-origin: 0 0; }
+    #pcv-fermeture .ombre { position: absolute; inset: 0; background: var(--pcv-noir, #000); opacity: .68; }
+    #pcv-fermeture .attente { position: absolute; inset: 0; color: var(--pcv-blanc, #fff); }
+    #pcv-fermeture .coin { position: absolute; right: 3vw; bottom: 3vh; width: 8vh; height: 8vh; border-radius: 2vh; background: var(--pcv-carte); display: grid; place-items: center; }
+    #pcv-fermeture .texte { position: absolute; left: 3vw; bottom: 4.4vh; font-size: 2.4vh; font-weight: 800; }
+    #pcv-fermeture .bulle { position: absolute; max-width: 80vw; padding: 1vh 2vh; border-radius: 3vh; background: var(--pcv-carte); color: var(--pcv-texte); text-align: center; transform: translateX(-50%); }
+    #pcv-fermeture .bulle small { display: block; color: var(--pcv-texte2); }
+  </style><div class="image"><div class="ombre"></div></div><div class="attente"><span class="texte" role="status"></span><span class="coin">${window.__pcvChargement?.html() || ""}</span></div><div class="bulle" hidden><b></b><small></small></div>`;
+  document.body.appendChild(fermeture);
+  const fermImage = fermeture.querySelector(".image"), fermAttente = fermeture.querySelector(".attente"), fermBulle = fermeture.querySelector(".bulle");
+  let fermEtat = null, fermJeu = null;
+  const FERMETURE_MAX = 2e4;
+  const fermNettoyer = () => {
+    fermEtat = null;
+    fermeture.hidden = true;
+    fermeture.querySelectorAll("*").forEach((e) => e.getAnimations().forEach((a) => a.cancel()));
+  };
+  const fermCommencer = (id) => {
+    if (fermEtat?.id === +id || outil(id)) return;
+    fermNettoyer();
+    lancRetirer(true, "fermeture");
+    const a = O.appStore.GetAppOverviewByAppID(+id);
+    if (!a) return;
+    const e = fermEtat = { id: +id, a, depuis: Date.now(), range: false };
+    setTimeout(() => {
+      if (fermEtat === e && !e.range) {
+        noter({ fermeture: "trop longue" });
+        fermNettoyer();
+      }
+    }, FERMETURE_MAX);
+    const photo = O.__pcvPhotoJeu;
+    fermImage.style.backgroundImage = photo?.appid === +id && photo.net ? urlCss(photo.net) : imageJeu(a);
+    fermeture.querySelector(".texte").textContent = T("console.fermeture", { nom: a.display_name });
+    fermBulle.hidden = true;
+    fermeture.hidden = false;
+    fermImage.firstChild.animate([{ opacity: 0 }, { opacity: 0.68 }], { duration: ANIM.sortie, fill: "forwards" });
+    window.__pcvApparition?.(fermAttente);
+  };
+  window.__pcvFermerJeu = fermCommencer;
+  const fermRanger = () => {
+    const e = fermEtat;
+    if (!e || e.range || window.__pcvJeuDevant) return;
+    e.range = true;
+    O.__pcvAller?.("accueil");
+    setTimeout(() => {
+      if (fermEtat !== e) return;
+      const k = cases.findIndex((c) => c?.app === e.id), tuile = k >= 0 && !racine.hidden && !vue ? grille.children[k] : null;
+      const r = tuile?.getBoundingClientRect();
+      const visible = r && r.width > 0 && r.height > 0 && r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight;
+      const cible2 = visible ? `translate(${r.left}px, ${r.top}px) scale(${r.width / innerWidth}, ${r.height / innerHeight})` : `translate(${innerWidth / 2}px, ${innerHeight / 2}px) scale(0)`;
+      const duree = matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : ANIM.duree;
+      fermAttente.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ANIM.sortie, fill: "forwards" });
+      fermImage.firstChild.animate([{ opacity: 0.68 }, { opacity: 0 }], { duration: duree, fill: "forwards" });
+      fermImage.animate(
+        [{ transform: "none", opacity: 1 }, { transform: cible2, opacity: visible ? 1 : 0 }],
+        { duration: duree, easing: ANIM.courbe, fill: "forwards" }
+      ).onfinish = () => {
+        if (fermEtat !== e) return;
+        fermImage.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ANIM.sortie, fill: "forwards" });
+        if (!visible) return fermNettoyer();
+        const decalAvant = decal;
+        sel = k;
+        marquer(false);
+        decal = decalAvant;
+        placer();
+        fermBulle.querySelector("b").textContent = e.a.display_name;
+        fermBulle.querySelector("small").textContent = T("console.temps_de_jeu", { temps: h(e.a.minutes_playtime_forever || 0) });
+        Object.assign(fermBulle.style, { left: `${r.left + r.width / 2}px`, top: `${r.bottom + 16 * innerHeight / 800}px` });
+        fermBulle.hidden = false;
+        window.__pcvApparition?.(fermBulle);
+        setTimeout(() => {
+          if (fermEtat !== e) return;
+          window.__pcvApparition?.(fermBulle, true);
+          fermNettoyer();
+        }, 2500);
+      };
+    }, Math.max(180, 250 - (Date.now() - e.depuis)));
+  };
+  const fermSuivre = () => {
+    const a = window.__pcvBridge?.runningApp?.();
+    if (a && window.__pcvJeuDevant) {
+      if (fermEtat?.range) fermNettoyer();
+      fermJeu = a;
+    }
+    if (fermJeu && !tourne(+fermJeu.appid)) {
+      fermCommencer(fermJeu.appid);
+      fermJeu = null;
+    }
+    if (fermEtat && !tourne(fermEtat.id)) fermRanger();
+  };
   const couvrir = () => {
     const id = window.__pcvBridge?.runningApp?.()?.appid || lancRetour?.appid;
-    if (id && !lancEtat && !window.__pcvJeuDevant && !window.__pcvMenuOuvert?.() && EN_COURS.test(pageAct())) lancJeu(id, null, false, null, true);
+    if (!id || fermEtat || lancEtat || window.__pcvJeuDevant || window.__pcvMenuOuvert?.() || !EN_COURS.test(pageAct())) return;
+    if (fermJeu && +fermJeu.appid === +id) return fermCommencer(id);
+    lancJeu(id, null, false, null, true);
   };
   try {
     window.__pcvLancPages?.();
   } catch (e) {
   }
+  const pagesVues = window.__pcvPagesVues ||= [];
   window.__pcvLancPages = window.__pcvBridge?.ecouterPages?.((p) => {
+    pagesVues.push([Date.now(), p]);
+    if (pagesVues.length > 20) pagesVues.shift();
     if (lancRetour) noter({ page: p });
+    couvrirOutil(p);
     setTimeout(() => {
       revenir();
       couvrir();
@@ -4038,11 +4589,57 @@
     // surAccueil(id) / mettreAccueil(id, oui) : le jeu a-t-il sa place sur l'accueil (réglage de SteamU, rien sur le compte)
     surAccueil: (id) => !accueilRetire(id),
     mettreAccueil: (id, oui) => accueilRetirer(id, !oui),
+    tuileCSS: TUILE_CSS,
     cotes: (c, g) => {
       const z = { c, g }, f = forme(z);
       return { c, g, ...f, ...selection(z, f) };
     }
   };
+  const suivreArt = () => {
+    const api = O.SteamClient?.Apps;
+    if (!api) return;
+    const suivi = O.__pcvArtSuivi ||= { abonnes: /* @__PURE__ */ new Map(), attentes: /* @__PURE__ */ new Map() };
+    suivi.abonnes.set(window, ({ id, pose, source }) => {
+      if (tuilesFinies) return;
+      revisionsArt[id] = Math.max(Date.now(), (revisionsArt[id] || 0) + 1);
+      ecrire("pcv-art-revisions", revisionsArt);
+      delete AUTO[id];
+      delete CADRES[id];
+      enCadrage.delete(id);
+      ecrire("pcv-tuile-auto", AUTO);
+      ecrire("pcv-cadrage", CADRES);
+      tuilesDe(id).forEach((el) => peindreJeu(el, el.__pcvJeu || apps().get(id)));
+      window.dispatchEvent(new CustomEvent("pcv-images-jeu", { detail: { id } }));
+      if (pose && source === window) {
+        window.__pcvBulleGrande?.({ son: "choisir", titre: T("images.appliquee"), svg: `<svg viewBox="0 0 24 24">${window.__pcvIcones?.trace("bibliotheque") || ""}</svg>` }, 2500);
+      }
+    });
+    if (suivi.pose) return;
+    suivi.pose = true;
+    for (const nom of ["SetCustomArtworkForApp", "ClearCustomArtworkForApp"]) {
+      const original = api[nom];
+      if (typeof original !== "function") continue;
+      api[nom] = function(...args) {
+        const source = [...suivi.abonnes.keys()].find((w) => !w.closed && w.document.getElementById("sgdb-wrap"));
+        const retour2 = original.apply(this, args);
+        Promise.resolve(retour2).then(() => {
+          const id = Number(args[0]);
+          if (!Number.isFinite(id)) return;
+          clearTimeout(suivi.attentes.get(id));
+          suivi.attentes.set(id, setTimeout(() => {
+            suivi.attentes.delete(id);
+            for (const [w, f] of suivi.abonnes) {
+              if (w.closed) suivi.abonnes.delete(w);
+              else f({ id, pose: nom === "SetCustomArtworkForApp", source });
+            }
+          }, 800));
+        }, () => {
+        });
+        return retour2;
+      };
+    }
+  };
+  suivreArt();
   window.__pcvLancement = {
     banc: {},
     run: (gid) => SC.Apps.RunGame(gid, "", -1, 100),
@@ -4058,6 +4655,7 @@
     jeu: (appid) => lancJeu(appid, null),
     essai: (appid) => lancJeu(appid, null, true),
     fermer: () => lancRetirer(),
+    etape: lancEtapeMontrer,
     etat: () => lancEtat && { ...lancEtat, pret: void 0 },
     journal
   };

@@ -9,7 +9,13 @@
     ["svg", "pcv-svg-vide", (e) => !e.querySelector('*:not([d=""])')],
     ["{{BasicUiRoot@BasicHome}}", "pcv-fond-transparent", (e) => !!e.querySelector(":scope > * > {{TransparentBackground@BasicHome}}")],
     ["#pcv-ar", "pcv-sous-ouvert", (e) => !!e.querySelector(":scope > .sousecran:not([hidden])")],
-    ["#pcv-ar", "pcv-lecteur-ouvert", (e) => !!e.querySelector(":scope > :is(.musique, .paroles):not([hidden])")]
+    ["#pcv-ar", "pcv-lecteur-ouvert", (e) => !!e.querySelector(":scope > :is(.musique, .paroles):not([hidden])")],
+    // Les deux anciens ronds CSS de connexion n'ont aucun enfant pour dessiner le troisième point.
+    // On conserve leur boîte et leur état Steam ; seuls ces indicateurs reçoivent le signe commun.
+    ["{{LoadingSpinner@LoadAmin}}", "pcv-attente-cercle", (e) => {
+      if (!e.querySelector(":scope > .pcv-points")) e.insertAdjacentHTML("beforeend", window.__pcvChargement.html());
+      return true;
+    }]
   ];
   const sujets = regles.map(([s]) => s).join(","), marques = new Set(regles.map(([, c]) => c));
   const classesSteam = (texte) => (texte || "").split(/\s+/).filter((c) => c && !marques.has(c)).join(" ");

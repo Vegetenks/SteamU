@@ -588,7 +588,8 @@
     hasard: '<rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><circle cx="8.6" cy="8.6" r="1.4"/><circle cx="15.4" cy="8.6" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="8.6" cy="15.4" r="1.4"/><circle cx="15.4" cy="15.4" r="1.4"/>'
   };
   const CSS = `
-    #pcv-miimaker { position: fixed; inset: ${u(98)} 0 0 0; z-index: 8700; overflow: hidden; user-select: none; -webkit-user-select: none;
+    #pcv-miimaker { z-index: 8700; } #pcv-miimaker-titre { z-index: 8701; }   
+    #pcv-miimaker { position: fixed; inset: ${u(98)} 0 0 0; overflow: hidden; user-select: none; -webkit-user-select: none;
       
       --pcv-fond-page: var(--pcv-fond-profil); background: var(--pcv-fond-page, #f3f5f3); color: var(--pcv-texte, #2f3a4a); font-family: var(--pcv-police, Nunito, sans-serif); font-weight: 700; }
     #pcv-miimaker *, #pcv-miimaker *::before { box-sizing: border-box; }
@@ -611,7 +612,7 @@
     #pcv-miimaker .bulle-scene { position: absolute; left: 50%; top: ${u(10)}; transform: translateX(-50%); max-width: ${u(420)}; padding: ${u(12)} ${u(20)};
       border-radius: ${u(22)}; font-size: ${u(17)}; text-align: center; animation: mmBulle .4s cubic-bezier(.3,1.6,.5,1) both; }
     #pcv-miimaker .bulle-scene { font-size: ${u(24)}; padding: ${u(14)} ${u(28)}; font-weight: 900; }
-    #pcv-miimaker .bulle-scene::after { content: ""; position: absolute; left: 50%; bottom: ${u(-9)}; width: ${u(18)}; height: ${u(18)}; transform: translateX(-50%) rotate(45deg); background: var(--pcv-creux); }
+    #pcv-miimaker .bulle-scene::after { left: 50%; bottom: ${u(-9)}; margin-left: ${u(-9)}; width: ${u(18)}; height: ${u(18)}; }   
     #pcv-miimaker .rond { position: absolute; width: ${u(58)}; height: ${u(58)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
     #pcv-miimaker .rond > i, #pcv-miimaker .onglet > i { display: flex; align-items: center; justify-content: center; border-radius: 50%;
       background: var(--pcv-pastille, #fff); box-shadow: inset 0 -3px 0 rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.12); color: var(--pcv-texte2); }
@@ -803,7 +804,8 @@
     #pcv-miimaker[data-ecran="editeur"] .onglet .nom-partie { display: none; margin: 0 ${u(12)}; font-size: ${u(17)}; }
     #pcv-miimaker[data-ecran="editeur"] .onglet.actif .nom-partie { display: block; }
     
-    #pcv-miimaker:is([data-ecran="accueil"], [data-ecran="catalogue"]) .titre { top: ${u(20)}; }
+    
+    #pcv-miimaker:is([data-ecran="accueil"], [data-ecran="catalogue"], [data-ecran="absent"]) .titre { display: none; }
     #pcv-miimaker:is([data-ecran="accueil"], [data-ecran="catalogue"]) .onglets { left: auto; gap: ${u(12)}; }
     #pcv-miimaker:is([data-ecran="accueil"], [data-ecran="catalogue"]) .onglets .onglet { font-size: ${u(17)}; height: ${u(52)}; padding: 0 ${u(22)}; }
     #pcv-miimaker[data-ecran="catalogue"] .panneau, #pcv-miimaker[data-ecran="accueil"] .panneau, #pcv-miimaker[data-ecran="editeur"] .panneau { left: ${u(766)}; top: ${u(85)}; }
@@ -824,6 +826,13 @@
   const camVise = new (T ? T.Vector3 : Object)();
   let vueCorps = false, vueForcee = null;
   const regard = { yaw: 0, pitch: 0 }, pointeur = { x: 0, y: 0, t: -1e9 };
+  let cadreRegard = null;
+  const cadresRegard = () => {
+    const t = performance.now();
+    if (!cadreRegard || cadreRegard.el !== focus || t - cadreRegard.t > 250)
+      cadreRegard = { t, el: focus, focus: focus?.getBoundingClientRect(), scene: rendu.domElement.getBoundingClientRect() };
+    return cadreRegard;
+  };
   let yawCorps = 0, yawVise = 0, lacheA = 0, glisse = null;
   const anim = { reaction: null, finReaction: 0, cligne: 0, prochainCligne: 2, saut: -1, sautH: 0 };
   let horloge = 0, boucle = 0, avant = 0;
@@ -852,6 +861,7 @@
     scene.add(ombre);
     camera = new T.PerspectiveCamera(15, 1, 1, 3e3);
     const taille2 = () => {
+      cadreRegard = null;
       const r = cv.getBoundingClientRect();
       if (r.width && r.height) {
         rendu.setSize(r.width, r.height, false);
@@ -1003,14 +1013,14 @@
       cx = pointeur.x;
       cy = pointeur.y;
     } else if (focus && racine.classList.contains("clavier")) {
-      const r = focus.getBoundingClientRect();
+      const r = cadresRegard().focus;
       cx = r.left + r.width / 2;
       cy = r.top + r.height / 2;
     }
     let yawC = 0, pitchC = 0;
     if (cx != null) {
       camera.updateMatrixWorld();
-      const rc = rendu.domElement.getBoundingClientRect(), p = (v.os || v.cm.meshes).getWorldPosition(vA).project(camera);
+      const rc = cadresRegard().scene, p = (v.os || v.cm.meshes).getWorldPosition(vA).project(camera);
       const hx = rc.left + (p.x + 1) / 2 * rc.width, hy = rc.top + (1 - p.y) / 2 * rc.height - rc.height * 0.04;
       yawC = borne(borne((cx - hx) / rc.width * 1.3, -0.5, 0.5) - yawCorps, -0.5, 0.5);
       pitchC = borne((cy - hy) / rc.height * 1.1, -0.28, 0.34);
@@ -1046,7 +1056,7 @@
     rendu.render(scene, camera);
   };
   const cache = /* @__PURE__ */ new Map();
-  let file = [], rt = null, tampon = null, toileTmp = null;
+  let file = [], rt = null, tampon = null, toileTmp = null, photos = Promise.resolve(), pompeEnCours = false, programmes = /* @__PURE__ */ new Map();
   const empreinte = (ci) => {
     let h = 2166136261;
     for (let i = 0; i < ci.length; i++) h = Math.imul(h ^ ci[i], 16777619);
@@ -1080,27 +1090,62 @@
     return tete(ci, { resolution: px > 140 ? 256 : 128, allExpressionFlag: F.makeExpressionFlag([X().NORMAL]), modelFlag: F.FFLModelFlag.NORMAL });
   };
   const cliche = (cm, cadre, px) => {
-    const F = moteur.F, [x, y, cote] = CADRES[cadre], s = new T.Scene();
-    s.add(cm.meshes);
-    const cam = F.ModelIcon.getCamera();
-    cam.setViewOffset(1e3, 1e3, x, y, cote, cote);
-    cam.updateProjectionMatrix();
-    const n = Math.min(512, px * 2);
-    if (!rt || rt.width !== n) {
-      rt?.dispose();
-      rt = new T.WebGLRenderTarget(n, n);
-      tampon = new Uint8Array(n * n * 4);
-      toileTmp = document.createElement("canvas");
-      toileTmp.width = toileTmp.height = n;
-    }
-    rendu.setRenderTarget(rt);
-    rendu.setClearColor(0, 0);
-    rendu.clear();
-    rendu.render(s, cam);
-    rendu.readRenderTargetPixels(rt, 0, 0, n, n, tampon);
-    rendu.setRenderTarget(null);
-    toileTmp.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(tampon), n, n), 0, 0);
-    return reduire(toileTmp, px, true);
+    const r = rendu, seance = fini, gardes = programmes, valide = () => ouvert && rendu === r && fini === seance;
+    const faire = async () => {
+      if (!valide()) return null;
+      const F = moteur.F, [x, y, cote] = CADRES[cadre], s = new T.Scene();
+      s.add(cm.meshes);
+      const cam = F.ModelIcon.getCamera();
+      cam.setViewOffset(1e3, 1e3, x, y, cote, cote);
+      cam.updateProjectionMatrix();
+      const n = Math.min(512, px * 2);
+      if (!rt || rt.width !== n) {
+        rt?.dispose();
+        rt = new T.WebGLRenderTarget(n, n);
+        tampon = new Uint8Array(n * n * 4);
+        toileTmp = document.createElement("canvas");
+        toileTmp.width = toileTmp.height = n;
+      }
+      await r.compileAsync(s, cam);
+      if (!valide()) return null;
+      r.setRenderTarget(rt);
+      r.setClearColor(0, 0);
+      r.clear();
+      r.render(s, cam);
+      r.setRenderTarget(null);
+      const gl = r.getContext(), sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+      gl.flush();
+      try {
+        while (gl.clientWaitSync(sync, 0, 0) === gl.TIMEOUT_EXPIRED) {
+          await new Promise(requestAnimationFrame);
+          if (!valide()) return null;
+        }
+      } finally {
+        gl.deleteSync(sync);
+      }
+      if (!valide()) return null;
+      r.readRenderTargetPixels(rt, 0, 0, n, n, tampon);
+      toileTmp.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(tampon), n, n), 0, 0);
+      cm.meshes.traverse((o) => {
+        for (const m of [o.material].flat()) {
+          if (!m) continue;
+          const p2 = r.properties.get(m).currentProgram;
+          if (!p2 || gardes.has(p2.id)) continue;
+          const dispose = m.dispose;
+          m.dispose = () => {
+          };
+          gardes.set(p2.id, () => {
+            m.dispose = dispose;
+            dispose.call(m);
+          });
+        }
+      });
+      return reduire(toileTmp, px, true);
+    };
+    const p = photos.catch(() => {
+    }).then(faire);
+    photos = p;
+    return p;
   };
   const reduire = (src, px, retourner) => {
     const sortie = document.createElement("canvas");
@@ -1111,14 +1156,14 @@
     g.drawImage(src, 0, 0, src.width, src.height, 0, 0, px, px);
     return sortie;
   };
-  const rendreVignette = (j, px) => {
+  const rendreVignette = async (j, px) => {
     const F = moteur.F, cm = teteVignette(j.ci, px), masques = CADRES[j.cadre][3];
     const caches = new Set(masques.split(" ").filter(Boolean).flatMap((m) => MASQUES[m].map((t) => F.FFLModulateType[t])));
     if (caches.size) cm.meshes.traverse((o) => {
       if (caches.has(o.geometry?.userData?.modulateType)) o.visible = false;
     });
     try {
-      return cliche(cm, j.cadre, px);
+      return await cliche(cm, j.cadre, px);
     } finally {
       cm.dispose();
     }
@@ -1138,12 +1183,12 @@
     pomperTenue();
   };
   const rendreTenue = async (j, px) => {
-    const G = window.__pcvGardeRobe;
+    const G = window.__pcvGardeRobe, seance = fini;
     if (j.sorte === "chapeau" || j.sorte === "visage") {
       const cm = teteVignette(j.ci, px);
       try {
         if (j.id) await G.habiller({ tete: cm }, [j.id]);
-        return rendu ? cliche(cm, j.sorte === "chapeau" ? "chapeau" : "tete", px) : null;
+        return rendu && fini === seance ? await cliche(cm, j.sorte === "chapeau" ? "chapeau" : "tete", px) : null;
       } finally {
         devetir({ cm });
         cm.dispose();
@@ -1157,8 +1202,9 @@
   const pomperTenue = async () => {
     if (tenueEnCours) return;
     tenueEnCours = true;
+    const seance = fini;
     try {
-      while (fileTenue.length && ouvert && rendu) {
+      while (fileTenue.length && ouvert && rendu && fini === seance) {
         const j = fileTenue.shift(), els = racine.querySelectorAll(`[data-v="${j.cle}"]`);
         if (!els.length) continue;
         const px = Math.round(borne(els[0].getBoundingClientRect().width * Math.min(2, window.devicePixelRatio || 1), 48, 256));
@@ -1168,7 +1214,7 @@
         } catch (e) {
           console.warn("Mii Maker : vignette de tenue", e);
         }
-        if (!ouvert) return;
+        if (!ouvert || fini !== seance) return;
         if (c) {
           cache.set(j.cle, c);
           if (cache.size > 600) cache.delete(cache.keys().next().value);
@@ -1182,28 +1228,38 @@
       }
     } finally {
       tenueEnCours = false;
+      if (fileTenue.length && ouvert && rendu) pomperTenue();
     }
   };
-  const pomper = (budget) => {
-    const t0 = performance.now();
-    while (file.length && performance.now() - t0 < budget) {
-      const j = file.shift(), els = racine.querySelectorAll(`[data-v="${j.cle}"]`);
-      if (!els.length) continue;
-      const px = Math.round(borne(els[0].getBoundingClientRect().width * Math.min(2, window.devicePixelRatio || 1), 48, 256));
-      let c;
-      const t1 = performance.now();
-      try {
-        c = rendreVignette(j, px);
-      } catch (e) {
-        console.warn("Mii Maker : vignette", e);
-        continue;
+  const pomper = async (budget) => {
+    if (pompeEnCours) return;
+    pompeEnCours = true;
+    const seance = fini;
+    try {
+      await new Promise(requestAnimationFrame);
+      const t0 = performance.now();
+      while (file.length && ouvert && rendu && fini === seance && performance.now() - t0 < budget) {
+        const j = file.shift(), els = racine.querySelectorAll(`[data-v="${j.cle}"]`);
+        if (!els.length) continue;
+        const px = Math.round(borne(els[0].getBoundingClientRect().width * Math.min(2, window.devicePixelRatio || 1), 48, 256));
+        let c;
+        const t1 = performance.now();
+        try {
+          c = await rendreVignette(j, px);
+        } catch (e) {
+          console.warn("Mii Maker : vignette", e);
+          continue;
+        }
+        mesures.vignette = Math.round(performance.now() - t1);
+        if (!c || fini !== seance) return;
+        cache.set(j.cle, c);
+        if (cache.size > 600) cache.delete(cache.keys().next().value);
+        els.forEach((el) => {
+          if (el.dataset.v === j.cle) peindre(el, c);
+        });
       }
-      mesures.vignette = Math.round(performance.now() - t1);
-      cache.set(j.cle, c);
-      if (cache.size > 600) cache.delete(cache.keys().next().value);
-      els.forEach((el) => {
-        if (el.dataset.v === j.cle) peindre(el, c);
-      });
+    } finally {
+      pompeEnCours = false;
     }
   };
   const visibles = (defile, faire) => {
@@ -2544,13 +2600,19 @@ ${t}
     racine.id = "pcv-miimaker";
     racine.dataset.ecran = "accueil";
     racine.innerHTML = `<style>${CSS}</style>
-      <div class="scene"><canvas></canvas><div class="bulle-scene verre" hidden></div><div class="plaque"></div>
+      <div class="scene"><canvas></canvas><div class="bulle-scene verre pcv-pointe pcv-pointe-bas" hidden></div><div class="plaque"></div>
         <button class="rond zoom verre" data-pour="editeur" hidden title="${Tr("miimaker.zoom")}"><i>${ICONES.zoom}</i></button></div>
       <div class="titre"></div>
       <div class="onglets" data-pour="accueil editeur catalogue" hidden></div><div class="colonne-mm" data-pour="accueil editeur catalogue"></div>
       <div class="panneau verre" data-pour="accueil editeur catalogue sosies"></div>
       <div class="bas pcv-legende"></div>`;
     (parent || document.body).appendChild(racine);
+    racine.insertAdjacentHTML("afterend", window.__pcvTitreAppli?.("miimaker") || "");
+    const titreAppli = racine.nextElementSibling?.matches(".pcv-titre-appli") && racine.nextElementSibling;
+    if (titreAppli) {
+      titreAppli.id = "pcv-miimaker-titre";
+      fins.push(() => titreAppli.remove());
+    }
     window.__pcvAccentAppli?.(racine);
     window.__pcvFond?.(racine, { espace: "profil" });
     $(".rond.zoom").onclick = () => appuyer(vueForcee ?? vueCorps ? 8 : 7);
@@ -2574,6 +2636,9 @@ ${t}
     };
     sc.addEventListener("pointerup", lacher);
     sc.addEventListener("pointercancel", lacher);
+    racine.addEventListener("scroll", () => {
+      cadreRegard = null;
+    }, true);
     racine.addEventListener("pointermove", surPointeur);
     racine.addEventListener("pointerdown", (e) => {
       surPointeur(e);
@@ -2590,7 +2655,7 @@ ${t}
       avant = t;
       return;
     }
-    const dt = Math.min(0.1, (t - (avant || t)) / 1e3);
+    const dt = window.__pcvModes?.coupe("anim") ? 0 : Math.min(0.1, (t - (avant || t)) / 1e3);
     avant = t;
     horloge += dt;
     if (aRefaire && ed) {
@@ -2705,9 +2770,16 @@ ${t}
     rt = null;
     ombre?.material.map?.dispose();
     if (rendu) {
-      rendu.dispose();
-      rendu.forceContextLoss();
+      const r = rendu, gardes = programmes;
       rendu = null;
+      programmes = /* @__PURE__ */ new Map();
+      photos.catch(() => {
+      }).then(() => {
+        for (const f of gardes.values()) f();
+        gardes.clear();
+        r.dispose();
+        r.forceContextLoss();
+      });
     }
     for (const f of fins.splice(0)) {
       try {
@@ -2785,6 +2857,7 @@ ${t}
         page: ed ? CATS[ed.cat].pages[ed.page].nom : null,
         file: file.length,
         cache: cache.size,
+        programmes: programmes.size,
         focus: focus?.className || null,
         zone,
         onglet: ongletAccueil ? "spotpass" : "mii",

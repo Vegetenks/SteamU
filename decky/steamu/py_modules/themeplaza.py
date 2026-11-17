@@ -357,7 +357,7 @@ def ecran(corps, type_off, cadre_off, tex_off, gl, fin):
     if _u32(corps, type_off) != 3:
         return None
     off = _u32(corps, tex_off)
-    l = 512 if _u32(corps, cadre_off) == 3 or fin - off < 1024 * 256 * 2 else 1024
+    l = 512 if _u32(corps, cadre_off) == 1 or fin - off < 1024 * 256 * 2 else 1024
     return texture565(corps, off, l, 256, gl, 240)
 
 _HAUT = [((b >> 4) ^ 8) - 8 for b in range(256)]

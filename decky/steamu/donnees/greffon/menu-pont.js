@@ -33,10 +33,50 @@
     } catch (e) {
     }
   };
+  const routeDe = (el) => {
+    const k = el && Object.keys(el).find((x) => x.startsWith("__reactFiber"));
+    let n = 0;
+    for (let f = k && el[k]; f && n < 12; f = f.return, n++) if (typeof f.memoizedProps?.route === "string") return f.memoizedProps.route;
+    return null;
+  };
+  const routesDecky = () => {
+    const r = /* @__PURE__ */ new Set();
+    try {
+      for (const k of O.DeckyPluginLoader.routerHook.routerState._routes.keys()) r.add(k);
+    } catch (e) {
+    }
+    try {
+      for (const x of O.__necroSteamMenuV1.entries.values()) r.add(x.route);
+    } catch (e) {
+    }
+    return r;
+  };
+  const dessinDe = (el) => {
+    const s0 = el.querySelector("svg");
+    if (!s0) return "";
+    const c = getComputedStyle(s0), s = s0.cloneNode(true);
+    s.querySelectorAll("script, foreignObject, style").forEach((x) => x.remove());
+    [s, ...s.querySelectorAll("*")].forEach((n) => [...n.attributes].forEach((a) => (/^on|href$/i.test(a.name) || a.name === "class" || a.name === "style") && n.removeAttribute(a.name)));
+    s.setAttribute("style", `fill:${c.fill === "none" ? "none" : "currentColor"};stroke:${c.stroke === "none" ? "none" : "currentColor"};stroke-width:${c.strokeWidth}`);
+    const h = s.outerHTML;
+    return h.length < 2e4 ? h : "";
+  };
+  const greffonsDuMenu = () => {
+    const r = routesDecky();
+    return entrees().filter((e) => sorteDe(e) === "appli").map((e) => [e, routeDe(e)]).filter(([, x]) => x && r.has(x)).map(([e, x]) => ({ route: x, nom: e.textContent.trim(), svg: dessinDe(e) }));
+  };
+  let greffonsVus = null;
+  const greffons = () => {
+    const l = greffonsDuMenu(), j = JSON.stringify(l);
+    if (j === greffonsVus) return;
+    greffonsVus = j;
+    window.__pcvHomeIcones?.signaler(l);
+  };
   window.__pcvMenuObs?.disconnect();
   const tour = () => {
     marquer();
     entete();
+    greffons();
   };
   tour();
   (window.__pcvMenuObs = new MutationObserver(tour)).observe(document.body, { childList: true, subtree: true });
@@ -44,7 +84,7 @@
   window.opener.__pcvAller = (n) => {
     marquer();
     const nom = typeof n === "number" ? PAR_RANG[n - 1] : n;
-    const e = entrees().find((x) => x.parentElement?.dataset.pcvMenu === nom);
+    const e = entrees().find((x) => String(nom).startsWith("/") ? routeDe(x) === nom : x.parentElement?.dataset.pcvMenu === nom);
     if (e) e.click();
   };
   window.__pcvJeuFin?.();

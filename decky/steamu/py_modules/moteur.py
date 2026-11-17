@@ -10,18 +10,22 @@ NOM = _nom()
 def _donnees():
     d, maison = os.environ.get("DECKY_PLUGIN_RUNTIME_DIR", ""), os.environ.get("DECKY_USER_HOME", "")
     return "~/" + os.path.relpath(d, maison) if d and maison and d.startswith(maison.rstrip("/") + "/") else d
-GREFFON_JS = "window.__pcvGreffon = " + json.dumps({"nom": NOM, "donnees": _donnees()}, ensure_ascii=False)
+RECHARGE_CLE, RECHARGE_DELAI = "pcv-recharge-voulue", 60
+GREFFON_JS = "window.__pcvGreffon = " + json.dumps({"nom": NOM, "donnees": _donnees(), "recharge": RECHARGE_CLE}, ensure_ascii=False)
 ANCIEN_NOM, ANCIEN_DOSSIER = "Premium Clear View", "premium-clear-view"
-SCRIPTS_PRINCIPALE = ["secours.js", "demarrage.js", "icones.js", "i18n.js", "steam-bridge.js", "unifideck-page.js", "relations-theme.js", "compte.js", "apparence.js", "barre-haut.js", "presentation.js", "bibliotheque.js", "eshop.js", "eshop-jeux.js", "alimentation.js", "accueil.js", "vendor/three.min.js", "vendor/three-gltf.js", "mii3d.js", "vrais-mii.js", "garde-robe.js", "sons.js", "nintendo.js", "credits.js", "reglages.js", "steamu.js", "stockage.js", "parametres.js", "mii-base.js", "vendor/qrcodegen.js", "mii-qr.js", "mii-maker.js", "themes.js", "themeplaza.js", "themezer.js", "eshop-themes.js", "led.js", "console.js", "mii-accueil.js", "arcade.js", "luigi-vrai.js", "luigi-wonder.js", "casino.js", "casino-jeux.js", "deco.js", "dossiers.js", "perso.js", "fiche.js", "place.js", "place3d.js", "profil.js", "amis.js", "bienvenue.js", "notifs.js", "spotpass.js", "telechargements.js", "medias.js", "mediatheque.js", "recherche.js", "collections.js", "connexion.js"]
-SCRIPTS_MENU = ["secours.js", "icones.js", "i18n.js", "steam-bridge.js", "relations-theme.js", "menu-pont.js", "menus-commun.js", "menu-home.js"]
-SCRIPTS_ACCES = ["secours.js", "icones.js", "i18n.js", "steam-bridge.js", "relations-theme.js", "menus-commun.js", "acces-rapide.js"]   
-SCRIPTS_AVANT_CONNEXION = ["relations-theme.js", "icones.js", "i18n.js", "compte.js", "apparence.js", "themes.js", "demarrage.js"]
-SCRIPTS_BULLES = ["relations-theme.js", "secours.js", "apparence-suivre.js"]   
+SCRIPTS_PRINCIPALE = ["secours.js", "chargement.js", "demarrage.js", "icones.js", "i18n.js", "steam-bridge.js", "unifideck-page.js", "relations-theme.js", "compte.js", "apparence.js", "barre-haut.js", "presentation.js", "bibliotheque.js", "eshop.js", "eshop-jeux.js", "alimentation.js", "accueil.js", "ressources.js", "vendor/three.min.js", "vendor/three-gltf.js", "mii3d.js", "vrais-mii.js", "garde-robe.js", "sons.js", "nintendo.js", "credits.js", "reglages.js", "steamu.js", "stockage.js", "parametres.js", "mii-base.js", "vendor/qrcodegen.js", "mii-qr.js", "mii-maker.js", "themes.js", "themeplaza.js", "themezer.js", "eshop-themes.js", "led.js", "logos-plateformes.js", "console.js", "mii-accueil.js", "arcade.js", "luigi-vrai.js", "luigi-wonder.js", "casino.js", "casino-jeux.js", "deco.js", "dossiers.js", "perso.js", "fiche.js", "place.js", "place3d.js", "profil.js", "amis.js", "bienvenue.js", "notifs.js", "spotpass.js", "manettes.js", "telech-unifideck.js", "telechargements.js", "medias.js", "mediatheque.js", "recherche.js", "collections.js", "connexion.js"]
+SCRIPTS_MENU = ["secours.js", "chargement.js", "icones.js", "i18n.js", "steam-bridge.js", "relations-theme.js", "menu-pont.js", "menus-commun.js", "menu-home.js"]
+SCRIPTS_ACCES = ["secours.js", "chargement.js", "icones.js", "i18n.js", "steam-bridge.js", "relations-theme.js", "menus-commun.js", "acces-rapide.js"]   
+SCRIPTS_AVANT_CONNEXION = ["chargement.js", "relations-theme.js", "icones.js", "i18n.js", "compte.js", "steam-bridge.js", "apparence.js", "ressources.js", "sons.js", "themes.js", "demarrage.js", "vendor/three.min.js", "vendor/three-gltf.js", "vrais-mii.js", "prechargement-mii.js"]
+SCRIPTS_BULLES = ["chargement.js", "relations-theme.js", "secours.js", "apparence-suivre.js"]   
 VENDOR_JS = "if (!(window.__pcvVendor || {})[%s]) {\n%s\n;(window.__pcvVendor ||= {})[%s] = 1; }"
 if os.environ.get("PCV_SANS_CONNEXION"):
     SCRIPTS_PRINCIPALE.remove("connexion.js"); SCRIPTS_PRINCIPALE.remove("demarrage.js"); SCRIPTS_AVANT_CONNEXION.remove("demarrage.js")   
 
 AVANT_CONNEXION_JS = r"""(() => { try {
+  // (11/11) aucun compte connecté = avant la connexion, même sur une page de réglages ouverte depuis l'écran des comptes
+  // (BViewingPreLoginRoute y répond faux : toute l'interface d'après connexion se posait et bloquait la manette)
+  if (window.App?.BHasCurrentUser?.() === false) return true;
   const s = window.SteamUIStore?.WindowStore?.GamepadUIMainWindowInstance;
   if (typeof s?.BViewingPreLoginRoute !== 'function') return null;
   const avant = s.BViewingPreLoginRoute();
@@ -34,17 +38,19 @@ CARTE_JS = r"""(() => { const chunk = window.webpackChunksteamui; if (!chunk) re
   for (const id of Object.keys(req.m)) {
     // Lire les exports déjà chargés ; sinon, ne charger que les candidats qui contiennent plusieurs classes CSS.
     // Appeler tous les modules de Steam au démarrage exécutait aussi ses services et leurs effets de bord.
+    // (12/11) une feuille réduite à une classe (DropDownControlButton depuis le 11/11) entre aussi, si son texte n'est que
+    // l'objet de ses exports (« e=>{e.exports={…}} ») : rien à exécuter d'autre
     let m = req.c?.[id]?.exports;
-    if (!m) { const textes = String(req.m[id]).matchAll(/["']([_a-zA-Z0-9-]{15,}(?: [_a-zA-Z0-9-]+)*)["']/g);
+    if (!m) { const texte = String(req.m[id]), textes = texte.matchAll(/["']([_a-zA-Z0-9-]{15,}(?: [_a-zA-Z0-9-]+)*)["']/g);
       let n = 0; for (const x of textes) if (classe(x[1]) && ++n >= 2) break;
-      if (n < 2) continue;
+      if (n < 2 && !(n && /^\w+=>\{\w+\.exports=\{[^{}]*\}\}$/.test(texte))) continue;
       try { m = req(id); } catch (e) { continue; } }
     let vals; try { if (m && m.default && typeof m.default === 'object') m = m.default;
       if (!m || typeof m !== 'object') continue; vals = Object.entries(m); } catch (e) { continue; }
-    // (12/11) les mesures qu'une feuille exporte avec ses classes (« 1158px », « 800ms ») ne comptent pas : Steam du 11/11
-    // en a ajouté 21 à la feuille de sa racine (BasicUiRoot), sortie de la carte, et notre barre restait sur le jeu
-    const cl = vals.filter(([k, v]) => classe(v)), mesures = vals.filter(([k, v]) => typeof v === 'string' && /^-?[\d.]+[a-z%]*$/.test(v)).length;
-    if (cl.length < 2 || cl.length < (vals.length - mesures) * .5) continue; out[id] = Object.fromEntries(cl); }
+    // (12/11) toute feuille qui exporte une classe entre : c'est le couple Nom@Voisin de compiler() qui fait le tri. Les
+    // seuils (2 classes, 50 % des exports) écartaient les feuilles où Steam du 11/11 a ajouté des mesures (« 800ms »)
+    const cl = vals.filter(([k, v]) => classe(v));
+    if (cl.length) out[id] = Object.fromEntries(cl); }
   return out; })()"""
 
 def _journal(*a): print(time.strftime("%H:%M:%S"), *a, flush=True)
@@ -81,14 +87,41 @@ def evaluer(cible, code, attendre=False, erreur=False):
 
 CLASSE = re.compile(r"[_a-zA-Z0-9-]{1,200}")
 
+def _dans_not(t, i):
+    prof = 0
+    for k in range(i - 1, -1, -1):
+        c = t[k]
+        if c == ")": prof += 1
+        elif c == "(":
+            if prof: prof -= 1
+            elif t.endswith(":not", 0, k): return True
+        elif c in "{};" and not (c in "{}" and c in (t[k - 1], t[k + 1])): return False
+    return False
+
 def compiler(texte, modules):
     def classe(m):
         nom, voisin = m.group(1), m.group(2)
         cands = [v for v in modules.values() if isinstance(v, dict) and isinstance(v.get(nom), str) and voisin in v and CLASSE.fullmatch((v[nom].split() or [""])[0])]
-        if not cands: return f".pcv-introuvable-{nom}"          
+        if not cands: return f".pcv-introuvable-{nom}" + (":pcv-introuvable" if _dans_not(m.string, m.start()) else "")
         classes = sorted({"." + c[nom].split()[0] for c in cands})
         return classes[0] if len(classes) == 1 else ":is(" + ", ".join(classes) + ")"
     return re.sub(r"\{\{(\w+)@(\w+)\}\}", classe, texte)
+
+FICHIER_CLASSES = None   
+classes_perdues = {}     
+VERSION_STEAM_JS = "SteamClient.System.GetSystemInfo().then(s => s.nSteamVersion)"
+
+def noter_classes(textes, steam, journal):
+    global classes_perdues
+    noms = sorted(set(re.findall(r"\.pcv-introuvable-(\w+)", "".join(textes))))
+    try: avant = json.loads(pathlib.Path(FICHIER_CLASSES).read_text())["noms"]
+    except Exception: avant = None   
+    nouveaux = [n for n in noms if avant is not None and n not in avant]
+    classes_perdues = {"steam": steam, "noms": noms, "nouveaux": nouveaux}
+    journal(f"noms introuvables (Steam {steam}) :", len(noms), "(" + ", ".join(noms) + ")" + (", nouveaux : " + ", ".join(nouveaux) if nouveaux else ""))
+    if FICHIER_CLASSES:
+        try: pathlib.Path(FICHIER_CLASSES).write_text(json.dumps({"steam": steam, "noms": noms}))
+        except OSError: pass
 
 CLASSE_SEULE = re.compile(r"\s*\.-?[_a-zA-Z][-\w]*\s*")
 def _scinder(sel):
@@ -134,8 +167,10 @@ def etaler(css):
     for a, b, t in reversed(out): css = css[:a] + t + css[b:]
     return css
 
+MARQUE_APPARENCE = """const h = document.documentElement; if (!h.dataset.pcvApparence) try { const a = JSON.parse(localStorage.getItem("pcv-apparence-posee")); if (["clair", "gris", "noir"].includes(a)) h.dataset.pcvApparence = a; } catch (e) {}"""
+
 def poser_style(ident, css, version):
-    return f"""(() => {{ const h = document.documentElement; if (!h.dataset.pcvApparence) try {{ const a = JSON.parse(localStorage.getItem("pcv-apparence-posee")); if (["clair", "gris", "noir"].includes(a)) h.dataset.pcvApparence = a; }} catch (e) {{}}
+    return f"""(() => {{ {MARQUE_APPARENCE}
       let s = document.getElementById({json.dumps(ident)}); if (s && s.dataset.v === {json.dumps(version)}) return 0;
       if (!s) {{ s = document.createElement('style'); s.id = {json.dumps(ident)}; (document.head || document.documentElement).appendChild(s); }}
       s.textContent = {json.dumps(css)}; s.dataset.v = {json.dumps(version)}; return 1; }})()"""
@@ -180,7 +215,7 @@ VOILE_JS = """(() => { const css = __CSS__, v = __V__; window.__pcvVoile = perfo
 })()"""
 abonnes = {}   
 
-def abonner(cible, css, version):
+def abonner(cible, source, version):
     import threading
     ancien = abonnes.get(cible["id"])
     if ancien and ancien[1] == version and ancien[0].connected: return False
@@ -189,7 +224,7 @@ def abonner(cible, css, version):
         except Exception: pass
     ws = websocket.create_connection(local(cible["webSocketDebuggerUrl"]), suppress_origin=True, timeout=10)
     ws.send(json.dumps({"id": 1, "method": "Page.enable"}))
-    ws.send(json.dumps({"id": 2, "method": "Page.addScriptToEvaluateOnNewDocument", "params": {"source": VOILE_JS.replace("__CSS__", json.dumps(css)).replace("__V__", json.dumps(version))}}))
+    ws.send(json.dumps({"id": 2, "method": "Page.addScriptToEvaluateOnNewDocument", "params": {"source": source}}))
     def vider():
         try:
             while ws.connected: ws.recv()
@@ -205,13 +240,14 @@ def nettoyer(ids):
         del abonnes[i]
     for i in [i for i in connexions if i not in ids]: fermer(i)
 
-def desabonner(ident):
-    a = abonnes.pop(ident, None)
-    if a:
-        try: a[0].close()
-        except Exception: pass
-
 NETTOYER_BOUTIQUE_JS = "(() => { let n = 0; for (const id of ['pcv-boutique', 'pcv-voile']) { const e = document.getElementById(id); if (e) { e.remove(); n++; } } return n; })()"
+
+COULEUR_JS = 'getComputedStyle(document.documentElement).getPropertyValue("--pcv-cyan-plein").trim()'
+POINTS_WEB_JS = """(() => { const poser = () => { __JS__
+  if (__COULEUR__) document.getElementById("pcv-chargement-css").textContent += `:root { --pcv-cyan-plein: ${__COULEUR__}; }`;
+  window.__pcvPointsWeb = __V__; };
+  if (document.documentElement) poser();
+  else new MutationObserver((m, o) => { if (document.documentElement) { o.disconnect(); poser(); } }).observe(document, { childList: true }); })()"""
 
 ETAT_JEU_JS = r"""(() => { try { const W = SteamUIStore.WindowStore.GamepadUIMainWindowInstance;
   return { appid: SteamUIStore.MainRunningApp?.appid || 0, ouvert: W.MenuStore.m_eOpenSideMenu || 0, focus: FocusedAppWindowStore.GetFocusedAppID() }; } catch (e) { return null; } })()"""
@@ -275,6 +311,7 @@ class Secours:
         self.pause, self.historique, self.chutes = None, [], []
         self.ctx = self.pose = self.vu = self.voulu = self.annonce = self.echec_ctx = None
         self.fenetres = {}   
+        self.recharge_voulue = lambda: None   
         try:
             d = json.loads(pathlib.Path(fichier).read_text())
             if d.get("pause") in ("securite", "manuel"): self.pause = d["pause"]
@@ -328,6 +365,9 @@ class Secours:
 
     def chute(self, detail):
         t = self.horloge()
+        try: voulue = float(self.recharge_voulue() or 0) / 1000
+        except Exception: voulue = 0   
+        if 0 <= t - voulue < RECHARGE_DELAI: self.noter("rechargement voulu", detail); return
         self.chutes = [c for c in self.chutes if t - c < SECOURS_FENETRE] + [t]
         self.noter("chute", detail)
         if len(self.chutes) >= SECOURS_N and self.pause is None:
@@ -375,8 +415,17 @@ def poser_toasts(cibles, carte):
 
 def poser_avant_connexion(DOSSIER, cibles, carte, journal):
     ident, modules = carte; cle = "avant:" + ident
+    if "demarrage.js" in SCRIPTS_AVANT_CONNEXION and (DOSSIER / "greffon" / "demarrage.js").exists():
+        for c in cibles:
+            if fenetre_principale(c) and not (secours.pause or arreter) and evaluer(c, "!window.__pcvDemarrage"):
+                couverture = "\n".join(preparer(DOSSIER / "greffon" / n, lambda t: compiler(t, modules), cle)[0] for n in ("chargement.js", "demarrage.js"))
+                evaluer(c, f"{GREFFON_JS};\n(() => {{ {MARQUE_APPARENCE} }})();\n{couverture}"); journal("couverture du démarrage (avant connexion) →", c["title"])
     theme, v_theme = preparer(DOSSIER / "theme-wiiu.src.css", lambda t: etaler(compiler(t, modules)), cle)
-    scripts = {n: preparer(DOSSIER / "greffon" / n, lambda t: compiler(t, modules), cle) for n in SCRIPTS_AVANT_CONNEXION if (DOSSIER / "greffon" / n).exists()}
+    scripts = {}
+    for n in SCRIPTS_AVANT_CONNEXION:
+        if not (DOSSIER / "greffon" / n).exists(): continue
+        faire = (lambda t, n=n: VENDOR_JS % (json.dumps(n), t, json.dumps(n))) if n.startswith("vendor/") else (lambda t: compiler(t, modules))
+        scripts[n] = preparer(DOSSIER / "greffon" / n, faire, cle)
     version = "avant-" + hashlib.sha1(" ".join(n + ":" + v for n, (_, v) in scripts.items()).encode()).hexdigest()[:12]
     for c in cibles:
         t = c["title"]
@@ -394,7 +443,8 @@ def poser_avant_connexion(DOSSIER, cibles, carte, journal):
 
 def boucle(DOSSIER, ecrire=None):
     journal = (lambda *a: ecrire(" ".join(map(str, a)))) if ecrire else _journal
-    modules, cle_modules, dernier, garder, garde_ctx, ancien_annonce = None, None, None, True, None, None
+    modules, cle_modules, dernier, garder, garde_ctx, ancien_annonce, verifiee = None, None, None, True, None, None, None
+    accueils_notes = set()
     connexion = None   
     carte_avant = None   
     couvertes = set()    
@@ -402,6 +452,7 @@ def boucle(DOSSIER, ecrire=None):
         try:
             cibles = json.load(urllib.request.urlopen(DEBOGUEUR, timeout=3))
             partage = next((c for c in cibles if c["title"] == "SharedJSContext"), None)
+            secours.recharge_voulue = lambda p=partage: p and evaluer(p, f"localStorage.getItem({json.dumps(RECHARGE_CLE)})")
             principale = any(c.get("type") == "page" and ("Big" in c["title"] or c["title"] == FENETRE_GAMESCOPE) for c in cibles)
             secours.contexte(partage and partage["id"], pid_steam)
             if ancien_actif():   
@@ -448,7 +499,7 @@ def boucle(DOSSIER, ecrire=None):
                 if carte and len(carte) > 200: modules, cle_modules, garder = carte, partage["id"], True; couvertes.clear(); journal("carte des classes :", len(modules), "modules")
             if modules is None: time.sleep(1); continue
             if "demarrage.js" in SCRIPTS_PRINCIPALE and not secours.chutes and (DOSSIER / "greffon" / "demarrage.js").exists():
-                couverture = preparer(DOSSIER / "greffon" / "demarrage.js", lambda t: compiler(t, modules), cle_modules)[0]
+                couverture = "\n".join(preparer(DOSSIER / "greffon" / n, lambda t: compiler(t, modules), cle_modules)[0] for n in ("chargement.js", "demarrage.js"))
                 for c in cibles:
                     if fenetre_principale(c) and c["id"] not in couvertes and not (secours.pause or arreter):
                         evaluer(c, couverture); couvertes.add(c["id"]); journal("couverture du démarrage →", c["title"])
@@ -459,26 +510,36 @@ def boucle(DOSSIER, ecrire=None):
                 faire = (lambda t, n=n: VENDOR_JS % (json.dumps(n), t, json.dumps(n))) if n.startswith("vendor/") else (lambda t: compiler(t, modules))
                 scripts[n], v = preparer(DOSSIER / "greffon" / n, faire, cle_modules); versions.append(n + ":" + v)
             v_scripts = hashlib.sha1(" ".join(versions).encode()).hexdigest()[:12]
+            if verifiee != cle_modules:   
+                verifiee = cle_modules
+                try: steam = evaluer(partage, VERSION_STEAM_JS, attendre=True)
+                except Exception: steam = None
+                noter_classes([theme, *scripts.values()], steam, journal)
             boutique, v_boutique = preparer(DOSSIER / "boutique.css", lambda t: t) if (DOSSIER / "boutique.css").exists() else ("", "")
+            voile = VOILE_JS.replace("__CSS__", json.dumps(boutique)).replace("__V__", json.dumps(v_boutique)) if boutique else ""
+            points = None   
             nettoyer({c["id"] for c in cibles})
             for c in cibles:
                 if secours.pause or arreter: break
                 t, url = c["title"], c.get("url", "")
                 if c.get("type") != "page" or t == "SharedJSContext": continue
-                if url.startswith("data:text/html"):      
-                    if boutique:
-                        abonner(c, boutique, v_boutique)
-                        if deja(c, "pcv-voile")[0] is None: evaluer(c, VOILE_JS.replace("__CSS__", json.dumps(boutique)).replace("__V__", json.dumps(v_boutique)))
-                    else:
-                        desabonner(c["id"]); evaluer(c, NETTOYER_BOUTIQUE_JS)
-                    continue
-                if "steampowered.com" in url or "steamcommunity.com" in url:
-                    if boutique:
-                        if abonner(c, boutique, v_boutique): journal("boutique (dès le chargement des pages) →", url[:60])
-                        if deja(c, "pcv-boutique")[0] != v_boutique and evaluer(c, poser_style("pcv-boutique", boutique, v_boutique)): journal("boutique →", url[:60])
-                    else:
-                        desabonner(c["id"])
-                        if evaluer(c, NETTOYER_BOUTIQUE_JS): journal("boutique : rendue à Steam d'origine →", url[:60])
+                attente = url.startswith("data:text/html")   
+                if attente or "steampowered.com" in url or "steamcommunity.com" in url:
+                    if points is None:
+                        p = next((x for x in cibles if fenetre_principale(x)), None)
+                        couleur = (p and evaluer(p, COULEUR_JS)) or ""
+                        if not re.fullmatch(r"[\w\s#%().,+/-]{1,160}", couleur): couleur = ""   
+                        v_points = hashlib.sha1((scripts.get("chargement.js", "") + couleur).encode()).hexdigest()[:12]
+                        points = POINTS_WEB_JS.replace("__COULEUR__", json.dumps(couleur)).replace("__V__", json.dumps(v_points)).replace("__JS__", scripts.get("chargement.js", ""))
+                    if abonner(c, points + ";\n" + voile, v_boutique + v_points) and boutique and not attente: journal("boutique (dès le chargement des pages) →", url[:60])
+                    if evaluer(c, "window.__pcvPointsWeb") != v_points:   
+                        evaluer(c, points)
+                        if not attente: journal("trois points →", url[:60])
+                    if not boutique:
+                        if evaluer(c, NETTOYER_BOUTIQUE_JS) and not attente: journal("boutique : rendue à Steam d'origine →", url[:60])
+                    elif attente:
+                        if deja(c, "pcv-voile")[0] is None: evaluer(c, voile)
+                    elif deja(c, "pcv-boutique")[0] != v_boutique and evaluer(c, poser_style("pcv-boutique", boutique, v_boutique)): journal("boutique →", url[:60])
                     continue
                 if not url.startswith("about:blank"): continue
                 if not ("Gamepad" in url or "browserviewpopup=1" in url) or t.endswith("_desktop"): continue
@@ -492,6 +553,9 @@ def boucle(DOSSIER, ecrire=None):
                 if liste is SCRIPTS_PRINCIPALE and s_page != v_scripts:
                     secours.reposee(t, v_scripts)
                     if secours.pause: break   
+                if fenetre_principale(c) and c["id"] not in accueils_notes and (instant := evaluer(c, "window.__pcvAccueilAffiche || null")):
+                    journal("accueil affiché", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(instant / 1000)))
+                    accueils_notes.add(c["id"])
                 if v_page != v_theme and evaluer(c, poser_style("theme-clair", theme, v_theme)): journal("thème →", t)
                 if liste and s_page != v_scripts:
                     secours.posee(); poses = etat_scripts[t] = {}

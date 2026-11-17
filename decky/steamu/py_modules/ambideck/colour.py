@@ -1,4 +1,5 @@
-# Repris tel quel d'Ambideck v1.1.0 (Michael Palma, licence MIT : voir __init__.py).
+# Modifications SteamU : retrait des bords noirs avant analyse.
+# Repris d'Ambideck v1.1.0 (Michael Palma, licence MIT : voir __init__.py).
 """Frame → four zone colours. Targets are perceived levels 0..1 per channel; to_led applies gamma for the LEDs."""
 from __future__ import annotations
 
@@ -82,12 +83,28 @@ class Analysis:
     values: list  # each zone's brightness (HSV value, 0..1), zone order
 
 
+def contenu_image(frame, width, height, stride, order="bgrx"):
+    """Retire seulement des lignes/colonnes entièrement quasi noires, jamais toute l'image."""
+    offsets = _OFFSETS[order]
+    def noir(x, y):
+        return max(frame[y * stride + x * 4 + c] for c in offsets) <= 8
+    x0, y0, x1, y1 = 0, 0, width, height
+    while y0 < y1 and all(noir(x, y0) for x in range(width)): y0 += 1
+    if y0 == y1: return 0, 0, width, height
+    while y1 > y0 and all(noir(x, y1 - 1) for x in range(width)): y1 -= 1
+    while x0 < x1 and all(noir(x0, y) for y in range(y0, y1)): x0 += 1
+    while x1 > x0 and all(noir(x1 - 1, y) for y in range(y0, y1)): x1 -= 1
+    return x0, y0, x1, y1
+
+
 def analyse(frame, width: int, height: int, stride: int, layout: str, boost_value: float, brightness: float,
             order: str = "bgrx") -> Analysis:
     cache: dict = {}
     targets, zone_values = [], []
     factor = boost_factor(boost_value)
-    for rect in regions(width, height, layout):
+    x0, y0, x1, y1 = contenu_image(frame, width, height, stride, order)
+    for rect in regions(x1 - x0, y1 - y0, layout):
+        rect = (rect[0] + x0, rect[1] + y0, rect[2] + x0, rect[3] + y0)
         if rect not in cache:
             cache[rect] = region_colour(frame, stride, rect, order=order)
         rgb, value = cache[rect]

@@ -1,163 +1,40 @@
 {
- "0.2.11": {
+ "0.3.0-rc.1": {
   "fr": [
-   "SteamU s'ouvre plus vite quand la console n'a pas de connexion.",
-   "Clavier : hors Big Picture et hors Gamescope, il reprend son état classique, sans le fond de SteamU.",
-   "Unifideck : affichage des fenêtres de connexion corrigé.",
-   "Amélioration de l'affichage des tuiles et des bannières des jeux.",
-   "Place : clignotement des ombres résolu.",
-   "Résolution des problèmes de son au démarrage.",
-   "Mises à jour plus fiables : la console ne reste plus bloquée sur l'écran de chargement."
+   "Une bande originale : les musiques de The Soundtrack Of Frutiger Aero, de temcandoanything, à choisir par pochettes. Merci à lui !",
+   "La place 3D accueille tes rencontres SpotPass par un portail sur son îlot, avec une ambiance de nuit.",
+   "Un assistant pas à pas pour importer tes Mii, et une page Manettes façon Switch pour ranger tes manettes.",
+   "Unifideck : connexions aux boutiques, téléchargements avec ceux de Steam, étapes du lancement et jeux en double regroupés (merci lieserlV).",
+   "Le menu HOME accueille tes raccourcis de greffons, et Pause Games fait désormais partie de SteamU : ton jeu se met en pause à l’ouverture.",
+   "Un nouvel écran de lancement qui s’adapte à la plateforme du jeu.",
+   "Tes notifications rangées par piles, avec un historique par jour.",
+   "Nouveau gestionnaire de plugins : le Decky Store et DeckyHub réunis, avec des sélections populaires, nouvelles et recommandées.",
+   "Dans les réglages rapides : un menu Alimentation, le Wi-Fi par mot de passe, l’économie d’énergie et un sélecteur de puissance.",
+   "Thèmes aléatoires, musiques Wii U TV + GamePad, jingles 3DS, apparence au coucher du soleil et clavier par-dessus ton jeu."
   ],
   "en": [
-   "SteamU opens faster when the console has no connection.",
-   "Keyboard: outside Big Picture and Gamescope, it goes back to its usual look, without the SteamU background.",
-   "Unifideck: sign-in windows now display correctly.",
-   "Better display of game tiles and banners.",
-   "Plaza: flickering shadows fixed.",
-   "Startup sound issues fixed.",
-   "More reliable updates: the console no longer gets stuck on the loading screen."
+   "A soundtrack: the music of The Soundtrack Of Frutiger Aero by temcandoanything, picked from record sleeves. Thank you!",
+   "The 3D plaza welcomes your SpotPass encounters through a portal on its island, with a night-time atmosphere.",
+   "A step-by-step assistant to import your Mii, and a Switch-style Controllers page to arrange your controllers.",
+   "Unifideck: store sign-ins, downloads alongside Steam’s, launch progress and grouped duplicate games (thanks lieserlV).",
+   "The HOME Menu welcomes your plugin shortcuts, and Pause Games is now part of SteamU: your game pauses when you open it.",
+   "A new launch screen that adapts to the game’s platform.",
+   "Your notifications arranged in stacks, with a history by day.",
+   "New plugin manager: the Decky Store and DeckyHub together, with popular, new and recommended picks.",
+   "In quick settings: a Power menu, Wi-Fi password entry, power saving and a power selector.",
+   "Random themes, Wii U TV + GamePad music, 3DS jingles, appearance changes at sunset and a keyboard over your game."
   ],
   "es": [
-   "SteamU se abre más rápido cuando la consola no tiene conexión.",
-   "Teclado: fuera de Big Picture y de Gamescope, recupera su aspecto habitual, sin el fondo de SteamU.",
-   "Unifideck: las ventanas de inicio de sesión se muestran correctamente.",
-   "Mejor visualización de los mosaicos y banners de los juegos.",
-   "Plaza: parpadeo de las sombras resuelto.",
-   "Problemas de sonido al arrancar resueltos.",
-   "Actualizaciones más fiables: la consola ya no se queda bloqueada en la pantalla de carga."
-  ]
- },
- "0.2.10": {
-  "fr": [
-   "Annonces : SteamU peut recevoir les nouvelles du projet (Paramètres › SteamU › Confidentialité pour les couper).",
-   "Mises à jour : une rubrique dans Paramètres › SteamU pour choisir le canal (stable, candidate, bêta, alpha).",
-   "Unifideck : regrouper les copies d'un jeu présent sur plusieurs boutiques, avec « Autres boutiques » sur sa page (merci lieserlV).",
-   "Toucher derrière une fenêtre la ferme sans appuyer sur le bouton caché dessous.",
-   "Badge Arcade : les badges flottent comme dans le jeu d'origine, ne se coincent plus, et Luigi ne les replace plus en boucle.",
-   "Accueil : une tuile prise au doigt pour la déplacer garde ses coins arrondis."
-  ],
-  "en": [
-   "Announcements: SteamU can receive news from the project (Settings › SteamU › Privacy to turn them off).",
-   "Updates: a section in Settings › SteamU to choose the channel (stable, release candidate, beta, alpha).",
-   "Unifideck: group the copies of a game owned on several stores, with \"Other stores\" on its page (thanks lieserlV).",
-   "Touching behind a window closes it without pressing the button underneath.",
-   "Badge Arcade: badges float like in the original game, no longer get stuck, and Luigi no longer keeps putting them back.",
-   "Home: a tile picked up with a finger to move it keeps its rounded corners."
-  ],
-  "es": [
-   "Anuncios: SteamU puede recibir las novedades del proyecto (Ajustes › SteamU › Privacidad para desactivarlos).",
-   "Actualizaciones: una sección en Ajustes › SteamU para elegir el canal (estable, candidata, beta, alfa).",
-   "Unifideck: agrupar las copias de un juego presente en varias tiendas, con «Otras tiendas» en su página (gracias lieserlV).",
-   "Tocar detrás de una ventana la cierra sin pulsar el botón que hay debajo.",
-   "Badge Arcade: las chapas flotan como en el juego original, ya no se atascan y Luigi ya no las recoloca sin parar.",
-   "Inicio: un mosaico tomado con el dedo para moverlo conserva sus esquinas redondeadas."
-  ]
- },
- "0.2.9": {
-  "fr": [
-   "Compatible avec la mise à jour de Steam du 11/11 : elle empêchait certaines parties de l'interface de SteamU de se charger."
-  ],
-  "en": [
-   "Works with the Steam update of 11/11: it prevented some parts of the SteamU interface from loading."
-  ],
-  "es": [
-   "Compatible con la actualización de Steam del 11/11: impedía que se cargaran algunas partes de la interfaz de SteamU."
-  ]
- },
- "0.2.8": {
-  "fr": [
-   "Unifideck : installer et réparer les jeux Xbox PC, et les succès GOG, Epic et Xbox (merci lieserlV).",
-   "Un seul appui par geste, sur le bon bouton.",
-   "Menu HOME : l'aperçu du jeu s'affiche, et plus vite.",
-   "L'interface se recharge seule après une mise à jour.",
-   "Corrections de bugs."
-  ],
-  "en": [
-   "Unifideck: install and repair Xbox PC games, and GOG, Epic and Xbox achievements (thanks lieserlV).",
-   "One press per gesture, on the right button.",
-   "HOME menu: the game preview shows up, and faster.",
-   "The interface reloads by itself after an update.",
-   "Bug fixes."
-  ],
-  "es": [
-   "Unifideck: instalar y reparar juegos de Xbox PC, y logros de GOG, Epic y Xbox (gracias lieserlV).",
-   "Una sola pulsación por gesto, en el botón correcto.",
-   "Menú HOME: la vista previa del juego aparece, y más rápido.",
-   "La interfaz se recarga sola tras una actualización.",
-   "Corrección de errores."
-  ]
- },
- "0.2.7": {
-  "fr": [
-   "Médiathèque : X sur une capture pour la partager (téléphone, discussion, Steam), l'enregistrer dans Téléchargements ou la supprimer.",
-   "Discussions : les images s'affichent, et une capture copiée se colle dans la discussion.",
-   "Unifideck : installer, jouer, mettre à jour depuis la page du jeu, et ses jeux dans Stockage (merci lieserlV).",
-   "Batterie : le temps restant revient après une mise en veille.",
-   "Menu HOME : un jeu lancé par Heroic se met vraiment en pause.",
-   "Menus de Steam plus propres, et glisser le doigt ne zoome plus par erreur.",
-   "Corrections de bugs."
-  ],
-  "en": [
-   "Media: press X on a screenshot to share it (phone, chat, Steam), save it to Downloads or delete it.",
-   "Chats: images show up, and a copied screenshot can be pasted into a chat.",
-   "Unifideck: install, play and update from the game page, and its games in Storage (thanks lieserlV).",
-   "Battery: the remaining time comes back after sleep.",
-   "HOME menu: a game launched through Heroic really pauses.",
-   "Cleaner Steam menus, and swiping no longer zooms by mistake.",
-   "Bug fixes."
-  ],
-  "es": [
-   "Mediateca: pulsa X en una captura para compartirla (teléfono, chat, Steam), guardarla en Descargas o borrarla.",
-   "Chats: las imágenes se muestran, y una captura copiada se puede pegar en un chat.",
-   "Unifideck: instalar, jugar y actualizar desde la ficha del juego, y sus juegos en Almacenamiento (gracias lieserlV).",
-   "Batería: el tiempo restante vuelve tras la suspensión.",
-   "Menú HOME: un juego lanzado con Heroic se pausa de verdad.",
-   "Menús de Steam más limpios, y deslizar el dedo ya no amplía por error.",
-   "Corrección de errores."
-  ]
- },
- "0.2.6": {
-  "fr": [
-   "Réglages rapides : choisir une autre sortie audio fonctionne.",
-   "Wi-Fi : les réseaux disponibles s'affichent de nouveau.",
-   "L'info batterie ne disparaît plus au démarrage ni en jeu.",
-   "Corrections de bugs."
-  ],
-  "en": [
-   "Quick settings: choosing another audio output works.",
-   "Wi-Fi: available networks show up again.",
-   "Battery info no longer disappears at startup or in games.",
-   "Bug fixes."
-  ],
-  "es": [
-   "Ajustes rápidos: elegir otra salida de audio funciona.",
-   "Wi-Fi: las redes disponibles vuelven a aparecer.",
-   "La información de la batería ya no desaparece al iniciar ni en los juegos.",
-   "Corrección de errores."
-  ]
- },
- "0.2.5": {
-  "fr": [
-   "Le menu complet de Steam pour un jeu (avec les entrées des plugins, comme SteamGridDB) s'ouvre depuis l'accueil et la fiche du jeu : « Plus d'options ».",
-   "Bluetooth : connecter un appareil depuis les réglages rapides fonctionne, et on peut l'oublier.",
-   "Les Mii musiciens des paroles tiennent micro, guitare et clavier comme il faut.",
-   "Les bulles d'amis et de messages affichent de nouveau le nom et le texte, en jeu aussi.",
-   "Corrections de bugs."
-  ],
-  "en": [
-   "Steam's full game menu (with plugin entries like SteamGridDB) opens from the home screen and the game page: \"More options\".",
-   "Bluetooth: connecting a device from the quick settings works, and you can forget it.",
-   "The musician Miis on the lyrics screen hold their mic, guitar and keyboard properly.",
-   "Friend and message pop-ups show the name and text again, in games too.",
-   "Bug fixes."
-  ],
-  "es": [
-   "El menú completo de Steam de un juego (con las entradas de los plugins, como SteamGridDB) se abre desde el inicio y la ficha del juego: «Más opciones».",
-   "Bluetooth: conectar un dispositivo desde los ajustes rápidos funciona, y se puede olvidar.",
-   "Los Mii músicos de las letras sujetan bien el micro, la guitarra y el teclado.",
-   "Las notificaciones de amigos y mensajes vuelven a mostrar el nombre y el texto, también en los juegos.",
-   "Corrección de errores."
+   "Una banda sonora: la música de The Soundtrack Of Frutiger Aero, de temcandoanything, para elegir por fundas. ¡Gracias!",
+   "La plaza 3D recibe tus encuentros de SpotPass por un portal en su islote, con ambiente nocturno.",
+   "Un asistente paso a paso para importar tus Mii y una página de Mandos al estilo Switch para ordenar tus mandos.",
+   "Unifideck: acceso a las tiendas, descargas junto a las de Steam, progreso del inicio y juegos duplicados agrupados (gracias lieserlV).",
+   "El menú HOME recibe los accesos directos de tus plugins, y Pause Games ya forma parte de SteamU: tu juego se pausa al abrirlo.",
+   "Una nueva pantalla de inicio que se adapta a la plataforma del juego.",
+   "Tus notificaciones ordenadas en pilas, con un historial por día.",
+   "Nuevo gestor de plugins: la Decky Store y DeckyHub juntas, con selecciones populares, nuevas y recomendadas.",
+   "En los ajustes rápidos: un menú de Encendido, Wi-Fi con contraseña, ahorro de energía y un selector de potencia.",
+   "Temas aleatorios, música de Wii U TV + GamePad, jingles de 3DS, apariencia al atardecer y teclado sobre tu juego."
   ]
  },
  "0.2.4": {
@@ -335,6 +212,88 @@
    "Durante una partida, el inicio, los Mii, el fondo animado y las fichas animadas de SteamU se pausan: el juego recupera la tarjeta gráfica.",
    "Bibliotecas grandes: el inicio usa menos procesador cuando nada se mueve.",
    "Por debajo de 8 W de TDP, el fondo animado y las fichas animadas se quedan quietos; vuelven en cuanto sube el TDP."
+  ],
+  "en": [
+   "Settings → Storage: the game list now fills the card (drives and usage bar are more compact), so several games are visible instead of one.",
+   "Light mode, Settings → Storage: the selected game row was unreadable (Steam's dark grey background under dark text); it now uses SteamU's highlight (#3).",
+   "Plaza: Miis talk much less, speech bubbles vary (never the same twice in a row) and come with long silences, like on the Wii U.",
+   "Plaza: a short fade between the plaza and the home screen; the full opening animation plays only once per session.",
+   "LEDs: no more small hitch every 10 seconds (reading the theme colour no longer touches the page).",
+   "Status pill: CSS Loader battery themes (e.g. \"Mobile Battery Theme\") no longer mix with SteamU's battery icon.",
+   "Updating SteamU without restarting Steam no longer breaks the top bar.",
+   "Game page: play time is rounded to the minute (non-Steam shortcuts showed \"16 h 53.60000000000002\").",
+   "Changing the grid zoom quickly no longer stutters: tile sizes and the animated background are measured once per change instead of on every tile and every frame.",
+   "At 5 to 8 rows, tiles no longer touch each other: the gap between them stays at 10% of a tile step instead of shrinking to 6.5%.",
+   "When Steam has just shown its own account chooser (\"Who's playing?\", and the PIN) at startup, SteamU no longer shows its welcome screen on top: you land on the home screen directly. With automatic sign-in, the welcome screen is unchanged.",
+   "Game logos no longer flicker on zoom changes and scrolling: the previous logo stays underneath until the new one is drawn.",
+   "On the very first Big Picture launch, Steam's own tips (\"Welcome to Big Picture\", \"Steam Menu\"…) no longer appear underneath SteamU's welcome screen: it waits until Steam has nothing on top.",
+   "While a game is in the foreground, SteamU's home screen, Miis, animated background and animated tiles are paused: the Steam window no longer redraws behind the game (it was taking about 100 frames per second of GPU time from the game).",
+   "Large libraries: the home screen no longer watches every tile on every frame, which lowers idle CPU with thousands of games.",
+   "Small power budgets: below 8 W of TDP (quick settings), the animated background stays still and animated tiles show their first frame; they come back as soon as the TDP is raised or set to automatic."
+  ]
+ },
+ "0.2.11": {
+  "en": [
+   "**Offline**: SteamU opens quickly again when the console has no Internet: it no longer waits for a name lookup (#30).",
+   "**Keyboard**: outside Big Picture and Gamescope (desktop mode, Windows, a desktop session), Steam's keyboard is no",
+   "**Unifideck**: store sign-in windows (Amazon, Epic, GOG, Microsoft, Battle.net) open directly and stay visible, without",
+   "**Controller**: the first button press is no longer lost after closing the keyboard or tapping the screen, and the",
+   "**Images**: no more empty tile or banner for a game that is uninstalled or not installed yet.",
+   "**Plaza**: no more shadows flickering under the tiles; Mii no longer sit on \"Find more themes\" and their bubbles stay",
+   "**Startup**: music no longer stays silent for 20 seconds when Decky answers late; the Settings legend no longer jumps on",
+   "**Updates**: SteamU now stops within 1.5 s when Decky asks it to, so an update can no longer freeze Decky and leave the"
+  ]
+ },
+ "0.2.10": {
+  "en": [
+   "**Announcements**: SteamU can receive news from the project (Settings › SteamU › Privacy to turn them off).",
+   "**Updates**: a new Updates section in Settings › SteamU to choose a channel (stable, release candidate, beta, alpha).",
+   "**Unifideck (pull requests #28 and #29 by @lieserlV, thank you!)**: an option groups the copies of a game owned on",
+   "**Windows**: touching behind a window closes it without pressing the button underneath.",
+   "**Badge Arcade**: badges float like in the original game, no longer get stuck under ropes, and Luigi no longer keeps",
+   "**Home**: a tile picked up with a finger to move it keeps its rounded corners."
+  ]
+ },
+ "0.2.9": {
+  "en": [
+   "**Works with the Steam update of 11/11**: it prevented some parts of the SteamU interface from loading."
+  ]
+ },
+ "0.2.8": {
+  "en": [
+   "**Unifideck 0.8 (pull request #27 by @lieserlV, thank you!)**: Xbox PC games can be installed and repaired from the game",
+   "**Button presses**: one press animation per gesture, on the right element: no more double press when releasing A, no more",
+   "**HOME menu**: the game preview no longer stays grey, and the game snapshot is taken much faster (including Heroic and",
+   "**Updates**: the interface reloads by itself after an update (never during a game), and SteamU restarts its background",
+   "**Speed**: no more stutter when the plaza opens right after Steam starts.",
+   "**Themes page**: settings changed just before a restart are no longer lost.",
+   "**Plaza**: the first Y press right after arriving works."
+  ]
+ },
+ "0.2.7": {
+  "en": [
+   "**Media (#26)**: press X on a screenshot for its options: share it (Steam's own share sheet: send to your phone, share in a",
+   "**Chats**: sharing a screenshot to a friend sends it and opens SteamU's chat (it used to land on the quick settings and never",
+   "**Unifideck (pull request #17 by @lieserlV, thank you!)**: the game page shows Unifideck's actions (install, cancel, play, update, cloud saves, launch",
+   "**Battery (#21)**: after waking from sleep, the remaining time is read from the system when Steam stops providing it.",
+   "**HOME menu**: games launched through a shortcut that starts them outside Steam's launcher (Heroic, umu) are really paused.",
+   "**Touch**: swiping left or right no longer zooms the home grid (a finger lift the system never reported kept being counted).",
+   "**Steam menus**: cleaner pills without heavy shadows; a submenu (Add to, Remove from, Manage) replaces the menu instead of"
+  ]
+ },
+ "0.2.6": {
+  "en": [
+   "**Audio output in the quick settings**: choosing another output changed the input device instead (SteamU sent Steam the wrong",
+   "**Wi-Fi in the quick settings**: the list relied on an old presence flag and could stay empty; it now shows the networks Steam",
+   "**Battery info (#21)**: the battery card was shown only while Steam itself reported the battery; at startup or when reopening Quick"
+  ]
+ },
+ "0.2.5": {
+  "en": [
+   "**Steam's game menu (#24)**: SteamU's home grid and game page replaced Steam's own screens, so Steam's full game menu (and the",
+   "**Bluetooth in the quick settings**: connecting, disconnecting, pairing and forgetting sent Steam an empty request, so nothing",
+   "**Friend pop-ups (#25)**: SteamU's notification style blew up the icon of friend and chat pop-ups and pushed the name and",
+   "**Lyrics screen**: the musician Miis hold the mic the right way up, in front of the mouth; the guitarist's hand no longer goes"
   ]
  },
  "0.1.10": {
@@ -367,27 +326,7 @@
    "Dates and times follow Steam's language."
   ]
  },
- "0.1.7": {
-  "en": [
-   "Settings → Storage: the game list now fills the card (drives and usage bar are more compact), so several games are visible instead of one.",
-   "Light mode, Settings → Storage: the selected game row was unreadable (Steam's dark grey background under dark text); it now uses SteamU's highlight (#3).",
-   "Plaza: Miis talk much less, speech bubbles vary (never the same twice in a row) and come with long silences, like on the Wii U.",
-   "Plaza: a short fade between the plaza and the home screen; the full opening animation plays only once per session.",
-   "LEDs: no more small hitch every 10 seconds (reading the theme colour no longer touches the page).",
-   "Status pill: CSS Loader battery themes (e.g. \"Mobile Battery Theme\") no longer mix with SteamU's battery icon.",
-   "Updating SteamU without restarting Steam no longer breaks the top bar.",
-   "Game page: play time is rounded to the minute (non-Steam shortcuts showed \"16 h 53.60000000000002\").",
-   "Changing the grid zoom quickly no longer stutters: tile sizes and the animated background are measured once per change instead of on every tile and every frame.",
-   "At 5 to 8 rows, tiles no longer touch each other: the gap between them stays at 10% of a tile step instead of shrinking to 6.5%.",
-   "When Steam has just shown its own account chooser (\"Who's playing?\", and the PIN) at startup, SteamU no longer shows its welcome screen on top: you land on the home screen directly. With automatic sign-in, the welcome screen is unchanged.",
-   "Game logos no longer flicker on zoom changes and scrolling: the previous logo stays underneath until the new one is drawn.",
-   "On the very first Big Picture launch, Steam's own tips (\"Welcome to Big Picture\", \"Steam Menu\"…) no longer appear underneath SteamU's welcome screen: it waits until Steam has nothing on top.",
-   "While a game is in the foreground, SteamU's home screen, Miis, animated background and animated tiles are paused: the Steam window no longer redraws behind the game (it was taking about 100 frames per second of GPU time from the game).",
-   "Large libraries: the home screen no longer watches every tile on every frame, which lowers idle CPU with thousands of games.",
-   "Small power budgets: below 8 W of TDP (quick settings), the animated background stays still and animated tiles show their first frame; they come back as soon as the TDP is raised or set to automatic."
-  ]
- },
- "0.1.6": {
+ "0.1.6-test": {
   "en": [
    "Library: when there are many categories (Unifideck's GOG, Epic, Amazon… or your own collections), the tab row now scrolls horizontally and the selected tab is brought back to the centre. Based on a pull request by @lieserlV (#6).",
    "SteamU waits until Steam has finished signing in (account choice, PIN) before showing anything (#2).",
@@ -397,7 +336,7 @@
    "Tiles no longer flicker or turn blank when changing the zoom or scrolling; animated tiles no longer turn white. Game logos can still flicker briefly on zoom changes (being worked on)."
   ]
  },
- "0.1.5": {
+ "0.1.5-test": {
   "en": [
    "Main fix for issue #1: the home screen no longer decodes full-size game images. Every installed game is on the home grid, and each tile used to load its artwork at full size (heroes of 3840 × 1240, ~19 MB once decoded), with its fallback images stacked underneath. Custom artwork (non-Steam shortcuts, SteamGridDB) was never shrunk at all, and animated custom artwork (animated PNG/WebP) was decoded again at full size for every frame of its animation. With a large library, Chromium's image cache overflowed and kept re-decoding, until steamwebhelper fell over. Now:",
    "All image work for the tiles (shrinking, checking logos and artwork, framing covers) now goes through one bounded queue, tiles on screen first. If an image can't be read, the tile uses its next fallback instead of the full-size original. Unused copies are released (32 MB budget), off-screen videos are unloaded, and a reloaded plugin stops its previous instance's work.",
@@ -407,24 +346,24 @@
    "Diagnostic report: the performance results are also saved step by step in Downloads (steamu-performance-….json), so they survive if Steam crashes during the measurement; the report records which home screen (new or old) was measured."
   ]
  },
- "0.1.4": {
+ "0.1.4-test": {
   "en": [
    "Diagnostic report: a ~35 s performance measurement on the home screen (CPU and memory per Steam process), repeated while hiding the animated background, the home grid and CSS animations one at a time, to pinpoint what loads the CPU on your machine (issue #1).",
    "The \"Customize\" bubble (Themes, Badges, Decorate) is now translated."
   ]
  },
- "0.1.3": {
+ "0.1.3-test": {
   "en": [
    "Main fix for issue #1: when Steam renders without the GPU (software rendering: llvmpipe, SwiftShader…), the animated background is automatically kept still. Each of its frames forced a full-screen redraw on the CPU: measured ~170% of a CPU core at rest on the home screen, down to ~15-20%. With a GPU, nothing changes.",
    "The diagnostic report now tells how Steam renders (GPU or software)."
   ]
  },
- "0.1.2": {
+ "0.1.2-test": {
   "en": [
    "Home screen: the tile entry animations are released once played. The new home screen kept ~360 finished animations alive, one render layer per grid cell, which made memory and CPU climb, especially when Steam renders in software (issue #1)."
   ]
  },
- "0.1.1": {
+ "0.1.1-test": {
   "en": [
    "Fixed: SteamU no longer injects into Steam's desktop-mode windows (login, top menus); it only touches Game Mode / Big Picture (issue #1).",
    "Faster return to the home screen (the grid is no longer rebuilt every time).",
@@ -433,7 +372,7 @@
    "One shared button legend across the interface."
   ]
  },
- "0.1.0": {
+ "0.1.0-test": {
   "en": [
    "`decky/steamu/`: the main plugin (home screen, HOME menu, quick settings, Settings → SteamU page,",
    "A safety net: an L3+R3 emergency stop, automatic safe mode after repeated crashes, a Decky on/off toggle, and",
