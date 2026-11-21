@@ -354,7 +354,9 @@ def cle_tri(nom):
 
 def titres_cherches(jeux, terme):
     mots = [m for m in re.findall(r"\w+", cle_tri(terme)) if len(m) >= 2]
-    gardes = [j for j in jeux if mots and (t := re.findall(r"\w+", cle_tri(j["nom"]))) and all(any(x.startswith(m) for x in t) for m in mots)]
+    def trouve(t, m):
+        return any(x.startswith(m) for x in t) or m in "".join(x[0] for x in t)
+    gardes = [j for j in jeux if mots and (t := re.findall(r"\w+", cle_tri(j["nom"]))) and all(trouve(t, m) for m in mots)]
     return gardes or jeux
 
 def lettre(nom):

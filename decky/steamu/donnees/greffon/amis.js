@@ -200,8 +200,8 @@
     #pcv-amis .grille[data-z="0"] .ami { gap: ${u(12)}; }
     #pcv-amis .grille[data-z="3"] .ami { padding: ${u(12)} ${u(6)}; }
     
-    body:not(.pcv-barre-main) #pcv-amis :is(.ami, .conv, .msg.choix, .champ).sel, #pcv-amis .ami:focus-visible { transform: translateY(${u(-3)}); z-index: 2; }
-    body:not(.pcv-barre-main) #pcv-amis :is(.conv, .msg.choix, .champ).sel {
+    body:not(.pcv-barre-main) #pcv-amis :is(.ami, .conv, .msg, .champ).sel, #pcv-amis .ami:focus-visible { transform: translateY(${u(-3)}); z-index: 2; }
+    body:not(.pcv-barre-main) #pcv-amis :is(.conv, .msg, .champ).sel {
       box-shadow: var(--pcv-reflet), 0 0 0 ${u(4)} var(--pcv-anneau-c), 0 0 0 ${u(9)} var(--pcv-cyan-plein), 0 0 0 ${u(17)} color-mix(in srgb, var(--pcv-cyan-plein) 20%, transparent), 0 ${u(14)} ${u(28)} color-mix(in srgb, var(--pcv-cyan-plein) 35%, transparent); }
     #pcv-amis .av { position: relative; flex: none; width: var(--av, ${u(84)}); height: var(--av, ${u(84)}); transition: width .25s, height .25s; }
     #pcv-amis .av img { width: 100%; height: 100%; border-radius: 50%; display: block; object-fit: cover; background: var(--pcv-creux); box-shadow: 0 0 0 ${u(4.5)} var(--pcv-lisere), 0 ${u(5)} ${u(13)} rgb(from var(--pcv-ombre-c) r g b / .22); }
@@ -273,7 +273,13 @@
     #pcv-amis :is(.conv, .msg) span { font-size: ${u(14)}; font-weight: 800; color: var(--pcv-texte2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #pcv-amis :is(.conv, .msg) time { font-size: ${u(13)}; font-weight: 800; color: var(--pcv-texte2); align-self: flex-start; margin-left: ${u(6)}; }
     #pcv-amis .fil { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: ${u(12)}; padding: ${u(22)}; }
-    #pcv-amis .fil .qui { display: flex; align-items: center; gap: ${u(16)}; margin-bottom: auto; }
+    #pcv-amis .fil .qui { display: flex; align-items: center; gap: ${u(16)}; flex: none; }
+    
+    #pcv-amis .fil .flux { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: ${u(12)}; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y;
+      padding: var(--pcv-marge-ombre); margin: ${u(-12)} calc(var(--pcv-marge-ombre) * -1) ${u(-22)};   
+      -webkit-mask-image: var(--pcv-masque-marge); mask-image: var(--pcv-masque-marge); }
+    #pcv-amis .fil .flux > :first-child { margin-top: auto; }   
+    #pcv-amis .fil .flux > * { flex: none; }
     #pcv-amis .fil .qui b { font-size: ${u(26)}; font-weight: 900; display: block; }
     #pcv-amis .pastille { display: inline-block; margin-top: ${u(6)}; padding: ${u(4)} ${u(12)}; border-radius: ${u(16)}; font-size: ${u(14)}; font-weight: 900; background: var(--pcv-verre); box-shadow: var(--pcv-reflet), 0 ${u(3)} ${u(8)} rgb(from var(--pcv-ombre-c) r g b / .13); }
     #pcv-amis .msg { display: flex; align-items: center; gap: ${u(14)}; padding: ${u(12)} ${u(18)}; border-radius: ${u(24)}; max-width: 80%;
@@ -309,7 +315,7 @@
       [2, T("touche.retour")],
       [4, T("social.nouvelle")],
       it?.dataset.inv ? [3, T("social.plus_tard")] : S.peutInviter() && partenaire && [3, T("social.inviter")],
-      it?.dataset.inv ? [1, T("social.rejoindre")] : it?.classList.contains("ecrire") ? [1, T("social.ecrire")] : it && [1, T("console.ouvrir")],
+      it?.dataset.inv ? [1, T("social.rejoindre")] : it?.classList.contains("ecrire") ? [1, T("social.ecrire")] : it?.dataset.ami && [1, T("console.ouvrir")],
       onglets
     ] : vue === "ajouter" ? [(asel < 0 || genre(resultats[asel]?.f || {}) !== "envoyee") && [1, T(asel < 0 ? "social.ecrire" : resultats[asel] && genre(resultats[asel].f) === "recue" ? "amis.accepter" : "amis.envoyer")], [2, T("touche.retour")], onglets] : [
       x && x.genre !== "envoyee" && !faits.has(x.f.accountid) && [1, T(x.genre === "recue" ? "amis.accepter" : x.genre === "nouveau" ? "amis.ajouter" : "console.ouvrir")],
@@ -594,19 +600,25 @@
     }
     const saisie = fil.querySelector(".saisie");
     if (saisie && saisie === document.activeElement) return;
-    const c = S.chat(partenaire), p = ami.persona, msgs = (c?.chat_messages || []).slice(-4);
+    const c = S.chat(partenaire), p = ami.persona, msgs = c?.chat_messages || [];
     const sig = partenaire + ":" + msgs.map((m) => m.rtTimestamp + "." + m.unOrdinal).join(",");
     if (sig === signature && fil.innerHTML) return;
     signature = sig;
+    const ancien = fil.querySelector(".flux"), enBas = !ancien || ancien.scrollTop + ancien.clientHeight >= ancien.scrollHeight - 4, haut = ancien?.scrollTop || 0;
     const bulle = (m) => {
-      const inv = S.invitation(m), lui = m.unAccountID !== F.self?.accountid, q = lui ? p : moi;
-      if (inv && lui) return `<div class="msg inv${inv.bAccepted || inv.bDismissed || inv.bOld ? "" : " choix"}" data-inv="${m.rtTimestamp}">${avatar(p)}<span class="t"><b>${T("social.invite_titre", { nom: echappe(p.m_strPlayerName) })} <time>${heure(m.rtTimestamp)}</time></b><span>${echappe(jeuNom(inv.appID) + (inv.connectString || inv.lobbyID ? T("social.partie_ouverte") : ""))}</span></span>
+      const inv = S.invitation(m), lui = m.unAccountID !== F.self?.accountid, q = lui ? p : moi, k = ` data-k="${m.rtTimestamp}.${m.unOrdinal}"`;
+      if (inv && lui) {
+        const ouverte = !(inv.bAccepted || inv.bDismissed || inv.bOld);
+        return `<div class="msg inv${ouverte ? " choix" : ""}"${k}${ouverte ? ` data-inv="${m.rtTimestamp}"` : ""}>${avatar(p)}<span class="t"><b>${T("social.invite_titre", { nom: echappe(p.m_strPlayerName) })} <time>${heure(m.rtTimestamp)}</time></b><span>${echappe(jeuNom(inv.appID) + (inv.connectString || inv.lobbyID ? T("social.partie_ouverte") : ""))}</span></span>
         <i class="capsule" data-jeu="${+inv.appID}" style="background-image:${S.capsule(inv.appID)}"></i>${inv.bAccepted || inv.bDismissed || inv.bOld ? "" : `<button class="btn cyan" data-act="accepter">${T("social.rejoindre")}</button><button class="btn" data-act="plus-tard">${T("social.plus_tard")}</button>`}</div>`;
-      return `<div class="msg${lui ? "" : " moi"}">${avatar(q || p)}<span class="t"><b>${lui ? echappe(p.m_strPlayerName) : T("social.toi")} <time>${heure(m.rtTimestamp)}</time></b>${imageDe(m.strMessage) ? `<img class="photo" src="${echappe(imageDe(m.strMessage))}" alt="">` : `<span>${echappe(inv ? T("social.invitation_a", { jeu: jeuNom(inv.appID) }) : S.texte(m.strMessage))}</span>`}</span></div>`;
+      }
+      return `<div class="msg${lui ? "" : " moi"}"${k}>${avatar(q || p)}<span class="t"><b>${lui ? echappe(p.m_strPlayerName) : T("social.toi")} <time>${heure(m.rtTimestamp)}</time></b>${imageDe(m.strMessage) ? `<img class="photo" src="${echappe(imageDe(m.strMessage))}" alt="">` : `<span>${echappe(inv ? T("social.invitation_a", { jeu: jeuNom(inv.appID) }) : S.texte(m.strMessage))}</span>`}</span></div>`;
     };
-    fil.innerHTML = `<div class="qui">${avatar(p)}<span><b>${echappe(p.m_strPlayerName)}</b><span class="pastille${p.m_unGamePlayedAppID ? " etat-jeu" : ""}">\u25CF ${echappe(ligne(p))}</span></span></div>${msgs.map(bulle).join("")}
-      ${S.peutEcrire(c) ? `<div class="msg ecrire choix"><span class="clavier">${window.__pcvIcones?.svg?.("clavier", { attrs: 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' }) || ""}</span><span class="t"><b>${T("social.ecrire_a", { nom: echappe(p.m_strPlayerName) })}</b><span>${T("social.clavier")}</span></span><input class="saisie" type="text" maxlength="2000"></div>` : ""}`;
+    fil.innerHTML = `<div class="qui">${avatar(p)}<span><b>${echappe(p.m_strPlayerName)}</b><span class="pastille${p.m_unGamePlayedAppID ? " etat-jeu" : ""}">\u25CF ${echappe(ligne(p))}</span></span></div><div class="flux">${msgs.map(bulle).join("")}
+      ${S.peutEcrire(c) ? `<div class="msg ecrire choix"><span class="clavier">${window.__pcvIcones?.svg?.("clavier", { attrs: 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' }) || ""}</span><span class="t"><b>${T("social.ecrire_a", { nom: echappe(p.m_strPlayerName) })}</b><span>${T("social.clavier")}</span></span><input class="saisie" type="text" maxlength="2000"></div>` : ""}</div>`;
     S.peindre(fil);
+    const flux = fil.querySelector(".flux");
+    if (flux) flux.scrollTop = enBas ? flux.scrollHeight : haut;
     fil.querySelector(".saisie")?.addEventListener("paste", (e) => {
       const d = O.__pcvDerniereCopie, x = d && Date.now() - d.t < 36e5 && /\/760\/remote\/(\d+)\/screenshots\/([^/]+\.(?:jpe?g|png))$/i.exec(d.chemin);
       if (!x || ![...e.clipboardData?.types || []].includes("text/uri-list")) return;
@@ -625,12 +637,14 @@
       }, 400);
     });
   };
-  const elemsDisc = () => [...racine.querySelectorAll(".conv, .msg.choix")];
-  const poserDisc = (i) => {
+  const elemsDisc = () => [...racine.querySelectorAll(".conv, .fil .msg")];
+  const cleDisc = (e) => e?.dataset.ami || e?.dataset.k || (e?.classList.contains("ecrire") ? "ecrire" : "");
+  const poserDisc = (i, suivre = true) => {
     const l = elemsDisc();
     dsel = Math.max(0, Math.min(l.length - 1, i));
-    l.forEach((e, k) => e.classList.toggle("sel", k === dsel));
-    l[dsel]?.scrollIntoView?.({ block: "nearest" });
+    l.forEach((e2, k) => e2.classList.toggle("sel", k === dsel));
+    const e = l[dsel];
+    if (e && suivre) window.__pcvSuivre?.(e) || e.scrollIntoView?.({ block: "nearest" });
     ecrireLegende();
   };
   const discussion = (id) => {
@@ -649,8 +663,10 @@
     }
     if (racine.hidden) montrer(true, "disc");
     else afficherVue();
-    const l = elemsDisc(), k = l.findIndex((e) => e.classList.contains("ecrire"));
-    poserDisc(k >= 0 ? k : 0);
+    const f = racine.querySelector(".fil .flux");
+    if (f) f.scrollTop = f.scrollHeight;
+    const l = elemsDisc(), m = l.filter((e) => !e.classList.contains("conv"));
+    poserDisc(m.length ? l.indexOf(m[m.length - 1]) : 0, !m.length);
   };
   const VUES = { liste: ".grille > *", disc: ".disc > *", ajouter: ".ajouter > *" };
   const afficherVue = () => {
@@ -721,7 +737,7 @@
       return;
     }
     if (vue === "disc") {
-      const a2 = e.target.closest("[data-act]"), el = e.target.closest(".conv, .msg.choix");
+      const a2 = e.target.closest("[data-act]"), el = e.target.closest(".conv, .fil .msg");
       if (el) {
         poserDisc(elemsDisc().indexOf(el));
         agirDisc(el, a2?.dataset.act === "plus-tard" ? 3 : 1);
@@ -776,7 +792,13 @@
     if (racine.hidden) return false;
     const l = elemsDisc(), e = l[dsel], gauche = !!e?.classList.contains("conv");
     if (b === 2) {
-      montrer(false);
+      const k = gauche ? -1 : l.findIndex((x) => x.dataset.ami === String(partenaire));
+      if (k < 0) {
+        montrer(false);
+        return true;
+      }
+      poserDisc(k);
+      window.__pcvSon?.("bouge");
       return true;
     }
     if (b === 1) agirDisc(e, 1);
@@ -798,7 +820,8 @@
       if (l[k] && l[k].classList.contains("conv") === gauche) {
         poserDisc(k);
         window.__pcvSon?.("bouge");
-      } else if (b === 9) window.__pcvBarreEntrer?.(ecrireLegende);
+      } else if (!gauche) window.__pcvSon?.("bord");
+      else if (b === 9) window.__pcvBarreEntrer?.(ecrireLegende);
       else window.__pcvSon?.("bord");
     } else if (b === 11 || b === 12) {
       const k = b === 12 && gauche ? l.length - 1 : b === 11 && !gauche ? Math.max(0, l.findIndex((x) => x.dataset.ami === String(partenaire))) : -1;
@@ -932,9 +955,10 @@
     }
     if (racine.hidden || ++tic % 5) return;
     if (vue === "disc") {
-      const k = dsel;
+      const c = cleDisc(elemsDisc()[dsel]);
       peindreDisc();
-      poserDisc(k);
+      const l = elemsDisc(), k = l.findIndex((e) => cleDisc(e) === c);
+      poserDisc(k >= 0 ? k : dsel, false);
     } else if (vue === "ajouter" ? texteAjout.trim() : texte.trim() || onglet === "demandes") rafraichir();
   }, 200);
   return "amis pr\xEAt";

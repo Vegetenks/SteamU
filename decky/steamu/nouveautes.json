@@ -1,4 +1,36 @@
 {
+ "0.3.0-rc.2": {
+  "fr": [
+   "Menu HOME › Accueil ramène toujours à ton accueil, depuis n’importe quelle appli.",
+   "Toute notification de mise à jour, Steamcord compris, mène aux Téléchargements, onglet Plugins.",
+   "Amis › Discussions : les messages défilent un par un, au doigt comme à la manette, et B revient à la liste.",
+   "Recherche : les abréviations comme GTA ou COD trouvent de nouveau leurs jeux.",
+   "Thèmes : changer d’onglet ne fait plus saccader le fond.",
+   "Téléchargements : « Tout mettre à jour » pour les jeux.",
+   "L’écran d’attente de la boutique garde son orange avec tous les thèmes.",
+   "Le SpotPass n’a plus d’onglet dans le Mii Maker : il a sa propre page."
+  ],
+  "en": [
+   "HOME Menu › Home always takes you back to your home screen, from any app.",
+   "Every update notification, Steamcord's included, now opens Downloads, Plugins tab.",
+   "Friends › Chats: messages scroll one by one, by touch or controller, and B goes back to the list.",
+   "Search: abbreviations like GTA or COD find their games again.",
+   "Themes: switching tabs no longer makes the background stutter.",
+   "Downloads: “Update all” for games.",
+   "The shop’s loading screen keeps its orange with every theme.",
+   "SpotPass no longer has a tab in the Mii Maker: it has its own page."
+  ],
+  "es": [
+   "Menú HOME › Inicio siempre vuelve a tu pantalla de inicio, desde cualquier aplicación.",
+   "Toda notificación de actualización, incluida la de Steamcord, abre Descargas, pestaña Plugins.",
+   "Amigos › Conversaciones: los mensajes se desplazan uno a uno, con el dedo o el mando, y B vuelve a la lista.",
+   "Búsqueda: las abreviaturas como GTA o COD vuelven a encontrar sus juegos.",
+   "Temas: cambiar de pestaña ya no hace que el fondo se trabe.",
+   "Descargas: «Actualizar todo» para los juegos.",
+   "La pantalla de carga de la tienda conserva su naranja con todos los temas.",
+   "SpotPass ya no tiene pestaña en el Mii Maker: tiene su propia página."
+  ]
+ },
  "0.3.0-rc.1": {
   "fr": [
    "Une bande originale : les musiques de The Soundtrack Of Frutiger Aero, de temcandoanything, à choisir par pochettes. Merci à lui !",

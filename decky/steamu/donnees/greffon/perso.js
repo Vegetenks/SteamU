@@ -288,8 +288,14 @@
     }
     abandonner();
     fermerTout();
-    O.__pcvAller?.(1);
+    window.__pcvAccueilDemande = Date.now();
+    const B = window.__pcvBridge;
+    if (surAccueil() && B?.closeMenus) B.closeMenus();
+    else O.__pcvAller?.(1);
   };
-  window.__pcvEcran = { actif: () => actif, appli, accueil, ouvert: unOuvert, fermer: fermerTout };
+  const ecranApi = { actif: () => actif, appli, accueil, ouvert: unOuvert, fermer: fermerTout };
+  Object.defineProperty(window, "__pcvEcran", { configurable: true, enumerable: true, get: () => ecranApi, set: (v) => {
+    if (v && v !== ecranApi) Object.assign(ecranApi, v);
+  } });
   return "personnalisation pr\xEAte";
 })();

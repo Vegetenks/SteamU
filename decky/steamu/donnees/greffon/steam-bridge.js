@@ -1418,6 +1418,16 @@ window.__pcvBridge = (() => {
           } catch (e) {
           }
         },
+        // (21/11) « Tout mettre à jour » : chaque jeu arrêté ou prévu, dans l'ordre de la file ; les boutons Reprendre
+        // (ResumeAppUpdate) et Mettre à jour (QueueAppUpdate) de la page de Steam, puis la file relancée si elle était en pause
+        tout: (l) => {
+          if (BANC()) return BANC().tout?.(l);
+          try {
+            for (const x of l) x.etat === "prevu" ? D().QueueAppUpdate(x.appid, "0") : D().ResumeAppUpdate(x.appid, "0");
+            if (l.length && S().LocalDownloadOverview?.paused) D().EnableAllDownloads(true, "0");
+          } catch (e) {
+          }
+        },
         // les réglages des téléchargements de Steam (le même lien que sa page Téléchargements)
         reglages: () => {
           try {

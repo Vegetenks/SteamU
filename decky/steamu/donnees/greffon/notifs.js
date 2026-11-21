@@ -598,11 +598,14 @@
   window.__pcvMajPluginsPremier = setTimeout(verifierPlugins, 6e4);
   clearInterval(window.__pcvMajPluginsSuivi);
   window.__pcvMajPluginsSuivi = setInterval(verifierPlugins, 30 * 60 * 1e3);
+  const MOTS_MAJ = /\b(update|updates|mise à jour|mises à jour|actualización|nueva versión|nouvelle version|new version)\b/i;
+  const majGreffon = (n) => (!!n.service && typeof n.service.data?.onClick !== "function" || amiGreffon(n)) && MOTS_MAJ.test([n.titre, n.texte, n.service?.data?.title, n.service?.data?.body, JSON.stringify(n.r?.item || "")].filter((x) => typeof x === "string").join(" "));
   const ouvrirPluginMaj = () => {
     montrer(false);
     window.__pcvTelechOnglet?.("greffons");
     O.__pcvAller?.("telechargements");
   };
+  window.__pcvNotifsMaj = { ouvrir: ouvrirPluginMaj, texte: (t) => MOTS_MAJ.test(t || "") };
   bulleUneFois("__pcvPlantageBulle", "__pcvPlantageVu", plantageActif, { avis: "plantage" });
   let quoi = false, qAct = 0, qLecture = null, qAnnonce = null, qPropose = null;
   const dessinerQuoi = () => {
@@ -724,7 +727,8 @@
     remplir();
   };
   let act = 0;
-  const agirDe = (n) => n.ami ? typeof n.agir === "function" ? n.agir : () => window.__pcvDiscuter?.(n.ami) : VERS[n.pile] || (typeof n.agir === "function" ? n.agir : null);
+  const majHist = (n) => (n.pile === "greffons" || !!n.ami && amiGreffon(n)) && MOTS_MAJ.test([n.titre, n.ligne, n.texte].filter((x) => typeof x === "string").join(" "));
+  const agirDe = (n) => majHist(n) ? ouvrirPluginMaj : n.ami ? typeof n.agir === "function" ? n.agir : () => window.__pcvDiscuter?.(n.ami) : VERS[n.pile] || (typeof n.agir === "function" ? n.agir : null);
   const VERS = {
     amis: () => window.__pcvAmisMontrer?.(true),
     telechargements: () => O.__pcvAller?.("telechargements"),
@@ -734,7 +738,7 @@
     boutique: () => window.__pcvBoutique?.ouvrir()
   };
   const avisDe = (n) => n?.historique && n.sourceAvis && typeof n.agir !== "function" ? { avis: n.sourceAvis === "maj" ? "installee" : n.sourceAvis } : n;
-  const voirDe = (n) => T(n.ami ? "notifs.lire_message" : "notifs.voir_plus");
+  const voirDe = (n) => T(n.ami && !majHist(n) ? "notifs.lire_message" : "notifs.voir_plus");
   const greffonDe = (n) => {
     try {
       const t = String(n.titre || "");
@@ -952,8 +956,7 @@
     if (n.annonce) return ouvrirAnnonce(n.annonce);
     if (n.avis === "nouveautes") return action === 1 ? supprimer(i) : window.__pcvBienvenue.ouvrir(void 0, false);
     if (n.avis === "installee") return ouvrirQuoi(true);
-    if (n.avis === "maj") return ouvrirQuoi();
-    if (n.avis === "plugins") return ouvrirPluginMaj();
+    if (n.avis === "maj" || n.avis === "plugins" || majGreffon(n)) return ouvrirPluginMaj();
     if (n.avis === "plantage") return;
     if (n.avis) {
       window.__pcvSteamU?.importer?.();
@@ -1899,9 +1902,14 @@
         contenu.fermer();
         return;
       }
-      const ami = !controleur && amiDe(t), discuter = () => window.__pcvDiscuter(ami);
-      contenu.pile = window.__pcvNotifsCategorie({ ...contenu, toast: t, pile: controleur ? "manettes" : void 0 });
+      const expediteur = !controleur && amiDe(t);
+      contenu.pile = window.__pcvNotifsCategorie({ ...contenu, toast: t, ami: expediteur || void 0, pile: controleur ? "manettes" : void 0 });
+      const ami = contenu.pile === "greffons" ? 0 : expediteur, discuter = () => window.__pcvDiscuter(ami);
       if (ami) Object.assign(contenu, { ami, agir: discuter, revoir: void 0, actions: [], touches: [[1, T("notifs.lire_message"), discuter]] });
+      else if (expediteur && window.__pcvNotifsMaj?.texte(contenu.titre + " " + contenu.ligne)) {
+        const maj = () => window.__pcvNotifsMaj.ouvrir();
+        Object.assign(contenu, { agir: maj, revoir: void 0, actions: [], touches: [[1, T("notifs.voir"), maj]] });
+      }
       if (!silencieuse(contenu)) {
         file.push({ t, contenu });
         suivante();

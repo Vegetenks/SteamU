@@ -324,7 +324,8 @@
   const versionsDe = (p) => p.versions?.[0]?.version && p.installee ? T("telech.g_versions", { de: p.installee, a: p.versions[0].version }) : p.installee || "";
   const tuileG = (nom, taille2, attrs = "") => (E()?.tuile(pDe(nom), TUILES[taille2][0], attrs) || "").replace('class="cel"', 'class="cel app"');
   const btsG = (cle2) => cle2 === "gcours" ? [{ a: "gpause", ic: G.pause ? "lecture" : "pause", nom: T(G.pause ? "telech.reprendre" : "telech.pause"), principal: true }] : cle2 === "gechec" ? [{ a: "greessayer", ic: "mise-a-jour", nom: T("telech.g_reessayer"), principal: true }] : cle2 === "gtete" ? [G.maj.length ? { a: "gtout", ic: "mise-a-jour", nom: T(G.file.length ? "telech.reprendre" : "telech.g_tout"), principal: true } : { a: "geshop", ic: "boutique", nom: T("telech.g_eshop"), principal: true }] : null;
-  const btsRang = (g) => g?.cle === "cours" ? btsDe(F.cours, true) : g?.cle === "vide" ? [{ a: "biblio", ic: "bibliotheque", nom: T("spaces.bibliotheque.nom"), principal: true }] : btsG(g?.cle);
+  const enAttente = () => F.suivants.filter((x) => !x.unif && x.maj && x.etat !== "file");
+  const btsRang = (g) => g?.cle === "jtete" ? [{ a: "jtout", ic: "mise-a-jour", nom: T("telech.g_tout"), principal: true }] : g?.cle === "cours" ? btsDe(F.cours, true) : g?.cle === "vide" ? [{ a: "biblio", ic: "bibliotheque", nom: T("spaces.bibliotheque.nom"), principal: true }] : btsG(g?.cle);
   const avanceG = () => {
     const p = pctG(), n = G.total - G.file.length;
     return `<div class="avance"><span class="bulle verre"><span class="pastille">${ico(G.pause ? "pause" : "mise-a-jour")}</span><span class="reste">${e(G.pause ? T("telech.g_pause_apres") : T("telech.g_rang", { n, total: G.total }))}</span></span><span class="qte">${e(p == null ? T("telech.en_cours") : T("telech.pct", { n: Math.round(p) }))}</span></div>`;
@@ -344,7 +345,7 @@
       ...G.faits.length ? [{ cle: "gtermine", l: G.faits }] : []
     ];
   };
-  const sectionG = (g, k, et2) => g.cle === "gtete" ? `<section class="vide" data-r="${k}"><span class="pastille">${ico(G.maj.length ? "mise-a-jour" : "coche")}</span><div><h2>${e(G.maj.length ? T("telech.g_n_maj", { n: G.maj.length }) : T("telech.g_a_jour"))}</h2><p>${e(T(G.maj.length ? "telech.g_aide" : "telech.g_a_jour_aide"))}</p>` + boutons(btsG("gtete"), 0) + `</div></section>` : g.cle === "gcours" ? et2(k, "mise-a-jour", T("telech.en_cours"), 0, `<div class="courant" style="${CS.grand}">${tuileG(G.cours, "grand", `data-k="${k}" data-j="0"`)}<div class="infos"><h2>${e(G.cours)}</h2>${avanceG()}<span class="ligne-g">${e(versionsDe(pDe(G.cours)))}</span></div>` + boutons(btsG("gcours"), -1, "droite") + `</div>`) : g.cle === "gechec" ? et2(k, "info", T("telech.g_echec_titre"), 0, `<div class="courant" style="${CS.grand}">${tuileG(G.echecs[0].nom, "grand", `data-k="${k}" data-j="0"`)}<div class="infos"><h2>${e(T("telech.g_echec", { nom: G.echecs[0].nom }))}</h2><span class="ligne-g">${e(G.echecs[0].erreur)}</span>` + (G.faits.length ? `<span class="ligne-g">${e(T("telech.g_bilan", { n: G.faits.length, total: G.faits.length + G.echecs.length }))}</span>` : "") + `</div>` + boutons(btsG("gechec"), -1, "droite") + `</div>`) : et2(
+  const sectionG = (g, k, et2) => g.cle === "gtete" ? `<section class="vide" data-r="${k}"><span class="pastille">${ico(G.maj.length ? "mise-a-jour" : "coche")}</span><div><h2>${e(G.maj.length ? T("telech.g_n_maj", { n: G.maj.length }) : T("telech.g_a_jour"))}</h2>` + boutons(btsG("gtete"), 0) + `</div></section>` : g.cle === "gcours" ? et2(k, "mise-a-jour", T("telech.en_cours"), 0, `<div class="courant" style="${CS.grand}">${tuileG(G.cours, "grand", `data-k="${k}" data-j="0"`)}<div class="infos"><h2>${e(G.cours)}</h2>${avanceG()}<span class="ligne-g">${e(versionsDe(pDe(G.cours)))}</span></div>` + boutons(btsG("gcours"), -1, "droite") + `</div>`) : g.cle === "gechec" ? et2(k, "info", T("telech.g_echec_titre"), 0, `<div class="courant" style="${CS.grand}">${tuileG(G.echecs[0].nom, "grand", `data-k="${k}" data-j="0"`)}<div class="infos"><h2>${e(T("telech.g_echec", { nom: G.echecs[0].nom }))}</h2><span class="ligne-g">${e(G.echecs[0].erreur)}</span>` + (G.faits.length ? `<span class="ligne-g">${e(T("telech.g_bilan", { n: G.faits.length, total: G.faits.length + G.echecs.length }))}</span>` : "") + `</div>` + boutons(btsG("gechec"), -1, "droite") + `</div>`) : et2(
     k,
     g.cle === "gsuivre" ? "horloge" : "coche",
     T(g.cle === "gtermine" ? "telech.termine" : G.actif || G.file.length ? "telech.a_suivre" : "telech.g_a_mettre"),
@@ -388,12 +389,13 @@
         ...F.termines.length ? [{ cle: "termines", l: F.termines }] : []
       ];
       if (!c && !F.suivants.length) rangs.unshift({ cle: "vide", l: [0] });
+      if (enAttente().length) rangs.unshift({ cle: "jtete", l: [0] });
     }
     const enHaut = onglet === "greffons" && r === 0;
     r = enHaut ? 0 : Math.max(0, rangs.findIndex((g) => g.l.includes(choisi)));
     i = enHaut ? 0 : Math.max(0, rangs[r].l.indexOf(choisi));
     bt = Math.min(bt, (btsRang(rangs[r])?.length || 1) - 1);
-    pageEl.innerHTML = ongletsHtml() + `<div class="etageres">` + rangs.map((g, k) => onglet === "greffons" ? sectionG(g, k, et) : g.cle === "vide" ? `<section class="vide" data-r="${k}"><span class="pastille">${ico("telechargements")}</span><div><h2>${e(T("telech.rien"))}</h2><p>${e(T("telech.rien_aide"))}</p>` + boutons(btsRang(g), 0) + `</div></section>` : g.cle === "cours" ? et(k, "telechargements", T("telech.en_cours"), 0, `<div class="courant" style="${CS.grand}">${tuile(c.appid, "grand", `data-k="${k}" data-j="0"`)}<div class="infos"><h2>${e(nomDe(c.appid))}</h2>${avancement(c)}` + boutons(btsDe(c, true), -1, "ligne") + `</div></div>`) : et(
+    pageEl.innerHTML = ongletsHtml() + `<div class="etageres">` + rangs.map((g, k) => onglet === "greffons" ? sectionG(g, k, et) : g.cle === "vide" ? `<section class="vide" data-r="${k}"><span class="pastille">${ico("telechargements")}</span><div><h2>${e(T("telech.rien"))}</h2>` + boutons(btsRang(g), 0) + `</div></section>` : g.cle === "jtete" ? `<section class="vide" data-r="${k}"><span class="pastille">${ico("mise-a-jour")}</span><div><h2>${e(T("telech.j_n_maj", { n: enAttente().length }))}</h2><p>${e(T("telech.j_aide"))}</p>` + boutons(btsRang(g), 0) + `</div></section>` : g.cle === "cours" ? et(k, "telechargements", T("telech.en_cours"), 0, `<div class="courant" style="${CS.grand}">${tuile(c.appid, "grand", `data-k="${k}" data-j="0"`)}<div class="infos"><h2>${e(nomDe(c.appid))}</h2>${avancement(c)}` + boutons(btsDe(c, true), -1, "ligne") + `</div></div>`) : et(
       k,
       g.cle === "suivants" ? "horloge" : "manette",
       T(g.cle === "suivants" ? "telech.a_suivre" : "telech.termine"),
@@ -464,6 +466,7 @@
     if (a === "pause") t.pause(!F.cours?.pause);
     else if (a === "premier") t.premier(appid);
     else if (a === "reglages") t.reglages();
+    else if (a === "jtout") t.tout(enAttente());
     else if (a === "biblio") O.__pcvAller?.(2);
     else if (a === "jouer") {
       const j = appDe(appid);
@@ -491,6 +494,7 @@
     if (b === 3 && g.cle !== "vide") return g.cle === "termines" ? window.__pcvPageJeu?.(g.l[i], null, "telechargements") || window.__pcvJeux?.ouvrir?.(g.l[i]) : options(g, g.l[i]);
     if (b !== 1) return window.__pcvSon?.("bord");
     if (g.cle === "vide") return agir("biblio");
+    if (g.cle === "jtete") return agir("jtout");
     if (g.cle === "cours") return agir(btsRang(g)[bt].a, g.l[i]);
     if (g.cle === "suivants") return agir(etatDe(g.l[i])?.unif ? "retirer" : "premier", g.l[i]);
     agir("jouer", g.l[i]);

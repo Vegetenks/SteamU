@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.3.0-rc.2 (2026-11-21)
+
+Pre-release, available on the Release candidate channel. Fixes found on the first release candidate.
+
+- **HOME Menu**: Home always takes you back to your home screen, from any app (the shop used to stay open, or open the Library).
+- **Notifications**: every update notification, Steamcord's included, opens Downloads, Plugins tab; plugins with their own update screen (AutoFlatpaks) keep it.
+- **Friends › Chats**: all messages in a scrolling list; the controller moves one message at a time, touch scrolling works, and B goes back to the list of chats.
+- **Search**: abbreviations such as GTA or COD find their games again.
+- **Themes**: switching tabs no longer makes the background and the Mii stutter.
+- **Downloads**: "Update all" for games; quieter page.
+- **Shop**: the loading screen keeps its orange with every theme, imported ones included.
+- **Mii Maker**: no more SpotPass tab, SpotPass has its own page.
+- **Discovery guide**: no longer shows one card per installed plugin.
+- **Security**: every file served by the SteamU server is now signed.
+
 ## v0.3.0-rc.1 (2026-11-16)
 
 Pre-release, available on the Release candidate channel.

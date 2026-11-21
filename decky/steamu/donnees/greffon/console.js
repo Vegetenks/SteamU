@@ -3934,7 +3934,8 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: pcvLancFond .2s .12s ease-out backwards; }
     #pcv-lancement .etat { margin-top: calc(var(--u) * 12); color: var(--pcv-texte2); font-size: calc(var(--u) * 18); }
     #pcv-lancement .eshop { display: none; position: absolute; left: 50%; top: calc(50% - var(--u) * 56); width: 0; height: 0; }
-    #pcv-lancement[data-appli="eshop"] { background: var(--pcv-fond-page); }
+    
+    #pcv-lancement[data-appli="eshop"] { --lanc-a: var(--pcv-orange); background: var(--pcv-fond-attente-eshop, var(--pcv-fond-page)); }
     #pcv-lancement[data-appli="eshop"] .eshop { display: block; }
     #pcv-lancement .eshop > * { position: absolute; left: calc(var(--u) * var(--x)); top: calc(var(--u) * var(--y)); translate: -50% -50%;
       animation: pcvEshopSaut 1.1s var(--d) ease-in-out infinite alternate; will-change: transform; }
@@ -3959,7 +3960,7 @@
     @keyframes pcvLancSouffle { 0%, 100% { opacity: .35; transform: scale(.985); } 50% { opacity: 1; transform: scale(1.025); } }
   </style><div class="decor-jeu" aria-hidden="true"></div><div class="plateforme" aria-hidden="true"></div><div class="eshop" aria-hidden="true"></div><div class="ic"><div class="halo"></div><div class="fond"></div></div><div class="nom"></div><div class="etat" role="status"></div>`;
   document.body.appendChild(lanc);
-  window.__pcvFond?.(lanc);
+  window.__pcvFond?.(lanc, { theme: () => lanc.dataset.appli === "eshop" ? window.__pcvThemes?.boutique?.() : null });
   const ESHOP_DECO = [
     ["sac", -250, -40, 64, 0],
     ["piece", -190, -130, 0, 0.3],
@@ -4291,6 +4292,10 @@
     }
     if (id !== pageVoulue) pageVoulue = 0;
     if (!id || id === pageVoulue || lancRetour?.appid === id && Date.now() <= lancRetour.fin || lancModale() || !apps().has(id)) return;
+    if (Date.now() - (window.__pcvAccueilDemande || 0) < 2e3) {
+      noter({ accueil: id });
+      return void window.__pcvBridge?.revenirA?.("/library/home");
+    }
     noter({ fiche: id });
     window.__pcvPageJeu?.(id);
   };

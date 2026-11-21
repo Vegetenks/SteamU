@@ -303,7 +303,7 @@ ${BULLE_NOM_CSS}
     }
     q.hidden = !tuile || !texte;
     if (q.hidden) return;
-    const cle = [texte, innerWidth, innerHeight].join("|");
+    const cle = [texte, innerWidth, innerHeight, piste.getAttribute?.("style")].join("|");
     if (nomsBulles.get(q)?.tuile === tuile && nomsBulles.get(q)?.cle === cle) return;
     nomsBulles.set(q, { tuile, cle });
     const U = innerHeight / 800, r = tuile.getBoundingClientRect(), p = piste.getBoundingClientRect();

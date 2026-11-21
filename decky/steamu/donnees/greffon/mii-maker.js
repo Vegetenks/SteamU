@@ -1331,7 +1331,7 @@
     poserFocus(null);
   };
   let ongletAccueil = 0, rubriqueAccueil = 0, zone = "colonne";
-  const ONGLETS_ACCUEIL = ["miimaker.mes_mii", "spotpass.nom", "miimaker.catalogue"];
+  const ONGLETS_ACCUEIL = [[0, "miimaker.mes_mii"], [2, "miimaker.catalogue"]];
   const recherchesMii = ["", ""];
   const normaliserRecherche = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
   const correspondMii = (nom, couleur, texte) => {
@@ -1387,10 +1387,10 @@
   const ongletsAccueil = () => {
     observationOnglets?.disconnect();
     observationOnglets = null;
-    poser($(".onglets"), ONGLETS_ACCUEIL.map((k) => Tr(k)).map((n, i) => `<button class="onglet verre${i === ongletAccueil ? " actif" : ""}" data-haut="${i}">${echapper(n)}</button>`).join(""), "actif");
+    poser($(".onglets"), ONGLETS_ACCUEIL.map(([o, k], i) => `<button class="onglet verre${o === ongletAccueil ? " actif" : ""}" data-haut="${i}">${echapper(Tr(k))}</button>`).join(""), "actif");
     $(".onglets").querySelectorAll("button").forEach((b, i) => {
       b.onclick = () => {
-        ongletAccueil = i;
+        ongletAccueil = ONGLETS_ACCUEIL[i][0];
         rubriqueAccueil = 0;
         ouvrirAccueil();
       };
@@ -2444,7 +2444,8 @@ ${t}
     }
     if ((ecran === "accueil" || ecran === "catalogue") && (b === 5 || b === 6)) {
       son("onglet");
-      ongletAccueil = (ongletAccueil + (b === 5 ? -1 : 1) + ONGLETS_ACCUEIL.length) % ONGLETS_ACCUEIL.length;
+      const n = ONGLETS_ACCUEIL.length;
+      ongletAccueil = ONGLETS_ACCUEIL[(ONGLETS_ACCUEIL.findIndex(([o]) => o === ongletAccueil) + (b === 5 ? -1 : 1) + n) % n][0];
       rubriqueAccueil = 0;
       ouvrirAccueil();
       return true;
@@ -2805,14 +2806,8 @@ ${t}
   window.__pcvMiiMaker = {
     ouvrir,
     ouvrirSpotPass: () => {
-      if (ouvert) {
-        if (ed?.modifie) return false;
-        ed = null;
-        ongletAccueil = 1;
-        rubriqueAccueil = 0;
-        ouvrirAccueil();
-      } else ouvrir({ onglet: "spotpass" });
-      return true;
+      window.__pcvSpotPassPage?.ouvrir();
+      return !!window.__pcvSpotPassPage;
     },
     rafraichirSpotPass: () => {
       if (ouvert && ecran === "accueil" && ongletAccueil === 1 && !fenetreOuverte()) {

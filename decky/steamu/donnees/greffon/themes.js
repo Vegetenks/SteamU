@@ -824,6 +824,7 @@
     const [h, s, l] = x;
     return s >= ROUGE_RESERVE.satMin && l <= ROUGE_RESERVE.lumMax && (h >= ROUGE_RESERVE.debut || h <= ROUGE_RESERVE.fin);
   };
+  const themeBoutique = (t) => t && !t.partout && !aImage(t) ? t : trouver("verre");
   const variables = (t) => {
     const F = FAMILLES[t.famille], v = t.verre || F.verre, A = apparenceSombre() ? accentSombre(t.accent) : t.accent;
     const batAccent = accentEstRouge(A) ? t.accent2 || "var(--pcv-texte2)" : A;
@@ -835,6 +836,8 @@
       css += `
   --pcv-fond-${e}: ${f.complet}; --pcv-fond-${e}-base: ${f.base};`;
     }
+    css += `
+  --pcv-fond-attente-eshop: ${fondsDe(themeBoutique(t), "boutique").base};`;
     for (const [k, v2] of Object.entries(fenetreDuTheme(t))) css += `
   --pcv-fenetre-${k}: ${v2};`;
     const pl = plaqueDe(t);
@@ -1288,7 +1291,8 @@
         montrer(d, 0);
         continue;
       }
-      if (t - d.verif > 500 && !window.__pcvLancement?.etat?.() || d.vu === void 0) {
+      const lancNeuf = d.hote.id === "pcv-lancement" && d.vu !== !d.hote.hidden;
+      if (t - d.verif > 500 && !window.__pcvLancement?.etat?.() || d.vu === void 0 || lancNeuf) {
         d.verif = t;
         d.vu = vivant && visible(d.hote);
         d.ech = d.apercu ? 1 : R.fondEchelle || 1;
@@ -2137,7 +2141,6 @@
     rail.style.setProperty("--pcv-themes-colonnes", colonnesThemes());
     rail.style.setProperty("--c0", window.__pcvPresentation.cransGrille()[0].c * k);
     rail.classList.toggle("petites", cranThemes > CRANS_THEMES_AJOUTES);
-    rail.querySelector(".etiq-g")?.remove();
     barreZoomThemes(cranThemes);
   };
   const ouvrirReglages = () => {
@@ -2481,7 +2484,9 @@
     const liste = dans(cat);
     dessinerOnglets();
     $(".chapeau").textContent = cat === "couleurs" ? Tr("themes.couleurs_texte") : "";
-    $(".rail").innerHTML = liste.map(carte).join("") + (liste.length < 2 ? `<div class="vide">${VIDES[cat] || ""}</div>` : "");
+    const rail = $(".rail"), bulle = rail.querySelector(".etiq-g");
+    rail.innerHTML = liste.map(carte).join("") + (liste.length < 2 ? `<div class="vide">${VIDES[cat] || ""}</div>` : "");
+    if (bulle) rail.append(bulle);
     dimensionnerGrille();
     rendreReglages();
     for (const a of $(".actions").children) a.hidden = !nomsActions().includes(a.dataset.a);
@@ -3125,6 +3130,8 @@
     appliquer: (id) => appliquer(id),
     choisir: choisirTheme,
     actuel: () => courant?.id,
+    boutique: () => themeBoutique(courant),
+    // (l'attente de l'eShop, console.js : ses symboles)
     // (28/10) la sous-page Thèmes de l'eShop (eshop-themes.js) : les outils des sites (themezer.js, themeplaza.js), « Écouter »
     // un thème installé (id ; null : la musique de l'écran revient ; vrai si la musique du thème joue), « Supprimer », et
     // donnees : les thèmes installés lus par sa fiche comme un site de plus
