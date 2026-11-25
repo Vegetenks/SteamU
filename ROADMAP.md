@@ -71,7 +71,6 @@ No release dates are promised. Items under "Being considered" and "Later" are id
 - Your handheld as a second screen for a PC or Steam Machine on the TV
 
 ### Home
-- Save and load home screen layouts, like the 3DS
 - Newly downloaded games arrive as a gift on the home screen
 
 ### Controllers
