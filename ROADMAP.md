@@ -1,18 +1,101 @@
-# Roadmap: performance
+# Roadmap
 
-SteamU should feel the same on any hardware and any library size, and never get in the way of your games.
-Issue #1 (Steam freezing with very large libraries) is fixed in v0.1.5. Here is what comes next.
+No release dates are promised. Items under "Being considered" and "Later" are ideas we are exploring, not commitments.
 
-## Already done, coming in the next build
-- Tiles no longer flicker when changing the grid zoom or scrolling: a tile keeps its previous image until the new one is ready.
-- Animated tile artwork (optional setting) no longer turns white or flickers: its video pauses off screen instead of being destroyed.
-- The animated background no longer triggers needless work on every frame, and requests one frame per drawing.
+## v0.4: Smoothness and independence
 
-## Next
-1. **Only build the tiles near the screen.** Today every installed game gets a tile, even far off screen: with thousands of games and shortcuts, that weighs on memory. Tiles will be created a few screens ahead, in the direction you scroll, with their shape and colour first and the image right after, and kept for a while once built, so that even a fast touch scroll never shows empty tiles. This will be checked frame by frame on a simulated library of several thousand games before release.
-2. **Lighter first start on huge libraries.** The first launch prepares a small copy of every artwork (they are cached afterwards). This work will be spread out and limited to what you are about to see.
-3. **Lower CPU while the home screen is idle.** The animated background, animated tiles and Miis keep the screen busy. Options being evaluated: a calmer background frame rate, and pausing all animations after a while without input.
-4. **Zero cost while you play.** While a game runs, the home screen is hidden and its animations stop. This will be measured in real games and kept as close to zero as possible.
+### Smoothness
+- Smooth on less powerful handhelds (Steam Deck)
+- Lighter, reorganized code
+
+### SteamU independence on SteamOS
+- Our own pages, instead of restyling Steam's
+- SteamU keyboard
+- SteamU search page
+- Code ready to run beyond SteamOS
+
+### Home
+- Sorting on the home screen (#12)
+- Choose whether Xbox Cloud games appear
+
+### Controllers
+- Controllers page for up to 8 players
+- Switch 2 controller support
+- Pair a new controller from the Controllers page
+- Wake the console by turning on a controller
+
+### Notifications
+- In-game notifications restyled for SteamU (currently Steam's own)
+
+### Friends
+- Redesigned Friends page
+- Steamcord messages in the Friends page
+
+### Shop
+- Reworked game shop: more platforms
+
+### Lights
+- LED and effects page: automatic mode (screen, game, theme)
+
+### Mii
+- Automatic Mii import from emulators
+
+### Backup
+- Full SteamU backup
+- Transfer between consoles
+
+## v0.5 and beyond: being considered
+
+### Shop
+- Badge shop for the arcade machines
+- Compare prices between stores
+
+### Themes
+- Create your own themes
+
+### Achievements
+- Multi-platform achievements page (Steam and others)
+
+### Independence
+- Even more pages of our own (game properties, controller configuration…)
+
+### Controllers
+- Detached Legion Go controllers usable on their own, like Joy-Con
+
+### Users
+- Several users on the same console (#8)
+
+## Later: long-term projects
+
+### Two screens, Wii U style
+- Your handheld as a second screen for a PC or Steam Machine on the TV
+
+### Home
+- Save and load home screen layouts, like the 3DS
+- Newly downloaded games arrive as a gift on the home screen
+
+### Controllers
+- Gyro pointing, like the Wii Remote
+- Subtle vibrations in the interface
+- A use for the Legion Go 2's unused buttons (screenshot or video capture)
+
+### Non-Steam games
+- Play time for non-Steam games
+
+### Apps
+- Notes app, with drawing and per-game notes
+
+### Plaza and casino
+- Multi-floor casino building
+- Multiplayer between plazas
+
+### Windows
+- Windows compatibility
+
+### Standalone SteamU
+- Standalone SteamU, talking only to the system, without Steam's interface
+- Eventually, a ready-to-use console system built on SteamU
 
 ## How to help
-If SteamU is slow or unstable on your machine, open an issue and attach a diagnostic report (Quick Access → Decky → SteamU → *Diagnostic report*): it records your library size, Game Mode or Desktop Mode, and where the CPU goes.
+
+If SteamU is slow or unstable on your device, open an issue and attach a diagnostic report (Quick Access → Decky → SteamU → *Diagnostic report*).
