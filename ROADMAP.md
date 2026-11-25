@@ -79,7 +79,7 @@ No release dates are promised. Items under "Being considered" and "Later" are id
 - A use for the Legion Go 2's unused buttons (screenshot or video capture)
 
 ### Non-Steam games
-- Play time for non-Steam games
+- Play time for non-Steam games that is never lost, included in SteamU backups and transfers
 
 ### Apps
 - Notes app, with drawing and per-game notes
